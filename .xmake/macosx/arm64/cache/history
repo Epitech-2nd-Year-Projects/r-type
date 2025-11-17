@@ -1,0 +1,18 @@
+{
+    cmdlines = {
+        "xmake lua /Users/gregorsternat/.local/share/xmake/modules/private/utils/statistics.lua",
+        "xmake create engine",
+        "xmake create server",
+        "xmake create client",
+        "xmake create shared",
+        "xmake create tools",
+        "xmake ",
+        "xmake ",
+        "xmake lua /Users/gregorsternat/.local/share/xmake/actions/build/cleaner.lua",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake "
+    }
+}
