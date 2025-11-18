@@ -36,8 +36,12 @@ jobs:
 
       - name: Configure LLVM toolchain
         run: |
-          echo "${{ steps.install-llvm.outputs.LLVM_PATH }}/bin" >> $GITHUB_PATH
-          echo "LLVM_BINDIR=${{ steps.install-llvm.outputs.LLVM_PATH }}/bin" >> $GITHUB_ENV
+          LLVM_BIN_DIR="${{ steps.install-llvm.outputs.bin-path }}"
+          if [ -z "$LLVM_BIN_DIR" ]; then
+            LLVM_BIN_DIR="${{ steps.install-llvm.outputs.path }}/bin"
+          fi
+          echo "$LLVM_BIN_DIR" >> "$GITHUB_PATH"
+          echo "LLVM_BINDIR=$LLVM_BIN_DIR" >> "$GITHUB_ENV"
         shell: bash
 
       - name: Set execute permissions for scripts

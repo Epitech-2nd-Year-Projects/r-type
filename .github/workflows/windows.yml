@@ -37,7 +37,12 @@ jobs:
       - name: Configure LLVM toolchain
         shell: pwsh
         run: |
-          "${{ steps.install-llvm.outputs.LLVM_PATH }}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $binDir = "${{ steps.install-llvm.outputs.bin-path }}"
+          if (-not $binDir) {
+            $binDir = Join-Path "${{ steps.install-llvm.outputs.path }}" "bin"
+          }
+          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "LLVM_BINDIR=$binDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build
         run: bash scripts/build.sh
