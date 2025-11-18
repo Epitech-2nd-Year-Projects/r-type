@@ -8,7 +8,7 @@ set_warnings("all")
 set_policy("package.requires_lock", true)
 
 if is_plat("windows") then
-	set_toolset("ar", "llvm-ar") -- llvm installs llvm-ar instead of ar.exe on Windows
+	set_toolset("ar", "llvm-lib")
 end
 
 includes("engine", "server", "client", "protocol", "game_logic")
