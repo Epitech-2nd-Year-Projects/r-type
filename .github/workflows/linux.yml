@@ -1,0 +1,53 @@
+name: Linux CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      LLVM_VERSION: "19.1.7"
+      CC: clang
+      CXX: clang++
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
+
+      - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          LLVM_MAJOR="${LLVM_VERSION%%.*}"
+          curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh "$LLVM_MAJOR" all
+          LLVM_BIN_DIR="/usr/lib/llvm-${LLVM_MAJOR}/bin"
+          echo "$LLVM_BIN_DIR" >> "$GITHUB_PATH"
+          echo "LLVM_BINDIR=$LLVM_BIN_DIR" >> "$GITHUB_ENV"
+
+      - name: Set execute permissions for scripts
+        run: chmod +x scripts/*.sh
+
+      - name: Build
+        run: ./scripts/build.sh
+
+      - name: Test
+        run: ./scripts/test.sh
+
+      - name: Check format
+        run: ./scripts/format-check.sh
