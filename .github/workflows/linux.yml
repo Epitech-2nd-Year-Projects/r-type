@@ -1,0 +1,28 @@
+name: Linux CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: latest
+        build-cache: true
+
+    - name: Set execute permissions for scripts
+      run: chmod +x scripts/*.sh
+
+    - name: Build
+      run: ./scripts/build.sh
+
+    - name: Test
+      run: ./scripts/test.sh
+
+    - name: Check format
+      run: ./scripts/format-check.sh

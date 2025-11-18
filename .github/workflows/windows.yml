@@ -1,0 +1,25 @@
+name: Windows CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: latest
+        build-cache: true
+
+    - name: Build
+      run: scripts\build.bat
+
+    - name: Test
+      run: scripts\test.bat
+
+    - name: Check format
+      run: scripts\format-check.bat
