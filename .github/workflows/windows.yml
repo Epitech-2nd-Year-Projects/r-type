@@ -7,19 +7,22 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup xmake
-      uses: xmake-io/github-action-setup-xmake@v1
-      with:
-        xmake-version: latest
-        build-cache: true
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
 
-    - name: Build
-      run: scripts\build.bat
+      - name: Install clang-format
+        run: choco install llvm --version=12.0.0 -y
 
-    - name: Test
-      run: scripts\test.bat
+      - name: Build
+        run: bash scripts/build.sh
 
-    - name: Check format
-      run: scripts\format-check.bat
+      - name: Test
+        run: bash scripts/test.sh
+
+      - name: Check format
+        run: bash scripts/format-check.sh

@@ -7,22 +7,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup xmake
-      uses: xmake-io/github-action-setup-xmake@v1
-      with:
-        xmake-version: latest
-        build-cache: true
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
 
-    - name: Set execute permissions for scripts
-      run: chmod +x scripts/*.sh
+      - name: Install clang-format
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format-12
+          sudo ln -s /usr/bin/clang-format-12 /usr/bin/clang-format
 
-    - name: Build
-      run: ./scripts/build.sh
+      - name: Set execute permissions for scripts
+        run: chmod +x scripts/*.sh
 
-    - name: Test
-      run: ./scripts/test.sh
+      - name: Build
+        run: ./scripts/build.sh
 
-    - name: Check format
-      run: ./scripts/format-check.sh
+      - name: Test
+        run: ./scripts/test.sh
+
+      - name: Check format
+        run: ./scripts/format-check.sh
