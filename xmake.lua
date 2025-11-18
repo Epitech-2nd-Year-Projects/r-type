@@ -7,9 +7,13 @@ set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
 
+if is_plat("windows") then
+	set_toolset("ar", "llvm-ar") -- llvm installs llvm-ar instead of ar.exe on Windows
+end
+
 includes("engine", "server", "client", "protocol", "game_logic")
 
 target("r-type")
-    set_kind("phony")
-    set_default(false)
-    add_deps("engine", "server", "client", "protocol", "game_logic")
+set_kind("phony")
+set_default(false)
+add_deps("engine", "server", "client", "protocol", "game_logic")

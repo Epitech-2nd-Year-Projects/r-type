@@ -12,8 +12,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      LLVM_VERSION: "19.1.7"
       CC: clang
       CXX: clang++
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
 
     steps:
       - uses: actions/checkout@v4
@@ -24,29 +28,15 @@ jobs:
           xmake-version: latest
           build-cache: true
 
-      - name: Cache apt packages
-        uses: actions/cache@v4
+      - name: Install LLVM ${{ env.LLVM_VERSION }}
+        id: install-llvm
+        uses: KyleMayes/install-llvm-action@v1
         with:
-          path: |
-            /var/cache/apt
-            /var/lib/apt
-          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/linux.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
+          version: ${{ env.LLVM_VERSION }}
 
-      - name: Install latest clang toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends curl wget gnupg software-properties-common lsb-release ca-certificates
-          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang clang-format lld lldb
-          CLANG_VERSION=$(clang --version | awk 'NR==1 {print $3}' | cut -d. -f1)
-          CLANG_FORMAT_VERSION=$(clang-format --version | awk '{print $3}' | cut -d. -f1)
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 100
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_VERSION} 100
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${CLANG_FORMAT_VERSION} 100
+      - name: Configure LLVM toolchain
+        run: echo "${{ steps.install-llvm.outputs.LLVM_PATH }}/bin" >> $GITHUB_PATH
+        shell: bash
 
       - name: Set execute permissions for scripts
         run: chmod +x scripts/*.sh

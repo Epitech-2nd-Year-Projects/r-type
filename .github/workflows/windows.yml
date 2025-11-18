@@ -12,8 +12,12 @@ jobs:
   build:
     runs-on: windows-latest
     env:
+      LLVM_VERSION: "19.1.7"
       CC: clang
       CXX: clang++
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
 
     steps:
       - uses: actions/checkout@v4
@@ -24,18 +28,16 @@ jobs:
           xmake-version: latest
           build-cache: true
 
-      - name: Cache choco packages
-        uses: actions/cache@v4
+      - name: Install LLVM ${{ env.LLVM_VERSION }}
+        id: install-llvm
+        uses: KyleMayes/install-llvm-action@v1
         with:
-          path: C:\ProgramData\chocolatey\lib
-          key: ${{ runner.os }}-choco-${{ hashFiles('.github/workflows/windows.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-choco-
+          version: ${{ env.LLVM_VERSION }}
 
-      - name: Install latest LLVM toolchain
+      - name: Configure LLVM toolchain
+        shell: pwsh
         run: |
-          choco upgrade llvm -y --no-progress
-          refreshenv
+          "${{ steps.install-llvm.outputs.LLVM_PATH }}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Build
         run: bash scripts/build.sh
