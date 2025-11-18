@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      CC: clang
+      CXX: clang++
 
     steps:
       - uses: actions/checkout@v4
@@ -22,15 +25,17 @@ jobs:
           build-cache: true
 
       - name: Cache choco packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: C:\ProgramData\chocolatey\lib
-          key: ${{ runner.os }}-choco-${{ hashFiles('**/lockfiles') }}-${{ secrets.CACHE_VERSION || github.run_id }}
+          key: ${{ runner.os }}-choco-${{ hashFiles('.github/workflows/windows.yml') }}
           restore-keys: |
-            ${{ runner.os }}-choco-${{ hashFiles('**/lockfiles') }}-
+            ${{ runner.os }}-choco-
 
-      - name: Install clang-format
-        run: choco install llvm --version=12.0.0 -y
+      - name: Install latest LLVM toolchain
+        run: |
+          choco upgrade llvm -y --no-progress
+          refreshenv
 
       - name: Build
         run: bash scripts/build.sh

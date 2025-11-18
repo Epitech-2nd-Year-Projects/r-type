@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
 
     steps:
       - uses: actions/checkout@v4
@@ -22,19 +25,28 @@ jobs:
           build-cache: true
 
       - name: Cache apt packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             /var/cache/apt
             /var/lib/apt
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}-${{- secrets.CACHE_VERSION || github.run_id }}
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/linux.yml') }}
           restore-keys: |
-            ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}-
+            ${{ runner.os }}-apt-
 
-      - name: Install clang-format
+      - name: Install latest clang toolchain
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-12
-          sudo ln -s /usr/bin/clang-format-12 /usr/bin/clang-format
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl wget gnupg software-properties-common lsb-release ca-certificates
+          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang clang-format lld lldb
+          CLANG_VERSION=$(clang --version | awk 'NR==1 {print $3}' | cut -d. -f1)
+          CLANG_FORMAT_VERSION=$(clang-format --version | awk '{print $3}' | cut -d. -f1)
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_VERSION} 100
+          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${CLANG_FORMAT_VERSION} 100
 
       - name: Set execute permissions for scripts
         run: chmod +x scripts/*.sh
