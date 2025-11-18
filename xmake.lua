@@ -7,9 +7,9 @@ set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
 
-includes("shared", "engine", "server", "client", "tools")
+includes("engine", "server", "client", "protocol", "game_logic")
 
 target("r-type")
     set_kind("phony")
     set_default(false)
-    add_deps("shared", "engine", "server", "client", "tools")
+    add_deps("engine", "server", "client", "protocol", "game_logic")
