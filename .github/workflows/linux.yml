@@ -30,7 +30,7 @@ jobs:
 
       - name: Install LLVM ${{ env.LLVM_VERSION }}
         id: install-llvm
-        uses: KyleMayes/install-llvm-action@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
           version: ${{ env.LLVM_VERSION }}
 
