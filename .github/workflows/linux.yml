@@ -1,6 +1,12 @@
 name: Linux CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -14,6 +20,16 @@ jobs:
         with:
           xmake-version: latest
           build-cache: true
+
+      - name: Cache apt packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}-${{- secrets.CACHE_VERSION || github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}-
 
       - name: Install clang-format
         run: |

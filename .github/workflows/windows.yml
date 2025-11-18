@@ -1,6 +1,12 @@
 name: Windows CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -14,6 +20,14 @@ jobs:
         with:
           xmake-version: latest
           build-cache: true
+
+      - name: Cache choco packages
+        uses: actions/cache@v3
+        with:
+          path: C:\ProgramData\chocolatey\lib
+          key: ${{ runner.os }}-choco-${{ hashFiles('**/lockfiles') }}-${{ secrets.CACHE_VERSION || github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-choco-${{ hashFiles('**/lockfiles') }}-
 
       - name: Install clang-format
         run: choco install llvm --version=12.0.0 -y
