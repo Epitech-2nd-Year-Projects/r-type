@@ -28,21 +28,17 @@ jobs:
           xmake-version: latest
           build-cache: true
 
-      - name: Install LLVM ${{ env.LLVM_VERSION }}
-        id: install-llvm
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: ${{ env.LLVM_VERSION }}
-
-      - name: Configure LLVM toolchain
+      - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
+        shell: bash
         run: |
-          LLVM_BIN_DIR="${{ steps.install-llvm.outputs.bin-path }}"
-          if [ -z "$LLVM_BIN_DIR" ]; then
-            LLVM_BIN_DIR="${{ steps.install-llvm.outputs.path }}/bin"
-          fi
+          set -euo pipefail
+          LLVM_MAJOR="${LLVM_VERSION%%.*}"
+          curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh "$LLVM_MAJOR" all
+          LLVM_BIN_DIR="/usr/lib/llvm-${LLVM_MAJOR}/bin"
           echo "$LLVM_BIN_DIR" >> "$GITHUB_PATH"
           echo "LLVM_BINDIR=$LLVM_BIN_DIR" >> "$GITHUB_ENV"
-        shell: bash
 
       - name: Set execute permissions for scripts
         run: chmod +x scripts/*.sh

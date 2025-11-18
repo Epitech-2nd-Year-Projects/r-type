@@ -28,18 +28,14 @@ jobs:
           xmake-version: latest
           build-cache: true
 
-      - name: Install LLVM ${{ env.LLVM_VERSION }}
-        id: install-llvm
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: ${{ env.LLVM_VERSION }}
-
-      - name: Configure LLVM toolchain
+      - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
         shell: pwsh
         run: |
-          $binDir = "${{ steps.install-llvm.outputs.bin-path }}"
-          if (-not $binDir) {
-            $binDir = Join-Path "${{ steps.install-llvm.outputs.path }}" "bin"
+          $version = "${{ env.LLVM_VERSION }}"
+          choco install llvm --version $version --allow-downgrade --no-progress -y
+          $binDir = "C:\Program Files\LLVM\bin"
+          if (-not (Test-Path $binDir)) {
+            throw "Expected LLVM bin directory '$binDir' was not found."
           }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "LLVM_BINDIR=$binDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
