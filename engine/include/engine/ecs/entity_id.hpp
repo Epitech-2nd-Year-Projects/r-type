@@ -6,16 +6,22 @@ namespace engine::ecs {
 class EntityId {
  private:
   std::size_t id_;
-  friend class registry;
+  friend class Registry;
 
-  explicit EntityId(std::size_t id) noexcept : id(id) {}
+  explicit EntityId(std::size_t id) noexcept : id_(id) {}
 
  public:
-  operator std::size_t() const noexcept { return id; }
+  operator std::size_t() const noexcept { return id_; }
 
-  bool operator==(const Entity &other) const noexcept { return id == other.id; }
-  bool operator!=(const Entity &other) const noexcept { return id != other.id; }
-  bool operator<(const Entity &other) const noexcept { return id < other.id; }
+  bool operator==(const EntityId &other) const noexcept {
+    return id_ == other.id_;
+  }
+  bool operator!=(const EntityId &other) const noexcept {
+    return id_ != other.id_;
+  }
+  bool operator<(const EntityId &other) const noexcept {
+    return id_ < other.id_;
+  }
 };
 }  // namespace engine::ecs
 
