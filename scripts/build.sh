@@ -9,7 +9,7 @@ if [[ "${CI:-}" == "true" && "$(uname -s)" == "Linux" ]]; then
 fi
 
 if [[ "${OS:-}" == "Windows_NT" ]]; then
-  xmake f -y -p windows -a x64 -m release --toolchain=clang --ar=llvm-ar
+  xmake f -y -p windows -a x64 -m release
 fi
 
 xmake -y
