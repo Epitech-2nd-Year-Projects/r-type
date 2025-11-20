@@ -13,9 +13,9 @@ class SparseArray {
   using ReferenceType = ValueType &;
   using ConstReferenceType = ValueType const &;
   using Container_t = std::vector<ValueType>;
-  using SizeType = typename Container_t::SizeType;
-  using Iterator = typename Container_t::Iterator;
-  using ConstIterator = typename Container_t::ConstIterator;
+  using SizeType = typename Container_t::size_type;
+  using Iterator = typename Container_t::iterator;
+  using ConstIterator = typename Container_t::const_iterator;
 
  public:
   SparseArray() = default;
