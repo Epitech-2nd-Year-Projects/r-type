@@ -39,7 +39,8 @@ namespace engine::ecs {
  * - **Component Lifecycle**: Attach, detach, and retrieve components
  * - **System Management**: Register and execute systems
  *
- * Registry uses type erasure (std::any) to store heterogeneous component arrays.
+ * Registry uses type erasure (std::any) to store heterogeneous component
+ * arrays.
  *
  * @section usage Usage Example
  * @code
@@ -159,8 +160,8 @@ class Registry {
    * @return EntityId of the newly created entity
    *
    * @details
-   * Creates a new entity with a unique ID. The entity initially has no components.
-   * Entity IDs are assigned sequentially starting from 0.
+   * Creates a new entity with a unique ID. The entity initially has no
+   * components. Entity IDs are assigned sequentially starting from 0.
    *
    * @example
    * @code
@@ -186,9 +187,9 @@ class Registry {
    * @param e EntityId to destroy
    *
    * @details
-   * Removes all components associated with the entity by setting them to nullopt.
-   * The entity ID becomes invalid after this call. Calling this multiple times
-   * with the same entity is safe (subsequent calls do nothing).
+   * Removes all components associated with the entity by setting them to
+   * nullopt. The entity ID becomes invalid after this call. Calling this
+   * multiple times with the same entity is safe (subsequent calls do nothing).
    *
    * @example
    * @code
@@ -300,8 +301,9 @@ class Registry {
    * @param extra_args Additional arguments to pass to system
    *
    * @details
-   * Registers a system that will be executed by RunSystems(). The system function
-   * receives the Registry and SparseArray references for each specified component type.
+   * Registers a system that will be executed by RunSystems(). The system
+   * function receives the Registry and SparseArray references for each
+   * specified component type.
    *
    * @example
    * @code

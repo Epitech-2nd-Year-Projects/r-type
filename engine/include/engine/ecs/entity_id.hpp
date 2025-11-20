@@ -5,9 +5,10 @@
  * @version 1.0.0
  *
  * @details
- * EntityId provides a type-safe wrapper around size_t to represent entity identifiers.
- * This prevents accidental mixing of entity IDs with other numeric values and enables
- * the use of EntityId in containers like std::map and std::set.
+ * EntityId provides a type-safe wrapper around size_t to represent entity
+ * identifiers. This prevents accidental mixing of entity IDs with other numeric
+ * values and enables the use of EntityId in containers like std::map and
+ * std::set.
  */
 
 #ifndef ENGINE_ECS_ENTITY_ID_H_
@@ -29,8 +30,9 @@ namespace engine::ecs {
  * - Implicit conversion to size_t for indexing
  * - Hash support for use in unordered containers
  *
- * @note EntityId instances should only be created through Registry::SpawnEntity()
- * or Registry::EntityFromIndex(). Manual construction is not recommended.
+ * @note EntityId instances should only be created through
+ * Registry::SpawnEntity() or Registry::EntityFromIndex(). Manual construction
+ * is not recommended.
  *
  * @example
  * @code
@@ -105,7 +107,9 @@ class EntityId {
    * This operator enables EntityId to be used in sorted containers
    * like std::map and std::set.
    */
-  bool operator<(const EntityId& other) const noexcept { return id_ < other.id_; }
+  bool operator<(const EntityId& other) const noexcept {
+    return id_ < other.id_;
+  }
 };
 
 }  // namespace engine::ecs

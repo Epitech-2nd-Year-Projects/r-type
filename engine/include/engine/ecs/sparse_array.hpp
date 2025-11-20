@@ -190,8 +190,8 @@ class SparseArray {
    * @return Reference to inserted component (wrapped in optional)
    *
    * @details
-   * If pos >= size(), automatically resizes the array to accommodate the new index.
-   * The new array slots are filled with nullopt.
+   * If pos >= size(), automatically resizes the array to accommodate the new
+   * index. The new array slots are filled with nullopt.
    *
    * @example
    * @code
@@ -212,7 +212,8 @@ class SparseArray {
    * @return Reference to inserted component (wrapped in optional)
    *
    * @details
-   * If pos >= size(), automatically resizes the array to accommodate the new index.
+   * If pos >= size(), automatically resizes the array to accommodate the new
+   * index.
    */
   ReferenceType InsertAt(SizeType pos, Component&& comp) {
     if (pos >= data_.size()) data_.resize(pos + 1);
