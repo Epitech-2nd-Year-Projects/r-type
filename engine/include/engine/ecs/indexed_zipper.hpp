@@ -103,10 +103,6 @@ class IndexedZipper {
     size_ = ComputeSize(cs...);
   }
 
-  Iterator Begin() { return Iterator(begin_, size_); }
-
-  Iterator End() { return Iterator(begin_, size_, size_); }
-
   Iterator begin() { return Iterator(begin_, size_); }
 
   Iterator end() { return Iterator(begin_, size_, size_); }

@@ -27,15 +27,15 @@ class SparseArray {
 
   ReferenceType operator[](size_t idx) { return data_[idx]; }
   ConstReferenceType operator[](size_t idx) const { return data_[idx]; }
-  Iterator Begin() { return data_.begin(); };
-  ConstIterator Begin() const { return data_.begin(); };
-  ConstIterator CBegin() const { return data_.cbegin(); };
+  Iterator begin() { return data_.begin(); };
+  ConstIterator begin() const { return data_.begin(); };
+  ConstIterator cbegin() const { return data_.cbegin(); };
 
-  Iterator End() { return data_.end(); };
-  ConstIterator End() const { return data_.end(); };
-  ConstIterator CEnd() const { return data_.cend(); };
+  Iterator end() { return data_.end(); };
+  ConstIterator end() const { return data_.end(); };
+  ConstIterator cend() const { return data_.cend(); };
 
-  SizeType Size() const { return data_.size(); };
+  SizeType size() const { return data_.size(); };
 
   ReferenceType InsertAt(SizeType pos, Component const &comp) {
     if (pos >= data_.size()) data_.resize(pos + 1);
