@@ -13,7 +13,7 @@ class Zipper;
 template <class... Containers>
 class ZipperIterator {
   template <class Container>
-  using IteratorT = decltype(std::declval<Container>().Begin());
+  using IteratorT = decltype(std::declval<Container>().begin());
 
   template <class Container>
   using ItReferenceT = typename IteratorT<Container>::reference;
@@ -94,7 +94,7 @@ class Zipper {
   using IteratorTuple = typename Iterator::IteratorTuple;
 
   Zipper(Containers&... cs) {
-    begin_ = std::make_tuple(cs.Begin()...);
+    begin_ = std::make_tuple(cs.begin()...);
     end_ = ComputeEnd(cs...);
     size_ = ComputeSize(cs...);
   }
@@ -105,11 +105,11 @@ class Zipper {
 
  private:
   static size_t ComputeSize(Containers&... containers) {
-    return std::min({containers.Size()...});
+    return std::min({containers.size()...});
   }
 
   static IteratorTuple ComputeEnd(Containers&... containers) {
-    return std::make_tuple(containers.End()...);
+    return std::make_tuple(containers.end()...);
   }
 
   IteratorTuple begin_;
