@@ -21,7 +21,7 @@ class Registry {
 
     if (components_arrays_.find(type_idx) == components_arrays_.end()) {
       components_arrays_[type_idx] = SparseArray<Component>();
-      component_deleters_.push_back([](Registry& reg, const Entity& e) {
+      component_deleters_.push_back([](Registry& reg, const EntityId& e) {
         auto& components = reg.GetComponents<Component>();
         components.Erase(static_cast<std::size_t>(e));
       });
@@ -49,11 +49,11 @@ class Registry {
     return std::any_cast<const SparseArray<Component>&>(it->second);
   }
 
-  Entity SpawnEntity() noexcept { return Entity(next_entity_id_++); }
+  EntityId SpawnEntity() noexcept { return EntityId(next_entity_id_++); }
 
-  Entity EntityFromIndex(std::size_t idx) noexcept { return Entity(idx); }
+  EntityId EntityFromIndex(std::size_t idx) noexcept { return EntityId(idx); }
 
-  void KillEntity(const Entity& e) {
+  void KillEntity(const EntityId& e) {
     for (auto& deleter : component_deleters_) {
       deleter(*this, e);
     }
@@ -61,7 +61,7 @@ class Registry {
 
   template <typename Component>
   typename SparseArray<Component>::ReferenceType AddComponent(
-      const Entity& to, Component&& component) {
+      const EntityId& to, Component&& component) {
     auto& components = GetComponents<Component>();
     return components.InsertAt(static_cast<std::size_t>(to),
                                std::forward<Component>(component));
@@ -69,30 +69,56 @@ class Registry {
 
   template <typename Component>
   typename SparseArray<Component>::ReferenceType AddComponent(
-      const Entity& to, const Component& component) {
+      const EntityId& to, const Component& component) {
     auto& components = GetComponents<Component>();
     return components.InsertAt(static_cast<std::size_t>(to), component);
   }
 
   template <typename Component, typename... Params>
   typename SparseArray<Component>::ReferenceType EmplaceComponent(
-      const Entity& to, Params&&... params) {
+      const EntityId& to, Params&&... params) {
     auto& components = GetComponents<Component>();
     return components.EmplaceAt(static_cast<std::size_t>(to),
                                 std::forward<Params>(params)...);
   }
 
   template <typename Component>
-  void RemoveComponent(const Entity& from) {
+  void RemoveComponent(const EntityId& from) {
     auto& components = GetComponents<Component>();
     components.Erase(static_cast<std::size_t>(from));
   }
 
+  template <class... Components, typename Function, typename... ExtraArgs>
+  void AddSystem(Function&& f, ExtraArgs&&... extra_args) {
+    auto system_wrapper = [f = std::forward<Function>(f),
+                           extra = std::make_tuple(std::forward<ExtraArgs>(
+                               extra_args)...)](Registry& reg) {
+      auto comp_arrays =
+          std::make_tuple(std::ref(reg.GetComponents<Components>())...);
+
+      std::apply(
+          [&](auto&... arrays) {
+            std::apply(
+                [&](auto&&... extra_vals) { f(reg, arrays..., extra_vals...); },
+                extra);
+          },
+          comp_arrays);
+    };
+    systems_.push_back(system_wrapper);
+  }
+
+  void RunSystems() {
+    for (auto& system : systems_) {
+      system(*this);
+    }
+  }
+
  private:
   std::unordered_map<std::type_index, std::any> components_arrays_;
-  std::vector<std::function<void(Registry&, const Entity&)>>
+  std::vector<std::function<void(Registry&, const EntityId&)>>
       component_deleters_;
   std::size_t next_entity_id_ = 0;
+  std::vector<std::function<void(Registry&)>> systems_;
 };
 
 }  // namespace engine::ecs
