@@ -1,0 +1,39 @@
+{
+    __meta__ = {
+        version = "1.0"
+    },
+    ["macosx|arm64"] = {
+        ["cmake >=3.11#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://gitlab.com/tboox/xmake-repo.git"
+            },
+            version = "4.0.3"
+        },
+        ["ninja#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://gitlab.com/tboox/xmake-repo.git"
+            },
+            version = "v1.13.1"
+        },
+        ["opengl#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://gitlab.com/tboox/xmake-repo.git"
+            },
+            version = "latest"
+        },
+        ["raylib#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://gitlab.com/tboox/xmake-repo.git"
+            },
+            version = "5.5"
+        }
+    }
+}
