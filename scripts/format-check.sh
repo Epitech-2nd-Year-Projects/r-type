@@ -8,8 +8,15 @@ fi
 echo "clang-format available at: $(command -v clang-format)"
 clang-format --version
 
-if [[ "${OS:-}" == "Windows_NT" ]]; then
-  xmake f -p windows -a x64 -m release --toolchain=clang
+if [[ "${CI:-}" == "true" && "$(uname -s)" == "Linux" ]]; then
+  sudo apt-get update
+  sudo apt-get install -y --no-install-recommends \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev
 fi
 
-xmake format --dry-run
+if [[ "${OS:-}" == "Windows_NT" ]]; then
+  xmake f -y -p windows -a x64 -m release
+fi
+
+xmake -y format --dry-run
