@@ -17,3 +17,7 @@ target("r-type")
 set_kind("phony")
 set_default(false)
 add_deps("engine", "server", "client", "protocol", "game_logic")
+
+if os.getenv("BUILD_BENCHMARKS") then
+    includes("benchmarks/engine")
+end
