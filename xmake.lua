@@ -11,7 +11,7 @@ if is_plat("windows") then
 	set_toolset("ar", "llvm-ar")
 end
 
-includes("engine", "server", "client", "protocol", "game_logic")
+includes("engine", "server", "client", "protocol", "game_logic", "benchmarks/engine")
 
 target("r-type")
 set_kind("phony")
