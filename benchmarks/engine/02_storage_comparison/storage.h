@@ -1,5 +1,5 @@
-#ifndef STORAGE_COMPARISON_HPP
-#define STORAGE_COMPARISON_HPP
+#ifndef BENCH_STORAGE_H
+#define BENCH_STORAGE_H
 
 #include <optional>
 #include <vector>

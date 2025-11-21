@@ -1,5 +1,5 @@
-#ifndef BENCH_OOP_HPP
-#define BENCH_OOP_HPP
+#ifndef BENCH_OOP_H
+#define BENCH_OOP_H
 
 #include <memory>
 #include <vector>

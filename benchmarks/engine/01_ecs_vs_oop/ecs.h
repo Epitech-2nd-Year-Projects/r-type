@@ -1,5 +1,5 @@
-#ifndef BENCH_ECS_HPP
-#define BENCH_ECS_HPP
+#ifndef BENCH_ECS_H
+#define BENCH_ECS_H
 
 #include <functional>
 #include <optional>
