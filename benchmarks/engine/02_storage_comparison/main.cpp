@@ -1,7 +1,7 @@
+#include "storage.h"
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include "storage.h"
 
 void RunSparseArrayDemo() {
   std::cout << "SPARSE ARRAY (1000 components, 100 iterations)\n";
@@ -18,7 +18,7 @@ void RunSparseArrayDemo() {
 
   for (int iter = 0; iter < 100; ++iter) {
     volatile float sum = 0;
-    for (auto& opt : storage) {
+    for (auto &opt : storage) {
       if (opt.has_value()) {
         sum += opt.value().x;
       }
@@ -53,7 +53,7 @@ void RunDenseArrayDemo() {
 
   for (int iter = 0; iter < 100; ++iter) {
     volatile float sum = 0;
-    for (const auto& comp : storage) {
+    for (const auto &comp : storage) {
       sum += comp.x;
     }
   }
@@ -87,7 +87,7 @@ void RunPackedArrayDemo() {
   for (int iter = 0; iter < 100; ++iter) {
     auto active = storage.get_active();
     volatile float sum = 0;
-    for (const auto& comp : active) {
+    for (const auto &comp : active) {
       sum += comp.x;
     }
   }
@@ -120,7 +120,7 @@ void RunLinkedListDemo() {
 
   for (int iter = 0; iter < 100; ++iter) {
     volatile float sum = 0;
-    for (const auto& comp : storage) {
+    for (const auto &comp : storage) {
       sum += comp.x;
     }
   }

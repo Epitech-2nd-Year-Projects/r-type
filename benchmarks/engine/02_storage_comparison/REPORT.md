@@ -339,9 +339,9 @@ loop.
 ## How to Run Storage Comparison Benchmarks
 
 ```bash
-xmake build storage_comparison_poc
-xmake build storage_comparison_benchmark
+BUILD_BENCHMARKS=1 xmake build storage_comparison_poc
+BUILD_BENCHMARKS=1xmake build storage_comparison_benchmark
 
-xmake run storage_comparison_poc
-xmake run storage_comparison_benchmark
+BUILD_BENCHMARKS=1 xmake run storage_comparison_poc
+BUILD_BENCHMARKS=1 xmake run storage_comparison_benchmark
 ```

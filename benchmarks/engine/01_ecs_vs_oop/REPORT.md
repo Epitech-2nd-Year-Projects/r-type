@@ -273,11 +273,11 @@ larger performance differences due to more aggressive optimizations.
 ## How to Run Benchmarks
 
 ```bash
-xmake build ecs_vs_oop_poc
-xmake build ecs_vs_oop_benchmark
+BUILD_BENCHMARKS=1 xmake build ecs_vs_oop_poc
+BUILD_BENCHMARKS=1 xmake build ecs_vs_oop_benchmark
 
-xmake run ecs_vs_oop_poc
-xmake run ecs_vs_oop_benchmark
+BUILD_BENCHMARKS=1 xmake run ecs_vs_oop_poc
+BUILD_BENCHMARKS=1 xmake run ecs_vs_oop_benchmark
 ```
 
 ---

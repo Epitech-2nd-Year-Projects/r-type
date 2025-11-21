@@ -11,9 +11,13 @@ if is_plat("windows") then
 	set_toolset("ar", "llvm-ar")
 end
 
-includes("engine", "server", "client", "protocol", "game_logic", "benchmarks/engine")
+includes("engine", "server", "client", "protocol", "game_logic")
 
 target("r-type")
 set_kind("phony")
 set_default(false)
 add_deps("engine", "server", "client", "protocol", "game_logic")
+
+if os.getenv("BUILD_BENCHMARKS") then
+    includes("benchmarks/engine")
+end

@@ -1,7 +1,7 @@
 #include "storage.h"
 #include <benchmark/benchmark.h>
 
-static void BM_SparseArray_Insert(benchmark::State& state) {
+static void BM_SparseArray_Insert(benchmark::State &state) {
   const int count = state.range(0);
   SparseArrayStorage<Component> storage;
 
@@ -15,7 +15,7 @@ static void BM_SparseArray_Insert(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_SparseArray_Iterate(benchmark::State& state) {
+static void BM_SparseArray_Iterate(benchmark::State &state) {
   const int count = state.range(0);
   SparseArrayStorage<Component> storage;
 
@@ -25,7 +25,7 @@ static void BM_SparseArray_Iterate(benchmark::State& state) {
 
   for (auto _ : state) {
     volatile float sum = 0;
-    for (auto& opt : storage) {
+    for (auto &opt : storage) {
       if (opt.has_value()) {
         sum += opt.value().x;
       }
@@ -36,7 +36,7 @@ static void BM_SparseArray_Iterate(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_DenseArray_Insert(benchmark::State& state) {
+static void BM_DenseArray_Insert(benchmark::State &state) {
   const int count = state.range(0);
   DenseArrayStorage<Component> storage;
 
@@ -50,7 +50,7 @@ static void BM_DenseArray_Insert(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_DenseArray_Iterate(benchmark::State& state) {
+static void BM_DenseArray_Iterate(benchmark::State &state) {
   const int count = state.range(0);
   DenseArrayStorage<Component> storage;
 
@@ -60,7 +60,7 @@ static void BM_DenseArray_Iterate(benchmark::State& state) {
 
   for (auto _ : state) {
     volatile float sum = 0;
-    for (const auto& comp : storage) {
+    for (const auto &comp : storage) {
       sum += comp.x;
     }
     benchmark::DoNotOptimize(sum);
@@ -69,7 +69,7 @@ static void BM_DenseArray_Iterate(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_PackedArray_Insert(benchmark::State& state) {
+static void BM_PackedArray_Insert(benchmark::State &state) {
   const int count = state.range(0);
   PackedArrayStorage<Component> storage;
 
@@ -83,7 +83,7 @@ static void BM_PackedArray_Insert(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_PackedArray_Iterate(benchmark::State& state) {
+static void BM_PackedArray_Iterate(benchmark::State &state) {
   const int count = state.range(0);
   PackedArrayStorage<Component> storage;
 
@@ -94,7 +94,7 @@ static void BM_PackedArray_Iterate(benchmark::State& state) {
   for (auto _ : state) {
     auto active = storage.get_active();
     volatile float sum = 0;
-    for (const auto& comp : active) {
+    for (const auto &comp : active) {
       sum += comp.x;
     }
     benchmark::DoNotOptimize(sum);
@@ -103,7 +103,7 @@ static void BM_PackedArray_Iterate(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * storage.active_count());
 }
 
-static void BM_LinkedList_Insert(benchmark::State& state) {
+static void BM_LinkedList_Insert(benchmark::State &state) {
   const int count = state.range(0);
   LinkedListStorage<Component> storage;
 
@@ -117,7 +117,7 @@ static void BM_LinkedList_Insert(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-static void BM_LinkedList_Iterate(benchmark::State& state) {
+static void BM_LinkedList_Iterate(benchmark::State &state) {
   const int count = state.range(0);
   LinkedListStorage<Component> storage;
 
@@ -127,7 +127,7 @@ static void BM_LinkedList_Iterate(benchmark::State& state) {
 
   for (auto _ : state) {
     volatile float sum = 0;
-    for (const auto& comp : storage) {
+    for (const auto &comp : storage) {
       sum += comp.x;
     }
     benchmark::DoNotOptimize(sum);
