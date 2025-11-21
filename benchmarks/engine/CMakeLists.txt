@@ -19,3 +19,4 @@ FetchContent_Declare(benchmark
 FetchContent_MakeAvailable(benchmark)
 
 add_subdirectory(01_ecs_vs_oop)
+add_subdirectory(02_storage_comparison)
