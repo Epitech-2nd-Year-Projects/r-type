@@ -1,7 +1,6 @@
 /**
  * @file zipper.hpp
  * @brief Multi-component iteration without entity indices
- * @author Enzo Gallini
  * @version 1.0.0
  *
  * @details

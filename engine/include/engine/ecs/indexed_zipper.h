@@ -1,7 +1,6 @@
 /**
  * @file indexed_zipper.hpp
  * @brief Multi-component iteration with entity indices
- * @author Enzo Gallini
  * @version 1.0.0
  *
  * @details

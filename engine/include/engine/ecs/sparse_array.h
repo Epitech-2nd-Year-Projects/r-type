@@ -1,7 +1,6 @@
 /**
  * @file sparse_array.hpp
  * @brief Efficient component storage using optional values
- * @author Enzo Gallini
  * @version 1.0.0
  *
  * @details

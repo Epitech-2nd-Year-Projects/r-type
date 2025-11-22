@@ -1,7 +1,6 @@
 /**
  * @file registry.hpp
  * @brief Central ECS component and system management
- * @author Enzo Gallini
  * @version 1.0.0
  *
  * @details

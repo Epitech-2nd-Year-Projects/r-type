@@ -1,7 +1,6 @@
 /**
  * @file entity_id.hpp
  * @brief Type-safe Entity Identification
- * @author Enzo Gallini
  * @version 1.0.0
  *
  * @details
