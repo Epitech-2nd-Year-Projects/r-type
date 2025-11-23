@@ -1,7 +1,8 @@
-#include "storage.h"
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+
+#include "storage.h"
 
 void RunSparseArrayDemo() {
   std::cout << "SPARSE ARRAY (1000 components, 100 iterations)\n";

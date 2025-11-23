@@ -1,5 +1,6 @@
-#include "storage.h"
 #include <benchmark/benchmark.h>
+
+#include "storage.h"
 
 static void BM_SparseArray_Insert(benchmark::State &state) {
   const int count = state.range(0);
