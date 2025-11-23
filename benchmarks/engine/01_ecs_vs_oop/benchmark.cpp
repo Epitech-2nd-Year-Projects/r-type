@@ -1,6 +1,7 @@
+#include <benchmark/benchmark.h>
+
 #include "ecs.h"
 #include "oop.h"
-#include <benchmark/benchmark.h>
 
 static void BM_OOP_Physics_Only(benchmark::State &state) {
   const int count = state.range(0);
@@ -74,8 +75,7 @@ static void BM_ECS_Both_Systems(benchmark::State &state) {
   for (int i = 0; i < count; ++i) {
     world.positions[i] = {static_cast<float>(i), static_cast<float>(i)};
     world.velocities[i] = {1.0f, 1.5f};
-    if (i % 3 == 0)
-      world.healths[i] = {100, 100};
+    if (i % 3 == 0) world.healths[i] = {100, 100};
   }
 
   world.AddSystem([](ECSGameWorld &w) {
@@ -95,8 +95,7 @@ static void BM_ECS_Both_Systems(benchmark::State &state) {
       auto &health = w.healths[i];
       if (health.has_value()) {
         health.value().hp--;
-        if (health.value().hp < 0)
-          health.value().hp = 0;
+        if (health.value().hp < 0) health.value().hp = 0;
       }
     }
   });

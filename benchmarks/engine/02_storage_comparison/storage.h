@@ -1,10 +1,10 @@
 #ifndef BENCH_STORAGE_H
 #define BENCH_STORAGE_H
 
-#include <optional>
-#include <vector>
 #include <list>
+#include <optional>
 #include <unordered_map>
+#include <vector>
 
 struct Component {
   float x;
@@ -14,28 +14,23 @@ struct Component {
 
 template <typename T>
 class SparseArrayStorage {
-private:
+ private:
   std::vector<std::optional<T>> data_;
 
-public:
+ public:
   void insert(size_t idx, const T& value) {
-    if (idx >= data_.size())
-      data_.resize(idx + 1);
+    if (idx >= data_.size()) data_.resize(idx + 1);
     data_[idx] = value;
   }
 
   void erase(size_t idx) {
-    if (idx < data_.size())
-      data_[idx] = std::nullopt;
+    if (idx < data_.size()) data_[idx] = std::nullopt;
   }
 
-  void clear() {
-    data_.clear();
-  }
+  void clear() { data_.clear(); }
 
   std::optional<T>& at(size_t idx) {
-    if (idx >= data_.size())
-      data_.resize(idx + 1);
+    if (idx >= data_.size()) data_.resize(idx + 1);
     return data_[idx];
   }
 
@@ -47,12 +42,12 @@ public:
 
 template <typename T>
 class DenseArrayStorage {
-private:
+ private:
   std::vector<T> data_;
   std::unordered_map<size_t, size_t> index_map_;
   size_t next_id = 0;
 
-public:
+ public:
   void insert(size_t idx, const T& value) {
     index_map_[idx] = data_.size();
     data_.push_back(value);
@@ -66,8 +61,7 @@ public:
       if (pos < data_.size() - 1) {
         data_[pos] = data_.back();
         for (auto& p : index_map_) {
-          if (p.second == data_.size() - 1)
-            p.second = pos;
+          if (p.second == data_.size() - 1) p.second = pos;
         }
       }
       data_.pop_back();
@@ -92,11 +86,11 @@ public:
 
 template <typename T>
 class PackedArrayStorage {
-private:
+ private:
   std::vector<T> data_;
   std::vector<bool> active_;
 
-public:
+ public:
   void insert(size_t idx, const T& value) {
     if (idx >= active_.size()) {
       active_.resize(idx + 1, false);
@@ -107,8 +101,7 @@ public:
   }
 
   void erase(size_t idx) {
-    if (idx < active_.size())
-      active_[idx] = false;
+    if (idx < active_.size()) active_[idx] = false;
   }
 
   void clear() {
@@ -119,8 +112,7 @@ public:
   std::vector<T> get_active() const {
     std::vector<T> result;
     for (size_t i = 0; i < data_.size(); ++i) {
-      if (active_[i])
-        result.push_back(data_[i]);
+      if (active_[i]) result.push_back(data_[i]);
     }
     return result;
   }
@@ -129,8 +121,7 @@ public:
   size_t active_count() const {
     size_t count = 0;
     for (bool b : active_) {
-      if (b)
-        count++;
+      if (b) count++;
     }
     return count;
   }
@@ -138,22 +129,17 @@ public:
 
 template <typename T>
 class LinkedListStorage {
-private:
+ private:
   std::list<T> data_;
 
-public:
-  void insert(size_t idx, const T& value) {
-    data_.push_back(value);
-  }
+ public:
+  void insert(size_t idx, const T& value) { data_.push_back(value); }
 
   void erase(size_t idx) {
-    if (!data_.empty())
-      data_.pop_front();
+    if (!data_.empty()) data_.pop_front();
   }
 
-  void clear() {
-    data_.clear();
-  }
+  void clear() { data_.clear(); }
 
   size_t size() const { return data_.size(); }
 

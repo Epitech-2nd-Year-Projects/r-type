@@ -5,8 +5,7 @@ void ECSGameWorld::AddSystem(std::function<void(ECSGameWorld &)> system) {
 }
 
 void ECSGameWorld::Update(float dt) {
-  for (auto &system : systems_)
-    system(*this);
+  for (auto &system : systems_) system(*this);
 }
 
 size_t ECSGameWorld::EntityCount() const {

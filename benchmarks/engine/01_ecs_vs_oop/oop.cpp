@@ -7,8 +7,7 @@ void Player::UpdatePhysics(float dt) {
 
 void Player::UpdateHealth(float dt) {
   health_--;
-  if (health_ < 0)
-    health_ = 0;
+  if (health_ < 0) health_ = 0;
 }
 
 void Enemy::UpdatePhysics(float dt) {
@@ -18,8 +17,7 @@ void Enemy::UpdatePhysics(float dt) {
 
 void Enemy::UpdateHealth(float dt) {
   health_--;
-  if (health_ < 0)
-    health_ = 0;
+  if (health_ < 0) health_ = 0;
 }
 
 void OOPGameWorld::AddEntity(std::unique_ptr<GameEntity> entity) {
@@ -27,13 +25,11 @@ void OOPGameWorld::AddEntity(std::unique_ptr<GameEntity> entity) {
 }
 
 void OOPGameWorld::UpdatePhysics(float dt) {
-  for (auto &e : entities_)
-    e->UpdatePhysics(dt);
+  for (auto &e : entities_) e->UpdatePhysics(dt);
 }
 
 void OOPGameWorld::UpdateHealth(float dt) {
-  for (auto &e : entities_)
-    e->UpdateHealth(dt);
+  for (auto &e : entities_) e->UpdateHealth(dt);
 }
 
 size_t OOPGameWorld::EntityCount() const { return entities_.size(); }

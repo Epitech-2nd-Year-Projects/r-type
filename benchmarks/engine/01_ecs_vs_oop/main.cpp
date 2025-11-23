@@ -1,8 +1,9 @@
-#include "ecs.h"
-#include "oop.h"
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+
+#include "ecs.h"
+#include "oop.h"
 
 void RunOOPDemo() {
   std::cout << "OOP DEMO (1000 entities, 100 frames)\n";
@@ -49,8 +50,7 @@ void RunECSDemo() {
   for (int i = 0; i < 1000; ++i) {
     world.positions[i] = {static_cast<float>(i), static_cast<float>(i)};
     world.velocities[i] = {1.0f, 1.5f};
-    if (i % 3 == 0)
-      world.healths[i] = {100, 100};
+    if (i % 3 == 0) world.healths[i] = {100, 100};
   }
 
   world.AddSystem([](ECSGameWorld &w) {
@@ -70,8 +70,7 @@ void RunECSDemo() {
       auto &health = w.healths[i];
       if (health.has_value()) {
         health.value().hp--;
-        if (health.value().hp < 0)
-          health.value().hp = 0;
+        if (health.value().hp < 0) health.value().hp = 0;
       }
     }
   });

@@ -18,14 +18,14 @@ struct Health {
   int max_hp;
 };
 
-template <typename T> class SparseArray {
-private:
+template <typename T>
+class SparseArray {
+ private:
   std::vector<std::optional<T>> data_;
 
-public:
+ public:
   std::optional<T> &operator[](size_t idx) {
-    if (idx >= data_.size())
-      data_.resize(idx + 1);
+    if (idx >= data_.size()) data_.resize(idx + 1);
     return data_[idx];
   }
 
@@ -37,7 +37,7 @@ public:
 };
 
 class ECSGameWorld {
-public:
+ public:
   SparseArray<Position> positions;
   SparseArray<Velocity> velocities;
   SparseArray<Health> healths;
@@ -46,7 +46,7 @@ public:
   void Update(float dt);
   size_t EntityCount() const;
 
-private:
+ private:
   std::vector<std::function<void(ECSGameWorld &)>> systems_;
 };
 
