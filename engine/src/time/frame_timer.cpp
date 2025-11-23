@@ -3,8 +3,9 @@
 namespace engine::time {
 
 FrameTimer::FrameTimer(float target_fps)
-    : delta_time_(TimeDelta::zero()),
-      target_frame_time_(TimeDelta::from_seconds(1.0f / target_fps)) {
+    : delta_time_(TimeDelta::zero()), target_frame_time_(TimeDelta::zero()) {
+  if (target_fps <= 0.0f) throw std::invalid_argument("FPS must be > 0");
+  target_frame_time_ = TimeDelta::from_seconds(1.0f / target_fps);
   clock_.restart();
 }
 
@@ -21,8 +22,7 @@ void FrameTimer::reset() {
 }
 
 void FrameTimer::set_target_fps(float fps) {
-  if (fps <= 0.0f)
-    throw std::invalid_argument("FPS must be > 0");
+  if (fps <= 0.0f) throw std::invalid_argument("FPS must be > 0");
   target_frame_time_ = TimeDelta::from_seconds(1.0f / fps);
 }
 
