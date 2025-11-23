@@ -20,9 +20,9 @@ void FrameTimer::reset() {
   clock_.reset();
 }
 
-TimeDelta FrameTimer::target_frame_time() const { return target_frame_time_; }
-
 void FrameTimer::set_target_fps(float fps) {
+  if (fps <= 0.0f)
+    throw std::invalid_argument("FPS must be > 0");
   target_frame_time_ = TimeDelta::from_seconds(1.0f / fps);
 }
 

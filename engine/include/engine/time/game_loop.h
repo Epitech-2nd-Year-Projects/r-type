@@ -90,9 +90,9 @@ class VariableTimestepLoop {
  * );
  *
  * loop.run([&](TimeDelta fixed_dt, TimeDelta frame_dt) {
- *   update_physics(fixed_dt);  // May be called 0-N times
- *   render(frame_dt);          // Always called once
- *   return !should_quit;
+ *   update_physics(fixed_dt);  // May be called 0-N times per frame
+ *   render(frame_dt);          // May be called 0 or more times per frame,
+ * depending on return !should_quit;
  * });
  * @endcode
  */
