@@ -32,10 +32,17 @@ bool FixedTimestepLoop::tick(
     std::function<bool(TimeDelta, TimeDelta)> callback) {
   TimeDelta frame_dt = frame_timer_.tick();
   accumulated_time_ += frame_dt;
+  constexpr int max_iterations = 10;
+  int iterations = 0;
+  const TimeDelta max_accumulated = TimeDelta::from_milliseconds(100.0f);
 
-  while (accumulated_time_ >= fixed_timestep_) {
+  if (accumulated_time_ > max_accumulated) {
+    accumulated_time_ = max_accumulated;
+  }
+  while (accumulated_time_ >= fixed_timestep_ && iterations < max_iterations) {
     accumulated_time_ -= fixed_timestep_;
     if (!callback(fixed_timestep_, frame_dt)) return false;
+    iterations++;
   }
   return true;
 }

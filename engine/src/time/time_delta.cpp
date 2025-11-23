@@ -1,6 +1,5 @@
 #include "../../include/engine/time/time_delta.h"
 
-
 namespace engine::time {
 
 TimeDelta TimeDelta::from_seconds(float seconds) noexcept {
