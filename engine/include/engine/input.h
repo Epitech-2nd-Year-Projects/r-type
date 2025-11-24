@@ -94,65 +94,65 @@ class InputManager {
   /**
    * @brief Bind an action to a keyboard key
    */
-  void bind_key(const std::string& action, Key key);
+  void BindKey(const std::string& action, Key key);
 
   /**
    * @brief Bind an action to a mouse button
    */
-  void bind_mouse_button(const std::string& action, MouseButton button);
+  void BindMouseButton(const std::string& action, MouseButton button);
 
   /**
    * @brief Remove all bindings/state for a specific action
    */
-  void unbind_action(const std::string& action);
+  void UnbindAction(const std::string& action);
 
   /**
    * @brief Remove every binding from the manager
    */
-  void reset_bindings();
+  void ResetBindings();
 
   /**
    * @brief Feed a raw keyboard state change
    * @param key The key that changed
    * @param pressed True when pressed, false when released
    */
-  void handle_key(Key key, bool pressed);
+  void HandleKey(Key key, bool pressed);
 
   /**
    * @brief Feed a raw mouse button state change
    * @param button The button that changed
    * @param pressed True when pressed, false when released
    */
-  void handle_mouse_button(MouseButton button, bool pressed);
+  void HandleMouseButton(MouseButton button, bool pressed);
 
   /**
    * @brief Query whether an action is currently active
    */
-  bool is_action_active(const std::string& action) const;
+  bool IsActionActive(const std::string& action) const;
 
   /**
    * @brief Query whether a key is currently held
    */
-  bool is_key_down(Key key) const;
+  bool IsKeyDown(Key key) const;
 
   /**
    * @brief Query whether a mouse button is currently held
    */
-  bool is_mouse_button_down(MouseButton button) const;
+  bool IsMouseButtonDown(MouseButton button) const;
 
   /**
    * @brief Retrieve and clear pending action events
    *
    * Returns a copy of the current transition events and empties the queue.
    */
-  std::vector<ActionEvent> consume_events();
+  std::vector<ActionEvent> ConsumeEvents();
 
   /**
    * @brief Reset device state and mark all actions as released
    *
    * Useful when focus is lost: ensures no "stuck" inputs remain active.
    */
-  void clear_state();
+  void ClearState();
 
  private:
   struct EnumClassHash {
@@ -167,7 +167,7 @@ class InputManager {
     std::vector<MouseButton> mouse_buttons;
   };
 
-  bool compute_action_active(const std::string& action) const;
+  bool ComputeActionActive(const std::string& action) const;
 
   std::unordered_map<std::string, ActionBinding> bindings_;
   std::unordered_map<std::string, bool> action_states_;

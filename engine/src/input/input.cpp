@@ -4,7 +4,8 @@
 
 namespace engine::input {
 
-void InputManager::bind_key(const std::string& action, Key key) {
+void InputManager::BindKey(const std::string& action, Key key) {
+  if (action.empty()) return;
   auto& binding = bindings_[action];
   auto& keys = binding.keys;
 
@@ -15,8 +16,9 @@ void InputManager::bind_key(const std::string& action, Key key) {
   action_states_.try_emplace(action, false);
 }
 
-void InputManager::bind_mouse_button(const std::string& action,
-                                     MouseButton button) {
+void InputManager::BindMouseButton(const std::string& action,
+                                   MouseButton button) {
+  if (action.empty()) return;
   auto& binding = bindings_[action];
   auto& buttons = binding.mouse_buttons;
 
@@ -27,7 +29,8 @@ void InputManager::bind_mouse_button(const std::string& action,
   action_states_.try_emplace(action, false);
 }
 
-void InputManager::unbind_action(const std::string& action) {
+void InputManager::UnbindAction(const std::string& action) {
+  if (action.empty()) return;
   auto binding_it = bindings_.find(action);
   if (binding_it == bindings_.end()) return;
 
@@ -62,7 +65,7 @@ void InputManager::unbind_action(const std::string& action) {
   }
 }
 
-void InputManager::reset_bindings() {
+void InputManager::ResetBindings() {
   bindings_.clear();
   key_to_actions_.clear();
   mouse_to_actions_.clear();
@@ -73,15 +76,15 @@ void InputManager::reset_bindings() {
   action_states_.clear();
 }
 
-void InputManager::handle_key(Key key, bool pressed) {
+void InputManager::HandleKey(Key key, bool pressed) {
   key_states_[key] = pressed;
 
   auto it = key_to_actions_.find(key);
   if (it == key_to_actions_.end()) return;
 
   for (const auto& action : it->second) {
-    const bool was_active = is_action_active(action);
-    const bool now_active = compute_action_active(action);
+    const bool was_active = IsActionActive(action);
+    const bool now_active = ComputeActionActive(action);
     if (was_active != now_active) {
       action_states_[action] = now_active;
       events_.push_back({action, now_active ? ActionEventType::kPressed
@@ -90,15 +93,15 @@ void InputManager::handle_key(Key key, bool pressed) {
   }
 }
 
-void InputManager::handle_mouse_button(MouseButton button, bool pressed) {
+void InputManager::HandleMouseButton(MouseButton button, bool pressed) {
   mouse_states_[button] = pressed;
 
   auto it = mouse_to_actions_.find(button);
   if (it == mouse_to_actions_.end()) return;
 
   for (const auto& action : it->second) {
-    const bool was_active = is_action_active(action);
-    const bool now_active = compute_action_active(action);
+    const bool was_active = IsActionActive(action);
+    const bool now_active = ComputeActionActive(action);
     if (was_active != now_active) {
       action_states_[action] = now_active;
       events_.push_back({action, now_active ? ActionEventType::kPressed
@@ -107,31 +110,32 @@ void InputManager::handle_mouse_button(MouseButton button, bool pressed) {
   }
 }
 
-bool InputManager::is_action_active(const std::string& action) const {
+bool InputManager::IsActionActive(const std::string& action) const {
+  if (action.empty()) return false;
   auto it = action_states_.find(action);
   if (it == action_states_.end()) return false;
   return it->second;
 }
 
-bool InputManager::is_key_down(Key key) const {
+bool InputManager::IsKeyDown(Key key) const {
   auto it = key_states_.find(key);
   if (it == key_states_.end()) return false;
   return it->second;
 }
 
-bool InputManager::is_mouse_button_down(MouseButton button) const {
+bool InputManager::IsMouseButtonDown(MouseButton button) const {
   auto it = mouse_states_.find(button);
   if (it == mouse_states_.end()) return false;
   return it->second;
 }
 
-std::vector<ActionEvent> InputManager::consume_events() {
+std::vector<ActionEvent> InputManager::ConsumeEvents() {
   std::vector<ActionEvent> output;
   output.swap(events_);
   return output;
 }
 
-void InputManager::clear_state() {
+void InputManager::ClearState() {
   key_states_.clear();
   mouse_states_.clear();
 
@@ -143,7 +147,8 @@ void InputManager::clear_state() {
   }
 }
 
-bool InputManager::compute_action_active(const std::string& action) const {
+bool InputManager::ComputeActionActive(const std::string& action) const {
+  if (action.empty()) return false;
   auto binding_it = bindings_.find(action);
   if (binding_it == bindings_.end()) return false;
 
