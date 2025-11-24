@@ -23,6 +23,8 @@
 
 #include "entity_id.h"
 #include "sparse_array.h"
+#include "system.h"
+#include "system_scheduler.h"
 
 namespace engine::ecs {
 
@@ -101,6 +103,12 @@ class Registry {
    * registry.RegisterComponent<Velocity>();
    * @endcode
    */
+
+  explicit Registry(time::TimeDelta fixed_timestep =
+                        time::TimeDelta::from_seconds(1.0f / 60.0f));
+
+  ~Registry();
+
   template <class Component>
   SparseArray<Component>& RegisterComponent() {
     auto type_idx = std::type_index(typeid(Component));
@@ -324,42 +332,166 @@ class Registry {
    *     }, 1.5f);
    * @endcode
    */
+
+  /**
+   * @brief Register a lambda-based system (NOUVELLE VERSION AMÉLIORÉE)
+   * @tparam Components Component types required by the system
+   * @tparam Function System function type
+   * @tparam ExtraArgs Additional argument types
+   * @param f System function/callable
+   * @param type System type (Fixed or Variable)
+   * @param priority Execution priority (default: 100)
+   * @param extra_args Additional arguments to pass to system
+   *
+   * @example
+   * @code
+   * // Variable timestep (every frame)
+   * registry.add_system<Position, Velocity>(
+   *     [](Registry& reg, SparseArray<Position>& pos,
+   *        SparseArray<Velocity>& vel) {
+   *         for (auto &&[p, v] : Zipper(pos, vel)) {
+   *             p.value().x += v.value().vx;
+   *         }
+   *     },
+   *     SystemType::Variable,
+   *     kDefaultPriority
+   * );
+   *
+   * // Fixed timestep (physics)
+   * registry.add_system<Position, Velocity>(
+   *     [](Registry& reg, SparseArray<Position>& pos,
+   *        SparseArray<Velocity>& vel, float gravity) {
+   *         for (auto &&[p, v] : Zipper(pos, vel)) {
+   *             v.value().vy += gravity;
+   *             p.value().x += v.value().vx;
+   *             p.value().y += v.value().vy;
+   *         }
+   *     },
+   *     SystemType::Fixed,
+   *     kHighPriority,
+   *     9.81f  // gravity extra arg
+   * );
+   * @endcode
+   */
   template <class... Components, typename Function, typename... ExtraArgs>
-  void AddSystem(Function&& f, ExtraArgs&&... extra_args) {
+  void AddSystem(Function&& f, SystemType type = SystemType::Variable,
+                 SystemPriority priority = kDefaultPriority,
+                 ExtraArgs&&... extra_args) {
     auto system_wrapper = [f = std::forward<Function>(f),
-                           extra = std::make_tuple(std::forward<ExtraArgs>(
-                               extra_args)...)](Registry& reg) {
+                           extra = std::make_tuple(
+                               std::forward<ExtraArgs>(extra_args)...)](
+                              Registry& reg, time::TimeDelta dt) {
       auto comp_arrays =
           std::make_tuple(std::ref(reg.GetComponents<Components>())...);
 
       std::apply(
           [&](auto&... arrays) {
             std::apply(
-                [&](auto&&... extra_vals) { f(reg, arrays..., extra_vals...); },
+                [&](auto&&... extra_vals) {
+                  if constexpr (std::is_invocable_v<
+                                    Function, Registry&, decltype(arrays)...,
+                                    time::TimeDelta, decltype(extra_vals)...>) {
+                    f(reg, arrays..., dt, extra_vals...);
+                  } else {
+                    f(reg, arrays..., extra_vals...);
+                  }
+                },
                 extra);
           },
           comp_arrays);
     };
-    systems_.push_back(system_wrapper);
-  }
+
+    scheduler_->RegisterSystem(std::move(system_wrapper), type, priority);
+  };
 
   /**
-   * @brief Execute all registered systems
-   *
-   * @details
-   * Executes all systems in the order they were registered. Each system
-   * operates on entities that have all its required components.
+   * @brief Register an object-oriented system
+   * @param system Unique pointer to system object
+   * @param type System type (Fixed or Variable)
+   * @param priority Execution priority
    *
    * @example
    * @code
-   * registry.RunSystems();  // Execute all registered systems
+   * class PhysicsSystem : public ISystem {
+   *   void fixed_update(Registry& reg, TimeDelta dt) override {
+   *     // ...
+   *   }
+   * };
+   *
+   * registry.add_system(
+   *   std::make_unique<PhysicsSystem>(),
+   *   SystemType::Fixed,
+   *   500
+   * );
    * @endcode
    */
-  void RunSystems() {
-    for (auto& system : systems_) {
-      system(*this);
+  /**
+   * @brief Register an object-oriented system
+   * @param system Shared pointer to system object
+   * @param type System type (Fixed or Variable)
+   * @param priority Execution priority
+   */
+  void AddSystemClass(std::shared_ptr<ISystem> system,
+                      SystemType type = SystemType::Variable,
+                      SystemPriority priority = kDefaultPriority) {
+    owned_systems_.push_back(system);
+
+    if (type == SystemType::Variable) {
+      scheduler_->RegisterSystem(
+          [system](Registry& reg, time::TimeDelta dt) {
+            system->Update(reg, dt);
+          },
+          type, priority);
+    } else {
+      scheduler_->RegisterSystem(
+          [system](Registry& reg, time::TimeDelta dt) {
+            system->FixedUpdate(reg, dt);
+          },
+          type, priority);
     }
   }
+
+  /**
+   * @brief Execute all registered systems (REMPLACE run_systems())
+   * @param dt Time since last frame
+   *
+   * @details
+   * - Runs variable systems once with actual dt
+   * - Accumulates time for fixed systems
+   * - Executes fixed systems 0-N times per frame
+   *
+   * @example
+   * @code
+   * Clock clock;
+   * while (game_running) {
+   *   TimeDelta dt = clock.restart();
+   *   registry.update_systems(dt);
+   * }
+   * @endcode
+   */
+  void UpdateSystems(time::TimeDelta dt);
+
+  /**
+   * @brief Set fixed timestep interval
+   * @param timestep New fixed timestep
+   */
+  void SetFixedTimestep(time::TimeDelta timestep);
+
+  /**
+   * @brief Get current fixed timestep
+   * @return Fixed timestep duration
+   */
+  time::TimeDelta FixedTimestep() const;
+
+  /**
+   * @brief Clear all registered systems
+   */
+  void ClearSystems();
+
+  /**
+   * @brief Run all systems
+   */
+  void RunSystems();
 
  private:
   /// @brief Component storage map (type_index -> SparseArray<Component>)
@@ -374,6 +506,12 @@ class Registry {
 
   /// @brief Registered systems
   std::vector<std::function<void(Registry&)>> systems_;
+
+  /// @brief System scheduler
+  std::unique_ptr<SystemScheduler> scheduler_;
+
+  /// @brief OOP-style systems storage
+  std::vector<std::shared_ptr<ISystem>> owned_systems_;
 };
 
 }  // namespace engine::ecs
