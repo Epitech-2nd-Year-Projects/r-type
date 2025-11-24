@@ -128,22 +128,7 @@ class ISystem {
    *
    * Override this for systems that should run every frame.
    */
-  virtual void Update(Registry& registry, time::TimeDelta dt) {
-    (void)registry;
-    (void)dt;
-  }
-
-  /**
-   * @brief Update called at fixed intervals
-   * @param registry Reference to ECS registry
-   * @param dt Fixed timestep duration
-   *
-   * Override this for systems that need consistent timing (physics, AI).
-   */
-  virtual void FixedUpdate(Registry& registry, time::TimeDelta dt) {
-    (void)registry;
-    (void)dt;
-  }
+  virtual void Update(Registry& registry, time::TimeDelta dt) = 0;
 };
 
 }  // namespace engine::ecs

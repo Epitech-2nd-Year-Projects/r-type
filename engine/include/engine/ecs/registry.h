@@ -430,19 +430,11 @@ class Registry {
                       SystemPriority priority = kDefaultPriority) {
     owned_systems_.push_back(system);
 
-    if (type == SystemType::Variable) {
-      scheduler_->RegisterSystem(
-          [system](Registry& reg, time::TimeDelta dt) {
-            system->Update(reg, dt);
-          },
-          type, priority);
-    } else {
-      scheduler_->RegisterSystem(
-          [system](Registry& reg, time::TimeDelta dt) {
-            system->FixedUpdate(reg, dt);
-          },
-          type, priority);
-    }
+    scheduler_->RegisterSystem(
+        [system](Registry& reg, time::TimeDelta dt) {
+          system->Update(reg, dt);
+        },
+        type, priority);
   }
 
   /**
