@@ -127,14 +127,25 @@ class SparseArray {
    * Does not perform bounds checking. Accessing an index >= size()
    * results in undefined behavior.
    */
-  ReferenceType operator[](size_t idx) { return data_[idx]; }
+  ReferenceType operator[](size_t idx) {
+    if (idx >= data_.size()) {
+      data_.resize(idx + 1);
+    }
+    return data_[idx];
+  }
 
   /**
    * @brief Access component by index (const)
    * @param idx Entity index
    * @return Const reference to optional component
    */
-  ConstReferenceType operator[](size_t idx) const { return data_[idx]; }
+  ConstReferenceType operator[](size_t idx) const {
+    if (idx >= data_.size()) {
+      static const std::optional<Component> kNullComponent = std::nullopt;
+      return kNullComponent;
+    }
+    return data_[idx];
+  }
 
   /**
    * @brief Begin iterator (mutable)
