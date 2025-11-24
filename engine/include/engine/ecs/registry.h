@@ -334,7 +334,7 @@ class Registry {
    */
 
   /**
-   * @brief Register a lambda-based system (NOUVELLE VERSION AMÉLIORÉE)
+   * @brief Register a lambda-based system
    * @tparam Components Component types required by the system
    * @tparam Function System function type
    * @tparam ExtraArgs Additional argument types
@@ -402,7 +402,7 @@ class Registry {
     };
 
     scheduler_->RegisterSystem(std::move(system_wrapper), type, priority);
-  };
+  }
 
   /**
    * @brief Register an object-oriented system
@@ -425,12 +425,6 @@ class Registry {
    * );
    * @endcode
    */
-  /**
-   * @brief Register an object-oriented system
-   * @param system Shared pointer to system object
-   * @param type System type (Fixed or Variable)
-   * @param priority Execution priority
-   */
   void AddSystemClass(std::shared_ptr<ISystem> system,
                       SystemType type = SystemType::Variable,
                       SystemPriority priority = kDefaultPriority) {
@@ -452,7 +446,7 @@ class Registry {
   }
 
   /**
-   * @brief Execute all registered systems (REMPLACE run_systems())
+   * @brief Execute all registered systems
    * @param dt Time since last frame
    *
    * @details
@@ -488,11 +482,6 @@ class Registry {
    */
   void ClearSystems();
 
-  /**
-   * @brief Run all systems
-   */
-  void RunSystems();
-
  private:
   /// @brief Component storage map (type_index -> SparseArray<Component>)
   std::unordered_map<std::type_index, std::any> components_arrays_;
@@ -503,9 +492,6 @@ class Registry {
 
   /// @brief Next entity ID to assign
   std::size_t next_entity_id_ = 0;
-
-  /// @brief Registered systems
-  std::vector<std::function<void(Registry&)>> systems_;
 
   /// @brief System scheduler
   std::unique_ptr<SystemScheduler> scheduler_;

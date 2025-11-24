@@ -27,6 +27,4 @@ void Registry::ClearSystems() {
   owned_systems_.clear();
 }
 
-void Registry::RunSystems() { UpdateSystems(time::TimeDelta::zero()); }
-
 }  // namespace engine::ecs
