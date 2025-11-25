@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+
+#include "engine/math/constants.h"
 
 namespace engine::math {
 
@@ -12,6 +15,7 @@ bool Collision::AABBVsAABB(const RectF& a, const RectF& b) {
 CollisionInfo Collision::AABBCollision(const RectF& a, const RectF& b) {
   CollisionInfo info;
   if (!a.Intersects(b)) return info;
+
   info.colliding_ = true;
   RectF overlap = a.Intersection(b);
   float overlap_w = overlap.width_;
@@ -32,6 +36,7 @@ CollisionInfo Collision::AABBCollision(const RectF& a, const RectF& b) {
     }
     info.penetration_ = overlap_h;
   }
+
   return info;
 }
 
@@ -48,6 +53,7 @@ bool Collision::AABBVsCircle(const RectF& rect, const Vector2f& center,
                       std::min(center.x, rect.top_left_x_ + rect.width_));
   float cy = std::max(rect.top_left_y_,
                       std::min(center.y, rect.top_left_y_ + rect.height_));
+
   Vector2f closest(cx, cy);
   float dist = center.Distance(closest);
   return dist <= radius;
@@ -64,12 +70,15 @@ bool Collision::PointInRect(const Vector2f& point, const RectF& rect) {
 
 bool Collision::RayVsAABB(const Vector2f& ray_origin, const Vector2f& ray_dir,
                           const RectF& rect, float& out_t) {
-  float tmin = -1e9f;
-  float tmax = 1e9f;
-  if (std::abs(ray_dir.x) > 0.0001f) {
+  float tmin = kInfinityNegative;
+  float tmax = kInfinityPositive;
+
+  if (std::abs(ray_dir.x) > kEpsilon) {
     float tx1 = (rect.top_left_x_ - ray_origin.x) / ray_dir.x;
     float tx2 = (rect.top_left_x_ + rect.width_ - ray_origin.x) / ray_dir.x;
+
     if (tx1 > tx2) std::swap(tx1, tx2);
+
     tmin = std::max(tmin, tx1);
     tmax = std::min(tmax, tx2);
   } else {
@@ -79,10 +88,12 @@ bool Collision::RayVsAABB(const Vector2f& ray_origin, const Vector2f& ray_dir,
     }
   }
 
-  if (std::abs(ray_dir.y) > 0.0001f) {
+  if (std::abs(ray_dir.y) > kEpsilon) {
     float ty1 = (rect.top_left_y_ - ray_origin.y) / ray_dir.y;
     float ty2 = (rect.top_left_y_ + rect.height_ - ray_origin.y) / ray_dir.y;
+
     if (ty1 > ty2) std::swap(ty1, ty2);
+
     tmin = std::max(tmin, ty1);
     tmax = std::min(tmax, ty2);
   } else {
@@ -117,10 +128,12 @@ bool Collision::RayVsCircle(const Vector2f& ray_origin, const Vector2f& ray_dir,
     out_t = t1;
     return true;
   }
+
   if (t2 >= 0.0f) {
     out_t = t2;
     return true;
   }
+
   return false;
 }
 

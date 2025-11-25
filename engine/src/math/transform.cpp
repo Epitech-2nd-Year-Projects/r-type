@@ -1,5 +1,7 @@
 #include "engine/math/transform.h"
 
+#include "engine/math/constants.h"
+
 namespace engine::math {
 
 Transform::Transform() : position_(0, 0), rotation_(0.0f), scale_(1, 1) {}
@@ -20,17 +22,11 @@ void Transform::SetRotation(float degrees) { rotation_ = degrees; }
 
 void Transform::Rotate(float degrees) { rotation_ += degrees; }
 
-void Transform::RotateRad(float radians) {
-  rotation_ += radians * 180.0f / 3.14159265359f;
-}
+void Transform::RotateRad(float radians) { rotation_ += radians * kRadToDeg; }
 
-float Transform::GetRotationRad() const {
-  return rotation_ * 3.14159265359f / 180.0f;
-}
+float Transform::GetRotationRad() const { return rotation_ * kDegToRad; }
 
-void Transform::SetRotationRad(float rad) {
-  rotation_ = rad * 180.0f / 3.14159265359f;
-}
+void Transform::SetRotationRad(float rad) { rotation_ = rad * kRadToDeg; }
 
 Vector2f Transform::GetScale() const { return scale_; }
 

@@ -68,4 +68,4 @@ class Collision {
 
 }  // namespace engine::math
 
-#endif
+#endif  // ENGINE_MATH_COLLISION_H_

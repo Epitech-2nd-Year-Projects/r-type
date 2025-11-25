@@ -1,6 +1,7 @@
 #ifndef ENGINE_MATH_TRANSFORM_H_
 #define ENGINE_MATH_TRANSFORM_H_
 
+#include "constants.h"
 #include "vector2.h"
 
 namespace engine::math {
@@ -72,4 +73,4 @@ class Transform {
 
 }  // namespace engine::math
 
-#endif
+#endif  // ENGINE_MATH_TRANSFORM_H_
