@@ -65,7 +65,7 @@ bool EncodeHeader(const Header& header, engine::net::BufferWriter& writer);
  */
 bool DecodeHeader(engine::net::BufferReader& reader, Header& out_header);
 
-}  // namespace rtype::protocol
+}  // namespace protocol
 
 
 #endif /* !HEADER_H_ */
