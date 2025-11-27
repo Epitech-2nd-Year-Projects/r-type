@@ -20,6 +20,6 @@ namespace protocol {
  * - Client/server channel abstractions.
  * - Factory functions for common messages.
  */
-}  // namespace rtype::protocol
+}  // namespace protocol
 
-#endif  // RTYPE_PROTOCOL_PROTOCOL_H_
+#endif  // PROTOCOL_PROTOCOL_H_

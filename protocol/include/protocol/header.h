@@ -1,5 +1,5 @@
-#ifndef HEADER_H_
-#define HEADER_H_
+#ifndef PROTOCOL_HEADER_H_
+#define PROTOCOL_HEADER_H_
 
 
 #include <cstdint>
@@ -68,4 +68,4 @@ bool DecodeHeader(engine::net::BufferReader& reader, Header& out_header);
 }  // namespace protocol
 
 
-#endif /* !HEADER_H_ */
+#endif /* !PROTOCOL_HEADER_H_ */
