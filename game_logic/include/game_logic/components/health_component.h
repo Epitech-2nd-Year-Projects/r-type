@@ -37,11 +37,11 @@ struct HealthComponent {
    * @brief Apply damage (respects invulnerability)
    */
   void take_damage(std::uint32_t amount) {
-    if (!invulnerable && current_health > amount) {
+    if (invulnerable) return;
+    if (current_health > amount)
       current_health -= amount;
-    } else if (!invulnerable) {
+    else
       current_health = 0;
-    }
   }
 
   /**

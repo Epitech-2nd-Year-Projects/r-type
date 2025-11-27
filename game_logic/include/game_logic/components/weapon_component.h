@@ -64,6 +64,7 @@ struct WeaponComponent {
    * @brief Trigger weapon fire (resets cooldown, consumes ammo if limited)
    */
   void fire() {
+    if (fire_rate <= 0.0f) return;
     cooldown_remaining =
         engine::time::TimeDelta::from_seconds(1.0f / fire_rate);
     if (!has_unlimited_ammo && ammo_count > 0) {
