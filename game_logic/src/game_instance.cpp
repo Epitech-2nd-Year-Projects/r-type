@@ -147,15 +147,15 @@ void GameInstance::InitializeGame() {
 }
 
 void GameInstance::UpdateGameState() {
-  // Sync player scores from PlayerComponent data
   auto& player_components =
       registry_->GetComponents<components::PlayerComponent>();
 
-  for (auto& player_score : game_state_.player_scores) {
-    for (std::size_t i = 0; i < player_components.size(); ++i) {
-      auto& player_comp = player_components[i];
-      if (player_comp.has_value() &&
-          player_comp.value().player_id == player_score.player_id) {
+  for (auto&& [idx, player_comp] :
+       engine::ecs::IndexedZipper(player_components)) {
+    std::uint32_t player_id = player_comp.value().player_id;
+
+    for (auto& player_score : game_state_.player_scores) {
+      if (player_score.player_id == player_id) {
         player_score.score = player_comp.value().score;
         player_score.lives = player_comp.value().lives;
         player_score.is_alive = player_comp.value().lives > 0;
@@ -164,7 +164,6 @@ void GameInstance::UpdateGameState() {
     }
   }
 
-  // Check game over condition: all players dead
   bool all_dead = true;
   for (const auto& ps : game_state_.player_scores) {
     if (ps.is_alive) {
@@ -172,7 +171,6 @@ void GameInstance::UpdateGameState() {
       break;
     }
   }
-
   if (all_dead && !game_state_.player_scores.empty()) {
     game_state_.is_game_over = true;
     game_state_.is_running = false;
