@@ -276,6 +276,104 @@ bool TestWorldSnapshotRoundTrip() {
     return false;
   }
 
+  if (decoded.deltas.size() != 3u) {
+    return false;
+  }
+
+  {
+    const protocol::EntityDelta& src = original.deltas[0];
+    const protocol::EntityDelta& dst = decoded.deltas[0];
+
+    if (dst.op != protocol::EntityDeltaOp::kCreate) {
+      return false;
+    }
+    if (dst.entity_id != src.entity_id) {
+      return false;
+    }
+
+    if (dst.state.entity_id != src.state.entity_id ||
+        dst.state.type != src.state.type ||
+        dst.state.x != src.state.x ||
+        dst.state.y != src.state.y ||
+        dst.state.vx != src.state.vx ||
+        dst.state.vy != src.state.vy ||
+        dst.state.hp != src.state.hp ||
+        dst.state.flags != src.state.flags) {
+      return false;
+    }
+
+    if (dst.field_mask != 0u) {
+      return false;
+    }
+  }
+
+  {
+    const protocol::EntityDelta& src = original.deltas[1];
+    const protocol::EntityDelta& dst = decoded.deltas[1];
+
+    if (dst.op != protocol::EntityDeltaOp::kUpdate) {
+      return false;
+    }
+    if (dst.entity_id != src.entity_id) {
+      return false;
+    }
+
+    if (dst.field_mask != src.field_mask) {
+      return false;
+    }
+
+    if (!(dst.field_mask & protocol::kFieldX)) {
+      return false;
+    }
+    if (dst.state.x != src.state.x) {
+      return false;
+    }
+
+    if (!(dst.field_mask & protocol::kFieldHp)) {
+      return false;
+    }
+    if (dst.state.hp != src.state.hp) {
+      return false;
+    }
+
+    if (dst.state.type != 0 ||
+        dst.state.y != 0 ||
+        dst.state.vx != 0 ||
+        dst.state.vy != 0 ||
+        dst.state.flags != 0) {
+      return false;
+    }
+  }
+
+  {
+    const protocol::EntityDelta& src = original.deltas[2];
+    const protocol::EntityDelta& dst = decoded.deltas[2];
+
+    if (dst.op != protocol::EntityDeltaOp::kDelete) {
+      return false;
+    }
+    if (dst.entity_id != src.entity_id) {
+      return false;
+    }
+
+    if (dst.field_mask != 0u) {
+      return false;
+    }
+    if (dst.state.entity_id != src.entity_id) {
+      return false;
+    }
+
+    if (dst.state.type != 0 ||
+        dst.state.x != 0 ||
+        dst.state.y != 0 ||
+        dst.state.vx != 0 ||
+        dst.state.vy != 0 ||
+        dst.state.hp != 0 ||
+        dst.state.flags != 0) {
+      return false;
+    }
+  }
+
   return true;
 }
 
