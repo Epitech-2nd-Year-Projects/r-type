@@ -1,6 +1,5 @@
 #include "protocol/header.h"
 
-
 namespace protocol {
 
 void EncodeHeader(const Header& header, engine::net::PacketBuffer& writer) {
@@ -22,12 +21,9 @@ bool DecodeHeader(engine::net::PacketBuffer& reader, Header& out_header) {
   std::uint32_t ack_bits;
   std::uint32_t timestamp_ms;
 
-  if (!reader.ReadUint16(version) ||
-      !reader.ReadUint8(message_type) ||
-      !reader.ReadUint8(flags) ||
-      !reader.ReadUint32(sequence) ||
-      !reader.ReadUint32(ack) ||
-      !reader.ReadUint32(ack_bits) ||
+  if (!reader.ReadUint16(version) || !reader.ReadUint8(message_type) ||
+      !reader.ReadUint8(flags) || !reader.ReadUint32(sequence) ||
+      !reader.ReadUint32(ack) || !reader.ReadUint32(ack_bits) ||
       !reader.ReadUint32(timestamp_ms)) {
     return false;
   }
@@ -40,4 +36,4 @@ bool DecodeHeader(engine::net::PacketBuffer& reader, Header& out_header) {
   out_header.timestamp_ms = timestamp_ms;
   return true;
 }
-}
+}  // namespace protocol
