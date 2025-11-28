@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "engine/ecs/component.h"
+#include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/systems/lifetime_system.h"
 #include "engine/ecs/systems/movement_system.h"
 #include "game_logic/components.h"
