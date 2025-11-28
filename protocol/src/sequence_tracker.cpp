@@ -37,4 +37,4 @@ void SequenceTracker::FillAckFields(Header* header) const {
     header->ack_bits = remote_ack_bits_;
   }
 }
-}
+}  // namespace protocol
