@@ -3,6 +3,8 @@
 
 #include <game_logic/components.h>
 #include <game_logic/entities.h>
+#include "game_logic/game_instance.h"
+#include "game_logic/game_state.h"
 
 namespace game_logic {}
 
