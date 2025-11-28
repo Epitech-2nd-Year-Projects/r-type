@@ -30,18 +30,12 @@ bool TestSequenceMoreRecentWrapAround() {
   const std::uint32_t max = 0xFFFFFFFFu;
   const std::uint32_t zero = 0u;
 
-  // 0 est plus récent que max (wrap).
   if (!IsSequenceMoreRecent(zero, max)) return false;
-  // max n'est pas plus récent que 0.
   if (IsSequenceMoreRecent(max, zero)) return false;
-
-  // Un paquet un peu avant max est plus vieux que max.
   if (IsSequenceMoreRecent(max - 10u, max)) return false;
-  // Et max est plus récent qu'un paquet un peu avant.
   if (!IsSequenceMoreRecent(max, max - 10u)) return false;
 
-  (void)kSequenceHalfRange;  // juste pour éviter un warning si tu ne l'utilises
-                             // pas.
+  (void)kSequenceHalfRange;
 
   return true;
 }
@@ -51,16 +45,13 @@ bool TestIsPacketAckedBasics() {
 
   const std::uint32_t ack = 100u;
   const std::uint32_t ack_bits = 0b00000000000000000000000000000001u;
-  // ack = 100, ack_bits dit que 99 est reçu (bit 0 = 1).
 
-  if (!IsPacketAcked(100u, ack, ack_bits)) return false;  // égal à ack -> acké
-  if (!IsPacketAcked(99u, ack, ack_bits)) return false;   // bit 0 dans ack_bits
-  if (IsPacketAcked(98u, ack, ack_bits)) return false;  // bit 1 = 0 -> pas acké
+  if (!IsPacketAcked(100u, ack, ack_bits)) return false;
+  if (!IsPacketAcked(99u, ack, ack_bits)) return false;
+  if (IsPacketAcked(98u, ack, ack_bits)) return false;
 
-  // Un paquet plus récent que ack ne peut pas être acké.
   if (IsPacketAcked(130u, ack, ack_bits)) return false;
 
-  // Un paquet trop ancien (>32) ne peut pas être représenté -> pas acké.
   const std::uint32_t very_old = ack - 40u;
   if (IsPacketAcked(very_old, ack, ack_bits)) return false;
 
