@@ -84,12 +84,12 @@ class Endpoint {
   /**
    * @brief IPv4 helper
    */
-  bool is_ipv4() const { return endpoint_.address().is_v4(); }
+  bool is_ipv4() const { return valid_ && endpoint_.address().is_v4(); }
 
   /**
    * @brief IPv6 helper
    */
-  bool is_ipv6() const { return endpoint_.address().is_v6(); }
+  bool is_ipv6() const { return valid_ && endpoint_.address().is_v6(); }
 
  private:
   friend class UdpSocket;
