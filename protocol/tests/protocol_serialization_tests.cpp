@@ -292,12 +292,9 @@ bool TestWorldSnapshotRoundTrip() {
     }
 
     if (dst.state.entity_id != src.state.entity_id ||
-        dst.state.type != src.state.type ||
-        dst.state.x != src.state.x ||
-        dst.state.y != src.state.y ||
-        dst.state.vx != src.state.vx ||
-        dst.state.vy != src.state.vy ||
-        dst.state.hp != src.state.hp ||
+        dst.state.type != src.state.type || dst.state.x != src.state.x ||
+        dst.state.y != src.state.y || dst.state.vx != src.state.vx ||
+        dst.state.vy != src.state.vy || dst.state.hp != src.state.hp ||
         dst.state.flags != src.state.flags) {
       return false;
     }
@@ -336,11 +333,8 @@ bool TestWorldSnapshotRoundTrip() {
       return false;
     }
 
-    if (dst.state.type != 0 ||
-        dst.state.y != 0 ||
-        dst.state.vx != 0 ||
-        dst.state.vy != 0 ||
-        dst.state.flags != 0) {
+    if (dst.state.type != 0 || dst.state.y != 0 || dst.state.vx != 0 ||
+        dst.state.vy != 0 || dst.state.flags != 0) {
       return false;
     }
   }
@@ -363,12 +357,8 @@ bool TestWorldSnapshotRoundTrip() {
       return false;
     }
 
-    if (dst.state.type != 0 ||
-        dst.state.x != 0 ||
-        dst.state.y != 0 ||
-        dst.state.vx != 0 ||
-        dst.state.vy != 0 ||
-        dst.state.hp != 0 ||
+    if (dst.state.type != 0 || dst.state.x != 0 || dst.state.y != 0 ||
+        dst.state.vx != 0 || dst.state.vy != 0 || dst.state.hp != 0 ||
         dst.state.flags != 0) {
       return false;
     }
@@ -379,7 +369,7 @@ bool TestWorldSnapshotRoundTrip() {
 
 }  // namespace
 
-int main() {
+int RunProtocolSerializationTests() {
   int failures = 0;
 
   if (!RunTest("InputState round-trip", &TestInputStateRoundTrip)) {
