@@ -2,6 +2,7 @@
 #define PROTOCOL_SEQUENCE_TRACKER_H_
 
 #include <cstdint>
+#include "protocol/header.h"
 
 namespace protocol {
   class SequenceTracker {

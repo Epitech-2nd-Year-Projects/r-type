@@ -1,5 +1,4 @@
 #include "protocol/sequence_tracker.h"
-#include "protocol/header.h"
 
 namespace protocol {
 
