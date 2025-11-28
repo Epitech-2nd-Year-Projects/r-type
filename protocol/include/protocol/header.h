@@ -45,9 +45,8 @@ enum HeaderFlag : std::uint8_t {
  * @brief Serializes a Header into a PacketBuffer.
  * @param header The header to serialize.
  * @param writer The packet buffer to write to.
- * @return true on success, false if the writer runs out of space.
  */
-bool EncodeHeader(const Header& header, engine::net::PacketBuffer& writer);
+void EncodeHeader(const Header& header, engine::net::PacketBuffer& writer);
 
 /**
  * @brief Deserializes a Header from a PacketBuffer.

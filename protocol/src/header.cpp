@@ -3,7 +3,7 @@
 
 namespace protocol {
 
-bool EncodeHeader(const Header& header, engine::net::PacketBuffer& writer) {
+void EncodeHeader(const Header& header, engine::net::PacketBuffer& writer) {
   writer.WriteUint16(header.version);
   writer.WriteUint8(header.message_type);
   writer.WriteUint8(header.flags);
@@ -11,7 +11,6 @@ bool EncodeHeader(const Header& header, engine::net::PacketBuffer& writer) {
   writer.WriteUint32(header.ack);
   writer.WriteUint32(header.ack_bits);
   writer.WriteUint32(header.timestamp_ms);
-  return true;
 }
 
 bool DecodeHeader(engine::net::PacketBuffer& reader, Header& out_header) {
