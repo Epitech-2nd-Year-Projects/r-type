@@ -35,7 +35,6 @@ enum class MessageType : std::uint8_t {
   kPing = 12,  ///< Client → Server: ping with timestamp.
   kPong = 13   ///< Server → Client: pong echoing data.
 };
-
 }
 
-#endif /* !PROTOCOL_MESSAGE_TYPE_H_ */
+#endif // !PROTOCOL_MESSAGE_TYPE_H_

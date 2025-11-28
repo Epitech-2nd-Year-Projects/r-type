@@ -16,7 +16,7 @@ void SequenceTracker::OnRemoteSequenceReceived(std::uint32_t remote_sequence) {
 
   if (remote_sequence > remote_sequence_) {
     std::uint32_t delta = remote_sequence - remote_sequence_;
-    if (delta >= 32) {
+    if (delta >= kAckBitsWindow) {
       remote_ack_bits_ = 0;
     } else {
       remote_ack_bits_ <<= delta;
@@ -25,7 +25,7 @@ void SequenceTracker::OnRemoteSequenceReceived(std::uint32_t remote_sequence) {
     remote_sequence_ = remote_sequence;
   } else if (remote_sequence < remote_sequence_) {
     std::uint32_t delta = remote_sequence_ - remote_sequence;
-    if (delta <= 32) {
+    if (delta <= kAckBitsWindow) {
       remote_ack_bits_ |= (1u << (delta - 1));
     }
   }

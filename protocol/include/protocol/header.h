@@ -5,15 +5,7 @@
 #include <cstdint>
 
 #include "protocol/message_type.h"
-
-/**
- * @brief Forward declarations of engine networking primitives.
- * @note Adjust the namespace / class names to match your engine.
- */
-namespace engine::net {
-  class BufferWriter;
-  class BufferReader;
-}  // namespace engine::net
+#include "engine/net/packet_buffer.h"
 
 namespace protocol {
 
@@ -27,7 +19,7 @@ inline constexpr std::uint16_t kProtocolVersion = 1;
  * 
  * This structure describes the logical fields of the header. It is NOT
  * meant to be sent directly with memcpy; serialization and deserialization
- * must go through engine::net::BufferWriter / BufferReader.
+ * must go through engine::net::PacketBuffer.
  */
 struct Header {
   std::uint16_t version;        ///< Protocol version.
@@ -50,22 +42,21 @@ enum HeaderFlag : std::uint8_t {
 };
 
 /**
- * @brief Serializes a Header into a BufferWriter.
+ * @brief Serializes a Header into a PacketBuffer.
  * @param header The header to serialize.
- * @param writer The buffer writer to write to.
- * @return true on success, false if the writer runs out of space.
+ * @param writer The packet buffer to write to.
  */
-bool EncodeHeader(const Header& header, engine::net::BufferWriter& writer);
+void EncodeHeader(const Header& header, engine::net::PacketBuffer& writer);
 
 /**
- * @brief Deserializes a Header from a BufferReader.
- * @param reader The buffer reader to read from.
+ * @brief Deserializes a Header from a PacketBuffer.
+ * @param reader The packet buffer to read from.
  * @param out_header Output parameter for the deserialized header.
  * @return true on success, false if the buffer is too small or invalid.
  */
-bool DecodeHeader(engine::net::BufferReader& reader, Header& out_header);
+bool DecodeHeader(engine::net::PacketBuffer& reader, Header& out_header);
 
 }  // namespace protocol
 
 
-#endif /* !PROTOCOL_HEADER_H_ */
+#endif // !PROTOCOL_HEADER_H_

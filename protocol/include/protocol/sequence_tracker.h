@@ -7,6 +7,11 @@
 namespace protocol {
   class SequenceTracker {
     public:
+      /**
+       * @brief Number of bits in the ack_bits field.
+       */
+      static constexpr std::uint32_t kAckBitsWindow = 32;
+
       SequenceTracker() = default;
 
       /**
@@ -48,4 +53,4 @@ namespace protocol {
   };
 }
 
-#endif /* !PROTOCOL_SEQUENCE_TRACKER_H_ */
+#endif // !PROTOCOL_SEQUENCE_TRACKER_H_
