@@ -30,7 +30,7 @@ namespace protocol {
        *        remote sequence tracking information.
        * @param header Pointer to the header structure to fill. Does nothing if nullptr.
        */
-      void FillAckFields(struct Header* header) const;
+      void FillAckFields(Header* header) const;
 
       /**
        * @brief Accessors (useful for debugging / tests).
