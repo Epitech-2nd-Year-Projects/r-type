@@ -2,6 +2,7 @@
 #define GAME_LOGIC_ENTITIES_H_
 
 #include "game_logic/entities/player_builder.h"
+#include "game_logic/entities/enemy_builder.h"
 
 namespace game_logic::entities {}
 
