@@ -75,8 +75,7 @@ UdpSendResult UdpSocket::send(const void* data, std::size_t size) {
   if (!socket_) return {0, MakeNotOpenError()};
   UdpSendResult result{};
   asio::error_code ec;
-  result.bytes_transferred =
-      socket_->send(asio::buffer(data, size), 0, ec);
+  result.bytes_transferred = socket_->send(asio::buffer(data, size), 0, ec);
   result.error = ec;
   return result;
 }
@@ -98,7 +97,8 @@ UdpReceiveResult UdpSocket::receive(void* data, std::size_t size) {
   asio::error_code ec;
   result.bytes_transferred = socket_->receive(asio::buffer(data, size), 0, ec);
   result.error = ec;
-  if (!ec && has_connected_endpoint_) result.remote_endpoint = connected_endpoint_;
+  if (!ec && has_connected_endpoint_)
+    result.remote_endpoint = connected_endpoint_;
   return result;
 }
 
