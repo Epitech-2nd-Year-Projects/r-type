@@ -4,8 +4,10 @@
 #include "render/backend.h"
 #include "render/color.h"
 #include "render/context.h"
+#include "render/draw_list.h"
 #include "render/raylib_backend.h"
 #include "render/renderer2d.h"
+#include "render/sprite.h"
 #include "render/window.h"
 
 namespace engine::render {}
