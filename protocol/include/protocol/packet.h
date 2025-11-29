@@ -57,6 +57,6 @@ using PacketPayload = std::variant<std::monostate,
    * @return true on success, false if the buffer is invalid or decoding fails.
    */
   bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet);
-}
+}  // namespace protocol
 
 #endif  // PROTOCOL_PACKET_H_
