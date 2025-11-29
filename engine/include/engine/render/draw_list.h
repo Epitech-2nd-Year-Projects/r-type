@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDER_DRAW_LIST_H_
 #define ENGINE_RENDER_DRAW_LIST_H_
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -8,7 +9,9 @@
 #include <vector>
 
 #include "engine/math/vector2.h"
+#include "engine/render/camera2d.h"
 #include "engine/render/color.h"
+#include "engine/render/layer.h"
 #include "engine/render/renderer2d.h"
 #include "engine/render/sprite.h"
 
@@ -18,6 +21,7 @@ struct TextDrawParams {
   math::Vector2f position{};
   float font_size{16.0f};
   Color color{Color::White()};
+  RenderLayer layer{RenderLayer::kMidground};
 };
 
 /**
@@ -34,6 +38,8 @@ class DrawList {
   void AddText(std::string_view text, const TextDrawParams& params);
 
   void Submit(Renderer2D& renderer, bool auto_clear = true);
+  void Submit(Renderer2D& renderer, const Camera2D& camera,
+              bool auto_clear = true);
 
  private:
   struct QuadCommand {
@@ -46,8 +52,8 @@ class DrawList {
     TextDrawParams params;
   };
 
-  std::vector<QuadCommand> quad_commands_;
-  std::vector<TextCommand> text_commands_;
+  std::array<std::vector<QuadCommand>, kRenderLayerCount> quad_commands_;
+  std::array<std::vector<TextCommand>, kRenderLayerCount> text_commands_;
 };
 
 }  // namespace engine::render
