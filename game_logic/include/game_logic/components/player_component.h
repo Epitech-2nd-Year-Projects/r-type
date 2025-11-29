@@ -25,13 +25,6 @@ struct PlayerComponent {
   /// @brief Player slot index within room (0-3 for 4-player game)
   std::uint8_t player_slot{0};
 
-  /// @brief Player color (RGB 0-255)
-  struct Color {
-    std::uint8_t r{255};
-    std::uint8_t g{255};
-    std::uint8_t b{255};
-  } color;
-
   /// @brief Current score
   std::uint32_t score{0};
 
