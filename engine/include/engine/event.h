@@ -27,11 +27,11 @@ class EventBus {
    * @brief Handle returned by Subscribe to later remove a listener.
    */
   struct SubscriptionHandle {
-    std::type_index type = std::type_index(typeid(void));
+    const std::type_info* type = nullptr;
     std::size_t id = 0;
 
     [[nodiscard]] bool Valid() const noexcept {
-      return type != std::type_index(typeid(void)) && id != 0;
+      return type != nullptr && id != 0;
     }
 
     explicit operator bool() const noexcept { return Valid(); }
