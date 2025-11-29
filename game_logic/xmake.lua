@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 target("game_logic")
     set_kind("static")
-    add_files("src/*.cpp")
+    add_files("src/**.cpp")
     add_includedirs("include", {public = true})
     add_headerfiles("include/game_logic/(**.h|**.hpp)")
     add_deps("engine")
