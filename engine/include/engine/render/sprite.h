@@ -8,6 +8,7 @@
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/color.h"
+#include "engine/render/layer.h"
 #include "engine/render/renderer2d.h"
 
 namespace engine::render {
@@ -42,6 +43,9 @@ class Sprite {
 
   void SetTint(const Color& color) noexcept;
   const Color& GetTint() const noexcept;
+
+  void SetLayer(RenderLayer layer) noexcept;
+  RenderLayer GetLayer() const noexcept;
 
   SpriteDrawParams& Params() noexcept { return params_; }
   const SpriteDrawParams& Params() const noexcept { return params_; }

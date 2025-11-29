@@ -9,6 +9,7 @@
 #include "color.h"
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
+#include "engine/render/layer.h"
 
 namespace engine::render {
 
@@ -31,6 +32,7 @@ struct SpriteDrawParams {
   float rotation{0.0f};
   std::optional<math::RectF> source{};
   Color tint{Color::White()};
+  RenderLayer layer{RenderLayer::kMidground};
 };
 
 /**

@@ -2,9 +2,11 @@
 #define ENGINE_ENGINE_RENDER_H_
 
 #include "render/backend.h"
+#include "render/camera2d.h"
 #include "render/color.h"
 #include "render/context.h"
 #include "render/draw_list.h"
+#include "render/layer.h"
 #include "render/raylib_backend.h"
 #include "render/renderer2d.h"
 #include "render/sprite.h"

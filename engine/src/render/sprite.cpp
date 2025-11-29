@@ -72,6 +72,10 @@ void Sprite::SetTint(const Color& color) noexcept { params_.tint = color; }
 
 const Color& Sprite::GetTint() const noexcept { return params_.tint; }
 
+void Sprite::SetLayer(RenderLayer layer) noexcept { params_.layer = layer; }
+
+RenderLayer Sprite::GetLayer() const noexcept { return params_.layer; }
+
 void Sprite::Draw(Renderer2D& renderer) const {
   if (!texture_) {
     return;
