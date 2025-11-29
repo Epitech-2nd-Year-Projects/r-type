@@ -8,6 +8,7 @@
 #include "protocol/header.h"
 #include "protocol/input_state.h"
 #include "protocol/join.h"
+#include "protocol/packet.h"
 #include "protocol/ping.h"
 #include "protocol/player_died.h"
 #include "protocol/world_snapshot.h"
@@ -367,6 +368,69 @@ bool TestWorldSnapshotRoundTrip() {
   return true;
 }
 
+bool TestPacketRoundTripInputState() {
+  protocol::InputStatePayload input{};
+  input.input_sequence = 42u;
+  input.buttons = protocol::kInputRight | protocol::kInputFire;
+  input.analog_x = 123;
+  input.analog_y = -456;
+  input.client_time_ms = 1337u;
+
+  protocol::Packet original{};
+  original.header.version = protocol::kProtocolVersion;
+  original.header.message_type = static_cast<std::uint8_t>(
+      protocol::message_type::MessageType::kInputState);
+  original.header.flags = 0;
+  original.header.sequence = 10u;
+  original.header.ack = 8u;
+  original.header.ack_bits = 0x00000003u;
+  original.header.timestamp_ms = 5000u;
+  original.payload = input;
+
+  engine::net::PacketBuffer buffer;
+  if (!protocol::EncodePacket(original, buffer)) {
+    std::cout << "EncodePacket(InputState) returned false\n";
+    return false;
+  }
+
+  engine::net::PacketBuffer read_buffer(buffer.storage());
+  protocol::Packet decoded{};
+  if (!protocol::DecodePacket(read_buffer, decoded)) {
+    std::cout << "DecodePacket(InputState) returned false\n";
+    return false;
+  }
+
+  if (decoded.header.version != original.header.version ||
+      decoded.header.message_type != original.header.message_type ||
+      decoded.header.flags != original.header.flags ||
+      decoded.header.sequence != original.header.sequence ||
+      decoded.header.ack != original.header.ack ||
+      decoded.header.ack_bits != original.header.ack_bits ||
+      decoded.header.timestamp_ms != original.header.timestamp_ms) {
+    std::cout << "Header mismatch in Packet InputState round-trip\n";
+    return false;
+  }
+
+  if (!std::holds_alternative<protocol::InputStatePayload>(decoded.payload)) {
+    std::cout << "Decoded payload is not InputStatePayload\n";
+    return false;
+  }
+
+  const auto& decoded_input =
+      std::get<protocol::InputStatePayload>(decoded.payload);
+
+  if (decoded_input.input_sequence != input.input_sequence ||
+      decoded_input.buttons != input.buttons ||
+      decoded_input.analog_x != input.analog_x ||
+      decoded_input.analog_y != input.analog_y ||
+      decoded_input.client_time_ms != input.client_time_ms) {
+    std::cout << "InputStatePayload mismatch in Packet round-trip\n";
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace
 
 int RunProtocolSerializationTests() {
@@ -388,6 +452,10 @@ int RunProtocolSerializationTests() {
     ++failures;
   }
   if (!RunTest("WorldSnapshot round-trip", &TestWorldSnapshotRoundTrip)) {
+    ++failures;
+  }
+  if (!RunTest("Packet round-trip InputState",
+               &TestPacketRoundTripInputState)) {
     ++failures;
   }
 
