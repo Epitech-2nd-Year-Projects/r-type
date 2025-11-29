@@ -5,6 +5,8 @@
 #include <optional>
 #include <vector>
 
+#include "bench_types.h"
+
 struct Position {
   float x, y;
 };
@@ -16,6 +18,17 @@ struct Velocity {
 struct Health {
   int hp;
   int max_hp;
+};
+
+struct AIState {
+  float direction = 1.0f;
+  float timer = 0.0f;
+};
+
+struct DamageOverTime {
+  int damage_per_tick = 1;
+  float interval = 0.1f;
+  float accumulator = 0.0f;
 };
 
 template <typename T>
@@ -41,9 +54,13 @@ class ECSGameWorld {
   SparseArray<Position> positions;
   SparseArray<Velocity> velocities;
   SparseArray<Health> healths;
+   // Additional components for extra system-scaling benchmarks.
+  SparseArray<AIState> ai_states;
+  SparseArray<DamageOverTime> dots;
 
   void AddSystem(std::function<void(ECSGameWorld &)> system);
   void Update(float dt);
+  void SerializeAll(std::vector<SerializedEntity> &out) const;
   size_t EntityCount() const;
 
  private:
