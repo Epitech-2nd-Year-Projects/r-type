@@ -1,4 +1,4 @@
-#ifndef PROTOCOL_PACKET_H
+#ifndef PROTOCOL_PACKET_H_
 #define PROTOCOL_PACKET_H_
 
 #include <variant>
