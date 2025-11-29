@@ -24,7 +24,9 @@ class RaylibAudioEngine final : public AudioEngine {
       ::InitAudioDevice();
     }
     EngineInstanceCount() += 1;
-    ::SetMasterVolume(master_volume_);
+    if (::IsAudioDeviceReady()) {
+      ::SetMasterVolume(master_volume_);
+    }
   }
 
   ~RaylibAudioEngine() override {

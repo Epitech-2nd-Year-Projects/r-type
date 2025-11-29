@@ -51,8 +51,19 @@ class AudioEngine {
    */
   virtual void SetSfxVolume(float volume) = 0;
 
+  /**
+   * @brief Get the current master volume.
+   */
   virtual float GetMasterVolume() const = 0;
+
+  /**
+   * @brief Get the current music volume.
+   */
   virtual float GetMusicVolume() const = 0;
+
+  /**
+   * @brief Get the current sound effects volume.
+   */
   virtual float GetSfxVolume() const = 0;
 };
 
