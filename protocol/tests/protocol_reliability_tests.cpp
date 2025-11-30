@@ -1,7 +1,9 @@
 #include <cstdint>
 #include <iostream>
 
+#include "protocol/message_type.h"
 #include "protocol/reliability.h"
+#include "protocol/reliability_policy.h"
 #include "protocol/sequence_tracker.h"
 
 namespace {
@@ -107,6 +109,54 @@ bool TestSequenceTrackerBasic() {
   return true;
 }
 
+bool TestReliabilityPolicyBasics() {
+  using protocol::message_type::MessageType;
+
+  // JoinRequest : fiable + connectionless.
+  if (!protocol::IsReliable(MessageType::kJoinRequest)) {
+    std::cout << "JoinRequest should be reliable\n";
+    return false;
+  }
+  if (!protocol::IsConnectionless(MessageType::kJoinRequest)) {
+    std::cout << "JoinRequest should be connectionless\n";
+    return false;
+  }
+
+  // InputState : pas reliable, pas connectionless.
+  if (protocol::IsReliable(MessageType::kInputState)) {
+    std::cout << "InputState should NOT be reliable\n";
+    return false;
+  }
+  if (protocol::IsConnectionless(MessageType::kInputState)) {
+    std::cout << "InputState should NOT be connectionless\n";
+    return false;
+  }
+
+  // WorldSnapshot : pas reliable.
+  if (protocol::IsReliable(MessageType::kWorldSnapshot)) {
+    std::cout << "WorldSnapshot should NOT be reliable\n";
+    return false;
+  }
+
+  // PlayerDied : reliable.
+  if (!protocol::IsReliable(MessageType::kPlayerDied)) {
+    std::cout << "PlayerDied should be reliable\n";
+    return false;
+  }
+
+  // Ping : connectionless, pas reliable.
+  if (protocol::IsReliable(MessageType::kPing)) {
+    std::cout << "Ping should NOT be reliable\n";
+    return false;
+  }
+  if (!protocol::IsConnectionless(MessageType::kPing)) {
+    std::cout << "Ping should be connectionless\n";
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -123,6 +173,9 @@ int RunProtocolReliabilityTests() {
     ++failures;
   }
   if (!RunTest("SequenceTracker basic", &TestSequenceTrackerBasic)) {
+    ++failures;
+  }
+  if (!RunTest("ReliabilityPolicy basics", &TestReliabilityPolicyBasics)) {
     ++failures;
   }
 
