@@ -25,7 +25,7 @@
                 commit = "610ef5dd0fc151a242c01017d591afacc397967c",
                 url = "https://gitlab.com/tboox/xmake-repo.git"
             },
-            version = "3.31.7"
+            version = "3.28.3"
         },
         ["libffi#0b3b0fcf"] = {
             repo = {
@@ -169,7 +169,7 @@
                 commit = "610ef5dd0fc151a242c01017d591afacc397967c",
                 url = "https://gitlab.com/tboox/xmake-repo.git"
             },
-            version = "3.13.2"
+            version = "3.13.5"
         },
         ["raylib#f56260b5"] = {
             repo = {
