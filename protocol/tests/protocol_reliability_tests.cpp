@@ -9,6 +9,7 @@
 #include "protocol/reliability_policy.h"
 #include "protocol/reliable_queue.h"
 #include "protocol/sequence_tracker.h"
+#include "protocol/snapshot_history.h"
 
 namespace {
 
@@ -116,7 +117,6 @@ bool TestSequenceTrackerBasic() {
 bool TestReliabilityPolicyBasics() {
   using protocol::message_type::MessageType;
 
-  // JoinRequest : fiable + connectionless.
   if (!protocol::IsReliable(MessageType::kJoinRequest)) {
     std::cout << "JoinRequest should be reliable\n";
     return false;
@@ -126,7 +126,6 @@ bool TestReliabilityPolicyBasics() {
     return false;
   }
 
-  // InputState : pas reliable, pas connectionless.
   if (protocol::IsReliable(MessageType::kInputState)) {
     std::cout << "InputState should NOT be reliable\n";
     return false;
@@ -136,19 +135,16 @@ bool TestReliabilityPolicyBasics() {
     return false;
   }
 
-  // WorldSnapshot : pas reliable.
   if (protocol::IsReliable(MessageType::kWorldSnapshot)) {
     std::cout << "WorldSnapshot should NOT be reliable\n";
     return false;
   }
 
-  // PlayerDied : reliable.
   if (!protocol::IsReliable(MessageType::kPlayerDied)) {
     std::cout << "PlayerDied should be reliable\n";
     return false;
   }
 
-  // Ping : connectionless, pas reliable.
   if (protocol::IsReliable(MessageType::kPing)) {
     std::cout << "Ping should NOT be reliable\n";
     return false;
@@ -361,8 +357,8 @@ bool TestPacketDecodeInvalidMessageType() {
 bool TestPacketDecodeUnexpectedEndOfBuffer() {
   engine::net::PacketBuffer buffer;
   buffer.WriteUint16(protocol::kProtocolVersion);
-  buffer.WriteUint8(static_cast<std::uint8_t>(
-      protocol::message_type::MessageType::kPing));
+  buffer.WriteUint8(
+      static_cast<std::uint8_t>(protocol::message_type::MessageType::kPing));
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
@@ -384,8 +380,8 @@ bool TestPacketDecodeUnexpectedEndOfBuffer() {
 bool TestPacketDecodeInvalidPayload() {
   protocol::Header header{};
   header.version = protocol::kProtocolVersion;
-  header.message_type =
-      static_cast<std::uint8_t>(protocol::message_type::MessageType::kJoinRequest);
+  header.message_type = static_cast<std::uint8_t>(
+      protocol::message_type::MessageType::kJoinRequest);
   header.flags = 0;
   header.sequence = 1;
   header.ack = 0;
@@ -428,14 +424,16 @@ bool TestDecodeMetricsBasic() {
     return false;
   }
 
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kVersionMismatch);
   if (metrics.total_packets != 2 || metrics.rejected_packets != 1 ||
       metrics.version_mismatch != 1) {
     std::cout << "Expected total=2, rejected=1, version_mismatch=1\n";
     return false;
   }
 
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kUnknownMessageType);
   if (metrics.total_packets != 3 || metrics.rejected_packets != 2 ||
       metrics.unknown_message_type != 1) {
     std::cout << "Expected total=3, rejected=2, unknown_message_type=1\n";
@@ -448,27 +446,31 @@ bool TestDecodeMetricsBasic() {
 bool TestDecodeMetricsAllErrors() {
   protocol::DecodeMetrics metrics{};
 
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnexpectedEndOfBuffer);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kUnexpectedEndOfBuffer);
   protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidHeader);
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidPayload);
-  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidSnapshotId);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kUnknownMessageType);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kVersionMismatch);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kInvalidPayload);
+  protocol::UpdateDecodeMetrics(metrics,
+                                protocol::DecodeError::kInvalidSnapshotId);
 
   if (metrics.total_packets != 6) {
-    std::cout << "Expected 6 total packets, got " << metrics.total_packets << "\n";
+    std::cout << "Expected 6 total packets, got " << metrics.total_packets
+              << "\n";
     return false;
   }
   if (metrics.rejected_packets != 6) {
-    std::cout << "Expected 6 rejected packets, got " << metrics.rejected_packets << "\n";
+    std::cout << "Expected 6 rejected packets, got " << metrics.rejected_packets
+              << "\n";
     return false;
   }
-  if (metrics.unexpected_end_of_buffer != 1 ||
-      metrics.invalid_header != 1 ||
-      metrics.unknown_message_type != 1 ||
-      metrics.version_mismatch != 1 ||
-      metrics.invalid_payload != 1 ||
-      metrics.invalid_snapshot_id != 1) {
+  if (metrics.unexpected_end_of_buffer != 1 || metrics.invalid_header != 1 ||
+      metrics.unknown_message_type != 1 || metrics.version_mismatch != 1 ||
+      metrics.invalid_payload != 1 || metrics.invalid_snapshot_id != 1) {
     std::cout << "Error counters mismatch\n";
     return false;
   }
@@ -477,16 +479,23 @@ bool TestDecodeMetricsAllErrors() {
 }
 
 bool TestDecodeErrorToString() {
-  const char* str_ok = protocol::DecodeErrorToString(protocol::DecodeError::kOk);
-  const char* str_eob = protocol::DecodeErrorToString(protocol::DecodeError::kUnexpectedEndOfBuffer);
-  const char* str_hdr = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidHeader);
-  const char* str_type = protocol::DecodeErrorToString(protocol::DecodeError::kUnknownMessageType);
-  const char* str_ver = protocol::DecodeErrorToString(protocol::DecodeError::kVersionMismatch);
-  const char* str_pay = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidPayload);
-  const char* str_snap = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidSnapshotId);
+  const char* str_ok =
+      protocol::DecodeErrorToString(protocol::DecodeError::kOk);
+  const char* str_eob = protocol::DecodeErrorToString(
+      protocol::DecodeError::kUnexpectedEndOfBuffer);
+  const char* str_hdr =
+      protocol::DecodeErrorToString(protocol::DecodeError::kInvalidHeader);
+  const char* str_type =
+      protocol::DecodeErrorToString(protocol::DecodeError::kUnknownMessageType);
+  const char* str_ver =
+      protocol::DecodeErrorToString(protocol::DecodeError::kVersionMismatch);
+  const char* str_pay =
+      protocol::DecodeErrorToString(protocol::DecodeError::kInvalidPayload);
+  const char* str_snap =
+      protocol::DecodeErrorToString(protocol::DecodeError::kInvalidSnapshotId);
 
-  if (!str_ok || !str_eob || !str_hdr || !str_type || 
-      !str_ver || !str_pay || !str_snap) {
+  if (!str_ok || !str_eob || !str_hdr || !str_type || !str_ver || !str_pay ||
+      !str_snap) {
     std::cout << "One or more error strings are null\n";
     return false;
   }
@@ -525,35 +534,219 @@ bool TestPacketDecodeMultipleErrors() {
   protocol::DecodeMetrics metrics{};
 
   for (int i = 0; i < 10; ++i) {
-    protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
+    protocol::UpdateDecodeMetrics(metrics,
+                                  protocol::DecodeError::kVersionMismatch);
   }
   for (int i = 0; i < 5; ++i) {
-    protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
+    protocol::UpdateDecodeMetrics(metrics,
+                                  protocol::DecodeError::kUnknownMessageType);
   }
   for (int i = 0; i < 3; ++i) {
     protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kOk);
   }
 
   if (metrics.total_packets != 18) {
-    std::cout << "Expected 18 total packets, got " << metrics.total_packets << "\n";
+    std::cout << "Expected 18 total packets, got " << metrics.total_packets
+              << "\n";
     return false;
   }
   if (metrics.rejected_packets != 15) {
-    std::cout << "Expected 15 rejected packets, got " << metrics.rejected_packets << "\n";
+    std::cout << "Expected 15 rejected packets, got "
+              << metrics.rejected_packets << "\n";
     return false;
   }
   if (metrics.version_mismatch != 10) {
-    std::cout << "Expected 10 version_mismatch, got " << metrics.version_mismatch << "\n";
+    std::cout << "Expected 10 version_mismatch, got "
+              << metrics.version_mismatch << "\n";
     return false;
   }
   if (metrics.unknown_message_type != 5) {
-    std::cout << "Expected 5 unknown_message_type, got " << metrics.unknown_message_type << "\n";
+    std::cout << "Expected 5 unknown_message_type, got "
+              << metrics.unknown_message_type << "\n";
     return false;
   }
 
   return true;
 }
 
+bool TestSnapshotHistoryBasic() {
+  protocol::SnapshotHistory history(5);
+
+  if (history.size() != 0) {
+    std::cout << "Expected empty history, got size " << history.size() << "\n";
+    return false;
+  }
+  if (history.capacity() != 5) {
+    std::cout << "Expected capacity 5, got " << history.capacity() << "\n";
+    return false;
+  }
+
+  protocol::WorldSnapshotPayload snapshot1;
+  snapshot1.snapshot_id = 100;
+  snapshot1.server_tick = 1000;
+  history.AddSnapshot(snapshot1);
+
+  if (history.size() != 1) {
+    std::cout << "Expected size 1 after adding snapshot, got " << history.size()
+              << "\n";
+    return false;
+  }
+
+  const protocol::WorldSnapshotPayload* retrieved = history.GetSnapshot(100);
+  if (!retrieved) {
+    std::cout << "Failed to retrieve snapshot with ID 100\n";
+    return false;
+  }
+  if (retrieved->snapshot_id != 100 || retrieved->server_tick != 1000) {
+    std::cout << "Retrieved snapshot has wrong data\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestSnapshotHistoryCapacity() {
+  protocol::SnapshotHistory history(3);
+
+  for (std::uint32_t i = 0; i < 3; ++i) {
+    protocol::WorldSnapshotPayload snapshot;
+    snapshot.snapshot_id = 100 + i;
+    snapshot.server_tick = 1000 + i;
+    history.AddSnapshot(snapshot);
+  }
+
+  if (history.size() != 3) {
+    std::cout << "Expected size 3, got " << history.size() << "\n";
+    return false;
+  }
+
+  if (!history.Contains(100) || !history.Contains(101) ||
+      !history.Contains(102)) {
+    std::cout << "Missing snapshots 100-102\n";
+    return false;
+  }
+
+  protocol::WorldSnapshotPayload snapshot4;
+  snapshot4.snapshot_id = 103;
+  snapshot4.server_tick = 1003;
+  history.AddSnapshot(snapshot4);
+
+  if (history.size() != 3) {
+    std::cout << "Expected size 3 after overflow, got " << history.size()
+              << "\n";
+    return false;
+  }
+
+  if (history.Contains(100)) {
+    std::cout << "Snapshot 100 should have been evicted\n";
+    return false;
+  }
+
+  if (!history.Contains(101) || !history.Contains(102) ||
+      !history.Contains(103)) {
+    std::cout << "Missing snapshots 101-103\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestSnapshotHistoryGetLatest() {
+  protocol::SnapshotHistory history(5);
+
+  if (history.GetLatestSnapshot() != nullptr) {
+    std::cout << "Expected nullptr for empty history\n";
+    return false;
+  }
+
+  for (std::uint32_t i = 0; i < 3; ++i) {
+    protocol::WorldSnapshotPayload snapshot;
+    snapshot.snapshot_id = 200 + i;
+    snapshot.server_tick = 2000 + i;
+    history.AddSnapshot(snapshot);
+  }
+
+  const protocol::WorldSnapshotPayload* latest = history.GetLatestSnapshot();
+  if (!latest) {
+    std::cout << "Failed to get latest snapshot\n";
+    return false;
+  }
+  if (latest->snapshot_id != 202 || latest->server_tick != 2002) {
+    std::cout << "Latest snapshot has wrong data: id=" << latest->snapshot_id
+              << " tick=" << latest->server_tick << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestSnapshotHistoryWithDeltas() {
+  protocol::SnapshotHistory history(10);
+
+  protocol::WorldSnapshotPayload snapshot;
+  snapshot.snapshot_id = 300;
+  snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  snapshot.server_tick = 3000;
+
+  protocol::EntityDelta delta1;
+  delta1.op = protocol::EntityDeltaOp::kCreate;
+  delta1.entity_id = 1;
+  delta1.state.entity_id = 1;
+  delta1.state.type = 10;
+  delta1.state.x = 100;
+  delta1.state.y = 200;
+
+  protocol::EntityDelta delta2;
+  delta2.op = protocol::EntityDeltaOp::kCreate;
+  delta2.entity_id = 2;
+  delta2.state.entity_id = 2;
+  delta2.state.type = 20;
+  delta2.state.x = 150;
+  delta2.state.y = 250;
+
+  snapshot.deltas.push_back(delta1);
+  snapshot.deltas.push_back(delta2);
+
+  history.AddSnapshot(snapshot);
+
+  const protocol::WorldSnapshotPayload* retrieved = history.GetSnapshot(300);
+  if (!retrieved) {
+    std::cout << "Failed to retrieve snapshot 300\n";
+    return false;
+  }
+  if (retrieved->deltas.size() != 2) {
+    std::cout << "Expected 2 deltas, got " << retrieved->deltas.size() << "\n";
+    return false;
+  }
+  if (retrieved->deltas[0].entity_id != 1 ||
+      retrieved->deltas[1].entity_id != 2) {
+    std::cout << "Delta entity IDs don't match\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestSnapshotHistoryGetSnapshotNotFound() {
+  protocol::SnapshotHistory history(5);
+
+  protocol::WorldSnapshotPayload snapshot;
+  snapshot.snapshot_id = 400;
+  history.AddSnapshot(snapshot);
+
+  const protocol::WorldSnapshotPayload* not_found = history.GetSnapshot(999);
+  if (not_found != nullptr) {
+    std::cout << "Expected nullptr for non-existent snapshot\n";
+    return false;
+  }
+
+  if (history.Contains(999)) {
+    std::cout << "Contains should return false for non-existent snapshot\n";
+    return false;
+  }
+
+  return true;
+}
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -605,24 +798,37 @@ int RunProtocolReliabilityTests() {
                &TestPacketDecodeInvalidPayload)) {
     ++failures;
   }
-  if (!RunTest("Packet Decode empty buffer",
-               &TestPacketDecodeEmptyBuffer)) {
+  if (!RunTest("Packet Decode empty buffer", &TestPacketDecodeEmptyBuffer)) {
     ++failures;
   }
-  if (!RunTest("DecodeMetrics basic",
-               &TestDecodeMetricsBasic)) {
+  if (!RunTest("DecodeMetrics basic", &TestDecodeMetricsBasic)) {
     ++failures;
   }
-  if (!RunTest("DecodeMetrics all errors",
-               &TestDecodeMetricsAllErrors)) {
+  if (!RunTest("DecodeMetrics all errors", &TestDecodeMetricsAllErrors)) {
     ++failures;
   }
   if (!RunTest("DecodeMetrics multiple errors",
                &TestPacketDecodeMultipleErrors)) {
     ++failures;
   }
-  if (!RunTest("DecodeErrorToString all values",
-               &TestDecodeErrorToString)) {
+  if (!RunTest("DecodeErrorToString all values", &TestDecodeErrorToString)) {
+    ++failures;
+  }
+  if (!RunTest("SnapshotHistory basic", &TestSnapshotHistoryBasic)) {
+    ++failures;
+  }
+  if (!RunTest("SnapshotHistory capacity and eviction",
+               &TestSnapshotHistoryCapacity)) {
+    ++failures;
+  }
+  if (!RunTest("SnapshotHistory get latest", &TestSnapshotHistoryGetLatest)) {
+    ++failures;
+  }
+  if (!RunTest("SnapshotHistory with deltas", &TestSnapshotHistoryWithDeltas)) {
+    ++failures;
+  }
+  if (!RunTest("SnapshotHistory get snapshot not found",
+               &TestSnapshotHistoryGetSnapshotNotFound)) {
     ++failures;
   }
 

@@ -26,11 +26,12 @@ bool TestInputStateRoundTrip() {
   engine::net::PacketBuffer buffer;
 
   protocol::InputStatePayload original{};
-  original.input_sequence = 42u;
-  original.buttons = protocol::kInputUp | protocol::kInputFire;
-  original.analog_x = 123;
-  original.analog_y = -45;
-  original.client_time_ms = 1337u;
+  original.command_count = 1;
+  original.commands[0].input_sequence = 42u;
+  original.commands[0].buttons = protocol::kInputUp | protocol::kInputFire;
+  original.commands[0].analog_x = 123;
+  original.commands[0].analog_y = -45;
+  original.commands[0].client_time_ms = 1337u;
 
   if (!protocol::EncodeInputState(original, buffer)) {
     return false;
@@ -42,12 +43,17 @@ bool TestInputStateRoundTrip() {
   if (!protocol::DecodeInputState(read_buffer, decoded)) {
     return false;
   }
+  if (decoded.command_count != original.command_count) {
+    return false;
+  }
 
-  return decoded.input_sequence == original.input_sequence &&
-         decoded.buttons == original.buttons &&
-         decoded.analog_x == original.analog_x &&
-         decoded.analog_y == original.analog_y &&
-         decoded.client_time_ms == original.client_time_ms;
+  return decoded.commands[0].input_sequence ==
+             original.commands[0].input_sequence &&
+         decoded.commands[0].buttons == original.commands[0].buttons &&
+         decoded.commands[0].analog_x == original.commands[0].analog_x &&
+         decoded.commands[0].analog_y == original.commands[0].analog_y &&
+         decoded.commands[0].client_time_ms ==
+             original.commands[0].client_time_ms;
 }
 
 bool TestPingPongRoundTrip() {
@@ -370,11 +376,12 @@ bool TestWorldSnapshotRoundTrip() {
 
 bool TestPacketRoundTripInputState() {
   protocol::InputStatePayload input{};
-  input.input_sequence = 42u;
-  input.buttons = protocol::kInputRight | protocol::kInputFire;
-  input.analog_x = 123;
-  input.analog_y = -456;
-  input.client_time_ms = 1337u;
+  input.command_count = 1;
+  input.commands[0].input_sequence = 42u;
+  input.commands[0].buttons = protocol::kInputRight | protocol::kInputFire;
+  input.commands[0].analog_x = 123;
+  input.commands[0].analog_y = -456;
+  input.commands[0].client_time_ms = 1337u;
 
   protocol::Packet original{};
   original.header.version = protocol::kProtocolVersion;
@@ -419,11 +426,14 @@ bool TestPacketRoundTripInputState() {
   const auto& decoded_input =
       std::get<protocol::InputStatePayload>(decoded.payload);
 
-  if (decoded_input.input_sequence != input.input_sequence ||
-      decoded_input.buttons != input.buttons ||
-      decoded_input.analog_x != input.analog_x ||
-      decoded_input.analog_y != input.analog_y ||
-      decoded_input.client_time_ms != input.client_time_ms) {
+  if (decoded_input.command_count != input.command_count ||
+      decoded_input.commands[0].input_sequence !=
+          input.commands[0].input_sequence ||
+      decoded_input.commands[0].buttons != input.commands[0].buttons ||
+      decoded_input.commands[0].analog_x != input.commands[0].analog_x ||
+      decoded_input.commands[0].analog_y != input.commands[0].analog_y ||
+      decoded_input.commands[0].client_time_ms !=
+          input.commands[0].client_time_ms) {
     std::cout << "InputStatePayload mismatch in Packet round-trip\n";
     return false;
   }
