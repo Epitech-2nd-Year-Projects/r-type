@@ -93,6 +93,9 @@ class ReliableQueue {
  private:
   std::uint32_t resend_timeout_ms_;  ///< Timeout in milliseconds before retransmitting.
   std::size_t max_pending_;          ///< Maximum number of pending packets.
+  // NOTE: pending_ uses std::vector; max_pending_ is expected to be small
+  // (e.g. <= 64). If this ever grows large, consider switching to std::deque
+  // to make front-erase O(1).
   std::vector<PendingPacket> pending_; ///< Queue of packets awaiting acknowledgment.
 };
 
