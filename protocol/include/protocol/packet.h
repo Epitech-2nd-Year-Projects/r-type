@@ -10,6 +10,7 @@
 #include "protocol/ping.h"
 #include "protocol/player_died.h"
 #include "protocol/world_snapshot.h"
+#include "protocol/error.h"
 
 
 namespace protocol {
@@ -57,6 +58,8 @@ using PacketPayload = std::variant<std::monostate,
    * @return true on success, false if the buffer is invalid or decoding fails.
    */
   bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet);
+
+  bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet, DecodeError* out_error);
 }  // namespace protocol
 
 #endif  // PROTOCOL_PACKET_H_
