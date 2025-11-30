@@ -163,6 +163,65 @@ bool DecodePayloadByType(engine::net::PacketBuffer& buffer, MessageType type,
   }
 }
 
+bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
+                          DecodeError* out_error) {
+  if (out_error != nullptr) {
+    *out_error = DecodeError::kOk;
+  }
+
+  Header header{};
+  if (!DecodeHeader(buffer, header)) {
+    if (out_error != nullptr) {
+      *out_error = DecodeError::kUnexpectedEndOfBuffer;
+    }
+    return false;
+  }
+
+  if (header.version != kProtocolVersion) {
+    if (out_error != nullptr) {
+      *out_error = DecodeError::kVersionMismatch;
+    }
+    return false;
+  }
+
+  const MessageType type = static_cast<MessageType>(header.message_type);
+
+  switch (type) {
+    case MessageType::kHello:
+    case MessageType::kJoinRequest:
+    case MessageType::kJoinAccept:
+    case MessageType::kJoinReject:
+    case MessageType::kInputState:
+    case MessageType::kWorldSnapshot:
+    case MessageType::kSpawnEntity:
+    case MessageType::kDestroyEntity:
+    case MessageType::kPlayerDied:
+    case MessageType::kClientCommand:
+    case MessageType::kServerCommand:
+    case MessageType::kPing:
+    case MessageType::kPong:
+      break;
+    case MessageType::kInvalid:
+    default:
+      if (out_error != nullptr) {
+        *out_error = DecodeError::kUnknownMessageType;
+      }
+      return false;
+  }
+
+  PacketPayload payload;
+  if (!DecodePayloadByType(buffer, type, payload)) {
+    if (out_error != nullptr) {
+      *out_error = DecodeError::kInvalidPayload;
+    }
+    return false;
+  }
+
+  out_packet.header = header;
+  out_packet.payload = std::move(payload);
+  return true;
+}
+
 }  // namespace
 
 bool EncodePacket(const Packet& packet, engine::net::PacketBuffer& buffer) {
@@ -173,17 +232,12 @@ bool EncodePacket(const Packet& packet, engine::net::PacketBuffer& buffer) {
 }
 
 bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet) {
-  Header header{};
-  if (!DecodeHeader(buffer, header)) {
-    return false;
-  }
-  const MessageType type = static_cast<MessageType>(header.message_type);
-  PacketPayload payload;
-  if (!DecodePayloadByType(buffer, type, payload)) {
-    return false;
-  }
-  out_packet.header = header;
-  out_packet.payload = std::move(payload);
-  return true;
+  return DecodePacketInternal(buffer, out_packet, nullptr);
 }
+
+bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet,
+                  DecodeError* out_error) {
+  return DecodePacketInternal(buffer, out_packet, out_error);
+}
+
 }  // namespace protocol

@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <iostream>
 
+#include "protocol/error.h"
 #include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
+#include "protocol/packet.h"
 #include "protocol/reliability.h"
 #include "protocol/reliability_policy.h"
 #include "protocol/reliable_queue.h"
@@ -295,6 +297,263 @@ bool TestLatencyEstimatorWithOffset() {
   return true;
 }
 
+bool TestPacketDecodeInvalidVersion() {
+  protocol::Header header{};
+  header.version = protocol::kProtocolVersion + 1;
+  header.message_type =
+      static_cast<std::uint8_t>(protocol::message_type::MessageType::kPing);
+  header.flags = 0;
+  header.sequence = 1;
+  header.ack = 0;
+  header.ack_bits = 0;
+  header.timestamp_ms = 1234;
+
+  engine::net::PacketBuffer buffer;
+  protocol::EncodeHeader(header, buffer);
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for invalid version\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kVersionMismatch) {
+    std::cout << "Expected kVersionMismatch, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeInvalidMessageType() {
+  protocol::Header header{};
+  header.version = protocol::kProtocolVersion;
+  header.message_type = 0xFF;
+  header.flags = 0;
+  header.sequence = 1;
+  header.ack = 0;
+  header.ack_bits = 0;
+  header.timestamp_ms = 42;
+
+  engine::net::PacketBuffer buffer;
+  protocol::EncodeHeader(header, buffer);
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for invalid message_type\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kUnknownMessageType) {
+    std::cout << "Expected kUnknownMessageType, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeUnexpectedEndOfBuffer() {
+  engine::net::PacketBuffer buffer;
+  buffer.WriteUint16(protocol::kProtocolVersion);
+  buffer.WriteUint8(static_cast<std::uint8_t>(
+      protocol::message_type::MessageType::kPing));
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for truncated header\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kUnexpectedEndOfBuffer) {
+    std::cout << "Expected kUnexpectedEndOfBuffer, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeInvalidPayload() {
+  protocol::Header header{};
+  header.version = protocol::kProtocolVersion;
+  header.message_type =
+      static_cast<std::uint8_t>(protocol::message_type::MessageType::kJoinRequest);
+  header.flags = 0;
+  header.sequence = 1;
+  header.ack = 0;
+  header.ack_bits = 0;
+  header.timestamp_ms = 100;
+
+  engine::net::PacketBuffer buffer;
+  protocol::EncodeHeader(header, buffer);
+  buffer.WriteUint8(0xFF);
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for invalid payload\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kInvalidPayload &&
+      error != protocol::DecodeError::kUnexpectedEndOfBuffer) {
+    std::cout << "Expected kInvalidPayload or kUnexpectedEndOfBuffer, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestDecodeMetricsBasic() {
+  protocol::DecodeMetrics metrics{};
+
+  if (metrics.total_packets != 0 || metrics.rejected_packets != 0) {
+    std::cout << "Expected initial metrics to be zero\n";
+    return false;
+  }
+
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kOk);
+  if (metrics.total_packets != 1 || metrics.rejected_packets != 0) {
+    std::cout << "Expected total=1, rejected=0 after success\n";
+    return false;
+  }
+
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
+  if (metrics.total_packets != 2 || metrics.rejected_packets != 1 ||
+      metrics.version_mismatch != 1) {
+    std::cout << "Expected total=2, rejected=1, version_mismatch=1\n";
+    return false;
+  }
+
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
+  if (metrics.total_packets != 3 || metrics.rejected_packets != 2 ||
+      metrics.unknown_message_type != 1) {
+    std::cout << "Expected total=3, rejected=2, unknown_message_type=1\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestDecodeMetricsAllErrors() {
+  protocol::DecodeMetrics metrics{};
+
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnexpectedEndOfBuffer);
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidHeader);
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidPayload);
+  protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kInvalidSnapshotId);
+
+  if (metrics.total_packets != 6) {
+    std::cout << "Expected 6 total packets, got " << metrics.total_packets << "\n";
+    return false;
+  }
+  if (metrics.rejected_packets != 6) {
+    std::cout << "Expected 6 rejected packets, got " << metrics.rejected_packets << "\n";
+    return false;
+  }
+  if (metrics.unexpected_end_of_buffer != 1 ||
+      metrics.invalid_header != 1 ||
+      metrics.unknown_message_type != 1 ||
+      metrics.version_mismatch != 1 ||
+      metrics.invalid_payload != 1 ||
+      metrics.invalid_snapshot_id != 1) {
+    std::cout << "Error counters mismatch\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestDecodeErrorToString() {
+  const char* str_ok = protocol::DecodeErrorToString(protocol::DecodeError::kOk);
+  const char* str_eob = protocol::DecodeErrorToString(protocol::DecodeError::kUnexpectedEndOfBuffer);
+  const char* str_hdr = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidHeader);
+  const char* str_type = protocol::DecodeErrorToString(protocol::DecodeError::kUnknownMessageType);
+  const char* str_ver = protocol::DecodeErrorToString(protocol::DecodeError::kVersionMismatch);
+  const char* str_pay = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidPayload);
+  const char* str_snap = protocol::DecodeErrorToString(protocol::DecodeError::kInvalidSnapshotId);
+
+  if (!str_ok || !str_eob || !str_hdr || !str_type || 
+      !str_ver || !str_pay || !str_snap) {
+    std::cout << "One or more error strings are null\n";
+    return false;
+  }
+
+  if (str_ok[0] == '\0' || str_eob[0] == '\0' || str_hdr[0] == '\0' ||
+      str_type[0] == '\0' || str_ver[0] == '\0' || str_pay[0] == '\0' ||
+      str_snap[0] == '\0') {
+    std::cout << "One or more error strings are empty\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeEmptyBuffer() {
+  engine::net::PacketBuffer buffer;
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for empty buffer\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kUnexpectedEndOfBuffer) {
+    std::cout << "Expected kUnexpectedEndOfBuffer for empty buffer, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeMultipleErrors() {
+  protocol::DecodeMetrics metrics{};
+
+  for (int i = 0; i < 10; ++i) {
+    protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kVersionMismatch);
+  }
+  for (int i = 0; i < 5; ++i) {
+    protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kUnknownMessageType);
+  }
+  for (int i = 0; i < 3; ++i) {
+    protocol::UpdateDecodeMetrics(metrics, protocol::DecodeError::kOk);
+  }
+
+  if (metrics.total_packets != 18) {
+    std::cout << "Expected 18 total packets, got " << metrics.total_packets << "\n";
+    return false;
+  }
+  if (metrics.rejected_packets != 15) {
+    std::cout << "Expected 15 rejected packets, got " << metrics.rejected_packets << "\n";
+    return false;
+  }
+  if (metrics.version_mismatch != 10) {
+    std::cout << "Expected 10 version_mismatch, got " << metrics.version_mismatch << "\n";
+    return false;
+  }
+  if (metrics.unknown_message_type != 5) {
+    std::cout << "Expected 5 unknown_message_type, got " << metrics.unknown_message_type << "\n";
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -328,6 +587,42 @@ int RunProtocolReliabilityTests() {
   }
   if (!RunTest("LatencyEstimator with offset",
                &TestLatencyEstimatorWithOffset)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode invalid version",
+               &TestPacketDecodeInvalidVersion)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode invalid message type",
+               &TestPacketDecodeInvalidMessageType)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode unexpected end of buffer",
+               &TestPacketDecodeUnexpectedEndOfBuffer)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode invalid payload",
+               &TestPacketDecodeInvalidPayload)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode empty buffer",
+               &TestPacketDecodeEmptyBuffer)) {
+    ++failures;
+  }
+  if (!RunTest("DecodeMetrics basic",
+               &TestDecodeMetricsBasic)) {
+    ++failures;
+  }
+  if (!RunTest("DecodeMetrics all errors",
+               &TestDecodeMetricsAllErrors)) {
+    ++failures;
+  }
+  if (!RunTest("DecodeMetrics multiple errors",
+               &TestPacketDecodeMultipleErrors)) {
+    ++failures;
+  }
+  if (!RunTest("DecodeErrorToString all values",
+               &TestDecodeErrorToString)) {
     ++failures;
   }
 
