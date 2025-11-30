@@ -59,6 +59,16 @@ using PacketPayload = std::variant<std::monostate,
    */
   bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet);
 
+  /**
+   * @brief Decodes a complete packet (header + payload) from a PacketBuffer with detailed error reporting.
+   * @param buffer The packet buffer to read from.
+   * @param out_packet Output parameter for the deserialized packet.
+   * @param out_error Optional output parameter for detailed error information. Can be nullptr.
+   * @return true on success, false if the buffer is invalid or decoding fails.
+   * 
+   * This overload provides detailed error information via the out_error parameter,
+   * useful for debugging and metrics collection.
+   */
   bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet, DecodeError* out_error);
 }  // namespace protocol
 

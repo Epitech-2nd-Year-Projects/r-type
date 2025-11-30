@@ -8,21 +8,26 @@ namespace protocol {
 /**
  * @brief Error codes for protocol packet decoding operations.
  * 
- * Used to provide detailed information about why a packet decode operation failed.
+ * Error names follow the issue requirements:
+ *   InvalidHeader, UnknownMessageType, UnexpectedEndOfBuffer,
+ *   InvalidSnapshotId, VersionMismatch.
  */
 enum class DecodeError : std::uint8_t {
   kOk = 0,  ///< No error, operation succeeded.
 
-  // Generic framing / length errors
-  kTruncated,              ///< Not enough bytes in the buffer.
-  kInvalidVersion,         ///< Header version does not match kProtocolVersion.
-  kInvalidMessageType,     ///< Header message type is unknown or unsupported.
-  kInvalidHeader,          ///< Header fields are inconsistent or malformed.
-  kInvalidPayload,         ///< Payload decoding failed (generic error).
+  // Framing / buffer errors
+  kUnexpectedEndOfBuffer,   ///< Not enough bytes in the buffer.
 
-  // Specific payload validation errors
-  kTooManyEntities,        ///< Snapshot entity count exceeds maximum limit.
-  kStringTooLong,          ///< String length exceeds protocol maximum.
+  // Header / version errors
+  kInvalidHeader,           ///< Header fields inconsistent or malformed.
+  kUnknownMessageType,      ///< Header message_type unknown or unsupported.
+  kVersionMismatch,         ///< Header version does not match kProtocolVersion.
+
+  // Payload / content errors
+  kInvalidPayload,          ///< Payload decoding failed (generic error).
+
+  // Snapshot semantics (for server/client validation)
+  kInvalidSnapshotId,       ///< SnapshotId / BaseSnapshotId is invalid.
 };
 
 /**
@@ -31,6 +36,33 @@ enum class DecodeError : std::uint8_t {
  * @return A null-terminated string describing the error.
  */
 const char* DecodeErrorToString(DecodeError error);
+
+/**
+ * @brief Simple metrics for tracking packet decode errors.
+ * 
+ * Used on server/client side to count rejected packets,
+ * invalid versions, etc.
+ */
+struct DecodeMetrics {
+  std::uint64_t total_packets = 0;            ///< Total number of packets processed.
+  std::uint64_t rejected_packets = 0;         ///< Number of packets rejected due to errors.
+
+  std::uint64_t unexpected_end_of_buffer = 0; ///< Count of kUnexpectedEndOfBuffer errors.
+  std::uint64_t invalid_header = 0;           ///< Count of kInvalidHeader errors.
+  std::uint64_t unknown_message_type = 0;     ///< Count of kUnknownMessageType errors.
+  std::uint64_t version_mismatch = 0;         ///< Count of kVersionMismatch errors.
+  std::uint64_t invalid_payload = 0;          ///< Count of kInvalidPayload errors.
+  std::uint64_t invalid_snapshot_id = 0;      ///< Count of kInvalidSnapshotId errors.
+};
+
+/**
+ * @brief Updates metrics according to the given decode error.
+ * @param metrics Metrics instance to update.
+ * @param error Error code returned by DecodePacket (kOk or other).
+ * 
+ * Should be called after each DecodePacket attempt (whether successful or not).
+ */
+void UpdateDecodeMetrics(DecodeMetrics& metrics, DecodeError error);
 
 }  // namespace protocol
 

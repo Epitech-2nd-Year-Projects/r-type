@@ -172,15 +172,14 @@ bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
   Header header{};
   if (!DecodeHeader(buffer, header)) {
     if (out_error != nullptr) {
-      *out_error = DecodeError::kTruncated;
+      *out_error = DecodeError::kUnexpectedEndOfBuffer;
     }
     return false;
   }
 
-  // Vérif version.
   if (header.version != kProtocolVersion) {
     if (out_error != nullptr) {
-      *out_error = DecodeError::kInvalidVersion;
+      *out_error = DecodeError::kVersionMismatch;
     }
     return false;
   }
@@ -188,7 +187,6 @@ bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
   const MessageType type = static_cast<MessageType>(header.message_type);
 
   switch (type) {
-    case MessageType::kInvalid:
     case MessageType::kHello:
     case MessageType::kJoinRequest:
     case MessageType::kJoinAccept:
@@ -203,9 +201,10 @@ bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
     case MessageType::kPing:
     case MessageType::kPong:
       break;
+    case MessageType::kInvalid:
     default:
       if (out_error != nullptr) {
-        *out_error = DecodeError::kInvalidMessageType;
+        *out_error = DecodeError::kUnknownMessageType;
       }
       return false;
   }
