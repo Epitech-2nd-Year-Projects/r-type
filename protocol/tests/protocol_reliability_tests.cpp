@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
 #include "protocol/reliability.h"
 #include "protocol/reliability_policy.h"
@@ -241,6 +242,59 @@ bool TestReliableQueueTimeoutResend() {
 
   return true;
 }
+
+bool TestLatencyEstimatorNoOffset() {
+  protocol::LatencyEstimator estimator;
+  estimator.OnPingSent(100u);
+  estimator.OnPongReceived(100u, 200u, 300u);
+
+  if (!estimator.has_estimate()) {
+    std::cout << "LatencyEstimator should have an estimate\n";
+    return false;
+  }
+
+  const float rtt = estimator.rtt_ms();
+  const float offset = estimator.clock_offset_ms();
+
+  if (rtt < 199.5f || rtt > 200.5f) {
+    std::cout << "Unexpected RTT: " << rtt << " (expected ~200)\n";
+    return false;
+  }
+
+  if (offset < -0.5f || offset > 0.5f) {
+    std::cout << "Unexpected offset: " << offset << " (expected ~0)\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestLatencyEstimatorWithOffset() {
+  protocol::LatencyEstimator estimator;
+  estimator.OnPingSent(100u);
+  estimator.OnPongReceived(100u, 250u, 300u);
+
+  if (!estimator.has_estimate()) {
+    std::cout << "LatencyEstimator should have an estimate\n";
+    return false;
+  }
+
+  const float rtt = estimator.rtt_ms();
+  const float offset = estimator.clock_offset_ms();
+
+  if (rtt < 199.5f || rtt > 200.5f) {
+    std::cout << "Unexpected RTT with offset: " << rtt << " (expected ~200)\n";
+    return false;
+  }
+
+  if (offset < 49.5f || offset > 50.5f) {
+    std::cout << "Unexpected clock offset: " << offset << " (expected ~50)\n";
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -267,6 +321,13 @@ int RunProtocolReliabilityTests() {
   }
   if (!RunTest("ReliableQueue timeout resend",
                &TestReliableQueueTimeoutResend)) {
+    ++failures;
+  }
+  if (!RunTest("LatencyEstimator no offset", &TestLatencyEstimatorNoOffset)) {
+    ++failures;
+  }
+  if (!RunTest("LatencyEstimator with offset",
+               &TestLatencyEstimatorWithOffset)) {
     ++failures;
   }
 
