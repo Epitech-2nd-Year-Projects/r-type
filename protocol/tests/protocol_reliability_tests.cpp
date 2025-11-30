@@ -193,6 +193,54 @@ bool TestReliableQueueAckBasics() {
 
   return true;
 }
+
+bool TestReliableQueueTimeoutResend() {
+  protocol::ReliableQueue queue(/*resend_timeout_ms=*/100, /*max_pending=*/8);
+  engine::net::PacketBuffer::Storage dummy_bytes = {0xAA, 0xBB};
+
+  queue.AddSentPacket(20u, dummy_bytes, /*now_ms=*/0u);
+
+  {
+    std::vector<protocol::PendingPacket> to_resend;
+    queue.CollectPacketsToResend(/*now_ms=*/50u, &to_resend);
+    if (!to_resend.empty()) {
+      std::cout << "Expected no resend at 50 ms\n";
+      return false;
+    }
+  }
+
+  {
+    std::vector<protocol::PendingPacket> to_resend;
+    queue.CollectPacketsToResend(150u, &to_resend);
+    if (to_resend.size() != 1u) {
+      std::cout << "Expected 1 packet to resend at 150 ms, got "
+                << to_resend.size() << "\n";
+      return false;
+    }
+    if (to_resend[0].sequence != 20u) {
+      std::cout << "Expected sequence 20 to resend, got "
+                << to_resend[0].sequence << "\n";
+      return false;
+    }
+  }
+
+  {
+    std::vector<protocol::PendingPacket> to_resend;
+    queue.CollectPacketsToResend(/*now_ms=*/260u, &to_resend);
+    if (to_resend.size() != 1u) {
+      std::cout << "Expected 1 packet to resend at 260 ms, got "
+                << to_resend.size() << "\n";
+      return false;
+    }
+    if (to_resend[0].sequence != 20u) {
+      std::cout << "Expected sequence 20 to resend again, got "
+                << to_resend[0].sequence << "\n";
+      return false;
+    }
+  }
+
+  return true;
+}
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -215,6 +263,10 @@ int RunProtocolReliabilityTests() {
     ++failures;
   }
   if (!RunTest("ReliableQueue ACK basics", &TestReliableQueueAckBasics)) {
+    ++failures;
+  }
+  if (!RunTest("ReliableQueue timeout resend",
+               &TestReliableQueueTimeoutResend)) {
     ++failures;
   }
 
