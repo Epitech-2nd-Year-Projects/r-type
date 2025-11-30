@@ -4,6 +4,7 @@
 #include "protocol/message_type.h"
 #include "protocol/reliability.h"
 #include "protocol/reliability_policy.h"
+#include "protocol/reliable_queue.h"
 #include "protocol/sequence_tracker.h"
 
 namespace {
@@ -157,6 +158,41 @@ bool TestReliabilityPolicyBasics() {
   return true;
 }
 
+bool TestReliableQueueAckBasics() {
+  protocol::ReliableQueue queue(/*resend_timeout_ms=*/100, /*max_pending=*/8);
+
+  engine::net::PacketBuffer::Storage dummy_bytes = {0x01, 0x02, 0x03};
+
+  queue.AddSentPacket(10u, dummy_bytes, /*now_ms=*/0u);
+  queue.AddSentPacket(11u, dummy_bytes, /*now_ms=*/0u);
+  queue.AddSentPacket(12u, dummy_bytes, /*now_ms=*/0u);
+
+  if (queue.pending_count() != 3u) {
+    std::cout << "Expected 3 pending packets, got " << queue.pending_count()
+              << "\n";
+    return false;
+  }
+
+  const std::uint32_t ack = 11u;
+  const std::uint32_t ack_bits = 0x00000001u;
+
+  queue.OnAckReceived(ack, ack_bits);
+
+  if (queue.pending_count() != 1u) {
+    std::cout << "Expected 1 pending packet after ACK, got "
+              << queue.pending_count() << "\n";
+    return false;
+  }
+
+  std::vector<protocol::PendingPacket> to_resend;
+  queue.CollectPacketsToResend(/*now_ms=*/0u, &to_resend);
+  if (!to_resend.empty()) {
+    std::cout << "Expected no packets to resend yet\n";
+    return false;
+  }
+
+  return true;
+}
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -176,6 +212,9 @@ int RunProtocolReliabilityTests() {
     ++failures;
   }
   if (!RunTest("ReliabilityPolicy basics", &TestReliabilityPolicyBasics)) {
+    ++failures;
+  }
+  if (!RunTest("ReliableQueue ACK basics", &TestReliableQueueAckBasics)) {
     ++failures;
   }
 
