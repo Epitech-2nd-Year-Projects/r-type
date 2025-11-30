@@ -143,7 +143,15 @@ void FileSink::Flush() {
 
 bool FileSink::IsOpen() const { return stream_.is_open(); }
 
-void FileSink::Reopen(bool append) { Open(append); }
+bool FileSink::IsOpen() const {
+  std::lock_guard lock(mutex_);
+  return stream_.is_open();
+}
+
+void FileSink::Reopen(bool append) {
+  std::lock_guard lock(mutex_);
+  Open(append);
+}
 
 void FileSink::Open(bool append) {
   append_mode_ = append;

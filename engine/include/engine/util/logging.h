@@ -106,7 +106,7 @@ class FileSink : public LogSink {
   void Open(bool append);
 
   std::filesystem::path path_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   std::ofstream stream_;
   bool append_mode_ = true;
 };
