@@ -16,6 +16,7 @@ struct ObstacleArchetypeData {
   bool destructible;
   std::uint32_t health;
   std::uint32_t score_value;
+  float hitbox_scale;
   const char* texture_path;
   engine::render::Color tint_color;
 };
@@ -28,6 +29,7 @@ inline constexpr ObstacleArchetypeData kWallData = {
     false,
     0,
     0,
+    1.0f,
     "assets/sprites/obstacle_wall.png",
     engine::render::Color::FromBytes(128, 128, 128, 255)};
 
@@ -39,6 +41,7 @@ inline constexpr ObstacleArchetypeData kDestructibleBarrierData = {
     true,
     100,
     50,
+    1.0f,
     "assets/sprites/obstacle_destructible.png",
     engine::render::Color::FromBytes(160, 120, 80, 255)};
 
