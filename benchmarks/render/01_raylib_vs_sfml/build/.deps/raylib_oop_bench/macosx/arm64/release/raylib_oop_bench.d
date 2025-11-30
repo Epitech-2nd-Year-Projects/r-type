@@ -1,0 +1,33 @@
+{
+    files = {
+        "build/.objs/raylib_oop_bench/macosx/arm64/release/raylib_oop.cpp.o"
+    },
+    values = {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++",
+        {
+            "-target",
+            "arm64-apple-macos26.0",
+            "-isysroot",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+            "-lz",
+            "-L/Users/dydy2brazil/.xmake/packages/r/raylib/5.5/d7b400902f2b425cafe86ca2bb148341/lib",
+            "-Wl,-x",
+            "-Wl,-dead_strip",
+            "-lraylib",
+            "-framework",
+            "CoreVideo",
+            "-framework",
+            "CoreGraphics",
+            "-framework",
+            "AppKit",
+            "-framework",
+            "IOKit",
+            "-framework",
+            "CoreFoundation",
+            "-framework",
+            "Foundation",
+            "-framework",
+            "OpenGL"
+        }
+    }
+}
