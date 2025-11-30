@@ -141,8 +141,6 @@ void FileSink::Flush() {
   if (stream_.is_open()) stream_.flush();
 }
 
-bool FileSink::IsOpen() const { return stream_.is_open(); }
-
 bool FileSink::IsOpen() const {
   std::lock_guard lock(mutex_);
   return stream_.is_open();
