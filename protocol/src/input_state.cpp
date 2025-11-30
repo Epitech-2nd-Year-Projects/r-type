@@ -78,9 +78,6 @@ bool DecodeInputState(engine::net::PacketBuffer& reader,
     command.client_time_ms = client_time_ms;
     result.commands[i] = command;
   }
-  for (std::size_t i = command_count; i < kMaxInputSequenceHistory; ++i) {
-    result.commands[i] = InputCommand{};
-  }
   out_input = result;
   return true;
 }
