@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <iostream>
 
+#include "protocol/error.h"
 #include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
+#include "protocol/packet.h"
 #include "protocol/reliability.h"
 #include "protocol/reliability_policy.h"
 #include "protocol/reliable_queue.h"
@@ -295,6 +297,68 @@ bool TestLatencyEstimatorWithOffset() {
   return true;
 }
 
+bool TestPacketDecodeInvalidVersion() {
+  protocol::Header header{};
+  header.version = protocol::kProtocolVersion + 1;
+  header.message_type =
+      static_cast<std::uint8_t>(protocol::message_type::MessageType::kPing);
+  header.flags = 0;
+  header.sequence = 1;
+  header.ack = 0;
+  header.ack_bits = 0;
+  header.timestamp_ms = 1234;
+
+  engine::net::PacketBuffer buffer;
+  protocol::EncodeHeader(header, buffer);
+  // Pas de payload derrière.
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for invalid version\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kInvalidVersion) {
+    std::cout << "Expected kInvalidVersion, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool TestPacketDecodeInvalidMessageType() {
+  protocol::Header header{};
+  header.version = protocol::kProtocolVersion;
+  header.message_type = 0xFF;  // valeur non mappée
+  header.flags = 0;
+  header.sequence = 1;
+  header.ack = 0;
+  header.ack_bits = 0;
+  header.timestamp_ms = 42;
+
+  engine::net::PacketBuffer buffer;
+  protocol::EncodeHeader(header, buffer);
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error = protocol::DecodeError::kOk;
+  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+
+  if (ok) {
+    std::cout << "Expected DecodePacket to fail for invalid message_type\n";
+    return false;
+  }
+  if (error != protocol::DecodeError::kInvalidMessageType) {
+    std::cout << "Expected kInvalidMessageType, got "
+              << protocol::DecodeErrorToString(error) << "\n";
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace
 
 int RunProtocolReliabilityTests() {
@@ -328,6 +392,14 @@ int RunProtocolReliabilityTests() {
   }
   if (!RunTest("LatencyEstimator with offset",
                &TestLatencyEstimatorWithOffset)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode invalid version",
+               &TestPacketDecodeInvalidVersion)) {
+    ++failures;
+  }
+  if (!RunTest("Packet Decode invalid message type",
+               &TestPacketDecodeInvalidMessageType)) {
     ++failures;
   }
 
