@@ -35,7 +35,7 @@ bool EncodeInputState(const InputStatePayload& input,
   if (command_count == 0 || command_count > kMaxInputSequenceHistory) {
     return false;
   }
-  writer.WriteInt8(command_count);
+  writer.WriteUint8(command_count);
   for (std::size_t i = 0; i < command_count; ++i) {
     const InputCommand& command = input.commands[i];
     writer.WriteUint32(command.input_sequence);
