@@ -188,7 +188,10 @@ void Logger::ClearSinks() {
   sinks_.clear();
 }
 
-void Logger::SetName(std::string name) { name_ = std::move(name); }
+void Logger::SetName(std::string name) {
+  std::lock_guard lock(name_mutex_);
+  name_ = std::move(name);
+}
 
 void Logger::Dispatch(LogMessage message) {
   std::vector<std::shared_ptr<LogSink>> sinks_copy;

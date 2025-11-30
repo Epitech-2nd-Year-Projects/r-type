@@ -135,7 +135,10 @@ class Logger {
 
     LogMessage message;
     message.level = level;
-    message.logger = name_;
+    {
+      std::lock_guard lock(name_mutex_);
+      message.logger = name_;
+    }
     message.timestamp = std::chrono::system_clock::now();
     message.thread_id = std::this_thread::get_id();
     message.text = BuildMessage(std::forward<Args>(args)...);
@@ -195,6 +198,7 @@ class Logger {
   void Dispatch(LogMessage message);
 
   std::string name_ = "engine";
+  mutable std::mutex name_mutex_;
   std::vector<std::shared_ptr<LogSink>> sinks_;
   mutable std::mutex sinks_mutex_;
   std::atomic<LogLevel> level_{LogLevel::kInfo};
