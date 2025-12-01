@@ -54,7 +54,6 @@ class ECSGameWorld {
   SparseArray<Position> positions;
   SparseArray<Velocity> velocities;
   SparseArray<Health> healths;
-   // Additional components for extra system-scaling benchmarks.
   SparseArray<AIState> ai_states;
   SparseArray<DamageOverTime> dots;
 

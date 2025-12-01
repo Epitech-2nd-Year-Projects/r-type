@@ -43,14 +43,13 @@ Memory Layout:
 
 ```cpp
 for (auto& entity : entities) {
-    entity->UpdatePhysics(0.016f);   // VIRTUAL CALL
+    entity->UpdatePhysics(0.016f);
 }
 
 for (auto& entity : entities) {
-    entity->UpdateHealth(0.016f);    // VIRTUAL CALL
+    entity->UpdateHealth(0.016f);
 }
 
-// With 10K entities: 20K virtual calls per frame
 ```
 
 ---

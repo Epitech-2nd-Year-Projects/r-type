@@ -108,7 +108,6 @@ static void BM_ECS_Both_Systems(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-// 4 systems (physics + health + AI + DOT) to show multi-system scaling.
 static void BM_OOP_Four_Systems(benchmark::State &state) {
   const int count = state.range(0);
   OOPGameWorld world;
@@ -202,7 +201,6 @@ static void BM_ECS_Four_Systems(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-// Spawn/despawn throughput: create and clear N entities.
 static void BM_OOP_SpawnDespawn(benchmark::State &state) {
   const int count = state.range(0);
 
@@ -246,7 +244,6 @@ static void BM_ECS_SpawnDespawn(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-// Serialization throughput to a contiguous buffer.
 static void BM_OOP_Serialize(benchmark::State &state) {
   const int count = state.range(0);
   OOPGameWorld world;
@@ -288,7 +285,6 @@ static void BM_ECS_Serialize(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * count);
 }
 
-// Static footprint counters: recorded as benchmark counters.
 static void BM_StaticFootprint(benchmark::State &state) {
   for (auto _ : state) {
     benchmark::DoNotOptimize(sizeof(Player));
