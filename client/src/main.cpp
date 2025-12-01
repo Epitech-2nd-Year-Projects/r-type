@@ -1,6 +1,6 @@
-#include <iostream>
+#include "client_app.h"
 
-int main(int argc, char** argv) {
-  std::cout << "hello world!" << std::endl;
-  return 0;
+int main() {
+  client::ClientApp app;
+  return app.Run();
 }
