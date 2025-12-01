@@ -39,13 +39,6 @@ Adjust workload: `--entities 1000 --frames 240`. Disable `ASSET_ROOT` or run fro
 - `sfml_oop_bench` recreates a sprite per entity per frame; Raylib draws directly from a texture handle. This adds overhead to SFML beyond the API cost.
 - Vsync is off; wall-clock includes update + draw. Results vary by GPU/driver/OS.
 
-## Making Results Comparable (next steps)
-
-- Align draw paths: reuse a sprite in SFML OOP; consider window vs offscreen parity for both.
-- Pin build mode (`-m release`), hardware/OS, and driver versions in the report.
-- Run multiple trials; report mean/stddev. Optionally capture CPU time and memory.
-- Verify correctness: ensure both pipelines draw identical entity counts/positions.
-
 ## Current Output (example)
 
 Raylib demo run on Apple M2 (fallback texture):
