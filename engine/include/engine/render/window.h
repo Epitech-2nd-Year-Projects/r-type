@@ -7,6 +7,10 @@
 #include "context.h"
 #include "engine/math/vector2.h"
 
+namespace engine::input {
+class InputManager;
+}
+
 namespace engine::render {
 
 /**
@@ -19,6 +23,10 @@ struct WindowConfig {
   bool resizable{true};
   bool vsync{true};
   int target_fps{60};
+  /**
+   * @brief Optional input manager that receives translated window events
+   */
+  input::InputManager* input_manager{nullptr};
 };
 
 /**
@@ -31,6 +39,10 @@ class Window {
   virtual void PollEvents() = 0;
   virtual bool ShouldClose() const = 0;
   virtual void RequestClose() = 0;
+  /**
+   * @brief Register an input manager sink for window input events
+   */
+  virtual void SetInputManager(input::InputManager* input_manager) = 0;
 
   virtual math::Vector2i GetSize() const = 0;
   virtual void SetSize(const math::Vector2i& size) = 0;
