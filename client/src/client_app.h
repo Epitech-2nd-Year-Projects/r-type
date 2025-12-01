@@ -7,6 +7,7 @@
 #include "engine/ecs/registry.h"
 #include "engine/input.h"
 #include "engine/net/udp_socket.h"
+#include "engine/render/backend.h"
 #include "engine/render/window.h"
 #include "engine/time/game_loop.h"
 
