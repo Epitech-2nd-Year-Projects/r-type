@@ -219,5 +219,47 @@
             },
             version = "1.3.1"
         }
+    },
+    ["macosx|arm64"] = {
+        ["asio#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "65b1a49c4861706e3a2f542d9c52e64936b07612",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "1.36.0"
+        },
+        ["cmake >=3.11#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "65b1a49c4861706e3a2f542d9c52e64936b07612",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "4.0.3"
+        },
+        ["ninja#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "65b1a49c4861706e3a2f542d9c52e64936b07612",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v1.13.1"
+        },
+        ["opengl#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "65b1a49c4861706e3a2f542d9c52e64936b07612",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "latest"
+        },
+        ["raylib#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "65b1a49c4861706e3a2f542d9c52e64936b07612",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "5.5"
+        }
     }
 }
