@@ -1,7 +1,0 @@
-{
-    packages = {
-        "/Users/dydy2brazil/.xmake/packages/n/ninja/v1.13.1/69e985bbcd584f44882161b75509fc07",
-        "/Users/dydy2brazil/.xmake/packages/c/cmake/4.0.3/d320196706ab415e89c3500eda02fce0",
-        "/Users/dydy2brazil/.xmake/packages/f/fmt/12.1.0/fdadb9772eb547ac800147cf34a2a60c"
-    }
-}
