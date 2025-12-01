@@ -5,6 +5,7 @@
 #ifndef NOGDI
 #define NOGDI
 #endif
+#include <windows.h>
 #endif
 #include <raylib.h>
 
