@@ -3,6 +3,7 @@
 #include <raylib.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -11,6 +12,7 @@
 #include <string_view>
 #include <utility>
 
+#include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render/renderer2d.h"
 
@@ -36,6 +38,66 @@ unsigned char ToByte(float value) {
 ::Vector2 ToRaylibVector(const math::Vector2f& vec) {
   return ::Vector2{vec.x, vec.y};
 }
+
+constexpr std::array<std::pair<input::Key, int>, 49> kKeyMappings{{
+    {input::Key::kA, KEY_A},
+    {input::Key::kB, KEY_B},
+    {input::Key::kC, KEY_C},
+    {input::Key::kD, KEY_D},
+    {input::Key::kE, KEY_E},
+    {input::Key::kF, KEY_F},
+    {input::Key::kG, KEY_G},
+    {input::Key::kH, KEY_H},
+    {input::Key::kI, KEY_I},
+    {input::Key::kJ, KEY_J},
+    {input::Key::kK, KEY_K},
+    {input::Key::kL, KEY_L},
+    {input::Key::kM, KEY_M},
+    {input::Key::kN, KEY_N},
+    {input::Key::kO, KEY_O},
+    {input::Key::kP, KEY_P},
+    {input::Key::kQ, KEY_Q},
+    {input::Key::kR, KEY_R},
+    {input::Key::kS, KEY_S},
+    {input::Key::kT, KEY_T},
+    {input::Key::kU, KEY_U},
+    {input::Key::kV, KEY_V},
+    {input::Key::kW, KEY_W},
+    {input::Key::kX, KEY_X},
+    {input::Key::kY, KEY_Y},
+    {input::Key::kZ, KEY_Z},
+    {input::Key::kNum0, KEY_ZERO},
+    {input::Key::kNum1, KEY_ONE},
+    {input::Key::kNum2, KEY_TWO},
+    {input::Key::kNum3, KEY_THREE},
+    {input::Key::kNum4, KEY_FOUR},
+    {input::Key::kNum5, KEY_FIVE},
+    {input::Key::kNum6, KEY_SIX},
+    {input::Key::kNum7, KEY_SEVEN},
+    {input::Key::kNum8, KEY_EIGHT},
+    {input::Key::kNum9, KEY_NINE},
+    {input::Key::kUp, KEY_UP},
+    {input::Key::kDown, KEY_DOWN},
+    {input::Key::kLeft, KEY_LEFT},
+    {input::Key::kRight, KEY_RIGHT},
+    {input::Key::kSpace, KEY_SPACE},
+    {input::Key::kEnter, KEY_ENTER},
+    {input::Key::kEscape, KEY_ESCAPE},
+    {input::Key::kLeftShift, KEY_LEFT_SHIFT},
+    {input::Key::kRightShift, KEY_RIGHT_SHIFT},
+    {input::Key::kLeftControl, KEY_LEFT_CONTROL},
+    {input::Key::kRightControl, KEY_RIGHT_CONTROL},
+    {input::Key::kLeftAlt, KEY_LEFT_ALT},
+    {input::Key::kRightAlt, KEY_RIGHT_ALT},
+}};
+
+constexpr std::array<std::pair<input::MouseButton, int>, 5> kMouseMappings{{
+    {input::MouseButton::kLeft, MOUSE_BUTTON_LEFT},
+    {input::MouseButton::kRight, MOUSE_BUTTON_RIGHT},
+    {input::MouseButton::kMiddle, MOUSE_BUTTON_MIDDLE},
+    {input::MouseButton::kButton4, MOUSE_BUTTON_SIDE},
+    {input::MouseButton::kButton5, MOUSE_BUTTON_EXTRA},
+}};
 
 class RaylibTexture2D final : public Texture2D {
  public:
@@ -181,6 +243,10 @@ class RaylibWindow final : public Window {
     }
 
     ::InitWindow(config.size.x, config.size.y, config.title.c_str());
+    input_manager_ = config.input_manager;
+    if (input_manager_ != nullptr) {
+      input_manager_->ClearState();
+    }
     window_alive_ = true;
 
     if (config.target_fps > 0) {
@@ -195,13 +261,38 @@ class RaylibWindow final : public Window {
     }
   }
 
-  void PollEvents() override { ::PollInputEvents(); }
+  void PollEvents() override {
+    ::PollInputEvents();
+
+    if (input_manager_ == nullptr) return;
+    if (!::IsWindowFocused()) {
+      input_manager_->ClearState();
+      return;
+    }
+
+    for (const auto& [key, native_key] : kKeyMappings) {
+      const bool pressed = ::IsKeyDown(native_key);
+      input_manager_->HandleKey(key, pressed);
+    }
+
+    for (const auto& [button, native_button] : kMouseMappings) {
+      const bool pressed = ::IsMouseButtonDown(native_button);
+      input_manager_->HandleMouseButton(button, pressed);
+    }
+  }
 
   bool ShouldClose() const override {
     return should_close_ || !window_alive_ || ::WindowShouldClose();
   }
 
   void RequestClose() override { should_close_ = true; }
+
+  void SetInputManager(input::InputManager* input_manager) override {
+    input_manager_ = input_manager;
+    if (input_manager_ != nullptr) {
+      input_manager_->ClearState();
+    }
+  }
 
   math::Vector2i GetSize() const override {
     return math::Vector2i(::GetScreenWidth(), ::GetScreenHeight());
@@ -223,6 +314,7 @@ class RaylibWindow final : public Window {
  private:
   WindowConfig config_;
   bool should_close_{false};
+  input::InputManager* input_manager_{nullptr};
   RaylibRenderer2D renderer_;
   RaylibRenderContext context_;
 
