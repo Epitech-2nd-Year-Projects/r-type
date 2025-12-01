@@ -17,12 +17,31 @@ target("raylib_ecs_bench")
     add_files("raylib_ecs.cpp")
     add_packages("raylib")
 
+target("raylib_readable_demo")
+    set_kind("binary")
+    add_files("raylib_readable_demo.cpp")
+    add_packages("raylib")
+
 target("sfml_oop_bench")
     set_kind("binary")
     add_files("sfml_oop.cpp")
     add_packages("sfml")
+    if is_plat("macosx") then
+        add_ldflags("-ObjC")
+    end
 
 target("sfml_ecs_bench")
     set_kind("binary")
     add_files("sfml_ecs.cpp")
     add_packages("sfml")
+    if is_plat("macosx") then
+        add_ldflags("-ObjC")
+    end
+
+target("sfml_readable_demo")
+    set_kind("binary")
+    add_files("sfml_readable_demo.cpp")
+    add_packages("sfml")
+    if is_plat("macosx") then
+        add_ldflags("-ObjC")
+    end
