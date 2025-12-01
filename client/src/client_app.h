@@ -1,8 +1,6 @@
 #ifndef CLIENT_CLIENT_APP_H_
 #define CLIENT_CLIENT_APP_H_
 
-#include <memory>
-
 #include "engine/audio/audio_engine.h"
 #include "engine/ecs/registry.h"
 #include "engine/input.h"
@@ -10,6 +8,7 @@
 #include "engine/render/backend.h"
 #include "engine/render/window.h"
 #include "engine/time/game_loop.h"
+#include <memory>
 
 namespace client {
 
@@ -73,7 +72,7 @@ class ClientApp {
   void UpdateAudio();
 
   engine::render::WindowConfig window_config_;
-  engine::time::VariableTimestepLoop loop_;
+  std::unique_ptr<engine::time::VariableTimestepLoop> loop_;
   engine::ecs::Registry registry_;
   engine::input::InputManager input_manager_;
   std::unique_ptr<engine::render::WindowBackend> render_backend_;

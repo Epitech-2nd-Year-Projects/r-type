@@ -88,14 +88,14 @@ constexpr MouseMapping kMouseMappings[] = {
 
 }  // namespace
 
-ClientApp::ClientApp()
-    : loop_(static_cast<float>(window_config_.target_fps)) {}
+ClientApp::ClientApp() = default;
 
 ClientApp::~ClientApp() = default;
 
 int ClientApp::Run() {
   if (!Initialize()) return EXIT_FAILURE;
-  loop_.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
+  if (!loop_) return EXIT_FAILURE;
+  loop_->run([this](engine::time::TimeDelta dt) { return Tick(dt); });
   return EXIT_SUCCESS;
 }
 
@@ -119,11 +119,14 @@ bool ClientApp::Initialize() {
   }
 
   input_manager_.BindKey("Quit", engine::input::Key::kEscape);
+  loop_ = std::make_unique<engine::time::VariableTimestepLoop>(
+      static_cast<float>(window_config_.target_fps));
   return true;
 }
 
 bool ClientApp::Tick(engine::time::TimeDelta dt) {
   if (should_exit_) return false;
+  if (!window_) return false;
 
   window_->PollEvents();
   PumpInput();
@@ -132,7 +135,7 @@ bool ClientApp::Tick(engine::time::TimeDelta dt) {
   RenderFrame();
   UpdateAudio();
 
-  return !should_exit_ && window_ && !window_->ShouldClose();
+  return !should_exit_ && !window_->ShouldClose();
 }
 
 void ClientApp::PumpInput() {
@@ -167,8 +170,6 @@ void ClientApp::ServiceNetwork() {
               << std::endl;
     return;
   }
-
-  (void)result;
 }
 
 void ClientApp::RenderFrame() {
