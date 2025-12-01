@@ -91,6 +91,7 @@ constexpr std::array<std::pair<input::Key, int>, 49> kKeyMappings{{
     {input::Key::kRightAlt, KEY_RIGHT_ALT},
 }};
 
+// Raylib SIDE/EXTRA correspond to the typical back/forward buttons.
 constexpr std::array<std::pair<input::MouseButton, int>, 5> kMouseMappings{{
     {input::MouseButton::kLeft, MOUSE_BUTTON_LEFT},
     {input::MouseButton::kRight, MOUSE_BUTTON_RIGHT},
@@ -271,13 +272,19 @@ class RaylibWindow final : public Window {
     }
 
     for (const auto& [key, native_key] : kKeyMappings) {
-      const bool pressed = ::IsKeyDown(native_key);
-      input_manager_->HandleKey(key, pressed);
+      if (::IsKeyPressed(native_key)) {
+        input_manager_->HandleKey(key, true);
+      } else if (::IsKeyReleased(native_key)) {
+        input_manager_->HandleKey(key, false);
+      }
     }
 
     for (const auto& [button, native_button] : kMouseMappings) {
-      const bool pressed = ::IsMouseButtonDown(native_button);
-      input_manager_->HandleMouseButton(button, pressed);
+      if (::IsMouseButtonPressed(native_button)) {
+        input_manager_->HandleMouseButton(button, true);
+      } else if (::IsMouseButtonReleased(native_button)) {
+        input_manager_->HandleMouseButton(button, false);
+      }
     }
   }
 
