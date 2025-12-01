@@ -1,5 +1,13 @@
 #include "engine/render/raylib_backend.h"
 
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOGDI
+#define NOGDI
+#endif
+#endif
 #include <raylib.h>
 
 #include <algorithm>
