@@ -1,13 +1,13 @@
 #include "client_app.h"
 
+#include <raylib.h>
+
 #include <array>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include <system_error>
-
-#include <raylib.h>
 
 #include "engine/audio/raylib_audio_engine.h"
 #include "engine/render/color.h"
