@@ -66,6 +66,16 @@ class GameInstance {
   };
 
   /**
+   * @brief Per-player input state used to derive velocity
+   */
+  struct InputState {
+    bool move_left{false};
+    bool move_right{false};
+    bool move_up{false};
+    bool move_down{false};
+  };
+
+  /**
    * @brief Create game instance
    * @param room_id Unique room identifier
    * @param max_players Maximum number of players (default: 4)
@@ -315,6 +325,9 @@ class GameInstance {
 
   /// @brief Whether Start() has been called
   bool is_started_;
+
+  /// @brief Per-player input state
+  std::unordered_map<std::uint32_t, InputState> player_input_states_;
 
   /// @brief Movement speed used by the input system (pixels/second)
   static constexpr float kInputMoveSpeed = 20.0f;

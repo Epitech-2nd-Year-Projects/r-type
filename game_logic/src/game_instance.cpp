@@ -12,6 +12,7 @@
 namespace {
 
 void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
+                          game_logic::GameInstance::InputState& state,
                           engine::ecs::VelocityComponent& velocity,
                           float speed) {
   using InputType = game_logic::GameInstance::InputEventType;
@@ -19,40 +20,48 @@ void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
 
   switch (type) {
     case InputType::kMoveLeftPressed:
-      v.x = -speed;
+      state.move_left = true;
       break;
     case InputType::kMoveLeftReleased:
-      if (v.x < 0.0f) {
-        v.x = 0.0f;
-      }
+      state.move_left = false;
       break;
     case InputType::kMoveRightPressed:
-      v.x = speed;
+      state.move_right = true;
       break;
     case InputType::kMoveRightReleased:
-      if (v.x > 0.0f) {
-        v.x = 0.0f;
-      }
+      state.move_right = false;
       break;
     case InputType::kMoveUpPressed:
-      v.y = -speed;
+      state.move_up = true;
       break;
     case InputType::kMoveUpReleased:
-      if (v.y < 0.0f) {
-        v.y = 0.0f;
-      }
+      state.move_up = false;
       break;
     case InputType::kMoveDownPressed:
-      v.y = speed;
+      state.move_down = true;
       break;
     case InputType::kMoveDownReleased:
-      if (v.y > 0.0f) {
-        v.y = 0.0f;
-      }
+      state.move_down = false;
       break;
   }
-}
 
+  float x = 0.0f;
+  if (state.move_left && !state.move_right) {
+    x = -speed;
+  } else if (state.move_right && !state.move_left) {
+    x = speed;
+  }
+
+  float y = 0.0f;
+  if (state.move_up && !state.move_down) {
+    y = -speed;
+  } else if (state.move_down && !state.move_up) {
+    y = speed;
+  }
+
+  v.x = x;
+  v.y = y;
+}
 }  // namespace
 
 namespace game_logic {
@@ -150,8 +159,13 @@ void GameInstance::RemovePlayer(std::uint32_t player_id) {
 
 std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
     std::uint32_t player_id, std::string_view player_name) {
-  if (player_names_.size() >= max_players_) return std::nullopt;
-  if (player_names_.find(player_id) != player_names_.end()) return std::nullopt;
+  if (player_names_.size() >= max_players_) {
+    return std::nullopt;
+  }
+  if (player_names_.find(player_id) != player_names_.end()) {
+    return std::nullopt;
+  }
+
   AddPlayer(player_id, player_name);
 
   std::uint8_t player_slot =
@@ -162,7 +176,9 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
 
   engine::ecs::EntityId entity = entities::PlayerBuilder::Create(
       *registry_, player_id, room_id_, player_slot, spawn_position);
+
   player_entities_.insert_or_assign(player_id, entity);
+  player_input_states_.insert_or_assign(player_id, InputState{});
 
   return entity;
 }
@@ -182,6 +198,8 @@ void GameInstance::OnPlayerLeave(std::uint32_t player_id) {
                        return evt.player_id == player_id;
                      }),
       pending_inputs_.end());
+
+  player_input_states_.erase(player_id);
 }
 
 void GameInstance::OnPlayerInput(std::uint32_t player_id,
@@ -247,13 +265,19 @@ void GameInstance::RegisterSystems() {
         if (pending_inputs_.empty()) {
           return;
         }
+
         for (const QueuedInputEvent& evt : pending_inputs_) {
-          auto it = player_entities_.find(evt.player_id);
-          if (it == player_entities_.end()) {
+          auto entity_it = player_entities_.find(evt.player_id);
+          if (entity_it == player_entities_.end()) {
             continue;
           }
 
-          std::size_t index = static_cast<std::size_t>(it->second);
+          auto input_it = player_input_states_.find(evt.player_id);
+          if (input_it == player_input_states_.end()) {
+            continue;
+          }
+
+          std::size_t index = static_cast<std::size_t>(entity_it->second);
           if (index >= players.size() || index >= velocities.size()) {
             continue;
           }
@@ -265,8 +289,12 @@ void GameInstance::RegisterSystems() {
           }
 
           auto& velocity = velocity_opt.value();
-          ApplyInputToVelocity(evt.type, velocity, kInputMoveSpeed);
+          auto& input_state = input_it->second;
+
+          ApplyInputToVelocity(evt.type, input_state, velocity,
+                               kInputMoveSpeed);
         }
+
         pending_inputs_.clear();
       },
       engine::ecs::SystemType::Variable, engine::ecs::kHighPriority);
