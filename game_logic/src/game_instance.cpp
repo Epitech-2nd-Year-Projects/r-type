@@ -149,20 +149,21 @@ void GameInstance::RemovePlayer(std::uint32_t player_id) {
 }
 
 std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
-    std::uint32_t player_id, std::string_view player_name,
-    std::uint8_t player_slot) {
+    std::uint32_t player_id, std::string_view player_name) {
   if (player_names_.size() >= max_players_) return std::nullopt;
   if (player_names_.find(player_id) != player_names_.end()) return std::nullopt;
-
   AddPlayer(player_id, player_name);
 
+  std::uint8_t player_slot =
+      static_cast<std::uint8_t>(game_state_.active_player_ids.size() - 1);
+
   engine::math::Vector2f spawn_position(
-      90.0f + 50.0f * static_cast<float>(player_slot), 300.0f);
+      100.0f + 50.0f * static_cast<float>(player_slot), 300.0f);
 
   engine::ecs::EntityId entity = entities::PlayerBuilder::Create(
       *registry_, player_id, room_id_, player_slot, spawn_position);
-
   player_entities_.insert_or_assign(player_id, entity);
+
   return entity;
 }
 

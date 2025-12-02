@@ -149,7 +149,6 @@ class GameInstance {
    *
    * @param player_id Unique network-level player identifier
    * @param player_name Display name
-   * @param player_slot Player slot index in this room [0..max_players-1]
    * @return EntityId of the created ECS player entity, or std::nullopt
    *
    * @details
@@ -158,8 +157,7 @@ class GameInstance {
    * - Stores mapping player_id -> EntityId for later lookups
    */
   std::optional<engine::ecs::EntityId> OnPlayerJoin(
-      std::uint32_t player_id, std::string_view player_name,
-      std::uint8_t player_slot);
+      std::uint32_t player_id, std::string_view player_name);
 
   /**
    * @brief High-level event: player left the room
