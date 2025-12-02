@@ -330,7 +330,7 @@ class GameInstance {
   std::unordered_map<std::uint32_t, InputState> player_input_states_;
 
   /// @brief Movement speed used by the input system (pixels/second)
-  static constexpr float kInputMoveSpeed = 20.0f;
+  static constexpr float kInputMoveSpeed = 200.0f;
 };
 
 }  // namespace game_logic
