@@ -15,6 +15,11 @@
 
 namespace game_logic {
 
+namespace systems {
+class PlayerInputSystem;
+class WeaponSystem;
+}  // namespace systems
+
 /**
  * @class GameInstance
  * @brief Manages a single R-Type game match
@@ -62,7 +67,13 @@ class GameInstance {
     kMoveDownPressed = 6,
 
     /// @brief Stop moving down
-    kMoveDownReleased = 7
+    kMoveDownReleased = 7,
+
+    /// @brief Start Basic shoot event
+    kBasicShootPressed = 8,
+
+    /// @brief  Stop Basic shoot event
+    kBasicShootReleased = 9
   };
 
   /**
@@ -261,6 +272,9 @@ class GameInstance {
     /// @brief Input event type
     InputEventType type{InputEventType::kMoveLeftPressed};
   };
+
+  friend class systems::PlayerInputSystem;
+  friend class systems::WeaponSystem;
 
   /**
    * @brief Register all component types with Registry
