@@ -8,61 +8,8 @@
 #include "engine/ecs/systems/movement_system.h"
 #include "game_logic/components.h"
 #include "game_logic/entities/player_builder.h"
-
-namespace {
-
-void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
-                          game_logic::GameInstance::InputState& state,
-                          engine::ecs::VelocityComponent& velocity,
-                          float speed) {
-  using InputType = game_logic::GameInstance::InputEventType;
-  auto& v = velocity.velocity;
-
-  switch (type) {
-    case InputType::kMoveLeftPressed:
-      state.move_left = true;
-      break;
-    case InputType::kMoveLeftReleased:
-      state.move_left = false;
-      break;
-    case InputType::kMoveRightPressed:
-      state.move_right = true;
-      break;
-    case InputType::kMoveRightReleased:
-      state.move_right = false;
-      break;
-    case InputType::kMoveUpPressed:
-      state.move_up = true;
-      break;
-    case InputType::kMoveUpReleased:
-      state.move_up = false;
-      break;
-    case InputType::kMoveDownPressed:
-      state.move_down = true;
-      break;
-    case InputType::kMoveDownReleased:
-      state.move_down = false;
-      break;
-  }
-
-  float x = 0.0f;
-  if (state.move_left && !state.move_right) {
-    x = -speed;
-  } else if (state.move_right && !state.move_left) {
-    x = speed;
-  }
-
-  float y = 0.0f;
-  if (state.move_up && !state.move_down) {
-    y = -speed;
-  } else if (state.move_down && !state.move_up) {
-    y = speed;
-  }
-
-  v.x = x;
-  v.y = y;
-}
-}  // namespace
+#include "game_logic/systems/player_input_system.h"
+#include "game_logic/systems/weapon_system.h"
 
 namespace game_logic {
 
@@ -71,9 +18,6 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
       max_players_(max_players),
       registry_(std::make_unique<engine::ecs::Registry>()),
       game_state_(),
-      player_names_(),
-      player_entities_(),
-      pending_inputs_(),
       is_started_(false) {
   game_state_.room_id = room_id_;
   RegisterComponents();
@@ -118,6 +62,7 @@ void GameInstance::Shutdown() {
   player_names_.clear();
   player_entities_.clear();
   pending_inputs_.clear();
+  player_input_states_.clear();
   game_state_.active_player_ids.clear();
   game_state_.player_scores.clear();
   is_started_ = false;
@@ -125,8 +70,12 @@ void GameInstance::Shutdown() {
 
 void GameInstance::AddPlayer(std::uint32_t player_id,
                              std::string_view player_name) {
-  if (player_names_.size() >= max_players_) return;
-  if (player_names_.find(player_id) != player_names_.end()) return;
+  if (player_names_.size() >= max_players_) {
+    return;
+  }
+  if (player_names_.find(player_id) != player_names_.end()) {
+    return;
+  }
 
   player_names_.emplace(player_id, std::string(player_name));
   game_state_.active_player_ids.push_back(player_id);
@@ -255,49 +204,17 @@ void GameInstance::RegisterComponents() {
 }
 
 void GameInstance::RegisterSystems() {
-  registry_->AddSystem<components::PlayerComponent,
-                       engine::ecs::VelocityComponent>(
-      [this](
-          engine::ecs::Registry&,
-          engine::ecs::SparseArray<components::PlayerComponent>& players,
-          engine::ecs::SparseArray<engine::ecs::VelocityComponent>& velocities,
-          engine::time::TimeDelta) {
-        if (pending_inputs_.empty()) {
-          return;
-        }
+  registry_
+      ->AddSystem<components::PlayerComponent, engine::ecs::VelocityComponent,
+                  components::WeaponComponent>(
+          systems::PlayerInputSystem::Update, engine::ecs::SystemType::Variable,
+          engine::ecs::kHighPriority, std::ref(*this));
 
-        for (const QueuedInputEvent& evt : pending_inputs_) {
-          auto entity_it = player_entities_.find(evt.player_id);
-          if (entity_it == player_entities_.end()) {
-            continue;
-          }
-
-          auto input_it = player_input_states_.find(evt.player_id);
-          if (input_it == player_input_states_.end()) {
-            continue;
-          }
-
-          std::size_t index = static_cast<std::size_t>(entity_it->second);
-          if (index >= players.size() || index >= velocities.size()) {
-            continue;
-          }
-
-          auto& player_opt = players[index];
-          auto& velocity_opt = velocities[index];
-          if (!player_opt.has_value() || !velocity_opt.has_value()) {
-            continue;
-          }
-
-          auto& velocity = velocity_opt.value();
-          auto& input_state = input_it->second;
-
-          ApplyInputToVelocity(evt.type, input_state, velocity,
-                               kInputMoveSpeed);
-        }
-
-        pending_inputs_.clear();
-      },
-      engine::ecs::SystemType::Variable, engine::ecs::kHighPriority);
+  registry_
+      ->AddSystem<engine::ecs::PositionComponent, components::PlayerComponent,
+                  components::WeaponComponent>(
+          systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
+          engine::ecs::kDefaultPriority);
 
   registry_->AddSystem<engine::ecs::PositionComponent,
                        engine::ecs::VelocityComponent>(

@@ -46,6 +46,9 @@ struct WeaponComponent {
   /// @brief Weapon power level (1-5)
   std::uint8_t power_level{1};
 
+  /// @brief Whether the trigger is currently held by the player
+  bool is_trigger_held{false};
+
   WeaponComponent() = default;
   explicit WeaponComponent(WeaponType t) : type(t) {}
   WeaponComponent(WeaponType t, float rate) : type(t), fire_rate(rate) {}
