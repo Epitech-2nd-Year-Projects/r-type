@@ -8,12 +8,12 @@ set_warnings("all")
 set_policy("package.requires_lock", true)
 
 if is_plat("windows") then
-	set_toolchains("msvc")
-	set_toolset("cc", "cl")
-	set_toolset("cxx", "cl")
-	set_toolset("ld", "link")
-	set_toolset("sh", "link")
-	set_toolset("ar", "lib")
+	set_toolchains("clang-cl")
+	set_toolset("cc", "clang-cl")
+	set_toolset("cxx", "clang-cl")
+	set_toolset("ld", "lld-link")
+	set_toolset("sh", "lld-link")
+	set_toolset("ar", "llvm-lib")
 end
 
 includes("engine", "server", "client", "protocol", "game_logic")
