@@ -2,6 +2,8 @@
 
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <utility>
 
 #include "engine/math/vector2.h"
 #include "engine/render.h"
@@ -9,25 +11,32 @@
 
 namespace client {
 
-Application::Application() = default;
+Application::Application(ClientConfig config) : config_(std::move(config)) {}
 
 int Application::Run() {
-  engine::core::EngineRuntimeConfig config;
-  config.window_config.title = "R-Type Client";
-  config.window_config.size = engine::math::Vector2i(1280, 720);
-  config.window_config.vsync = true;
-  config.window_config.target_fps = 60;
-  config.log_level = engine::util::LogLevel::kInfo;
+  engine::core::EngineRuntimeConfig runtime_config;
+  runtime_config.window_config.title = "R-Type Client";
+  runtime_config.window_config.size = engine::math::Vector2i(1280, 720);
+  runtime_config.window_config.vsync = true;
+  runtime_config.window_config.target_fps = 60;
+  runtime_config.log_level = config_.debug ? engine::util::LogLevel::kDebug
+                                           : engine::util::LogLevel::kInfo;
 
-  engine_ = engine::core::EngineRuntime::Create(config);
+  engine_ = engine::core::EngineRuntime::Create(runtime_config);
   if (!engine_) {
     return 1;
   }
 
-  engine_->Logger().Info("Client runtime booted");
+  auto& runtime_config_store = engine_->Config();
+  runtime_config_store.Set("client.host", config_.host);
+  runtime_config_store.Set("client.port", std::to_string(config_.port));
+  runtime_config_store.Set("client.debug", config_.debug ? "true" : "false");
+
+  engine_->Logger().Info("Client runtime booted target ", config_.host, ":",
+                         config_.port);
 
   engine::time::VariableTimestepLoop loop(
-      static_cast<float>(config.window_config.target_fps));
+      static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
   return 0;
