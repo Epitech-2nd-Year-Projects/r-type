@@ -12,8 +12,7 @@ namespace client {
 namespace {
 
 constexpr std::uint16_t kMinPort = 1;
-constexpr std::uint16_t kMaxPort =
-    std::numeric_limits<std::uint16_t>::max();
+constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
 
 ClientConfigParseResult MakeError(const ClientConfig& config,
                                   std::string_view message) {
@@ -65,8 +64,8 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       }
       std::uint16_t port = 0;
       if (!TryParsePort(args[i + 1], &port)) {
-        return MakeError(
-            config, "Invalid port supplied (must be between 1 and 65535)");
+        return MakeError(config,
+                         "Invalid port supplied (must be between 1 and 65535)");
       }
       config.port = port;
       ++i;
