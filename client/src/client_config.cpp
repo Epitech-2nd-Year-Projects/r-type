@@ -51,7 +51,11 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       if (i + 1 >= args.size()) {
         return MakeError(config, "Missing value for --host");
       }
-      config.host = args[++i];
+      std::string_view host_value(args[++i]);
+      if (host_value.empty()) {
+        return MakeError(config, "Host cannot be empty");
+      }
+      config.host = host_value;
       continue;
     }
 
@@ -61,7 +65,8 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       }
       std::uint16_t port = 0;
       if (!TryParsePort(args[i + 1], &port)) {
-        return MakeError(config, "Invalid port supplied");
+        return MakeError(
+            config, "Invalid port supplied (must be between 1 and 65535)");
       }
       config.port = port;
       ++i;
@@ -73,8 +78,7 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       continue;
     }
 
-    return MakeError(config, std::string("Unknown argument: ") +
-                                std::string(arg));
+    return MakeError(config, "Unknown argument: " + std::string(arg));
   }
 
   return ClientConfigParseResult{config, true, {}};
