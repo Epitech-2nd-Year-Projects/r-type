@@ -32,7 +32,7 @@ int Application::Run() {
   runtime_config_store.Set("client.port", std::to_string(config_.port));
   runtime_config_store.Set("client.debug", config_.debug ? "true" : "false");
 
-  engine_->Logger().Info("Client runtime booted target ", config_.host, ":",
+  engine_->Logger().Info("Client runtime booted to target ", config_.host, ":",
                          config_.port);
 
   engine::time::VariableTimestepLoop loop(
