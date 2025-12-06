@@ -8,7 +8,7 @@ set_warnings("all")
 set_policy("package.requires_lock", true)
 
 if is_plat("windows") then
-	set_toolset("ar", "llvm-ar")
+	set_toolchains("clang-cl")
 end
 
 includes("engine", "server", "client", "protocol", "game_logic")
