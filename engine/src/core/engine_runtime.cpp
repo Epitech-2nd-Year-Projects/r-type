@@ -28,8 +28,7 @@ std::unique_ptr<EngineRuntime> EngineRuntime::Create(
   try {
     runtime->Initialize(config);
   } catch (const std::exception& ex) {
-    util::Logger::Default().Error("Engine initialization failed: ",
-                                  ex.what());
+    util::Logger::Default().Error("Engine initialization failed: ", ex.what());
     return nullptr;
   }
   return runtime;
