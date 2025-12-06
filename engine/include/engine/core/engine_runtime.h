@@ -36,8 +36,8 @@ class EngineRuntime {
  public:
   EngineRuntime(const EngineRuntime&) = delete;
   EngineRuntime& operator=(const EngineRuntime&) = delete;
-  EngineRuntime(EngineRuntime&&) noexcept = default;
-  EngineRuntime& operator=(EngineRuntime&&) noexcept = default;
+  EngineRuntime(EngineRuntime&&) noexcept = delete;
+  EngineRuntime& operator=(EngineRuntime&&) noexcept = delete;
   ~EngineRuntime();
 
   /**
