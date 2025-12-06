@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "engine/audio/raylib_audio_engine.h"
+#include "engine/render.h"
 #include "engine/render/raylib_backend.h"
-#include "engine/render/render.h"
 
 namespace engine::core {
 
@@ -92,7 +92,6 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
   if (!window_) {
     throw std::runtime_error("Window creation failed");
   }
-  window_->SetInputManager(&input_);
 
   if (config.enable_audio) {
     audio_ = audio::CreateRaylibAudioEngine();

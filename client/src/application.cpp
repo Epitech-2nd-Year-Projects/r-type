@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "engine/math/vector2.h"
-#include "engine/render/render.h"
+#include "engine/render.h"
 #include "engine/time/game_loop.h"
 
 namespace client {
