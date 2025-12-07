@@ -2,8 +2,8 @@
 #define ENGINE_NET_CLIENT_H_
 
 #include <atomic>
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
 #include <mutex>
 #include <optional>
@@ -16,12 +16,12 @@
 
 namespace engine::net {
 
-  /**
-   * @brief UDP client with managed lifecycle
-   *
-   * @details
-   * Maintains a single UDP socket connected to a remote endpoint with optional
-   * local binding
+/**
+ * @brief UDP client with managed lifecycle
+ *
+ * @details
+ * Maintains a single UDP socket connected to a remote endpoint with optional
+ * local binding
  * Provides thread safe queues for outgoing and incoming datagrams and a worker
  * loop to drive non blocking I/O
  */
