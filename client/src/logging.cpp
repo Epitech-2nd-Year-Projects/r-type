@@ -34,8 +34,8 @@ void LogConnectionStatus(engine::util::LogLevel level, std::string_view host,
 }
 
 void LogPacketError(std::string_view stage, std::string_view detail) {
-  ClientLogger().Log(engine::util::LogLevel::kError,
-                     "Packet error during ", stage, ": ", detail);
+  ClientLogger().Log(engine::util::LogLevel::kError, "Packet error during ",
+                     stage, ": ", detail);
 }
 
 }  // namespace client

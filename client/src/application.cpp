@@ -17,8 +17,8 @@ Application::Application(ClientConfig config) : config_(std::move(config)) {}
 int Application::Run() {
   ConfigureClientLogging(config_.log_level);
   LogLifecycle(engine::util::LogLevel::kInfo, "Starting R-Type client");
-  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host,
-                      config_.port, "target configured");
+  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
+                      "target configured");
 
   engine::core::EngineRuntimeConfig runtime_config;
   runtime_config.window_config.title = "R-Type Client";
@@ -44,8 +44,8 @@ int Application::Run() {
 
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
-  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host,
-                      config_.port, "connecting");
+  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
+                      "connecting");
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));

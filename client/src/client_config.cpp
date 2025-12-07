@@ -1,8 +1,8 @@
 #include "client_config.h"
 
 #include <algorithm>
-#include <charconv>
 #include <cctype>
+#include <charconv>
 #include <limits>
 #include <span>
 #include <string>
@@ -20,8 +20,9 @@ constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
 
 std::string Normalize(std::string_view value) {
   std::string normalized(value.size(), '\0');
-  std::transform(value.begin(), value.end(), normalized.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      value.begin(), value.end(), normalized.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return normalized;
 }
 
@@ -107,7 +108,8 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       engine::util::LogLevel level;
       if (!TryParseLogLevel(args[i + 1], &level)) {
         return MakeError(config,
-                         "Invalid log level (trace, debug, info, warn/warning, error, critical/fatal, off/none)");
+                         "Invalid log level (trace, debug, info, warn/warning, "
+                         "error, critical/fatal, off/none)");
       }
       config.log_level = level;
       ++i;
@@ -117,8 +119,7 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
     return MakeError(config, "Unknown argument: " + std::string(arg));
   }
 
-  if (config.debug &&
-      config.log_level > engine::util::LogLevel::kDebug) {
+  if (config.debug && config.log_level > engine::util::LogLevel::kDebug) {
     config.log_level = engine::util::LogLevel::kDebug;
   }
 
