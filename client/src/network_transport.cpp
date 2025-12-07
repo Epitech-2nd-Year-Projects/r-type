@@ -10,6 +10,7 @@ std::error_code NetworkTransport::Start(
   std::error_code resolve_error;
   const auto server = engine::net::Endpoint::Resolve(host, port, resolve_error);
   if (resolve_error) return resolve_error;
+  if (!server.valid()) return std::make_error_code(std::errc::invalid_argument);
 
   std::optional<engine::net::Endpoint> bind_endpoint;
   if (local_port.has_value()) {

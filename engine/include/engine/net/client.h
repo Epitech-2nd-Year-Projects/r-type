@@ -2,6 +2,7 @@
 #define ENGINE_NET_CLIENT_H_
 
 #include <atomic>
+#include <cstddef>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -15,11 +16,12 @@
 
 namespace engine::net {
 
-/**
- * @brief UDP client with managed lifecycle
- *
- * @details
- * Maintains a single UDP socket bound or connected to a remote endpoint
+  /**
+   * @brief UDP client with managed lifecycle
+   *
+   * @details
+   * Maintains a single UDP socket connected to a remote endpoint with optional
+   * local binding
  * Provides thread safe queues for outgoing and incoming datagrams and a worker
  * loop to drive non blocking I/O
  */
@@ -33,7 +35,7 @@ class Client {
     PacketBuffer buffer;
   };
 
-  explicit Client(UdpSocket::Protocol protocol = UdpSocket::Protocol::kIpv4);
+  Client();
   ~Client();
 
   Client(const Client&) = delete;
@@ -71,19 +73,22 @@ class Client {
   /**
    * @brief Running state helper
    */
-  bool running() const { return running_; }
+  bool running() const { return running_.load(std::memory_order_acquire); }
 
   /**
    * @brief Connected server endpoint
    */
-  Endpoint server_endpoint() const { return server_endpoint_; }
+  Endpoint server_endpoint() const;
 
  private:
   void WorkerLoop();
   bool DequeueOutgoing(PacketBuffer::Storage& out_bytes);
 
+  static constexpr std::size_t kMaxQueueDepth = 1024;
+
   UdpSocket socket_;
   Endpoint server_endpoint_;
+  mutable std::mutex endpoint_mutex_;
 
   std::thread worker_;
   std::atomic<bool> running_{false};
