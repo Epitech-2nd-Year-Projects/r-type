@@ -4,9 +4,9 @@
 
 namespace client {
 
-std::error_code NetworkTransport::Start(std::string_view host,
-                                        std::uint16_t port,
-                                        std::optional<std::uint16_t> local_port) {
+std::error_code NetworkTransport::Start(
+    std::string_view host, std::uint16_t port,
+    std::optional<std::uint16_t> local_port) {
   std::error_code resolve_error;
   const auto server = engine::net::Endpoint::Resolve(host, port, resolve_error);
   if (resolve_error) return resolve_error;
@@ -27,7 +27,8 @@ bool NetworkTransport::Send(engine::net::PacketBuffer packet) {
   return client_.Enqueue(std::move(packet));
 }
 
-bool NetworkTransport::Receive(engine::net::Client::ReceivedPacket& out_packet) {
+bool NetworkTransport::Receive(
+    engine::net::Client::ReceivedPacket& out_packet) {
   return client_.TryDequeue(out_packet);
 }
 
