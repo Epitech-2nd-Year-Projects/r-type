@@ -48,9 +48,8 @@ class Client {
    * @param bind_endpoint Optional local bind endpoint
    * @return Error code indicating startup status
    */
-  std::error_code Start(
-      const Endpoint& server_endpoint,
-      std::optional<Endpoint> bind_endpoint = std::nullopt);
+  std::error_code Start(const Endpoint& server_endpoint,
+                        std::optional<Endpoint> bind_endpoint = std::nullopt);
 
   /**
    * @brief Stop I/O loop and close socket

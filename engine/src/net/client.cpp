@@ -1,10 +1,9 @@
 #include "../../include/engine/net/client.h"
 
 #include <array>
+#include <asio.hpp>
 #include <chrono>
 #include <system_error>
-
-#include <asio.hpp>
 
 namespace engine::net {
 
@@ -25,7 +24,8 @@ Client::~Client() { Stop(); }
 
 std::error_code Client::Start(const Endpoint& server_endpoint,
                               std::optional<Endpoint> bind_endpoint) {
-  if (!server_endpoint.valid()) return std::make_error_code(std::errc::invalid_argument);
+  if (!server_endpoint.valid())
+    return std::make_error_code(std::errc::invalid_argument);
 
   Stop();
 
@@ -38,9 +38,8 @@ std::error_code Client::Start(const Endpoint& server_endpoint,
     recv_queue_.clear();
   }
 
-  const auto protocol = server_endpoint.is_ipv6()
-                            ? UdpSocket::Protocol::kIpv6
-                            : UdpSocket::Protocol::kIpv4;
+  const auto protocol = server_endpoint.is_ipv6() ? UdpSocket::Protocol::kIpv6
+                                                  : UdpSocket::Protocol::kIpv4;
   if (auto open_error = socket_.open(protocol); open_error) {
     return open_error;
   }
