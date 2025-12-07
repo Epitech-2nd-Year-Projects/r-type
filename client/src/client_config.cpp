@@ -52,35 +52,11 @@ bool TryParsePort(std::string_view value, std::uint16_t* out_port) {
 bool TryParseLogLevel(std::string_view value,
                       engine::util::LogLevel* out_level) {
   const auto normalized = Normalize(value);
-  const auto level =
-      engine::util::ParseLogLevel(normalized, engine::util::LogLevel::kInfo);
-
-  switch (level) {
-    case engine::util::LogLevel::kTrace:
-      if (normalized == "trace") break;
-      return false;
-    case engine::util::LogLevel::kDebug:
-      if (normalized == "debug") break;
-      return false;
-    case engine::util::LogLevel::kInfo:
-      if (normalized == "info") break;
-      return false;
-    case engine::util::LogLevel::kWarn:
-      if (normalized == "warn" || normalized == "warning") break;
-      return false;
-    case engine::util::LogLevel::kError:
-      if (normalized == "error") break;
-      return false;
-    case engine::util::LogLevel::kCritical:
-      if (normalized == "critical" || normalized == "fatal") break;
-      return false;
-    case engine::util::LogLevel::kOff:
-      if (normalized == "off" || normalized == "none") break;
-      return false;
-    default:
-      return false;
+  constexpr auto kFallback = engine::util::LogLevel::kInfo;
+  const auto level = engine::util::ParseLogLevel(normalized, kFallback);
+  if (level == kFallback && normalized != "info") {
+    return false;
   }
-
   *out_level = level;
   return true;
 }
@@ -131,7 +107,7 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       engine::util::LogLevel level;
       if (!TryParseLogLevel(args[i + 1], &level)) {
         return MakeError(config,
-                         "Invalid log level (trace, debug, info, warn, error, critical, off)");
+                         "Invalid log level (trace, debug, info, warn/warning, error, critical/fatal, off/none)");
       }
       config.log_level = level;
       ++i;
