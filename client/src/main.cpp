@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
   if (!parse_result.ok) {
     std::cerr << parse_result.error << '\n';
     std::cerr << "Usage: " << argv[0]
-              << " [--host <host>] [--port <port>] [--debug]\n";
+              << " [--host <host>] [--port <port>] [--log-level <level>] [--debug]\n";
     return 1;
   }
 
