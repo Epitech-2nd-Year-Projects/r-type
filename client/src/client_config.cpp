@@ -111,7 +111,9 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       }
       if (!ValidateLength(name_value, protocol::kMaxPlayerNameLength)) {
         return MakeError(config,
-                         "Player name exceeds maximum length of 31 characters");
+                         "Player name exceeds maximum length of " +
+                             std::to_string(protocol::kMaxPlayerNameLength) +
+                             " characters");
       }
       config.player_name.assign(name_value);
       continue;
@@ -127,7 +129,9 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       }
       if (!ValidateLength(room_value, protocol::kMaxRoomCodeLength)) {
         return MakeError(config,
-                         "Room code exceeds maximum length of 15 characters");
+                         "Room code exceeds maximum length of " +
+                             std::to_string(protocol::kMaxRoomCodeLength) +
+                             " characters");
       }
       config.room_code.assign(room_value);
       continue;

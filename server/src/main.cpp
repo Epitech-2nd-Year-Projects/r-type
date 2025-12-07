@@ -211,6 +211,9 @@ class JoinServer {
                    const engine::net::Endpoint& from) {
     auto& logger = ServerLogger();
     const auto endpoint_key = EndpointKey(from);
+    logger.Log(engine::util::LogLevel::kDebug, "Join request from ",
+               endpoint_key, " player '", request.player_name, "' room '",
+               request.room_code, "'");
 
     if (request.client_version != protocol::kProtocolVersion) {
       logger.Log(engine::util::LogLevel::kWarn, "Rejecting join from ",
