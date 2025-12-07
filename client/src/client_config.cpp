@@ -1,5 +1,7 @@
 #include "client_config.h"
 
+#include <algorithm>
+#include <cctype>
 #include <charconv>
 #include <limits>
 #include <span>
@@ -7,12 +9,22 @@
 #include <string_view>
 #include <system_error>
 
+#include "engine/util/logging.h"
+
 namespace client {
 
 namespace {
 
 constexpr std::uint16_t kMinPort = 1;
 constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
+
+std::string Normalize(std::string_view value) {
+  std::string normalized(value.size(), '\0');
+  std::transform(
+      value.begin(), value.end(), normalized.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return normalized;
+}
 
 ClientConfigParseResult MakeError(const ClientConfig& config,
                                   std::string_view message) {
@@ -35,6 +47,18 @@ bool TryParsePort(std::string_view value, std::uint16_t* out_port) {
     return false;
   }
   *out_port = static_cast<std::uint16_t>(parsed);
+  return true;
+}
+
+bool TryParseLogLevel(std::string_view value,
+                      engine::util::LogLevel* out_level) {
+  const auto normalized = Normalize(value);
+  constexpr auto kFallback = engine::util::LogLevel::kInfo;
+  const auto level = engine::util::ParseLogLevel(normalized, kFallback);
+  if (level == kFallback && normalized != "info") {
+    return false;
+  }
+  *out_level = level;
   return true;
 }
 
@@ -77,7 +101,26 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       continue;
     }
 
+    if (arg == "--log-level") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --log-level");
+      }
+      engine::util::LogLevel level;
+      if (!TryParseLogLevel(args[i + 1], &level)) {
+        return MakeError(config,
+                         "Invalid log level (trace, debug, info, warn/warning, "
+                         "error, critical/fatal, off/none)");
+      }
+      config.log_level = level;
+      ++i;
+      continue;
+    }
+
     return MakeError(config, "Unknown argument: " + std::string(arg));
+  }
+
+  if (config.debug && config.log_level > engine::util::LogLevel::kDebug) {
+    config.log_level = engine::util::LogLevel::kDebug;
   }
 
   return ClientConfigParseResult{config, true, {}};
