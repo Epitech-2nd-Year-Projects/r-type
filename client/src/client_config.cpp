@@ -1,11 +1,15 @@
 #include "client_config.h"
 
+#include <algorithm>
 #include <charconv>
+#include <cctype>
 #include <limits>
 #include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
+
+#include "engine/util/logging.h"
 
 namespace client {
 
@@ -13,6 +17,13 @@ namespace {
 
 constexpr std::uint16_t kMinPort = 1;
 constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
+
+std::string Normalize(std::string_view value) {
+  std::string normalized(value.size(), '\0');
+  std::transform(value.begin(), value.end(), normalized.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return normalized;
+}
 
 ClientConfigParseResult MakeError(const ClientConfig& config,
                                   std::string_view message) {
@@ -35,6 +46,42 @@ bool TryParsePort(std::string_view value, std::uint16_t* out_port) {
     return false;
   }
   *out_port = static_cast<std::uint16_t>(parsed);
+  return true;
+}
+
+bool TryParseLogLevel(std::string_view value,
+                      engine::util::LogLevel* out_level) {
+  const auto normalized = Normalize(value);
+  const auto level =
+      engine::util::ParseLogLevel(normalized, engine::util::LogLevel::kInfo);
+
+  switch (level) {
+    case engine::util::LogLevel::kTrace:
+      if (normalized == "trace") break;
+      return false;
+    case engine::util::LogLevel::kDebug:
+      if (normalized == "debug") break;
+      return false;
+    case engine::util::LogLevel::kInfo:
+      if (normalized == "info") break;
+      return false;
+    case engine::util::LogLevel::kWarn:
+      if (normalized == "warn" || normalized == "warning") break;
+      return false;
+    case engine::util::LogLevel::kError:
+      if (normalized == "error") break;
+      return false;
+    case engine::util::LogLevel::kCritical:
+      if (normalized == "critical" || normalized == "fatal") break;
+      return false;
+    case engine::util::LogLevel::kOff:
+      if (normalized == "off" || normalized == "none") break;
+      return false;
+    default:
+      return false;
+  }
+
+  *out_level = level;
   return true;
 }
 
@@ -77,7 +124,26 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       continue;
     }
 
+    if (arg == "--log-level") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --log-level");
+      }
+      engine::util::LogLevel level;
+      if (!TryParseLogLevel(args[i + 1], &level)) {
+        return MakeError(config,
+                         "Invalid log level (trace, debug, info, warn, error, critical, off)");
+      }
+      config.log_level = level;
+      ++i;
+      continue;
+    }
+
     return MakeError(config, "Unknown argument: " + std::string(arg));
+  }
+
+  if (config.debug &&
+      config.log_level > engine::util::LogLevel::kDebug) {
+    config.log_level = engine::util::LogLevel::kDebug;
   }
 
   return ClientConfigParseResult{config, true, {}};

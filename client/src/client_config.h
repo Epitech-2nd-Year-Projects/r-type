@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+#include "engine/util/logging.h"
+
 namespace client {
 
 /**
@@ -13,6 +15,7 @@ struct ClientConfig {
   std::string host{"127.0.0.1"};
   std::uint16_t port{4242};
   bool debug{false};
+  engine::util::LogLevel log_level{engine::util::LogLevel::kInfo};
 };
 
 /**
