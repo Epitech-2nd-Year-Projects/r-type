@@ -1,5 +1,6 @@
 #include <array>
 #include <asio.hpp>
+#include <iostream>
 #include <charconv>
 #include <chrono>
 #include <cstdint>
