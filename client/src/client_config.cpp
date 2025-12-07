@@ -10,6 +10,7 @@
 #include <system_error>
 
 #include "engine/util/logging.h"
+#include "protocol/join.h"
 
 namespace client {
 
@@ -62,6 +63,10 @@ bool TryParseLogLevel(std::string_view value,
   return true;
 }
 
+bool ValidateLength(std::string_view value, std::size_t max_length) {
+  return value.size() <= max_length;
+}
+
 }  // namespace
 
 ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
@@ -93,6 +98,38 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
       }
       config.port = port;
       ++i;
+      continue;
+    }
+
+    if (arg == "--name") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --name");
+      }
+      std::string_view name_value(args[++i]);
+      if (name_value.empty()) {
+        return MakeError(config, "Player name cannot be empty");
+      }
+      if (!ValidateLength(name_value, protocol::kMaxPlayerNameLength)) {
+        return MakeError(
+            config, "Player name exceeds maximum length of 31 characters");
+      }
+      config.player_name.assign(name_value);
+      continue;
+    }
+
+    if (arg == "--room") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --room");
+      }
+      std::string_view room_value(args[++i]);
+      if (room_value.empty()) {
+        return MakeError(config, "Room code cannot be empty");
+      }
+      if (!ValidateLength(room_value, protocol::kMaxRoomCodeLength)) {
+        return MakeError(config,
+                         "Room code exceeds maximum length of 15 characters");
+      }
+      config.room_code.assign(room_value);
       continue;
     }
 
