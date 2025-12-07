@@ -16,15 +16,13 @@ constexpr auto kJoinRetryDelay = std::chrono::milliseconds(500);
 std::uint32_t NowMilliseconds() {
   using namespace std::chrono;
   const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint32_t>(
-      duration_cast<milliseconds>(now).count());
+  return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
 }
 
 }  // namespace
 
 JoinFlow::JoinFlow(std::string player_name, std::string room_code)
-    : player_name_(std::move(player_name)),
-      room_code_(std::move(room_code)) {
+    : player_name_(std::move(player_name)), room_code_(std::move(room_code)) {
   status_text_ = "Idle";
 }
 
@@ -58,14 +56,12 @@ void JoinFlow::Update(NetworkTransport& transport) {
   }
 
   const auto now = std::chrono::steady_clock::now();
-  if (attempts_ < kMaxJoinAttempts &&
-      now - last_send_ >= kJoinRetryDelay) {
+  if (attempts_ < kMaxJoinAttempts && now - last_send_ >= kJoinRetryDelay) {
     SendJoinRequest(transport);
     return;
   }
 
-  if (attempts_ >= kMaxJoinAttempts &&
-      now - last_send_ >= kJoinRetryDelay) {
+  if (attempts_ >= kMaxJoinAttempts && now - last_send_ >= kJoinRetryDelay) {
     Fail("Join timed out");
   }
 }
@@ -83,8 +79,8 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
 
   protocol::Packet packet{};
   packet.header.version = protocol::kProtocolVersion;
-  packet.header.message_type =
-      static_cast<std::uint8_t>(protocol::message_type::MessageType::kJoinRequest);
+  packet.header.message_type = static_cast<std::uint8_t>(
+      protocol::message_type::MessageType::kJoinRequest);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
   packet.header.sequence = next_sequence_++;

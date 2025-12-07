@@ -110,8 +110,8 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
         return MakeError(config, "Player name cannot be empty");
       }
       if (!ValidateLength(name_value, protocol::kMaxPlayerNameLength)) {
-        return MakeError(
-            config, "Player name exceeds maximum length of 31 characters");
+        return MakeError(config,
+                         "Player name exceeds maximum length of 31 characters");
       }
       config.player_name.assign(name_value);
       continue;

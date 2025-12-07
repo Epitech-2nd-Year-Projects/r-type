@@ -1,4 +1,5 @@
 #include <array>
+#include <asio.hpp>
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -11,8 +12,6 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
-
-#include <asio.hpp>
 
 #include "engine/net/endpoint.h"
 #include "engine/net/packet_buffer.h"
@@ -61,8 +60,7 @@ std::string EndpointKey(const engine::net::Endpoint& endpoint) {
 std::uint32_t NowMilliseconds() {
   using namespace std::chrono;
   const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint32_t>(
-      duration_cast<milliseconds>(now).count());
+  return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
 }
 
 ParseResult ParseServerConfig(int argc, char** argv) {
@@ -160,8 +158,8 @@ class JoinServer {
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
           continue;
         }
-        logger.Log(engine::util::LogLevel::kError, "Receive error: ",
-                   recv_result.error.message());
+        logger.Log(engine::util::LogLevel::kError,
+                   "Receive error: ", recv_result.error.message());
         break;
       }
 
@@ -170,8 +168,8 @@ class JoinServer {
         continue;
       }
 
-      engine::net::PacketBuffer packet_buffer(
-          buffer.data(), recv_result.bytes_transferred);
+      engine::net::PacketBuffer packet_buffer(buffer.data(),
+                                              recv_result.bytes_transferred);
       HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
     }
   }
@@ -190,11 +188,10 @@ class JoinServer {
       return;
     }
 
-    const auto type =
-        static_cast<MessageType>(decoded.header.message_type);
+    const auto type = static_cast<MessageType>(decoded.header.message_type);
     if (type != MessageType::kJoinRequest) {
-      logger.Log(engine::util::LogLevel::kDebug, "Ignoring non-join packet from ",
-                 EndpointKey(from));
+      logger.Log(engine::util::LogLevel::kDebug,
+                 "Ignoring non-join packet from ", EndpointKey(from));
       return;
     }
 
@@ -215,8 +212,8 @@ class JoinServer {
     const auto endpoint_key = EndpointKey(from);
 
     if (request.client_version != protocol::kProtocolVersion) {
-      logger.Log(engine::util::LogLevel::kWarn,
-                 "Rejecting join from ", endpoint_key, " due to version mismatch");
+      logger.Log(engine::util::LogLevel::kWarn, "Rejecting join from ",
+                 endpoint_key, " due to version mismatch");
       SendReject(protocol::JoinRejectReason::kVersionMismatch,
                  "Protocol version mismatch", header.sequence, from);
       return;
@@ -229,10 +226,10 @@ class JoinServer {
     }
 
     if (player_ids_.size() >= config_.max_players) {
-      logger.Log(engine::util::LogLevel::kWarn,
-                 "Rejecting join from ", endpoint_key, " because lobby is full");
-      SendReject(protocol::JoinRejectReason::kServerFull,
-                 "Server is full", header.sequence, from);
+      logger.Log(engine::util::LogLevel::kWarn, "Rejecting join from ",
+                 endpoint_key, " because lobby is full");
+      SendReject(protocol::JoinRejectReason::kServerFull, "Server is full",
+                 header.sequence, from);
       return;
     }
 
@@ -269,8 +266,7 @@ class JoinServer {
   }
 
   void SendReject(protocol::JoinRejectReason reason, std::string_view message,
-                  std::uint32_t ack_sequence,
-                  const engine::net::Endpoint& to) {
+                  std::uint32_t ack_sequence, const engine::net::Endpoint& to) {
     protocol::JoinRejectPayload payload;
     payload.server_version = protocol::kProtocolVersion;
     payload.reason = reason;
@@ -297,12 +293,11 @@ class JoinServer {
     engine::net::PacketBuffer buffer;
     buffer.reserve(128);
     if (!protocol::EncodePacket(packet, buffer)) {
-      logger.Log(engine::util::LogLevel::kError,
-                 "Failed to encode packet for ", EndpointKey(to));
+      logger.Log(engine::util::LogLevel::kError, "Failed to encode packet for ",
+                 EndpointKey(to));
       return;
     }
-    const auto send_result =
-        socket_.send_to(buffer.data(), buffer.size(), to);
+    const auto send_result = socket_.send_to(buffer.data(), buffer.size(), to);
     if (send_result.error) {
       logger.Log(engine::util::LogLevel::kError, "Send error to ",
                  EndpointKey(to), ": ", send_result.error.message());
