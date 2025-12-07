@@ -2,6 +2,7 @@
 #define ENGINE_ENGINE_NET_H_
 
 #include "net/endpoint.h"
+#include "net/client.h"
 #include "net/packet_buffer.h"
 #include "net/udp_socket.h"
 
