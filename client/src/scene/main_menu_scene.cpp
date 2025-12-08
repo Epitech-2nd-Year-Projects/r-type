@@ -11,7 +11,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {}
 
 void MainMenuScene::Update(engine::time::TimeDelta /*dt*/) {
   auto& input = app_.GetEngine().Input();
-  
+
   if (input.IsActionActive("Confirm")) {
     app_.StartConnection();
   }

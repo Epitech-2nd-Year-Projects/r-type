@@ -20,7 +20,7 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
 void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   renderer.DrawText("In Game", {300.0f, 50.0f}, 32.0f,
                     engine::render::Color::White());
-  
+
   if (const auto player_id = app_.GetJoinFlow().player_id()) {
     renderer.DrawText("Player ID: " + std::to_string(*player_id),
                       {300.0f, 100.0f}, 18.0f,
