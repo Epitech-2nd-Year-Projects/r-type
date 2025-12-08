@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "audio_manager.h"
 #include "client_config.h"
 #include "audio_manager.h"
 #include "join_flow.h"
