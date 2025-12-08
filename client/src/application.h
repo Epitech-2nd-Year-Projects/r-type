@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "client_config.h"
 #include "audio_manager.h"
+#include "client_config.h"
 #include "join_flow.h"
 #include "network_transport.h"
 #include "engine/core/engine_runtime.h"
