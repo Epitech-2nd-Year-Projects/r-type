@@ -25,14 +25,14 @@ The following diagram illustrates how the User's game code interacts with the En
 ```mermaid
 graph TD
     subgraph "Engine Boundary"
-        Core[Core (EngineRuntime)]
-        ECS[ECS Registry]
+        Core["Core (EngineRuntime)"]
+        ECS["ECS Registry"]
         
         subgraph Subsystems
-            Render[Render (Raylib)]
-            Audio[Audio (Raylib)]
+            Render["Render (Raylib)"]
+            Audio["Audio (Raylib)"]
             Input
-            Net[Net (Asio UDP)]
+            Net["Net (Asio UDP)"]
         end
         
         subgraph "Foundation"
@@ -43,7 +43,7 @@ graph TD
         end
     end
 
-    UserGame[User Game Code] -->|Configures| Core
+    UserGame["User Game Code"] -->|Configures| Core
     UserGame -->|Defines| Components
     UserGame -->|Registers| Systems
     
