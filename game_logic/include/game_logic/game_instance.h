@@ -17,6 +17,7 @@ namespace game_logic {
 
 namespace systems {
 class PlayerInputSystem;
+class CollisionSystem;
 class WeaponSystem;
 class MovementSystem;
 }  // namespace systems
