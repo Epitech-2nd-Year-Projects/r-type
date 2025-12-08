@@ -130,8 +130,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
   peer.last_activity_ms = NowMilliseconds();
   peer.sequence_tracker.OnRemoteSequenceReceived(decoded.header.sequence);
 
-  const auto type =
-      static_cast<MessageType>(decoded.header.message_type);
+  const auto type = static_cast<MessageType>(decoded.header.message_type);
 
   switch (type) {
     case MessageType::kJoinRequest: {
@@ -146,12 +145,11 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     }
 
     default:
-      logger_->Debug("Ignoring non-join packet (type ",
-                     static_cast<int>(type), ") from ", peer.endpoint_key);
+      logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
+                     ") from ", peer.endpoint_key);
       break;
   }
 }
-
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
                                 const protocol::JoinRequestPayload& request) {
@@ -177,8 +175,8 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
-    logger_->Debug("Reusing existing player id ", peer.player_id,
-                   " for ", endpoint_key);
+    logger_->Debug("Reusing existing player id ", peer.player_id, " for ",
+                   endpoint_key);
     SendAccept(peer);
     return;
   }
@@ -186,8 +184,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   if (joined_count >= config_.max_players) {
     logger_->Warn("Rejecting join from ", endpoint_key,
                   " because lobby is full");
-    SendReject(peer, protocol::JoinRejectReason::kServerFull,
-               "Server is full");
+    SendReject(peer, protocol::JoinRejectReason::kServerFull, "Server is full");
     return;
   }
 
@@ -198,7 +195,6 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
                 peer.player_id);
   SendAccept(peer);
 }
-
 
 void ServerRuntime::SendAccept(PeerConnection& peer) {
   protocol::JoinAcceptPayload payload;
@@ -222,7 +218,6 @@ void ServerRuntime::SendAccept(PeerConnection& peer) {
   SendPacket(peer, packet);
 }
 
-
 void ServerRuntime::SendReject(PeerConnection& peer,
                                protocol::JoinRejectReason reason,
                                std::string_view message) {
@@ -244,7 +239,6 @@ void ServerRuntime::SendReject(PeerConnection& peer,
   SendPacket(peer, packet);
 }
 
-
 void ServerRuntime::SendPacket(PeerConnection& peer,
                                const protocol::Packet& packet) {
   engine::net::PacketBuffer buffer;
@@ -261,8 +255,7 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
   }
 }
 
-
-PeerConnection *ServerRuntime::FindPeer(const engine::net::Endpoint& from) {
+PeerConnection* ServerRuntime::FindPeer(const engine::net::Endpoint& from) {
   const auto endpoint_key = EndpointKey(from);
   const auto it = peers_.find(endpoint_key);
   if (it != peers_.end()) {
@@ -294,21 +287,20 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   peer.endpoint = endpoint;
   peer.state = PeerState::kConnecting;
   peer.last_activity_ms = NowMilliseconds();
-  auto [inserted_it, unused] =
-      peers_.emplace(key, std::move(peer));
+  auto [inserted_it, unused] = peers_.emplace(key, std::move(peer));
   return inserted_it->second;
 }
 
 void ServerRuntime::CheckPeerTimeouts() {
   const std::uint32_t now_ms = NowMilliseconds();
 
-  for (auto it = peers_.begin(); it != peers_.end(); ) {
+  for (auto it = peers_.begin(); it != peers_.end();) {
     PeerConnection& peer = it->second;
     const std::uint32_t inactive_ms = now_ms - peer.last_activity_ms;
     if (peer.state != PeerState::kDisconnected &&
         inactive_ms > kPeerTimeoutMs) {
-      logger_->Info("Timing out peer ", peer.endpoint_key,
-                    " after ", inactive_ms, " ms of inactivity");
+      logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
+                    inactive_ms, " ms of inactivity");
       peer.state = PeerState::kDisconnected;
       it = peers_.erase(it);
       continue;
@@ -316,6 +308,5 @@ void ServerRuntime::CheckPeerTimeouts() {
     ++it;
   }
 }
-
 
 }  // namespace server
