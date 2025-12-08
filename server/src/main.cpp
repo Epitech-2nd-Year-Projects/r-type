@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     std::cerr << parse_result.error << '\n';
     std::cerr << "Usage: " << argv[0]
               << " [--port <port>] [--max-players <n>] [--tickrate <hz>]"
-              << " [--room <name>] [--seed <seed>] "
+              << " [--room <code>] [--seed <seed>] "
               << "[--log-level <level>]\n";
     return 1;
   }
