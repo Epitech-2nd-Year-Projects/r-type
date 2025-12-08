@@ -43,6 +43,9 @@ int Application::Run() {
     LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
   }
 
+  auto& input = engine_->Input();
+  input.BindKey("Confirm", engine::input::Key::kEnter);
+
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
   runtime_config_store.Set("client.port", std::to_string(config_.port));
@@ -65,7 +68,6 @@ int Application::Run() {
                      transport_error.message());
     return 1;
   }
-  join_flow_.Begin(transport_);
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
@@ -83,35 +85,70 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     return false;
   }
 
-  join_flow_.Update(transport_);
-  if (join_flow_.state() == JoinState::kRefused) {
-    LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
-    return false;
-  }
-
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
   auto& renderer = context.Get2DRenderer();
+  auto& input = engine_->Input();
+
+  const auto events = input.ConsumeEvents();
+  bool confirm_pressed = false;
+
+  for (const auto& event : events) {
+    if (event.type == engine::input::ActionEventType::kPressed) {
+      if (event.action == "Confirm") confirm_pressed = true;
+    }
+  }
+
+  switch (state_) {
+    case GameState::kMainMenu:
+      if (confirm_pressed) {
+        state_ = GameState::kConnecting;
+        join_flow_.Begin(transport_);
+      }
+      break;
+    case GameState::kConnecting:
+      join_flow_.Update(transport_);
+      if (join_flow_.state() == JoinState::kConnected) {
+        state_ = GameState::kInGame;
+      } else if (join_flow_.state() == JoinState::kRefused) {
+        state_ = GameState::kMainMenu;
+      }
+      break;
+    case GameState::kInGame:
+      break;
+  }
 
   const float fps = dt.as_seconds() > 0.0f ? 1.0f / dt.as_seconds() : 0.0f;
 
   std::ostringstream hud;
   hud << std::fixed << std::setprecision(1) << "FPS: " << fps;
-  const auto connection_status = join_flow_.status();
 
   context.BeginFrame();
   context.Clear(engine::render::Color::FromBytes(12, 12, 16));
 
-  renderer.DrawText("R-Type Client", {24.0f, 28.0f}, 28.0f,
-                    engine::render::Color::White());
-  renderer.DrawText(hud.str(), {24.0f, 64.0f}, 20.0f,
+  renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
-  renderer.DrawText(connection_status, {24.0f, 96.0f}, 18.0f,
-                    engine::render::Color::FromBytes(180, 220, 255));
-  if (const auto player_id = join_flow_.player_id()) {
-    renderer.DrawText("Player ID: " + std::to_string(*player_id),
-                      {24.0f, 120.0f}, 18.0f,
-                      engine::render::Color::FromBytes(180, 220, 255));
+
+  switch (state_) {
+    case GameState::kMainMenu:
+      renderer.DrawText("R-Type Client", {300.0f, 200.0f}, 48.0f,
+                        engine::render::Color::White());
+      renderer.DrawText("Press ENTER to Connect", {300.0f, 300.0f}, 24.0f,
+                        engine::render::Color::White());
+      break;
+    case GameState::kConnecting:
+      renderer.DrawText(join_flow_.status(), {300.0f, 300.0f}, 24.0f,
+                        engine::render::Color::White());
+      break;
+    case GameState::kInGame:
+      renderer.DrawText("In Game", {300.0f, 50.0f}, 32.0f,
+                        engine::render::Color::White());
+      if (const auto player_id = join_flow_.player_id()) {
+        renderer.DrawText("Player ID: " + std::to_string(*player_id),
+                          {300.0f, 100.0f}, 18.0f,
+                          engine::render::Color::FromBytes(180, 220, 255));
+      }
+      break;
   }
 
   context.EndFrame();

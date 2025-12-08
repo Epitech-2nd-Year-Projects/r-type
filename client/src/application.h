@@ -13,6 +13,15 @@
 namespace client {
 
 /**
+ * @brief High-level states of the application
+ */
+enum class GameState {
+  kMainMenu,
+  kConnecting,
+  kInGame
+};
+
+/**
  * @brief High-level application object driving the client runtime
  */
 class Application {
@@ -29,6 +38,7 @@ class Application {
   ClientConfig config_;
   NetworkTransport transport_;
   JoinFlow join_flow_;
+  GameState state_{GameState::kMainMenu};
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<AudioManager> audio_manager_;
 };
