@@ -7,11 +7,6 @@
 #include "engine/input.h"
 #include "engine/render/color.h"
 
-#ifdef _WIN32
-#undef DrawText
-#endif
-
-
 namespace client {
 
 DisconnectedScene::DisconnectedScene(Application& app, std::string reason)
