@@ -2,6 +2,7 @@
 
 #include "application.h"
 #include "engine/render/color.h"
+#include "join_flow.h"
 
 namespace client {
 
