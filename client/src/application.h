@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "client_config.h"
+#include "audio_manager.h"
 #include "join_flow.h"
 #include "network_transport.h"
 #include "engine/core/engine_runtime.h"
@@ -29,6 +30,7 @@ class Application {
   NetworkTransport transport_;
   JoinFlow join_flow_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
+  std::unique_ptr<AudioManager> audio_manager_;
 };
 
 }  // namespace client
