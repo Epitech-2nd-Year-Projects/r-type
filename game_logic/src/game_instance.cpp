@@ -12,6 +12,7 @@
 #include "game_logic/systems/health_system.h"
 #include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
+#include "game_logic/systems/wave_system.h"
 #include "game_logic/systems/weapon_system.h"
 
 namespace game_logic {
@@ -232,6 +233,10 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
+
+  registry_->AddSystemClass(std::make_shared<systems::WaveSystem>(),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 

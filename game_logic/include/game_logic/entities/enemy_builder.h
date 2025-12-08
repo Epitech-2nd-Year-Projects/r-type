@@ -74,6 +74,30 @@ class EnemyBuilder {
   static engine::ecs::EntityId Create(
       engine::ecs::Registry& registry, EnemyType type,
       const engine::math::Vector2f& spawn_position);
+
+  /**
+   * @brief Create a PataPata enemy (Basic Scout)
+   * @param registry ECS registry
+   * @param spawn_position Initial position
+   * @return EntityId of created enemy
+   *
+   * @details Creates an enemy mapped to the 'Scout' archetype.
+   */
+  static engine::ecs::EntityId CreatePataPata(
+      engine::ecs::Registry& registry,
+      const engine::math::Vector2f& spawn_position);
+
+  /**
+   * @brief Create a Bydo enemy (Bomber)
+   * @param registry ECS registry
+   * @param spawn_position Initial position
+   * @return EntityId of created enemy
+   *
+   * @details Creates an enemy mapped to the 'Bomber' archetype.
+   */
+  static engine::ecs::EntityId CreateBydo(
+      engine::ecs::Registry& registry,
+      const engine::math::Vector2f& spawn_position);
 };
 
 }  // namespace game_logic::entities

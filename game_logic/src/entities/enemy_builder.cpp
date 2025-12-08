@@ -93,4 +93,16 @@ engine::ecs::EntityId EnemyBuilder::Create(
   return Create(registry, config);
 }
 
+engine::ecs::EntityId EnemyBuilder::CreatePataPata(
+    engine::ecs::Registry& registry,
+    const engine::math::Vector2f& spawn_position) {
+  return Create(registry, EnemyType::kScout, spawn_position);
+}
+
+engine::ecs::EntityId EnemyBuilder::CreateBydo(
+    engine::ecs::Registry& registry,
+    const engine::math::Vector2f& spawn_position) {
+  return Create(registry, EnemyType::kBomber, spawn_position);
+}
+
 }  // namespace game_logic::entities
