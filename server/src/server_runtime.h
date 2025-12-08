@@ -20,49 +20,149 @@
 namespace server {
 
 /**
- * @brief Owning loop driving the dedicated server process
+ * @brief Main runtime loop managing the dedicated R-Type server process.
+ * 
+ * ServerRuntime orchestrates all server-side operations:
+ * - Network packet reception and processing
+ * - Client connection and session management
+ * - Fixed-rate game loop execution
+ * - Protocol message handling and routing
+ * 
+ * The server operates with a fixed tick rate, processing incoming packets,
+ * updating game state, and sending updates to connected clients.
  */
 class ServerRuntime {
  public:
   /**
-   * @brief Construct runtime with user supplied configuration
+   * @brief Constructs the server runtime with user-supplied configuration.
+   * @param config Server configuration (port, tick rate, max players, etc.).
    */
   explicit ServerRuntime(ServerConfig config);
 
   /**
-   * @brief Open networking and configure supporting systems
+   * @brief Initializes networking and configures supporting systems.
+   * @return Error code indicating success or failure reason.
+   * 
+   * Opens the UDP socket, binds to the configured port, and initializes
+   * logging and timing subsystems. Must be called before Run().
    */
   std::error_code Start();
 
   /**
-   * @brief Enter the dedicated server loop
+   * @brief Enters the main server loop.
+   * 
+   * Runs the fixed-rate game loop, processing packets, updating game state,
+   * and sending updates to clients. Blocks until the server is shut down.
+   * 
+   * @note Requires Start() to have been called successfully first.
    */
   void Run();
 
  private:
+  /**
+   * @brief Configures the logging system based on server configuration.
+   */
   void ConfigureLogging();
+  
+  /**
+   * @brief Sleeps to maintain the configured tick rate.
+   * @param delta_time Time elapsed since last frame.
+   * 
+   * Ensures the server runs at a fixed tick rate by sleeping for the
+   * remaining time after processing the current frame.
+   */
   void TickRateSleep(const engine::time::TimeDelta& delta_time);
+  
+  /**
+   * @brief Handles an incoming packet from a remote endpoint.
+   * @param packet The received packet buffer.
+   * @param from The remote endpoint that sent the packet.
+   * 
+   * Decodes the packet, routes it to the appropriate handler based on
+   * message type, and updates peer connection state.
+   */
   void HandlePacket(engine::net::PacketBuffer packet,
                     const engine::net::Endpoint& from);
+  
+  /**
+   * @brief Processes a join request from a peer.
+   * @param peer The peer connection requesting to join.
+   * @param request The join request payload.
+   * 
+   * Validates the request, assigns a player ID if successful, and sends
+   * either an accept or reject response.
+   */
   void ProcessJoin(PeerConnection& peer,
                    const protocol::JoinRequestPayload& request);
+  
+  /**
+   * @brief Sends a join accept message to a peer.
+   * @param peer The peer connection to accept.
+   * 
+   * Constructs and sends a JoinAcceptPayload with server configuration
+   * and assigned player ID.
+   */
   void SendAccept(PeerConnection& peer);
+  
+  /**
+   * @brief Sends a join reject message to a peer.
+   * @param peer The peer connection to reject.
+   * @param reason The reason code for rejection.
+   * @param message Human-readable explanation for the rejection.
+   * 
+   * Constructs and sends a JoinRejectPayload with the specified reason.
+   */
   void SendReject(PeerConnection& peer,
                   protocol::JoinRejectReason reason,
                   std::string_view message);
+  
+  /**
+   * @brief Sends a packet to a specific peer.
+   * @param peer The destination peer connection.
+   * @param packet The packet to send.
+   * 
+   * Encodes the packet and sends it via UDP to the peer's endpoint.
+   */
   void SendPacket(PeerConnection& peer, const protocol::Packet& packet);
+  
+  /**
+   * @brief Finds an existing peer connection by endpoint.
+   * @param from The endpoint to search for.
+   * @return Pointer to the peer connection if found, nullptr otherwise.
+   */
   PeerConnection* FindPeer(const engine::net::Endpoint& from);
+  
+  /**
+   * @brief Gets or creates a peer connection for an endpoint.
+   * @param from The endpoint to find or create.
+   * @return Reference to the peer connection (existing or newly created).
+   * 
+   * If no peer exists for the endpoint, creates a new one in the
+   * kConnecting state.
+   */
   PeerConnection& GetOrCreatePeer(const engine::net::Endpoint& from);
+  
+  /**
+   * @brief Counts the number of peers in the kJoined state.
+   * @return Number of fully joined players.
+   */
   std::size_t CountJoinedPlayers() const;
+  
+  /**
+   * @brief Checks all peer connections for inactivity timeouts.
+   * 
+   * Disconnects peers that haven't sent a valid packet within the
+   * configured timeout period.
+   */
   void CheckPeerTimeouts();
 
-  engine::net::UdpSocket socket_;
-  ServerConfig config_;
-  engine::util::Logger* logger_{nullptr};
-  engine::time::FrameTimer frame_timer_;
-  std::uint32_t next_player_id_{1};
-  std::unordered_map<std::string, PeerConnection> peers_;
-  std::mt19937 rng_;
+  engine::net::UdpSocket socket_;                           ///< UDP socket for network communication.
+  ServerConfig config_;                                     ///< Server configuration (port, tick rate, limits, etc.).
+  engine::util::Logger* logger_{nullptr};                  ///< Logger instance for diagnostic output.
+  engine::time::FrameTimer frame_timer_;                    ///< Timer for maintaining fixed tick rate.
+  std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
+  std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
+  std::mt19937 rng_;                                        ///< Random number generator for deterministic seeds.
 };
 
 }  // namespace server
