@@ -83,6 +83,15 @@ class ServerRuntime {
    */
   void HandlePacket(engine::net::PacketBuffer packet,
                     const engine::net::Endpoint& from);
+
+  /**
+   * @brief Handles an incoming ping message from a peer.
+   * @param peer The peer connection that sent the ping.
+   * @param ping The ping payload containing client timestamp.
+   *
+   * Updates the peer's last activity timestamp and may respond with a pong.
+   */
+  void HandlePing(PeerConnection& peer, const protocol::PingPayload& ping);
   
   /**
    * @brief Processes a join request from a peer.

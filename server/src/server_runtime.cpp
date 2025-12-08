@@ -144,12 +144,38 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       ProcessJoin(peer, *request);
       break;
     }
+    case MessageType::kPing: {
+      const auto* ping = std::get_if<protocol::PingPayload>(&decoded.payload);
+      if (ping == nullptr) {
+        logger_->Warn("Malformed ping from ", peer.endpoint_key);
+        return;
+      }
+      HandlePing(peer, *ping);
+      break;
+    }
 
     default:
       logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
       break;
   }
+}
+
+void ServerRuntime::HandlePing(PeerConnection& peer,
+                               const protocol::PingPayload& ping) {
+  protocol::PongPayload pong{};
+  pong.client_time_ms = ping.client_time_ms;
+  pong.server_time_ms = NowMilliseconds();
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type = static_cast<std::uint8_t>(MessageType::kPong);
+  packet.header.flags = 0;
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.timestamp_ms = pong.server_time_ms;
+  peer.sequence_tracker.FillAckFields(&packet.header);
+  packet.payload = pong;
+  SendPacket(peer, packet);
 }
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
