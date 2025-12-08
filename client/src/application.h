@@ -9,20 +9,11 @@
 #include "network_transport.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
+#include "scene/scene.h"
 
 namespace client {
 
-/**
- * @brief High-level states of the application
- */
-enum class GameState {
-  kMainMenu,
-  kConnecting,
-  kInGame,
-  kPaused,
-  kGameOver,
-  kDisconnected
-};
+class Scene;
 
 /**
  * @brief High-level application object driving the client runtime
@@ -35,13 +26,36 @@ class Application {
   explicit Application(ClientConfig config);
   int Run();
 
+  /**
+   * @brief Access the engine runtime
+   */
+  engine::core::EngineRuntime& GetEngine() { return *engine_; }
+
+  /**
+   * @brief Switch the active scene
+   */
+  void SwitchScene(std::unique_ptr<Scene> scene);
+
+  void StartConnection();
+  void OnConnected();
+  void OnConnectionFailed(const std::string& reason);
+  void OnGameStart();
+  void OnGamePause();
+  void OnGameResume();
+  void OnGameOver();
+  void OnDisconnect();
+  void OnQuitToMenu();
+
+  JoinFlow& GetJoinFlow() { return join_flow_; }
+  NetworkTransport& GetTransport() { return transport_; }
+
  private:
   bool Tick(engine::time::TimeDelta dt);
 
   ClientConfig config_;
   NetworkTransport transport_;
   JoinFlow join_flow_;
-  GameState state_{GameState::kMainMenu};
+  std::unique_ptr<Scene> current_scene_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<AudioManager> audio_manager_;
 };

@@ -9,6 +9,12 @@
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
 #include "logging.h"
+#include "scene/connecting_scene.h"
+#include "scene/disconnected_scene.h"
+#include "scene/game_over_scene.h"
+#include "scene/in_game_scene.h"
+#include "scene/main_menu_scene.h"
+#include "scene/pause_scene.h"
 
 namespace client {
 
@@ -71,6 +77,8 @@ int Application::Run() {
     return 1;
   }
 
+  SwitchScene(std::make_unique<MainMenuScene>(*this));
+
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
 
@@ -80,6 +88,46 @@ int Application::Run() {
   return 0;
 }
 
+void Application::SwitchScene(std::unique_ptr<Scene> scene) {
+  current_scene_ = std::move(scene);
+}
+
+void Application::StartConnection() {
+  join_flow_.Begin(transport_);
+  SwitchScene(std::make_unique<ConnectingScene>(*this));
+}
+
+void Application::OnConnected() {
+  SwitchScene(std::make_unique<InGameScene>(*this));
+}
+
+void Application::OnConnectionFailed(const std::string& reason) {
+  SwitchScene(std::make_unique<DisconnectedScene>(*this, reason));
+}
+
+void Application::OnGameStart() {
+}
+
+void Application::OnGamePause() {
+  SwitchScene(std::make_unique<PauseScene>(*this));
+}
+
+void Application::OnGameResume() {
+  SwitchScene(std::make_unique<InGameScene>(*this));
+}
+
+void Application::OnGameOver() {
+  SwitchScene(std::make_unique<GameOverScene>(*this));
+}
+
+void Application::OnDisconnect() {
+  SwitchScene(std::make_unique<DisconnectedScene>(*this, "Connection lost"));
+}
+
+void Application::OnQuitToMenu() {
+  SwitchScene(std::make_unique<MainMenuScene>(*this));
+}
+
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!engine_->Pump()) {
     LogLifecycle(engine::util::LogLevel::kError,
@@ -87,57 +135,13 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     return false;
   }
 
+  if (current_scene_) {
+    current_scene_->Update(dt);
+  }
+
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
   auto& renderer = context.Get2DRenderer();
-  auto& input = engine_->Input();
-  const auto events = input.ConsumeEvents();
-  bool confirm_pressed = false;
-  bool cancel_pressed = false;
-  bool quit_pressed = false;
-
-  for (const auto& event : events) {
-    if (event.type == engine::input::ActionEventType::kPressed) {
-      if (event.action == "Confirm") confirm_pressed = true;
-      else if (event.action == "Cancel") cancel_pressed = true;
-      else if (event.action == "Quit") quit_pressed = true;
-    }
-  }
-
-  switch (state_) {
-    case GameState::kMainMenu:
-      if (confirm_pressed) {
-        state_ = GameState::kConnecting;
-        join_flow_.Begin(transport_);
-      }
-      break;
-    case GameState::kConnecting:
-      join_flow_.Update(transport_);
-      if (join_flow_.state() == JoinState::kConnected) {
-        state_ = GameState::kInGame;
-      } else if (join_flow_.state() == JoinState::kRefused) {
-        state_ = GameState::kDisconnected;
-      }
-      break;
-    case GameState::kInGame:
-      if (cancel_pressed) {
-        state_ = GameState::kPaused;
-      }
-      break;
-    case GameState::kPaused:
-      if (confirm_pressed || cancel_pressed) {
-        state_ = GameState::kInGame;
-      } else if (quit_pressed) {
-        state_ = GameState::kMainMenu;
-      }
-      break;
-    case GameState::kGameOver:
-    case GameState::kDisconnected:
-      if (confirm_pressed) {
-        state_ = GameState::kMainMenu;
-      }
-      break;
-  }
 
   const float fps = dt.as_seconds() > 0.0f ? 1.0f / dt.as_seconds() : 0.0f;
 
@@ -147,52 +151,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   context.BeginFrame();
   context.Clear(engine::render::Color::FromBytes(12, 12, 16));
 
+  if (current_scene_) {
+    current_scene_->Draw(renderer);
+  }
+  
   renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
-
-  switch (state_) {
-    case GameState::kMainMenu:
-      renderer.DrawText("R-Type Client", {300.0f, 200.0f}, 48.0f,
-                        engine::render::Color::White());
-      renderer.DrawText("Press ENTER to Connect", {300.0f, 300.0f}, 24.0f,
-                        engine::render::Color::White());
-      break;
-    case GameState::kConnecting:
-      renderer.DrawText(join_flow_.status(), {300.0f, 300.0f}, 24.0f,
-                        engine::render::Color::White());
-      break;
-    case GameState::kInGame:
-      renderer.DrawText("In Game", {300.0f, 50.0f}, 32.0f,
-                        engine::render::Color::White());
-      if (const auto player_id = join_flow_.player_id()) {
-        renderer.DrawText("Player ID: " + std::to_string(*player_id),
-                          {300.0f, 100.0f}, 18.0f,
-                          engine::render::Color::FromBytes(180, 220, 255));
-      }
-      break;
-    case GameState::kPaused:
-      renderer.DrawText("Paused", {300.0f, 200.0f}, 48.0f,
-                        engine::render::Color::White());
-      renderer.DrawText("Press ENTER to Resume", {300.0f, 300.0f}, 24.0f,
-                        engine::render::Color::White());
-      renderer.DrawText("Press Q to Quit to Main Menu", {300.0f, 350.0f}, 24.0f,
-                        engine::render::Color::White());
-      break;
-    case GameState::kGameOver:
-      renderer.DrawText("Game Over", {300.0f, 200.0f}, 48.0f,
-                        engine::render::Color::FromBytes(255, 0, 0));
-      renderer.DrawText("Press ENTER to Main Menu", {300.0f, 300.0f}, 24.0f,
-                        engine::render::Color::White());
-      break;
-    case GameState::kDisconnected:
-      renderer.DrawText("Disconnected", {300.0f, 200.0f}, 48.0f,
-                        engine::render::Color::FromBytes(255, 0, 0));
-      renderer.DrawText(join_flow_.status(), {300.0f, 250.0f}, 20.0f,
-                        engine::render::Color::White());
-      renderer.DrawText("Press ENTER to Main Menu", {300.0f, 300.0f}, 24.0f,
-                        engine::render::Color::White());
-      break;
-  }
 
   context.EndFrame();
   return true;
