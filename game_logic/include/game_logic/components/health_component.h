@@ -2,6 +2,9 @@
 #define GAME_LOGIC_COMPONENTS_HEALTH_COMPONENT_H_
 
 #include <cstdint>
+#include <optional>
+
+
 
 namespace game_logic::components {
 
@@ -21,6 +24,9 @@ struct HealthComponent {
 
   /// @brief Whether entity is invulnerable
   bool invulnerable{false};
+
+  /// @brief Entity ID of the last attacker (for scoring)
+  std::optional<std::uint32_t> last_attacker_id{std::nullopt};
 
   HealthComponent() = default;
   explicit HealthComponent(std::uint32_t hp)
