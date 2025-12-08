@@ -2,6 +2,7 @@
 
 #include <array>
 #include <chrono>
+#include <limits>
 #include <string>
 #include <thread>
 #include <utility>
@@ -212,6 +213,8 @@ void ServerRuntime::SendAccept(PeerConnection& peer) {
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
 
   packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.ack = 0;
+  packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
   peer.sequence_tracker.FillAckFields(&packet.header);
   packet.payload = payload;
@@ -233,6 +236,8 @@ void ServerRuntime::SendReject(PeerConnection& peer,
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
   packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.ack = 0;
+  packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
   peer.sequence_tracker.FillAckFields(&packet.header);
   packet.payload = payload;
@@ -287,7 +292,8 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   peer.endpoint = endpoint;
   peer.state = PeerState::kConnecting;
   peer.last_activity_ms = NowMilliseconds();
-  auto [inserted_it, unused] = peers_.emplace(key, std::move(peer));
+  auto [inserted_it, inserted] = peers_.emplace(key, std::move(peer));
+  (void)inserted;
   return inserted_it->second;
 }
 
@@ -296,12 +302,16 @@ void ServerRuntime::CheckPeerTimeouts() {
 
   for (auto it = peers_.begin(); it != peers_.end();) {
     PeerConnection& peer = it->second;
-    const std::uint32_t inactive_ms = now_ms - peer.last_activity_ms;
+    const std::uint32_t inactive_ms =
+        now_ms >= peer.last_activity_ms
+            ? now_ms - peer.last_activity_ms
+            : (std::numeric_limits<std::uint32_t>::max() -
+               peer.last_activity_ms) +
+                  1u + now_ms;
     if (peer.state != PeerState::kDisconnected &&
         inactive_ms > kPeerTimeoutMs) {
       logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
-      peer.state = PeerState::kDisconnected;
       it = peers_.erase(it);
       continue;
     }
