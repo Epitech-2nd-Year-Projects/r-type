@@ -218,6 +218,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
   peer.last_activity_ms = NowMilliseconds();
+  players_[peer.player_id] = peer.endpoint_key;
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
@@ -334,15 +335,38 @@ void ServerRuntime::CheckPeerTimeouts() {
             : (std::numeric_limits<std::uint32_t>::max() -
                peer.last_activity_ms) +
                   1u + now_ms;
-    if (peer.state != PeerState::kDisconnected &&
-        inactive_ms > kPeerTimeoutMs) {
+    if (inactive_ms > kPeerTimeoutMs) {
       logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
-      it = peers_.erase(it);
+      RemovePeer(peer);
+      it = peers_.begin();
       continue;
     }
     ++it;
   }
+}
+
+PeerConnection* ServerRuntime::GetPeerByPlayerId(std::uint32_t player_id) {
+  auto it = players_.find(player_id);
+  if (it == players_.end()) {
+    return nullptr;
+  }
+  auto peer_it = peers_.find(it->second);
+  if (peer_it == peers_.end()) {
+    return nullptr;
+  }
+  return &peer_it->second;
+}
+
+void ServerRuntime::RemovePeer(PeerConnection& peer) {
+  logger_->Info("Removing peer ", peer.endpoint_key, " player id ",
+                peer.player_id);
+
+  if (peer.player_id != 0) {
+    players_.erase(peer.player_id);
+  }
+  peer.state = PeerState::kDisconnected;
+  peers_.erase(peer.endpoint_key);
 }
 
 }  // namespace server
