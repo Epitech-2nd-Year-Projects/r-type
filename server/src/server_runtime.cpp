@@ -13,6 +13,7 @@
 #include "protocol/packet.h"
 
 namespace server {
+constexpr std::uint32_t kPeerTimeoutMs = 15'000;
 
 namespace {
 
@@ -76,6 +77,7 @@ void ServerRuntime::Run() {
 
     if (recv_result.error) {
       if (IsTransientError(recv_result.error)) {
+        CheckPeerTimeouts();
         TickRateSleep(delta);
         continue;
       }
@@ -88,7 +90,7 @@ void ServerRuntime::Run() {
                                               recv_result.bytes_transferred);
       HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
     }
-
+    CheckPeerTimeouts();
     TickRateSleep(delta);
   }
 }
@@ -124,75 +126,84 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     return;
   }
 
-  const auto type = static_cast<MessageType>(decoded.header.message_type);
-  if (type != MessageType::kJoinRequest) {
-    logger_->Debug("Ignoring non-join packet from ", EndpointKey(from));
-    return;
-  }
+  PeerConnection& peer = GetOrCreatePeer(from);
+  peer.last_activity_ms = NowMilliseconds();
+  peer.sequence_tracker.OnRemoteSequenceReceived(decoded.header.sequence);
 
-  const auto* request =
-      std::get_if<protocol::JoinRequestPayload>(&decoded.payload);
-  if (!request) {
-    logger_->Warn("Malformed join request from ", EndpointKey(from));
-    return;
+  const auto type =
+      static_cast<MessageType>(decoded.header.message_type);
+
+  switch (type) {
+    case MessageType::kJoinRequest: {
+      const auto* request =
+          std::get_if<protocol::JoinRequestPayload>(&decoded.payload);
+      if (request == nullptr) {
+        logger_->Warn("Malformed join request from ", peer.endpoint_key);
+        return;
+      }
+      ProcessJoin(peer, *request);
+      break;
+    }
+
+    default:
+      logger_->Debug("Ignoring non-join packet (type ",
+                     static_cast<int>(type), ") from ", peer.endpoint_key);
+      break;
   }
-  ProcessJoin(*request, decoded.header, from);
 }
 
-void ServerRuntime::ProcessJoin(const protocol::JoinRequestPayload& request,
-                                const protocol::Header& header,
-                                const engine::net::Endpoint& from) {
-  const auto endpoint_key = EndpointKey(from);
+
+void ServerRuntime::ProcessJoin(PeerConnection& peer,
+                                const protocol::JoinRequestPayload& request) {
+  const std::string& endpoint_key = peer.endpoint_key;
+
   logger_->Debug("Join request from ", endpoint_key, " player ",
                  request.player_name, " room ", request.room_code);
 
   if (request.client_version != protocol::kProtocolVersion) {
     logger_->Warn("Rejecting join from ", endpoint_key,
                   " due to version mismatch");
-    SendReject(protocol::JoinRejectReason::kVersionMismatch,
-               "Protocol version mismatch", header.sequence, from);
+    SendReject(peer, protocol::JoinRejectReason::kVersionMismatch,
+               "Protocol version mismatch");
     return;
   }
 
   if (!config_.room_code.empty() && request.room_code != config_.room_code) {
     logger_->Warn("Rejecting join from ", endpoint_key, " invalid room ",
                   request.room_code);
-    SendReject(protocol::JoinRejectReason::kInvalidRoom, "Room unavailable",
-               header.sequence, from);
+    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+               "Room unavailable");
     return;
   }
 
-  PeerConnection* existing = FindPeer(from);
-  if (existing != nullptr && existing->state == PeerState::kJoined && existing->player_id != 0) {
-    existing->last_activity_ms = NowMilliseconds();
-    logger_->Debug("Reusing existing player id ",
-                   existing->player_id, " for ", endpoint_key);
-    SendAccept(existing->player_id, header.sequence, from);
+  if (peer.state == PeerState::kJoined && peer.player_id != 0) {
+    logger_->Debug("Reusing existing player id ", peer.player_id,
+                   " for ", endpoint_key);
+    SendAccept(peer);
     return;
   }
-
   const std::size_t joined_count = CountJoinedPlayers();
   if (joined_count >= config_.max_players) {
     logger_->Warn("Rejecting join from ", endpoint_key,
                   " because lobby is full");
-    SendReject(protocol::JoinRejectReason::kServerFull, "Server is full",
-               header.sequence, from);
+    SendReject(peer, protocol::JoinRejectReason::kServerFull,
+               "Server is full");
     return;
   }
 
-  PeerConnection& peer = existing != nullptr ? *existing
-                                        : peers_.emplace(endpoint_key, PeerConnection{}).first->second;
+  peer.player_id = next_player_id_++;
+  peer.state = PeerState::kJoined;
+  peer.last_activity_ms = NowMilliseconds();
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
-  SendAccept(peer.player_id, header.sequence, from);
+  SendAccept(peer);
 }
 
-void ServerRuntime::SendAccept(std::uint32_t player_id,
-                               std::uint32_t ack_sequence,
-                               const engine::net::Endpoint& to) {
+
+void ServerRuntime::SendAccept(PeerConnection& peer) {
   protocol::JoinAcceptPayload payload;
   payload.server_version = protocol::kProtocolVersion;
-  payload.player_id = player_id;
+  payload.player_id = peer.player_id;
   payload.max_players = static_cast<std::uint8_t>(config_.max_players);
   payload.tick_rate = static_cast<std::uint8_t>(config_.tick_rate);
   payload.seed = rng_();
@@ -203,19 +214,18 @@ void ServerRuntime::SendAccept(std::uint32_t player_id,
       static_cast<std::uint8_t>(MessageType::kJoinAccept);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence = next_sequence_++;
-  packet.header.ack = ack_sequence;
-  packet.header.ack_bits = 0;
-  packet.header.timestamp_ms = NowMilliseconds();
-  packet.payload = payload;
 
-  SendPacket(packet, to);
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.timestamp_ms = NowMilliseconds();
+  peer.sequence_tracker.FillAckFields(&packet.header);
+  packet.payload = payload;
+  SendPacket(peer, packet);
 }
 
-void ServerRuntime::SendReject(protocol::JoinRejectReason reason,
-                               std::string_view message,
-                               std::uint32_t ack_sequence,
-                               const engine::net::Endpoint& to) {
+
+void ServerRuntime::SendReject(PeerConnection& peer,
+                               protocol::JoinRejectReason reason,
+                               std::string_view message) {
   protocol::JoinRejectPayload payload;
   payload.server_version = protocol::kProtocolVersion;
   payload.reason = reason;
@@ -227,29 +237,30 @@ void ServerRuntime::SendReject(protocol::JoinRejectReason reason,
       static_cast<std::uint8_t>(MessageType::kJoinReject);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence = next_sequence_++;
-  packet.header.ack = ack_sequence;
-  packet.header.ack_bits = 0;
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
   packet.header.timestamp_ms = NowMilliseconds();
+  peer.sequence_tracker.FillAckFields(&packet.header);
   packet.payload = payload;
-
-  SendPacket(packet, to);
+  SendPacket(peer, packet);
 }
 
-void ServerRuntime::SendPacket(const protocol::Packet& packet,
-                               const engine::net::Endpoint& to) {
+
+void ServerRuntime::SendPacket(PeerConnection& peer,
+                               const protocol::Packet& packet) {
   engine::net::PacketBuffer buffer;
   buffer.reserve(128);
   if (!protocol::EncodePacket(packet, buffer)) {
-    logger_->Error("Failed to encode packet for ", EndpointKey(to));
+    logger_->Error("Failed to encode packet for ", peer.endpoint_key);
     return;
   }
-  const auto send_result = socket_.send_to(buffer.data(), buffer.size(), to);
+  const auto send_result =
+      socket_.send_to(buffer.data(), buffer.size(), peer.endpoint);
   if (send_result.error) {
-    logger_->Error("Send error to ", EndpointKey(to), ": ",
+    logger_->Error("Send error to ", peer.endpoint_key, ": ",
                    send_result.error.message());
   }
 }
+
 
 PeerConnection *ServerRuntime::FindPeer(const engine::net::Endpoint& from) {
   const auto endpoint_key = EndpointKey(from);
@@ -269,5 +280,42 @@ std::size_t ServerRuntime::CountJoinedPlayers() const {
   }
   return count;
 }
+
+PeerConnection& ServerRuntime::GetOrCreatePeer(
+    const engine::net::Endpoint& endpoint) {
+  const auto key = EndpointKey(endpoint);
+  auto it = peers_.find(key);
+  if (it != peers_.end()) {
+    return it->second;
+  }
+
+  PeerConnection peer{};
+  peer.endpoint_key = key;
+  peer.endpoint = endpoint;
+  peer.state = PeerState::kConnecting;
+  peer.last_activity_ms = NowMilliseconds();
+  auto [inserted_it, unused] =
+      peers_.emplace(key, std::move(peer));
+  return inserted_it->second;
+}
+
+void ServerRuntime::CheckPeerTimeouts() {
+  const std::uint32_t now_ms = NowMilliseconds();
+
+  for (auto it = peers_.begin(); it != peers_.end(); ) {
+    PeerConnection& peer = it->second;
+    const std::uint32_t inactive_ms = now_ms - peer.last_activity_ms;
+    if (peer.state != PeerState::kDisconnected &&
+        inactive_ms > kPeerTimeoutMs) {
+      logger_->Info("Timing out peer ", peer.endpoint_key,
+                    " after ", inactive_ms, " ms of inactivity");
+      peer.state = PeerState::kDisconnected;
+      it = peers_.erase(it);
+      continue;
+    }
+    ++it;
+  }
+}
+
 
 }  // namespace server
