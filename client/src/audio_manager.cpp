@@ -21,6 +21,14 @@ void AudioManager::LoadAssets() {
     engine_.PlaySoundEffect(path);
   }
 
+  // Preload music files by playing each at zero volume and stopping immediately
+  const float original_music_volume = engine_.GetMusicVolume();
+  engine_.SetMusicVolume(0.0f);
+  for (const auto& [type, path] : music_paths_) {
+    engine_.PlayMusic(path);
+    engine_.StopMusic();
+  }
+  engine_.SetMusicVolume(original_music_volume);
   engine_.SetSfxVolume(original_sfx_volume);
 }
 
