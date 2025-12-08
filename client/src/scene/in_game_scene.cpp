@@ -5,6 +5,11 @@
 #include "engine/input.h"
 #include "engine/render/color.h"
 
+#ifdef _WIN32
+#undef DrawText
+#endif
+
+
 namespace client {
 
 InGameScene::InGameScene(Application& app) : app_(app) {}

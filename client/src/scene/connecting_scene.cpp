@@ -3,6 +3,11 @@
 #include "application.h"
 #include "engine/render/color.h"
 
+#ifdef _WIN32
+#undef DrawText
+#endif
+
+
 namespace client {
 
 ConnectingScene::ConnectingScene(Application& app) : app_(app) {}

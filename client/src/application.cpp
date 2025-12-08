@@ -16,6 +16,11 @@
 #include "scene/main_menu_scene.h"
 #include "scene/pause_scene.h"
 
+#ifdef _WIN32
+#undef DrawText
+#endif
+
+
 namespace client {
 
 Application::Application(ClientConfig config)
