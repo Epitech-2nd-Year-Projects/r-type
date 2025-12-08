@@ -12,7 +12,10 @@
 
 namespace client {
 
-Application::Application(ClientConfig config) : config_(std::move(config)) {}
+Application::Application(ClientConfig config)
+    : config_(std::move(config)),
+      transport_(),
+      join_flow_(config_.player_name, config_.room_code) {}
 
 int Application::Run() {
   ConfigureClientLogging(config_.log_level);
@@ -41,16 +44,28 @@ int Application::Run() {
   runtime_config_store.Set(
       "client.log_level",
       std::string(engine::util::ToString(config_.log_level)));
+  runtime_config_store.Set("client.player_name", config_.player_name);
+  runtime_config_store.Set("client.room_code", config_.room_code);
 
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "connecting");
 
+  const auto transport_error = transport_.Start(config_.host, config_.port);
+  if (transport_error) {
+    LogLifecycle(engine::util::LogLevel::kError,
+                 std::string("Failed to start network transport: ") +
+                     transport_error.message());
+    return 1;
+  }
+  join_flow_.Begin(transport_);
+
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
+  transport_.Stop();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
 }
@@ -62,6 +77,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     return false;
   }
 
+  join_flow_.Update(transport_);
+  if (join_flow_.state() == JoinState::kRefused) {
+    LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
+    return false;
+  }
+
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
   auto& renderer = context.Get2DRenderer();
@@ -70,6 +91,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   std::ostringstream hud;
   hud << std::fixed << std::setprecision(1) << "FPS: " << fps;
+  const auto connection_status = join_flow_.status();
 
   context.BeginFrame();
   context.Clear(engine::render::Color::FromBytes(12, 12, 16));
@@ -78,6 +100,13 @@ bool Application::Tick(engine::time::TimeDelta dt) {
                     engine::render::Color::White());
   renderer.DrawText(hud.str(), {24.0f, 64.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
+  renderer.DrawText(connection_status, {24.0f, 96.0f}, 18.0f,
+                    engine::render::Color::FromBytes(180, 220, 255));
+  if (const auto player_id = join_flow_.player_id()) {
+    renderer.DrawText("Player ID: " + std::to_string(*player_id),
+                      {24.0f, 120.0f}, 18.0f,
+                      engine::render::Color::FromBytes(180, 220, 255));
+  }
 
   context.EndFrame();
   return true;

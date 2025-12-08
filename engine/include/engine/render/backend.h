@@ -6,6 +6,10 @@
 
 #include "window.h"
 
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
+
 namespace engine::render {
 
 /**
