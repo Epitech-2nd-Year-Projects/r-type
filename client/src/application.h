@@ -13,8 +13,6 @@
 
 namespace client {
 
-class Scene;
-
 /**
  * @brief High-level application object driving the client runtime
  */
