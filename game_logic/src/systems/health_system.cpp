@@ -39,8 +39,10 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
             positions[static_cast<size_t>(entity)].has_value()) {
           auto& pos_comp = positions[static_cast<size_t>(entity)].value();
           pos_comp.position = {
-              100.0f + 50.0f * static_cast<float>(player_comp.player_slot),
-              300.0f};
+              HealthSystem::kRespawnBaseX +
+                  HealthSystem::kRespawnSlotOffsetX *
+                      static_cast<float>(player_comp.player_slot),
+              HealthSystem::kRespawnY};
         }
       } else {
         entities_to_kill.push_back(entity);

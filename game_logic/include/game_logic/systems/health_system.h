@@ -20,6 +20,10 @@ namespace game_logic::systems {
  */
 class HealthSystem : public engine::ecs::ISystem {
  public:
+  static constexpr float kRespawnBaseX = 100.0f;
+  static constexpr float kRespawnSlotOffsetX = 50.0f;
+  static constexpr float kRespawnY = 300.0f;
+
   HealthSystem() = default;
   ~HealthSystem() override = default;
 
