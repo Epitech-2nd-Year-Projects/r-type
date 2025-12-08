@@ -16,7 +16,7 @@ struct ServerConfig {
   std::uint16_t port{4242};
   std::uint16_t max_players{4};
   std::uint16_t tick_rate{60};
-  std::string room_name{"default"};
+  std::string room_code{};
   std::uint32_t seed{std::random_device{}()};
   engine::util::LogLevel log_level{engine::util::LogLevel::kInfo};
 };

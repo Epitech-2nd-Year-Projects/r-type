@@ -18,7 +18,7 @@ constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
 constexpr std::uint16_t kMinPlayers = 1;
 constexpr std::uint16_t kMaxPlayers = std::numeric_limits<std::uint8_t>::max();
 constexpr std::uint16_t kMinTickRate = 1;
-constexpr std::uint16_t kMaxTickRate = 1000;
+constexpr std::uint16_t kMaxTickRate = std::numeric_limits<std::uint8_t>::max();
 
 std::string Normalize(std::string_view value) {
   std::string normalized(value.size(), '\0');
@@ -115,7 +115,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       if (!TryParseBounded(args[i + 1], kMinTickRate, kMaxTickRate,
                            &tick_rate)) {
         return MakeError(config,
-                         "Invalid tickrate (must be between 1 and 1000)");
+                         "Invalid tickrate (must be between 1 and 255)");
       }
       config.tick_rate = tick_rate;
       ++i;
@@ -126,17 +126,18 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       if (i + 1 >= args.size()) {
         return MakeError(config, "Missing value for --room");
       }
-      std::string_view room_value(args[++i]);
+      std::string_view room_value(args[i + 1]);
       if (room_value.empty()) {
-        return MakeError(config, "Room name cannot be empty");
+        return MakeError(config, "Room code cannot be empty");
       }
       if (!ValidateLength(room_value, protocol::kMaxRoomCodeLength)) {
         return MakeError(config,
-                         "Room name exceeds maximum length of " +
+                         "Room code exceeds maximum length of " +
                              std::to_string(protocol::kMaxRoomCodeLength) +
                              " characters");
       }
-      config.room_name.assign(room_value);
+      config.room_code.assign(room_value);
+      ++i;
       continue;
     }
 
