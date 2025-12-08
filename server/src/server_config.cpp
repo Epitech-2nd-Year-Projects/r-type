@@ -99,8 +99,8 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       std::uint16_t max_players = 0;
       if (!TryParseBounded(args[i + 1], kMinPlayers, kMaxPlayers,
                            &max_players)) {
-        return MakeError(
-            config, "Invalid max players (must be between 1 and 255)");
+        return MakeError(config,
+                         "Invalid max players (must be between 1 and 255)");
       }
       config.max_players = max_players;
       ++i;
@@ -145,7 +145,8 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
         return MakeError(config, "Missing value for --seed");
       }
       std::uint32_t seed = 0;
-      if (!TryParseBounded(args[i + 1], std::numeric_limits<std::uint32_t>::min(),
+      if (!TryParseBounded(args[i + 1],
+                           std::numeric_limits<std::uint32_t>::min(),
                            std::numeric_limits<std::uint32_t>::max(), &seed)) {
         return MakeError(config, "Invalid seed value");
       }

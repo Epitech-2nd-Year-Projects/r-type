@@ -61,8 +61,8 @@ std::error_code ServerRuntime::Start() {
   logger_->Info("Server listening on ", bind_endpoint.address(), ":",
                 bind_endpoint.port());
   logger_->Info("Room ", config_.room_name, " max players ",
-                config_.max_players, " tickrate ", config_.tick_rate,
-                " seed ", config_.seed);
+                config_.max_players, " tickrate ", config_.tick_rate, " seed ",
+                config_.seed);
   return {};
 }
 
@@ -71,8 +71,7 @@ void ServerRuntime::Run() {
 
   while (true) {
     const auto delta = frame_timer_.tick();
-    const auto recv_result =
-        socket_.receive_from(buffer.data(), buffer.size());
+    const auto recv_result = socket_.receive_from(buffer.data(), buffer.size());
 
     if (recv_result.error) {
       if (IsTransientError(recv_result.error)) {
@@ -100,7 +99,8 @@ void ServerRuntime::ConfigureLogging() {
 
 void ServerRuntime::TickRateSleep(const engine::time::TimeDelta& delta_time) {
   const float target_ms =
-      1000.0f / static_cast<float>(config_.tick_rate > 0 ? config_.tick_rate : 1);
+      1000.0f /
+      static_cast<float>(config_.tick_rate > 0 ? config_.tick_rate : 1);
   const float delta_ms = delta_time.as_milliseconds();
   if (delta_ms >= target_ms) {
     return;
