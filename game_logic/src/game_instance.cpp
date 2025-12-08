@@ -8,6 +8,7 @@
 #include "engine/ecs/systems/movement_system.h"
 #include "game_logic/components.h"
 #include "game_logic/entities/player_builder.h"
+#include "game_logic/systems/collision_system.h"
 #include "game_logic/systems/player_input_system.h"
 #include "game_logic/systems/weapon_system.h"
 
@@ -220,6 +221,10 @@ void GameInstance::RegisterSystems() {
                        engine::ecs::VelocityComponent>(
       engine::ecs::MovementSystem::Update, engine::ecs::SystemType::Fixed,
       engine::ecs::kDefaultPriority);
+
+  registry_->AddSystemClass(std::make_shared<systems::CollisionSystem>(),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
 
   registry_->AddSystem<engine::ecs::LifetimeComponent>(
       engine::ecs::LifetimeSystem::Update, engine::ecs::SystemType::Variable,
