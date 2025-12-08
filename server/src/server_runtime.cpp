@@ -162,13 +162,17 @@ void ServerRuntime::ProcessJoin(const protocol::JoinRequestPayload& request,
     return;
   }
 
-  const auto existing = player_ids_.find(endpoint_key);
-  if (existing != player_ids_.end()) {
-    SendAccept(existing->second, header.sequence, from);
+  PeerConnection* existing = FindPeer(from);
+  if (existing != nullptr && existing->state == PeerState::kJoined && existing->player_id != 0) {
+    existing->last_activity_ms = NowMilliseconds();
+    logger_->Debug("Reusing existing player id ",
+                   existing->player_id, " for ", endpoint_key);
+    SendAccept(existing->player_id, header.sequence, from);
     return;
   }
 
-  if (player_ids_.size() >= config_.max_players) {
+  const std::size_t joined_count = CountJoinedPlayers();
+  if (joined_count >= config_.max_players) {
     logger_->Warn("Rejecting join from ", endpoint_key,
                   " because lobby is full");
     SendReject(protocol::JoinRejectReason::kServerFull, "Server is full",
@@ -176,12 +180,11 @@ void ServerRuntime::ProcessJoin(const protocol::JoinRequestPayload& request,
     return;
   }
 
-  const std::uint32_t player_id = next_player_id_++;
-  player_ids_.emplace(endpoint_key, player_id);
-
+  PeerConnection& peer = existing != nullptr ? *existing
+                                        : peers_.emplace(endpoint_key, PeerConnection{}).first->second;
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
-                player_id);
-  SendAccept(player_id, header.sequence, from);
+                peer.player_id);
+  SendAccept(peer.player_id, header.sequence, from);
 }
 
 void ServerRuntime::SendAccept(std::uint32_t player_id,
@@ -246,6 +249,25 @@ void ServerRuntime::SendPacket(const protocol::Packet& packet,
     logger_->Error("Send error to ", EndpointKey(to), ": ",
                    send_result.error.message());
   }
+}
+
+PeerConnection *ServerRuntime::FindPeer(const engine::net::Endpoint& from) {
+  const auto endpoint_key = EndpointKey(from);
+  const auto it = peers_.find(endpoint_key);
+  if (it != peers_.end()) {
+    return &it->second;
+  }
+  return nullptr;
+}
+
+std::size_t ServerRuntime::CountJoinedPlayers() const {
+  std::size_t count = 0;
+  for (const auto& [key, peer] : peers_) {
+    if (peer.state == PeerState::kJoined) {
+      ++count;
+    }
+  }
+  return count;
 }
 
 }  // namespace server

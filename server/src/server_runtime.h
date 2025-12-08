@@ -15,6 +15,7 @@
 #include "protocol/join.h"
 #include "protocol/packet.h"
 #include "server_config.h"
+#include "peer_connection.h"
 
 namespace server {
 
@@ -53,6 +54,8 @@ class ServerRuntime {
                   const engine::net::Endpoint& to);
   void SendPacket(const protocol::Packet& packet,
                   const engine::net::Endpoint& to);
+  PeerConnection* FindPeer(const engine::net::Endpoint& from);
+  std::size_t CountJoinedPlayers() const;
 
   engine::net::UdpSocket socket_;
   ServerConfig config_;
@@ -60,7 +63,7 @@ class ServerRuntime {
   engine::time::FrameTimer frame_timer_;
   std::uint32_t next_sequence_{1};
   std::uint32_t next_player_id_{1};
-  std::unordered_map<std::string, std::uint32_t> player_ids_;
+  std::unordered_map<std::string, PeerConnection> peers_;
   std::mt19937 rng_;
 };
 
