@@ -9,6 +9,7 @@ set_policy("package.requires_lock", true)
 
 if is_plat("windows") then
 	set_toolchains("clang-cl")
+	add_defines("NODRAWTEXT")
 end
 
 includes("engine", "server", "client", "protocol", "game_logic")
