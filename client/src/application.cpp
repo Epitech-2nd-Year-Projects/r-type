@@ -90,7 +90,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
   auto& renderer = context.Get2DRenderer();
-  auto& input = engine_->Input(); // Handle Input
+  auto& input = engine_->Input();
   const auto events = input.ConsumeEvents();
   bool confirm_pressed = false;
   bool cancel_pressed = false;
@@ -104,7 +104,6 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     }
   }
 
-  // State Update
   switch (state_) {
     case GameState::kMainMenu:
       if (confirm_pressed) {
@@ -117,20 +116,24 @@ bool Application::Tick(engine::time::TimeDelta dt) {
       if (join_flow_.state() == JoinState::kConnected) {
         state_ = GameState::kInGame;
       } else if (join_flow_.state() == JoinState::kRefused) {
-        // For now, just go back to main menu on failure
-        state_ = GameState::kMainMenu;
+        state_ = GameState::kDisconnected;
       }
       break;
     case GameState::kInGame:
       if (cancel_pressed) {
         state_ = GameState::kPaused;
       }
-      // Game logic running
       break;
     case GameState::kPaused:
       if (confirm_pressed || cancel_pressed) {
         state_ = GameState::kInGame;
       } else if (quit_pressed) {
+        state_ = GameState::kMainMenu;
+      }
+      break;
+    case GameState::kGameOver:
+    case GameState::kDisconnected:
+      if (confirm_pressed) {
         state_ = GameState::kMainMenu;
       }
       break;
@@ -173,6 +176,20 @@ bool Application::Tick(engine::time::TimeDelta dt) {
       renderer.DrawText("Press ENTER to Resume", {300.0f, 300.0f}, 24.0f,
                         engine::render::Color::White());
       renderer.DrawText("Press Q to Quit to Main Menu", {300.0f, 350.0f}, 24.0f,
+                        engine::render::Color::White());
+      break;
+    case GameState::kGameOver:
+      renderer.DrawText("Game Over", {300.0f, 200.0f}, 48.0f,
+                        engine::render::Color::FromBytes(255, 0, 0));
+      renderer.DrawText("Press ENTER to Main Menu", {300.0f, 300.0f}, 24.0f,
+                        engine::render::Color::White());
+      break;
+    case GameState::kDisconnected:
+      renderer.DrawText("Disconnected", {300.0f, 200.0f}, 48.0f,
+                        engine::render::Color::FromBytes(255, 0, 0));
+      renderer.DrawText(join_flow_.status(), {300.0f, 250.0f}, 20.0f,
+                        engine::render::Color::White());
+      renderer.DrawText("Press ENTER to Main Menu", {300.0f, 300.0f}, 24.0f,
                         engine::render::Color::White());
       break;
   }

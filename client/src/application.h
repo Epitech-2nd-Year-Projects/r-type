@@ -19,7 +19,9 @@ enum class GameState {
   kMainMenu,
   kConnecting,
   kInGame,
-  kPaused
+  kPaused,
+  kGameOver,
+  kDisconnected
 };
 
 /**
