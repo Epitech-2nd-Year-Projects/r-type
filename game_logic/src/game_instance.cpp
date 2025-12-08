@@ -7,6 +7,7 @@
 #include "engine/ecs/systems/lifetime_system.h"
 #include "game_logic/components.h"
 #include "game_logic/entities/player_builder.h"
+#include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/collision_system.h"
 #include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
@@ -222,6 +223,10 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::CollisionSystem>(),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
+
+  registry_->AddSystemClass(std::make_shared<systems::AISystem>(),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
