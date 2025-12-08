@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
+#include <unordered_set>
 
 #include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/components/position_component.h"
@@ -13,6 +13,14 @@
 #include "game_logic/components/health_component.h"
 
 namespace game_logic::systems {
+
+namespace {
+inline std::uint64_t PairHash(engine::ecs::EntityId a,
+                              engine::ecs::EntityId b) {
+  if (a > b) std::swap(a, b);
+  return (static_cast<std::uint64_t>(a) << 32) | static_cast<std::uint64_t>(b);
+}
+}  // namespace
 
 CollisionSystem::CollisionSystem(float cell_size) : cell_size_(cell_size) {}
 
@@ -60,21 +68,7 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
     InsertIntoGrid(entity, world_bounds);
   }
 
-  std::vector<std::pair<engine::ecs::EntityId, engine::ecs::EntityId>>
-      checked_pairs;
-
-  auto is_checked = [&](engine::ecs::EntityId a, engine::ecs::EntityId b) {
-    if (a > b) std::swap(a, b);
-    for (const auto& pair : checked_pairs) {
-      if (pair.first == a && pair.second == b) return true;
-    }
-    return false;
-  };
-
-  auto mark_checked = [&](engine::ecs::EntityId a, engine::ecs::EntityId b) {
-    if (a > b) std::swap(a, b);
-    checked_pairs.emplace_back(a, b);
-  };
+  std::unordered_set<std::uint64_t> checked_pairs;
 
   for (auto& [key, entities] : grid_) {
     if (entities.size() < 2) continue;
@@ -84,93 +78,107 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
         engine::ecs::EntityId e1 = entities[i];
         engine::ecs::EntityId e2 = entities[j];
 
-        if (is_checked(e1, e2)) continue;
-        mark_checked(e1, e2);
+        std::uint64_t pair_hash = PairHash(e1, e2);
+        if (checked_pairs.count(pair_hash)) continue;
+        checked_pairs.insert(pair_hash);
 
-        try {
-          auto& tag1 = tags[static_cast<size_t>(e1)];
-          auto& tag2 = tags[static_cast<size_t>(e2)];
-          auto& pos1 = positions[static_cast<size_t>(e1)];
-          auto& pos2 = positions[static_cast<size_t>(e2)];
-          auto& box1 = boxes[static_cast<size_t>(e1)];
-          auto& box2 = boxes[static_cast<size_t>(e2)];
+        if (static_cast<size_t>(e1) >= tags.size() ||
+            static_cast<size_t>(e2) >= tags.size() ||
+            static_cast<size_t>(e1) >= positions.size() ||
+            static_cast<size_t>(e2) >= positions.size() ||
+            static_cast<size_t>(e1) >= boxes.size() ||
+            static_cast<size_t>(e2) >= boxes.size()) {
+          continue;
+        }
 
-          if (!tag1 || !tag2 || !pos1 || !pos2 || !box1 || !box2) continue;
+        auto& tag1 = tags[static_cast<size_t>(e1)];
+        auto& tag2 = tags[static_cast<size_t>(e2)];
+        auto& pos1 = positions[static_cast<size_t>(e1)];
+        auto& pos2 = positions[static_cast<size_t>(e2)];
+        auto& box1 = boxes[static_cast<size_t>(e1)];
+        auto& box2 = boxes[static_cast<size_t>(e2)];
 
-          engine::math::RectF rect1 = box1->bounds;
-          rect1.top_left_x_ += pos1->position.x;
-          rect1.top_left_y_ += pos1->position.y;
+        if (!tag1.has_value() || !tag2.has_value() || !pos1.has_value() ||
+            !pos2.has_value() || !box1.has_value() || !box2.has_value())
+          continue;
 
-          engine::math::RectF rect2 = box2->bounds;
-          rect2.top_left_x_ += pos2->position.x;
-          rect2.top_left_y_ += pos2->position.y;
+        engine::math::RectF rect1 = box1->bounds;
+        rect1.top_left_x_ += pos1->position.x;
+        rect1.top_left_y_ += pos1->position.y;
 
-          if (CheckOneWayCollision(rect1, rect2)) {
-            const std::string& t1 = tag1->tag;
-            const std::string& t2 = tag2->tag;
+        engine::math::RectF rect2 = box2->bounds;
+        rect2.top_left_x_ += pos2->position.x;
+        rect2.top_left_y_ += pos2->position.y;
 
-            bool e1_is_player = (t1 == "Player");
-            bool e2_is_player = (t2 == "Player");
-            bool e1_is_enemy = (t1 == "Enemy");
-            bool e2_is_enemy = (t2 == "Enemy");
+        if (CheckOneWayCollision(rect1, rect2)) {
+          const std::string& t1 = tag1->tag;
+          const std::string& t2 = tag2->tag;
 
-            auto get_damageable = [&](engine::ecs::EntityId e)
-                -> game_logic::components::DamageableComponent* {
-              if (static_cast<size_t>(e) < damageables.size()) {
-                auto& opt = damageables[static_cast<size_t>(e)];
-                if (opt.has_value()) return &opt.value();
-              }
-              return nullptr;
-            };
+          bool e1_is_player = (t1 == kPlayerTag);
+          bool e2_is_player = (t2 == kPlayerTag);
+          bool e1_is_enemy = (t1 == kEnemyTag);
+          bool e2_is_enemy = (t2 == kEnemyTag);
 
-            auto* dmg1 = get_damageable(e1);
-            auto* dmg2 = get_damageable(e2);
+          auto get_damageable = [&](engine::ecs::EntityId e)
+              -> std::optional<game_logic::components::DamageableComponent> {
+            if (static_cast<size_t>(e) < damageables.size()) {
+              return damageables[static_cast<size_t>(e)];
+            }
+            return std::nullopt;
+          };
 
-            bool e1_is_projectile = (dmg1 != nullptr);
-            bool e2_is_projectile = (dmg2 != nullptr);
+          auto dmg1 = get_damageable(e1);
+          auto dmg2 = get_damageable(e2);
 
-            auto apply_damage = [&](engine::ecs::EntityId victim,
-                                    uint32_t dmg_amount) {
-              if (static_cast<size_t>(victim) < healths.size()) {
-                auto& hp = healths[static_cast<size_t>(victim)];
-                if (hp) {
-                  hp->take_damage(dmg_amount);
-                  if (!hp->is_alive()) {
-                    registry.KillEntity(victim);
-                  }
+          bool e1_has_damage = dmg1.has_value();
+          bool e2_has_damage = dmg2.has_value();
+
+          auto apply_damage = [&](engine::ecs::EntityId victim,
+                                  uint32_t dmg_amount) {
+            if (static_cast<size_t>(victim) < healths.size()) {
+              auto& hp = healths[static_cast<size_t>(victim)];
+              if (hp.has_value()) {
+                hp->take_damage(dmg_amount);
+                if (!hp->is_alive()) {
+                  registry.KillEntity(victim);
                 }
               }
-            };
-            if ((e1_is_player && e2_is_enemy) ||
-                (e1_is_enemy && e2_is_player)) {
-              apply_damage(e1, 100);
-              apply_damage(e2, 100);
             }
-            auto handle_projectile =
-                [&](engine::ecs::EntityId proj, engine::ecs::EntityId target,
-                    const components::DamageableComponent& dmg_comp) {
-                  bool hit = false;
-                  if (dmg_comp.faction == 0 &&
-                      (tags[static_cast<size_t>(target)]->tag == "Enemy"))
-                    hit = true;
-                  if (dmg_comp.faction == 1 &&
-                      (tags[static_cast<size_t>(target)]->tag == "Player"))
-                    hit = true;
+          };
 
-                  if (hit) {
-                    apply_damage(target, dmg_comp.damage);
-                    registry.KillEntity(proj);
-                  }
-                };
-
-            if (e1_is_projectile && !e2_is_projectile) {
-              handle_projectile(e1, e2, *dmg1);
-            } else if (!e1_is_projectile && e2_is_projectile) {
-              handle_projectile(e2, e1, *dmg2);
-            }
+          if ((e1_is_player && e2_is_enemy) || (e1_is_enemy && e2_is_player)) {
+            apply_damage(e1, kCrashDamage);
+            apply_damage(e2, kCrashDamage);
           }
-        } catch (...) {
-          continue;
+
+          auto handle_projectile =
+              [&](engine::ecs::EntityId proj, engine::ecs::EntityId target,
+                  const components::DamageableComponent& dmg_comp) {
+                if (static_cast<size_t>(target) >= tags.size()) return;
+                auto& target_tag_opt = tags[static_cast<size_t>(target)];
+                if (!target_tag_opt.has_value()) return;
+
+                bool hit = false;
+                if (dmg_comp.faction == 0 &&
+                    (target_tag_opt->tag == kEnemyTag)) {
+                  hit = true;
+                }
+                if (dmg_comp.faction == 1 &&
+                    (target_tag_opt->tag == kPlayerTag)) {
+                  hit = true;
+                }
+
+                if (hit) {
+                  apply_damage(target, dmg_comp.damage);
+                  registry.KillEntity(proj);
+                }
+              };
+
+          if (e1_has_damage && !e2_has_damage) {
+            handle_projectile(e1, e2, dmg1.value());
+          } else if (!e1_has_damage && e2_has_damage) {
+            handle_projectile(e2, e1, dmg2.value());
+          }
         }
       }
     }

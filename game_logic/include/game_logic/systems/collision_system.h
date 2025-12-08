@@ -27,6 +27,10 @@ namespace game_logic::systems {
  */
 class CollisionSystem : public engine::ecs::ISystem {
  public:
+  static constexpr const char* kPlayerTag = "Player";
+  static constexpr const char* kEnemyTag = "Enemy";
+  static constexpr std::uint32_t kCrashDamage = 100;
+
   CollisionSystem(float cell_size = 100.0f);
   ~CollisionSystem() override = default;
 
@@ -48,7 +52,9 @@ class CollisionSystem : public engine::ecs::ISystem {
 
   struct GridKeyHash {
     std::size_t operator()(const GridKey& k) const {
-      return std::hash<int>()(k.x) ^ (std::hash<int>()(k.y) << 1);
+      return std::hash<int>()(k.x) ^
+             (std::hash<int>()(k.y) + 0x9e3779b9 +
+              (std::hash<int>()(k.x) << 6) + (std::hash<int>()(k.x) >> 2));
     }
   };
 
