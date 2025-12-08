@@ -2,7 +2,6 @@
 #define GAME_LOGIC_SYSTEMS_WAVE_SYSTEM_H_
 
 #include <deque>
-#include <vector>
 
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
@@ -13,8 +12,9 @@ namespace game_logic::systems {
 
 /**
  * @brief Types of enemies that can be spawned in a wave
+ * @details Mapped to specific EnemyBuilder archetypes
  */
-enum class EnemyType {
+enum class WaveEnemyType {
   kPataPata,
   kBydo
   // more is comming
@@ -25,7 +25,7 @@ enum class EnemyType {
  */
 struct WaveEntry {
   float spawn_time{0.0f};  ///< Time in seconds since wave start
-  EnemyType type{EnemyType::kPataPata};
+  WaveEnemyType type{WaveEnemyType::kPataPata};
   engine::math::Vector2f position{0.0f, 0.0f};
 
   // Optional: override default AI behavior?
