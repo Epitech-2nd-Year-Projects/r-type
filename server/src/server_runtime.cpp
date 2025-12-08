@@ -346,7 +346,7 @@ void ServerRuntime::CheckPeerTimeouts() {
   }
 }
 
-PeerConnection* ServerRuntime::GetPeerByPlayerId(std::uint32_t player_id) {
+PeerConnection* ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
   auto it = players_.find(player_id);
   if (it == players_.end()) {
     return nullptr;
