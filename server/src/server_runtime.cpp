@@ -60,9 +60,10 @@ std::error_code ServerRuntime::Start() {
 
   logger_->Info("Server listening on ", bind_endpoint.address(), ":",
                 bind_endpoint.port());
-  logger_->Info("Room ", config_.room_name, " max players ",
-                config_.max_players, " tickrate ", config_.tick_rate, " seed ",
-                config_.seed);
+  const std::string room_label =
+      config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
+  logger_->Info("Room ", room_label, " max players ", config_.max_players,
+                " tickrate ", config_.tick_rate, " seed ", config_.seed);
   return {};
 }
 
@@ -153,7 +154,7 @@ void ServerRuntime::ProcessJoin(const protocol::JoinRequestPayload& request,
     return;
   }
 
-  if (!config_.room_name.empty() && request.room_code != config_.room_name) {
+  if (!config_.room_code.empty() && request.room_code != config_.room_code) {
     logger_->Warn("Rejecting join from ", endpoint_key, " invalid room ",
                   request.room_code);
     SendReject(protocol::JoinRejectReason::kInvalidRoom, "Room unavailable",
