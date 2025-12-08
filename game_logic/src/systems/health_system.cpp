@@ -16,7 +16,8 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
                           engine::time::TimeDelta) {
   auto& healths = registry.GetComponents<components::HealthComponent>();
   auto& players = registry.GetComponents<components::PlayerComponent>();
-  auto& scores_values = registry.GetComponents<components::ScoreValueComponent>();
+  auto& scores_values =
+      registry.GetComponents<components::ScoreValueComponent>();
   auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
 
   std::vector<engine::ecs::EntityId> entities_to_kill;

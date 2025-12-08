@@ -134,21 +134,22 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
           bool e2_has_damage = dmg2.has_value();
 
           auto apply_damage = [&](engine::ecs::EntityId victim,
-                                  uint32_t dmg_amount) {
+                                  uint32_t dmg_amount,
+                                  std::optional<std::uint32_t> attacker_id) {
             if (static_cast<size_t>(victim) < healths.size()) {
               auto& hp = healths[static_cast<size_t>(victim)];
               if (hp.has_value()) {
                 hp->take_damage(dmg_amount);
-                if (!hp->is_alive()) {
-                  registry.KillEntity(victim);
+                if (attacker_id.has_value()) {
+                  hp->last_attacker_id = attacker_id;
                 }
               }
             }
           };
 
           if ((e1_is_player && e2_is_enemy) || (e1_is_enemy && e2_is_player)) {
-            apply_damage(e1, kCrashDamage);
-            apply_damage(e2, kCrashDamage);
+            apply_damage(e1, kCrashDamage, e2);
+            apply_damage(e2, kCrashDamage, e1);
           }
 
           auto handle_projectile =
@@ -169,7 +170,7 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
                 }
 
                 if (hit) {
-                  apply_damage(target, dmg_comp.damage);
+                  apply_damage(target, dmg_comp.damage, dmg_comp.owner_id);
                   registry.KillEntity(proj);
                 }
               };

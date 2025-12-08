@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <optional>
 
-
-
 namespace game_logic::components {
 
 /**
