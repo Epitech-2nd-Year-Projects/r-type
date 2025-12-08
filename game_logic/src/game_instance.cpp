@@ -5,9 +5,9 @@
 #include "engine/ecs/component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/systems/lifetime_system.h"
-#include "engine/ecs/systems/movement_system.h"
 #include "game_logic/components.h"
 #include "game_logic/entities/player_builder.h"
+#include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
 #include "game_logic/systems/weapon_system.h"
 
@@ -216,10 +216,9 @@ void GameInstance::RegisterSystems() {
           systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kDefaultPriority);
 
-  registry_->AddSystem<engine::ecs::PositionComponent,
-                       engine::ecs::VelocityComponent>(
-      engine::ecs::MovementSystem::Update, engine::ecs::SystemType::Fixed,
-      engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(std::make_shared<systems::MovementSystem>(),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
 
   registry_->AddSystem<engine::ecs::LifetimeComponent>(
       engine::ecs::LifetimeSystem::Update, engine::ecs::SystemType::Variable,
