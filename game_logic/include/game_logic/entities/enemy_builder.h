@@ -74,6 +74,14 @@ class EnemyBuilder {
   static engine::ecs::EntityId Create(
       engine::ecs::Registry& registry, EnemyType type,
       const engine::math::Vector2f& spawn_position);
+
+  static engine::ecs::EntityId CreatePataPata(
+      engine::ecs::Registry& registry,
+      const engine::math::Vector2f& spawn_position);
+
+  static engine::ecs::EntityId CreateBydo(
+      engine::ecs::Registry& registry,
+      const engine::math::Vector2f& spawn_position);
 };
 
 }  // namespace game_logic::entities
