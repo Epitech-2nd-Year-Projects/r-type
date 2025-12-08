@@ -37,6 +37,12 @@ int Application::Run() {
     return 1;
   }
 
+  if (auto* audio = engine_->Audio()) {
+    audio_manager_ = std::make_unique<AudioManager>(*audio);
+    audio_manager_->LoadAssets();
+    LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
+  }
+
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
   runtime_config_store.Set("client.port", std::to_string(config_.port));
