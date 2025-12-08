@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "client_config.h"
+#include "join_flow.h"
+#include "network_transport.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
 
@@ -24,6 +26,8 @@ class Application {
   bool Tick(engine::time::TimeDelta dt);
 
   ClientConfig config_;
+  NetworkTransport transport_;
+  JoinFlow join_flow_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
 };
 

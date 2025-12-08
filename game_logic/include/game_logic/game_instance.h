@@ -19,6 +19,7 @@ namespace systems {
 class PlayerInputSystem;
 class CollisionSystem;
 class WeaponSystem;
+class MovementSystem;
 }  // namespace systems
 
 /**
