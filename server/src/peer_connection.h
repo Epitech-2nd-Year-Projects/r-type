@@ -2,6 +2,7 @@
 #define SERVER_PEER_CONNECTION_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "engine/net/endpoint.h"
