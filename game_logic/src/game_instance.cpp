@@ -9,6 +9,7 @@
 #include "game_logic/entities/player_builder.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/collision_system.h"
+#include "game_logic/systems/health_system.h"
 #include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
 #include "game_logic/systems/weapon_system.h"
@@ -227,6 +228,10 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::AISystem>(),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
+
+  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
