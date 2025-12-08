@@ -105,8 +105,7 @@ void Application::OnConnectionFailed(const std::string& reason) {
   SwitchScene(std::make_unique<DisconnectedScene>(*this, reason));
 }
 
-void Application::OnGameStart() {
-}
+void Application::OnGameStart() {}
 
 void Application::OnGamePause() {
   SwitchScene(std::make_unique<PauseScene>(*this));
@@ -154,7 +153,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (current_scene_) {
     current_scene_->Draw(renderer);
   }
-  
+
   renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
 
