@@ -18,7 +18,8 @@ namespace client {
 enum class GameState {
   kMainMenu,
   kConnecting,
-  kInGame
+  kInGame,
+  kPaused
 };
 
 /**

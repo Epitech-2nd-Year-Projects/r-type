@@ -45,6 +45,8 @@ int Application::Run() {
 
   auto& input = engine_->Input();
   input.BindKey("Confirm", engine::input::Key::kEnter);
+  input.BindKey("Cancel", engine::input::Key::kEscape);
+  input.BindKey("Quit", engine::input::Key::kQ);
 
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
@@ -88,17 +90,21 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
   auto& renderer = context.Get2DRenderer();
-  auto& input = engine_->Input();
-
+  auto& input = engine_->Input(); // Handle Input
   const auto events = input.ConsumeEvents();
   bool confirm_pressed = false;
+  bool cancel_pressed = false;
+  bool quit_pressed = false;
 
   for (const auto& event : events) {
     if (event.type == engine::input::ActionEventType::kPressed) {
       if (event.action == "Confirm") confirm_pressed = true;
+      else if (event.action == "Cancel") cancel_pressed = true;
+      else if (event.action == "Quit") quit_pressed = true;
     }
   }
 
+  // State Update
   switch (state_) {
     case GameState::kMainMenu:
       if (confirm_pressed) {
@@ -111,10 +117,22 @@ bool Application::Tick(engine::time::TimeDelta dt) {
       if (join_flow_.state() == JoinState::kConnected) {
         state_ = GameState::kInGame;
       } else if (join_flow_.state() == JoinState::kRefused) {
+        // For now, just go back to main menu on failure
         state_ = GameState::kMainMenu;
       }
       break;
     case GameState::kInGame:
+      if (cancel_pressed) {
+        state_ = GameState::kPaused;
+      }
+      // Game logic running
+      break;
+    case GameState::kPaused:
+      if (confirm_pressed || cancel_pressed) {
+        state_ = GameState::kInGame;
+      } else if (quit_pressed) {
+        state_ = GameState::kMainMenu;
+      }
       break;
   }
 
@@ -148,6 +166,14 @@ bool Application::Tick(engine::time::TimeDelta dt) {
                           {300.0f, 100.0f}, 18.0f,
                           engine::render::Color::FromBytes(180, 220, 255));
       }
+      break;
+    case GameState::kPaused:
+      renderer.DrawText("Paused", {300.0f, 200.0f}, 48.0f,
+                        engine::render::Color::White());
+      renderer.DrawText("Press ENTER to Resume", {300.0f, 300.0f}, 24.0f,
+                        engine::render::Color::White());
+      renderer.DrawText("Press Q to Quit to Main Menu", {300.0f, 350.0f}, 24.0f,
+                        engine::render::Color::White());
       break;
   }
 
