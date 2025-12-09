@@ -70,7 +70,7 @@ bool TestSequenceTrackerBasic() {
   protocol::Header header{};
 
   tracker.OnRemoteSequenceReceived(100u);
-  tracker.FillAckFields(&header);
+  tracker.FillAckFields(header);
 
   if (header.ack != 100u) {
     std::cout << "Expected ack=100 after first packet, got " << header.ack
@@ -84,7 +84,7 @@ bool TestSequenceTrackerBasic() {
   }
 
   tracker.OnRemoteSequenceReceived(99u);
-  tracker.FillAckFields(&header);
+  tracker.FillAckFields(header);
 
   if (header.ack != 100u) {
     std::cout << "Expected ack=100 after second packet, got " << header.ack

@@ -59,15 +59,14 @@ void InstallSignalHandlers() {
 ServerRuntime::ServerRuntime(ServerConfig config)
     : socket_(engine::net::UdpSocket::Protocol::kIpv4),
       config_(std::move(config)),
+      logger_(engine::util::Logger::Default()),
       frame_timer_(static_cast<float>(config_.tick_rate)),
       rng_(config_.seed),
       game_instance_(config_.seed),
       fixed_delta_(engine::time::TimeDelta::from_seconds(
           1.0f /
           static_cast<float>(config_.tick_rate > 0 ? config_.tick_rate : 60))),
-      accumulator_(engine::time::TimeDelta::zero()) {
-  logger_ = &engine::util::Logger::Default();
-}
+      accumulator_(engine::time::TimeDelta::zero()) {}
 
 std::error_code ServerRuntime::Start() {
   ConfigureLogging();
@@ -82,11 +81,11 @@ std::error_code ServerRuntime::Start() {
     return bind_error;
   }
 
-  logger_->Info("Server listening on ", bind_endpoint.address(), ":",
+  logger_.Info("Server listening on ", bind_endpoint.address(), ":",
                 bind_endpoint.port());
   const std::string room_label =
       config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
-  logger_->Info("Room ", room_label, " max players ", config_.max_players,
+  logger_.Info("Room ", room_label, " max players ", config_.max_players,
                 " tickrate ", config_.tick_rate, " seed ", config_.seed);
   return {};
 }
@@ -118,8 +117,8 @@ void ServerRuntime::RunMainLoop() {
 }
 
 void ServerRuntime::ConfigureLogging() {
-  logger_->SetName("server");
-  logger_->SetLevel(config_.log_level);
+  logger_.SetName("server");
+  logger_.SetLevel(config_.log_level);
 }
 
 void ServerRuntime::PollNetwork() {
@@ -130,7 +129,7 @@ void ServerRuntime::PollNetwork() {
       if (IsTransientError(recv_result.error)) {
         break;
       }
-      logger_->Error("Receive error: ", recv_result.error.message());
+      logger_.Error("Receive error: ", recv_result.error.message());
       running_ = false;
       break;
     }
@@ -165,7 +164,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
 
   if (!protocol::DecodePacket(packet, decoded, &error)) {
     protocol::UpdateDecodeMetrics(decode_metrics_, error);
-    logger_->Warn("Dropped packet from ", EndpointKey(from), " (",
+    logger_.Warn("Dropped packet from ", EndpointKey(from), " (",
                   protocol::DecodeErrorToString(error),
                   ") total=", decode_metrics_.total_packets,
                   " rejected=", decode_metrics_.rejected_packets);
@@ -184,7 +183,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       const auto* request =
           std::get_if<protocol::JoinRequestPayload>(&decoded.payload);
       if (request == nullptr) {
-        logger_->Warn("Malformed join request from ", peer.endpoint_key);
+        logger_.Warn("Malformed join request from ", peer.endpoint_key);
         return;
       }
       ProcessJoin(peer, *request);
@@ -193,7 +192,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     case MessageType::kPing: {
       const auto* ping = std::get_if<protocol::PingPayload>(&decoded.payload);
       if (ping == nullptr) {
-        logger_->Warn("Malformed ping from ", peer.endpoint_key);
+        logger_.Warn("Malformed ping from ", peer.endpoint_key);
         return;
       }
       HandlePing(peer, *ping);
@@ -203,7 +202,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       const auto* input_state =
           std::get_if<protocol::InputStatePayload>(&decoded.payload);
       if (input_state == nullptr) {
-        logger_->Warn("Malformed input state from ", peer.endpoint_key);
+        logger_.Warn("Malformed input state from ", peer.endpoint_key);
         return;
       }
       HandleInputState(peer, *input_state, decoded.header);
@@ -213,18 +212,18 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       const auto* command =
           std::get_if<protocol::CommandPayload>(&decoded.payload);
       if (command == nullptr) {
-        logger_->Warn("Malformed client command from ", peer.endpoint_key);
+        logger_.Warn("Malformed client command from ", peer.endpoint_key);
         return;
       }
       HandleClientCommand(peer, *command, decoded.header);
       break;
     }
     case MessageType::kHello:
-      logger_->Debug("Hello from ", peer.endpoint_key,
+      logger_.Debug("Hello from ", peer.endpoint_key,
                      " ignored (connectionless)");
       break;
     case MessageType::kPong:
-      logger_->Debug("Ignoring connectionless packet (type ",
+      logger_.Debug("Ignoring connectionless packet (type ",
                      static_cast<int>(type), ") from ", peer.endpoint_key);
       break;
     case MessageType::kServerCommand:
@@ -232,15 +231,15 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     case MessageType::kSpawnEntity:
     case MessageType::kDestroyEntity:
     case MessageType::kPlayerDied:
-      logger_->Warn("Unexpected server-bound packet type ",
+      logger_.Warn("Unexpected server-bound packet type ",
                     static_cast<int>(type), " from ", peer.endpoint_key);
       break;
     case MessageType::kInvalid:
-      logger_->Warn("Received unexpected packet type ", static_cast<int>(type),
+      logger_.Warn("Received unexpected packet type ", static_cast<int>(type),
                     " from ", peer.endpoint_key);
       break;
     default:
-      logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
+      logger_.Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
       break;
   }
@@ -258,7 +257,7 @@ void ServerRuntime::HandlePing(PeerConnection& peer,
   packet.header.flags = 0;
   packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
   packet.header.timestamp_ms = pong.server_time_ms;
-  peer.sequence_tracker.FillAckFields(&packet.header);
+  peer.sequence_tracker.FillAckFields(packet.header);
   packet.payload = pong;
   SendPacket(peer, packet);
 }
@@ -267,15 +266,15 @@ void ServerRuntime::HandleInputState(
     PeerConnection& peer, const protocol::InputStatePayload& input_state,
     const protocol::Header& header) {
   if (peer.player_id == 0) {
-    logger_->Warn("Received input state from unjoined peer ",
+    logger_.Warn("Received input state from unjoined peer ",
                   peer.endpoint_key);
     return;
   }
-  logger_->Trace("InputState from player ", peer.player_id, " command_count=",
+  logger_.Trace("InputState from player ", peer.player_id, " command_count=",
                  static_cast<int>(input_state.command_count));
   for (std::uint8_t i = 0; i < input_state.command_count; ++i) {
     const auto& command = input_state.commands[i];
-    logger_->Trace("  Command ", i, ": seq=", command.input_sequence,
+    logger_.Trace("  Command ", i, ": seq=", command.input_sequence,
                    " buttons=", static_cast<int>(command.buttons),
                    " analog_x=", command.analog_x,
                    " analog_y=", command.analog_y,
@@ -290,11 +289,11 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
   (void)header;
 
   if (peer.player_id == 0) {
-    logger_->Warn("Received client command from unjoined peer ",
+    logger_.Warn("Received client command from unjoined peer ",
                   peer.endpoint_key);
     return;
   }
-  logger_->Trace("ClientCommand from player ", peer.player_id,
+  logger_.Trace("ClientCommand from player ", peer.player_id,
                  " command_id=", command.command_id,
                  " data_size=", command.payload.size());
 }
@@ -303,11 +302,11 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
                                 const protocol::JoinRequestPayload& request) {
   const std::string& endpoint_key = peer.endpoint_key;
 
-  logger_->Debug("Join request from ", endpoint_key, " player ",
+  logger_.Debug("Join request from ", endpoint_key, " player ",
                  request.player_name, " room ", request.room_code);
 
   if (request.client_version != protocol::kProtocolVersion) {
-    logger_->Warn("Rejecting join from ", endpoint_key,
+    logger_.Warn("Rejecting join from ", endpoint_key,
                   " due to version mismatch");
     SendReject(peer, protocol::JoinRejectReason::kVersionMismatch,
                "Protocol version mismatch");
@@ -315,7 +314,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
 
   if (!config_.room_code.empty() && request.room_code != config_.room_code) {
-    logger_->Warn("Rejecting join from ", endpoint_key, " invalid room ",
+    logger_.Warn("Rejecting join from ", endpoint_key, " invalid room ",
                   request.room_code);
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room unavailable");
@@ -323,14 +322,14 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
-    logger_->Debug("Reusing existing player id ", peer.player_id, " for ",
+    logger_.Debug("Reusing existing player id ", peer.player_id, " for ",
                    endpoint_key);
     SendAccept(peer);
     return;
   }
   const std::size_t joined_count = CountJoinedPlayers();
   if (joined_count >= config_.max_players) {
-    logger_->Warn("Rejecting join from ", endpoint_key,
+    logger_.Warn("Rejecting join from ", endpoint_key,
                   " because lobby is full");
     SendReject(peer, protocol::JoinRejectReason::kServerFull, "Server is full");
     return;
@@ -341,7 +340,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.last_activity_ms = NowMilliseconds();
   players_[peer.player_id] = peer.endpoint_key;
   game_instance_.OnPlayerJoined(peer.player_id, request.player_name);
-  logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
+  logger_.Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
 }
@@ -360,7 +359,7 @@ void ServerRuntime::SendServerCommand(PeerConnection& peer,
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
   packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
-  peer.sequence_tracker.FillAckFields(&packet.header);
+  peer.sequence_tracker.FillAckFields(packet.header);
   packet.header.timestamp_ms = NowMilliseconds();
   packet.payload = command;
   SendPacket(peer, packet);
@@ -395,7 +394,7 @@ void ServerRuntime::SendAccept(PeerConnection& peer) {
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
-  peer.sequence_tracker.FillAckFields(&packet.header);
+  peer.sequence_tracker.FillAckFields(packet.header);
   packet.payload = payload;
   SendPacket(peer, packet);
 }
@@ -418,7 +417,7 @@ void ServerRuntime::SendReject(PeerConnection& peer,
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
-  peer.sequence_tracker.FillAckFields(&packet.header);
+  peer.sequence_tracker.FillAckFields(packet.header);
   packet.payload = payload;
   SendPacket(peer, packet);
 }
@@ -437,7 +436,7 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
   engine::net::PacketBuffer buffer;
   buffer.reserve(128);
   if (!protocol::EncodePacket(packet_to_send, buffer)) {
-    logger_->Error("Failed to encode packet for ", peer.endpoint_key);
+    logger_.Error("Failed to encode packet for ", peer.endpoint_key);
     return;
   }
 
@@ -450,7 +449,7 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
   const auto send_result =
       socket_.send_to(buffer.data(), buffer.size(), peer.endpoint);
   if (send_result.error) {
-    logger_->Error("Send error to ", peer.endpoint_key, ": ",
+    logger_.Error("Send error to ", peer.endpoint_key, ": ",
                    send_result.error.message());
   }
 
@@ -481,7 +480,7 @@ void ServerRuntime::ProcessReliableResends() {
       const auto send_result = socket_.send_to(
           pending.bytes.data(), pending.bytes.size(), peer.endpoint);
       if (send_result.error) {
-        logger_->Warn("Resend error to ", peer.endpoint_key, ": ",
+        logger_.Warn("Resend error to ", peer.endpoint_key, ": ",
                       send_result.error.message());
         peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);
       }
@@ -489,13 +488,14 @@ void ServerRuntime::ProcessReliableResends() {
   }
 }
 
-PeerConnection* ServerRuntime::FindPeer(const engine::net::Endpoint& from) {
+std::optional<std::reference_wrapper<PeerConnection>> ServerRuntime::FindPeer(
+    const engine::net::Endpoint& from) {
   const auto endpoint_key = EndpointKey(from);
   const auto it = peers_.find(endpoint_key);
-  if (it != peers_.end()) {
-    return &it->second;
+  if (it == peers_.end()) {
+    return std::nullopt;
   }
-  return nullptr;
+  return it->second;
 }
 
 std::size_t ServerRuntime::CountJoinedPlayers() const {
@@ -544,7 +544,7 @@ void ServerRuntime::CheckPeerTimeouts() {
                peer.last_activity_ms) +
                   1u + now_ms;
     if (inactive_ms > kPeerTimeoutMs) {
-      logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
+      logger_.Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
       const std::uint32_t player_id = peer.player_id;
       const std::string endpoint_key = peer.endpoint_key;
@@ -559,23 +559,24 @@ void ServerRuntime::CheckPeerTimeouts() {
   }
 }
 
-PeerConnection* ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
+std::optional<std::reference_wrapper<PeerConnection>>
+ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
   auto it = players_.find(player_id);
   if (it == players_.end()) {
-    return nullptr;
+    return std::nullopt;
   }
   auto peer_it = peers_.find(it->second);
   if (peer_it == peers_.end()) {
-    return nullptr;
+    return std::nullopt;
   }
-  return &peer_it->second;
+  return peer_it->second;
 }
 
 void ServerRuntime::RemovePeer(PeerConnection& peer) {
   const std::string endpoint_key = peer.endpoint_key;
   const std::uint32_t player_id = peer.player_id;
 
-  logger_->Info("Removing peer ", endpoint_key, " player id ", player_id);
+  logger_.Info("Removing peer ", endpoint_key, " player id ", player_id);
   if (player_id != 0) {
     players_.erase(player_id);
     game_instance_.OnPlayerLeft(player_id);
@@ -599,7 +600,7 @@ void ServerRuntime::BroadcastWorldSnapshot() {
     packet.header.flags = 0;
     packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
     packet.header.timestamp_ms = NowMilliseconds();
-    peer.sequence_tracker.FillAckFields(&packet.header);
+    peer.sequence_tracker.FillAckFields(packet.header);
     packet.payload = snapshot;
     SendPacket(peer, packet);
   }
