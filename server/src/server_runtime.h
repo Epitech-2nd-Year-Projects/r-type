@@ -18,6 +18,7 @@
 #include "protocol/command.h"
 #include "server_config.h"
 #include "peer_connection.h"
+#include "game_instance.h"
 
 namespace server {
 
@@ -212,6 +213,7 @@ class ServerRuntime {
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
   std::unordered_map<std::uint32_t, std::string> players_;      ///< Map of player IDs to endpoint keys.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic seeds.
+  GameInstance game_instance_;                              ///< Authoritative game instance.
 };
 
 }  // namespace server

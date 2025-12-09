@@ -44,7 +44,8 @@ ServerRuntime::ServerRuntime(ServerConfig config)
     : socket_(engine::net::UdpSocket::Protocol::kIpv4),
       config_(std::move(config)),
       frame_timer_(static_cast<float>(config_.tick_rate)),
-      rng_(config_.seed) {
+      rng_(config_.seed),
+      game_instance_(config_.seed) {
   logger_ = &engine::util::Logger::Default();
 }
 
@@ -79,6 +80,7 @@ void ServerRuntime::Run() {
     if (recv_result.error) {
       if (IsTransientError(recv_result.error)) {
         CheckPeerTimeouts();
+        game_instance_.Update(delta);
         TickRateSleep(delta);
         continue;
       }
@@ -92,6 +94,7 @@ void ServerRuntime::Run() {
       HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
     }
     CheckPeerTimeouts();
+    game_instance_.Update(delta);
     TickRateSleep(delta);
   }
 }
@@ -225,6 +228,7 @@ void ServerRuntime::HandleInputState(
                    " analog_y=", command.analog_y,
                    " client_time_ms=", command.client_time_ms);
   }
+  game_instance_.OnPlayerInput(peer.player_id, input_state, header);
 }
 
 void ServerRuntime::HandleClientCommand(PeerConnection& peer,
@@ -283,6 +287,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.state = PeerState::kJoined;
   peer.last_activity_ms = NowMilliseconds();
   players_[peer.player_id] = peer.endpoint_key;
+  game_instance_.OnPlayerJoined(peer.player_id);
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
@@ -428,6 +433,7 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
 
   if (peer.player_id != 0) {
     players_.erase(peer.player_id);
+    game_instance_.OnPlayerLeft(peer.player_id);
   }
   peer.state = PeerState::kDisconnected;
   peers_.erase(peer.endpoint_key);
