@@ -31,7 +31,7 @@ class Application {
 
   ClientConfig config_;
   NetworkTransport transport_;
-  protocol::SequenceTracker sequence_tracker_{};
+  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_{};
   JoinFlow join_flow_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<InputLayer> input_layer_;

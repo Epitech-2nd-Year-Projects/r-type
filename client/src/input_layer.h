@@ -7,6 +7,7 @@
 #define CLIENT_INPUT_LAYER_H_
 
 #include <optional>
+#include <functional>
 #include <string_view>
 #include <vector>
 
@@ -80,7 +81,7 @@ class InputLayer {
   std::optional<GameAction> ResolveAction(std::string_view action_name) const;
   void RefreshState();
 
-  engine::input::InputManager* manager_{nullptr};
+  std::reference_wrapper<engine::input::InputManager> manager_;
   ActionState state_{};
   std::vector<GameActionEvent> events_{};
 };
