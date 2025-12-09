@@ -6,8 +6,11 @@
 #endif
 
 #include <asio.hpp>
+#include <cstdint>
 #include <cstddef>
+#include <functional>
 #include <memory>
+#include <span>
 #include <system_error>
 
 #include "endpoint.h"
@@ -70,23 +73,23 @@ class UdpSocket {
   /**
    * @brief Send data to connected peer
    */
-  UdpSendResult send(const void* data, std::size_t size);
+  UdpSendResult send(std::span<const std::uint8_t> data);
 
   /**
    * @brief Send data to explicit endpoint
    */
-  UdpSendResult send_to(const void* data, std::size_t size,
+  UdpSendResult send_to(std::span<const std::uint8_t> data,
                         const Endpoint& endpoint);
 
   /**
    * @brief Receive from connected peer
    */
-  UdpReceiveResult receive(void* data, std::size_t size);
+  UdpReceiveResult receive(std::span<std::uint8_t> data);
 
   /**
    * @brief Receive from any sender
    */
-  UdpReceiveResult receive_from(void* data, std::size_t size);
+  UdpReceiveResult receive_from(std::span<std::uint8_t> data);
 
   /**
    * @brief Underlying socket status
@@ -101,10 +104,11 @@ class UdpSocket {
   /**
    * @brief Access owned io_context (useful to pump events)
    */
-  asio::io_context& io_context() { return *io_context_; }
+  asio::io_context& io_context() { return context_ref_.get(); }
 
  private:
-  std::shared_ptr<asio::io_context> io_context_;
+  std::shared_ptr<asio::io_context> owned_context_;
+  std::reference_wrapper<asio::io_context> context_ref_;
   std::unique_ptr<asio::ip::udp::socket> socket_;
   Endpoint connected_endpoint_;
   bool has_connected_endpoint_{false};
