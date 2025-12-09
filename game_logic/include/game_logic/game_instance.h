@@ -22,7 +22,7 @@ class WeaponSystem;
 class AISystem;
 class MovementSystem;
 class GameStateSystem;
-} // namespace systems
+}  // namespace systems
 
 /**
  * @class GameInstance
@@ -40,7 +40,7 @@ class GameStateSystem;
  * different concurrent matches.
  */
 class GameInstance {
-public:
+ public:
   /**
    * @brief Player-level input events handled by the game logic
    *
@@ -181,8 +181,8 @@ public:
    * - Spawns a fully-configured player entity via PlayerBuilder
    * - Stores mapping player_id -> EntityId for later lookups
    */
-  std::optional<engine::ecs::EntityId>
-  OnPlayerJoin(std::uint32_t player_id, std::string_view player_name);
+  std::optional<engine::ecs::EntityId> OnPlayerJoin(
+      std::uint32_t player_id, std::string_view player_name);
 
   /**
    * @brief High-level event: player left the room
@@ -265,7 +265,7 @@ public:
    */
   std::uint32_t ActivePlayerCount() const;
 
-private:
+ private:
   /**
    * @brief Internal queued player input event
    */
@@ -352,6 +352,6 @@ private:
   static constexpr float kInputMoveSpeed = 200.0f;
 };
 
-} // namespace game_logic
+}  // namespace game_logic
 
-#endif // GAME_LOGIC_GAME_INSTANCE_H_
+#endif  // GAME_LOGIC_GAME_INSTANCE_H_

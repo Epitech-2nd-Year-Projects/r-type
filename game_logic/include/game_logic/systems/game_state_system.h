@@ -6,7 +6,7 @@
 #include "engine/time/time_delta.h"
 
 namespace game_logic {
-class GameInstance; // Forward declaration
+class GameInstance;  // Forward declaration
 }
 
 namespace game_logic::systems {
@@ -31,7 +31,7 @@ namespace game_logic::systems {
  * GameState is up-to-date before it is snapshot by the server for broadcasting.
  */
 class GameStateSystem : public engine::ecs::ISystem {
-public:
+ public:
   explicit GameStateSystem(GameInstance &game_instance);
   ~GameStateSystem() override = default;
 
@@ -55,10 +55,10 @@ public:
   void Update(engine::ecs::Registry &registry,
               engine::time::TimeDelta dt) override;
 
-private:
+ private:
   GameInstance &game_instance_;
 };
 
-} // namespace game_logic::systems
+}  // namespace game_logic::systems
 
-#endif // GAME_LOGIC_SYSTEMS_GAME_STATE_SYSTEM_H_
+#endif  // GAME_LOGIC_SYSTEMS_GAME_STATE_SYSTEM_H_
