@@ -85,6 +85,16 @@ class ReliableQueue {
                               std::vector<PendingPacket>* out_packets);
 
   /**
+   * @brief Marks a resend attempt as failed to avoid delaying the next retry.
+   * @param sequence Sequence number of the packet that failed to send.
+   * @param now_ms Current time in milliseconds.
+   *
+   * Resets the packet's last_send_time_ms so it will be eligible for
+   * retransmission on the next CollectPacketsToResend call.
+   */
+  void MarkSendFailed(std::uint32_t sequence, std::uint32_t now_ms);
+
+  /**
    * @brief Number of packets still waiting for acknowledgment.
    * @return The count of pending packets in the queue.
    */
