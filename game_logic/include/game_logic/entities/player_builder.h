@@ -95,7 +95,7 @@ class PlayerBuilder {
   static constexpr float kHitboxHeight = 24.0f;
 
   /// @brief Default player movement speed (pixels/second)
- static constexpr float kDefaultMoveSpeed = 200.0f;
+  static constexpr float kDefaultMoveSpeed = 200.0f;
 
   /// @brief Default player sprite texture path
   static constexpr std::string_view kPlayerTexturePath =

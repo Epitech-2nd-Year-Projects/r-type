@@ -2,10 +2,10 @@
 #define GAME_LOGIC_SYSTEMS_COLLISION_SYSTEM_H_
 
 #include <functional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <string_view>
 
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/system.h"
