@@ -1,5 +1,7 @@
 #include "game_instance.h"
 
+#include <chrono>
+
 namespace server {
 
 GameInstance::GameInstance(std::uint32_t seed) : rng_(seed) {}
@@ -66,8 +68,10 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   state.last_command = *newest;
   state.last_applied_sequence = newest->input_sequence;
   state.last_input_client_time_ms = newest->client_time_ms;
-  state.last_input_server_time_ms =
-      std::chrono::steady_clock::now().time_since_epoch().count();
+  state.last_input_server_time_ms = static_cast<std::uint32_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
   auto& logger = engine::util::Logger::Default();
   logger.Trace("[GameInstance] Updated input for player ", player_id,
                " seq=", newest->input_sequence,

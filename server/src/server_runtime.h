@@ -61,11 +61,31 @@ class ServerRuntime {
    */
   void Run();
 
+  /**
+   * @brief Executes one iteration of the main server loop.
+   * 
+   * Processes network packets, updates game simulation, checks timeouts,
+   * and broadcasts world snapshots. Called repeatedly by Run() at the
+   * configured tick rate using a fixed timestep accumulator.
+   */
+  void RunMainLoop();
+
  private:
   /**
    * @brief Configures the logging system based on server configuration.
+   * 
+   * Sets the global log level according to config.log_level and initializes
+   * the logger instance for server diagnostic output.
    */
   void ConfigureLogging();
+
+  /**
+   * @brief Polls the UDP socket for incoming packets.
+   * 
+   * Non-blocking read of all available packets from the socket.
+   * Each received packet is dispatched to HandlePacket for processing.
+   */
+  void PollNetwork();
   
   /**
    * @brief Sleeps to maintain the configured tick rate.
@@ -201,9 +221,18 @@ class ServerRuntime {
    * @brief Checks all peer connections for inactivity timeouts.
    * 
    * Disconnects peers that haven't sent a valid packet within the
-   * configured timeout period.
+   * configured timeout period. Called periodically during the main loop.
    */
   void CheckPeerTimeouts();
+
+  /**
+   * @brief Sends the current game state to all connected players.
+   * 
+   * Constructs a WorldSnapshotPayload containing entity deltas and broadcasts
+   * it to all peers in the kJoined state. Increments next_snapshot_id_ after
+   * sending to maintain snapshot ordering.
+   */
+  void BroadcastWorldSnapshot();
 
   engine::net::UdpSocket socket_;                           ///< UDP socket for network communication.
   ServerConfig config_;                                     ///< Server configuration (port, tick rate, limits, etc.).
@@ -214,6 +243,11 @@ class ServerRuntime {
   std::unordered_map<std::uint32_t, std::string> players_;      ///< Map of player IDs to endpoint keys.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic seeds.
   GameInstance game_instance_;                              ///< Authoritative game instance.
+  std::uint32_t server_tick_{0};                            ///< Current server tick counter since startup.
+  std::uint32_t next_snapshot_id_{1};                       ///< Next snapshot ID for world state broadcasts.
+  engine::time::TimeDelta fixed_delta_;                     ///< Fixed simulation timestep (1.0 / tick_rate).
+  engine::time::TimeDelta accumulator_;                     ///< Accumulates frame time for fixed-step simulation.
+  bool running_{false};                                     ///< Whether the server loop is currently running.
 };
 
 }  // namespace server
