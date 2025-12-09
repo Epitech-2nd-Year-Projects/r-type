@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <string_view>
 
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/system.h"
@@ -27,8 +28,8 @@ namespace game_logic::systems {
  */
 class CollisionSystem : public engine::ecs::ISystem {
  public:
-  static constexpr const char* kPlayerTag = "Player";
-  static constexpr const char* kEnemyTag = "Enemy";
+  static constexpr std::string_view kPlayerTag = "Player";
+  static constexpr std::string_view kEnemyTag = "Enemy";
   static constexpr std::uint32_t kCrashDamage = 100;
 
   CollisionSystem(float cell_size = 100.0f);
