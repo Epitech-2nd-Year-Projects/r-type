@@ -220,6 +220,9 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       break;
     }
     case MessageType::kHello:
+      logger_->Debug("Hello from ", peer.endpoint_key,
+                     " ignored (connectionless)");
+      break;
     case MessageType::kPong:
       logger_->Debug("Ignoring connectionless packet (type ",
                      static_cast<int>(type), ") from ", peer.endpoint_key);
@@ -229,6 +232,9 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     case MessageType::kSpawnEntity:
     case MessageType::kDestroyEntity:
     case MessageType::kPlayerDied:
+      logger_->Warn("Unexpected server-bound packet type ",
+                    static_cast<int>(type), " from ", peer.endpoint_key);
+      break;
     case MessageType::kInvalid:
       logger_->Warn("Received unexpected packet type ", static_cast<int>(type),
                     " from ", peer.endpoint_key);
@@ -338,6 +344,36 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
+}
+
+void ServerRuntime::SendServerCommand(PeerConnection& peer,
+                                      std::uint16_t command_id,
+                                      std::string_view payload) {
+  protocol::CommandPayload command{};
+  command.command_id = command_id;
+  command.payload.assign(payload.begin(), payload.end());
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type =
+      static_cast<std::uint8_t>(MessageType::kServerCommand);
+  packet.header.flags =
+      static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  peer.sequence_tracker.FillAckFields(&packet.header);
+  packet.header.timestamp_ms = NowMilliseconds();
+  packet.payload = command;
+  SendPacket(peer, packet);
+}
+
+void ServerRuntime::BroadcastServerCommand(std::uint16_t command_id,
+                                           std::string_view payload) {
+  for (auto& [_, peer] : peers_) {
+    if (peer.state != PeerState::kJoined || peer.player_id == 0) {
+      continue;
+    }
+    SendServerCommand(peer, command_id, payload);
+  }
 }
 
 void ServerRuntime::SendAccept(PeerConnection& peer) {

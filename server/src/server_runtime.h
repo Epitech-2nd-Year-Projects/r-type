@@ -97,7 +97,33 @@ class ServerRuntime {
    * remaining time after processing the current frame.
    */
   void TickRateSleep(const engine::time::TimeDelta& delta_time);
-  
+
+  /**
+   * @brief Sends a server command message to a specific peer.
+   * @param peer The destination peer connection.
+   * @param command_id The command identifier.
+   * @param payload The command payload data.
+   * 
+   * Constructs a CommandPayload and sends it to the specified peer.
+   * Used for server-initiated commands like game state changes,
+   * administrative actions, or event notifications.
+   */
+  void SendServerCommand(PeerConnection& peer,
+                         std::uint16_t command_id,
+                         std::string_view payload);
+
+  /**
+   * @brief Broadcasts a server command message to all joined peers.
+   * @param command_id The command identifier.
+   * @param payload The command payload data.
+   * 
+   * Sends a CommandPayload to all peers in the kJoined state.
+   * Used for game-wide events, announcements, or synchronized
+   * state changes affecting all players.
+   */
+  void BroadcastServerCommand(std::uint16_t command_id,
+                              std::string_view payload);
+
   /**
    * @brief Handles an incoming packet from a remote endpoint.
    * @param packet The received packet buffer.
@@ -185,16 +211,21 @@ class ServerRuntime {
 
   /**
    * @brief Applies ACK information from the remote header to the reliable queue.
-   *
+   * @param peer The peer connection whose reliable queue to update.
+   * @param header The incoming packet header containing ack/ack_bits.
+   * 
    * Marks any pending reliable packets as acknowledged based on the incoming
-   * ack/ack_bits fields.
+   * ack/ack_bits fields. Removes acknowledged packets from the retransmission
+   * queue to prevent unnecessary resends.
    */
   void ProcessPeerAcks(PeerConnection& peer, const protocol::Header& header);
 
   /**
    * @brief Retransmits timed-out reliable packets for all peers.
-   *
+   * 
    * Periodically called from the main loop to keep reliable messages flowing.
+   * Checks each peer's reliable queue for packets that have timed out and
+   * resends them to ensure guaranteed delivery of critical messages.
    */
   void ProcessReliableResends();
   
@@ -266,7 +297,7 @@ class ServerRuntime {
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
   protocol::SnapshotHistory snapshot_history_{32};         ///< Rolling window of recent snapshots for delta compression.
   bool running_{false};                                    ///< Whether the server loop is currently running.
-  protocol::DecodeMetrics decode_metrics_{};
+  protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
 };
 
 }  // namespace server
