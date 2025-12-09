@@ -15,6 +15,8 @@ namespace {
 
 constexpr std::string_view kWhitespace = " \t\r\n";
 
+// Note: /proc/self/environ is Linux-specific; on platforms without /proc this
+// will simply yield an empty vector and fall back to programmatic overrides.
 std::vector<std::string> ReadEnvironmentEntries() {
   std::ifstream env_stream("/proc/self/environ", std::ios::binary);
   if (!env_stream) {
