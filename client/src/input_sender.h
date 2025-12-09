@@ -51,9 +51,9 @@ class InputSender {
   bool SendPayload(const protocol::InputStatePayload& payload,
                    std::uint32_t client_time_ms);
 
-  InputLayer* input_layer_{nullptr};
-  NetworkTransport* transport_{nullptr};
-  protocol::SequenceTracker* sequence_tracker_{nullptr};
+  InputLayer& input_layer_;
+  NetworkTransport& transport_;
+  protocol::SequenceTracker& sequence_tracker_;
   protocol::InputHistoryWindow history_{};
   std::uint32_t next_input_sequence_{1};
   float send_interval_seconds_{1.0f / 60.0f};

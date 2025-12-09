@@ -33,9 +33,9 @@ namespace client {
 
 InputSender::InputSender(InputLayer& input_layer, NetworkTransport& transport,
                          protocol::SequenceTracker& sequence_tracker)
-    : input_layer_(&input_layer),
-      transport_(&transport),
-      sequence_tracker_(&sequence_tracker) {}
+    : input_layer_(input_layer),
+      transport_(transport),
+      sequence_tracker_(sequence_tracker) {}
 
 void InputSender::Reset() {
   history_ = protocol::InputHistoryWindow{};
@@ -44,8 +44,7 @@ void InputSender::Reset() {
 }
 
 void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
-  if (!sending_enabled || input_layer_ == nullptr || transport_ == nullptr ||
-      sequence_tracker_ == nullptr || !transport_->running()) {
+  if (!sending_enabled || !transport_.running()) {
     return;
   }
 
@@ -67,7 +66,7 @@ protocol::InputCommand InputSender::BuildCommand() {
   protocol::InputCommand command{};
   command.input_sequence = next_input_sequence_++;
 
-  const ActionState state = input_layer_->state();
+  const ActionState state = input_layer_.state();
   command.buttons = BuildButtonMask(state);
   command.analog_x = static_cast<std::int16_t>((state.move_right ? 1 : 0) -
                                                (state.move_left ? 1 : 0));
@@ -84,11 +83,11 @@ bool InputSender::SendPayload(const protocol::InputStatePayload& payload,
   packet.header.message_type = static_cast<std::uint8_t>(
       protocol::message_type::MessageType::kInputState);
   packet.header.flags = 0;
-  packet.header.sequence = sequence_tracker_->NextLocalSequence();
+  packet.header.sequence = sequence_tracker_.NextLocalSequence();
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = client_time_ms;
-  sequence_tracker_->FillAckFields(&packet.header);
+  sequence_tracker_.FillAckFields(&packet.header);
   packet.payload = payload;
 
   engine::net::PacketBuffer buffer;
@@ -96,7 +95,7 @@ bool InputSender::SendPayload(const protocol::InputStatePayload& payload,
   if (!protocol::EncodePacket(packet, buffer)) {
     return false;
   }
-  return transport_->Send(std::move(buffer));
+  return transport_.Send(std::move(buffer));
 }
 
 }  // namespace client
