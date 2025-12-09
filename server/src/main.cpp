@@ -20,6 +20,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  runtime.Run();
+  runtime.RunMainLoop();
   return 0;
 }

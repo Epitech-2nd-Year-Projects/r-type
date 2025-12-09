@@ -1,7 +1,9 @@
 #include "server_runtime.h"
 
 #include <array>
+#include <atomic>
 #include <chrono>
+#include <csignal>
 #include <limits>
 #include <string>
 #include <thread>
@@ -12,6 +14,7 @@
 #include "protocol/join.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
+#include "protocol/world_snapshot.h"
 
 namespace server {
 constexpr std::uint32_t kPeerTimeoutMs = 15'000;
@@ -19,6 +22,10 @@ constexpr std::uint32_t kPeerTimeoutMs = 15'000;
 namespace {
 
 using protocol::message_type::MessageType;
+
+std::atomic_bool g_shutdown_requested{false};
+
+void SignalHandler(int) { g_shutdown_requested.store(true); }
 
 bool IsTransientError(const std::error_code& ec) {
   return ec == asio::error::would_block || ec == asio::error::try_again ||
@@ -38,6 +45,11 @@ std::uint32_t NowMilliseconds() {
   return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
 }
 
+void InstallSignalHandlers() {
+  std::signal(SIGINT, SignalHandler);
+  std::signal(SIGTERM, SignalHandler);
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerConfig config)
@@ -45,12 +57,17 @@ ServerRuntime::ServerRuntime(ServerConfig config)
       config_(std::move(config)),
       frame_timer_(static_cast<float>(config_.tick_rate)),
       rng_(config_.seed),
-      game_instance_(config_.seed) {
+      game_instance_(config_.seed),
+      fixed_delta_(engine::time::TimeDelta::from_seconds(
+          1.0f /
+          static_cast<float>(config_.tick_rate > 0 ? config_.tick_rate : 60))),
+      accumulator_(engine::time::TimeDelta::zero()) {
   logger_ = &engine::util::Logger::Default();
 }
 
 std::error_code ServerRuntime::Start() {
   ConfigureLogging();
+  InstallSignalHandlers();
 
   const auto bind_endpoint = engine::net::Endpoint::AnyIpv4(config_.port);
   if (auto open_error = socket_.open(engine::net::UdpSocket::Protocol::kIpv4);
@@ -70,38 +87,54 @@ std::error_code ServerRuntime::Start() {
   return {};
 }
 
-void ServerRuntime::Run() {
-  std::array<std::uint8_t, 2048> buffer{};
+void ServerRuntime::Run() { RunMainLoop(); }
 
-  while (true) {
+void ServerRuntime::RunMainLoop() {
+  running_ = true;
+  accumulator_ = engine::time::TimeDelta::zero();
+
+  while (running_ && !g_shutdown_requested.load()) {
     const auto delta = frame_timer_.tick();
-    const auto recv_result = socket_.receive_from(buffer.data(), buffer.size());
+    accumulator_ += delta;
+    PollNetwork();
 
-    if (recv_result.error) {
-      if (IsTransientError(recv_result.error)) {
-        CheckPeerTimeouts();
-        game_instance_.Update(delta);
-        TickRateSleep(delta);
-        continue;
-      }
-      logger_->Error("Receive error: ", recv_result.error.message());
-      break;
-    }
-
-    if (recv_result.bytes_transferred > 0) {
-      engine::net::PacketBuffer packet_buffer(buffer.data(),
-                                              recv_result.bytes_transferred);
-      HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
+    while (accumulator_ >= fixed_delta_) {
+      PollNetwork();
+      game_instance_.Update(fixed_delta_);
+      ++server_tick_;
+      BroadcastWorldSnapshot();
+      accumulator_ -= fixed_delta_;
     }
     CheckPeerTimeouts();
-    game_instance_.Update(delta);
     TickRateSleep(delta);
   }
+  running_ = false;
 }
 
 void ServerRuntime::ConfigureLogging() {
   logger_->SetName("server");
   logger_->SetLevel(config_.log_level);
+}
+
+void ServerRuntime::PollNetwork() {
+  std::array<std::uint8_t, 2048> buffer{};
+  while (true) {
+    const auto recv_result = socket_.receive_from(buffer.data(), buffer.size());
+    if (recv_result.error) {
+      if (IsTransientError(recv_result.error)) {
+        break;
+      }
+      logger_->Error("Receive error: ", recv_result.error.message());
+      running_ = false;
+      break;
+    }
+    if (recv_result.bytes_transferred == 0) {
+      break;
+    }
+    engine::net::PacketBuffer packet_buffer(buffer.data(),
+                                            recv_result.bytes_transferred);
+    HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
+  }
 }
 
 void ServerRuntime::TickRateSleep(const engine::time::TimeDelta& delta_time) {
@@ -442,6 +475,29 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
     game_instance_.OnPlayerLeft(player_id);
   }
   peers_.erase(endpoint_key);
+}
+
+void ServerRuntime::BroadcastWorldSnapshot() {
+  protocol::WorldSnapshotPayload snapshot{};
+  snapshot.snapshot_id = next_snapshot_id_++;
+  snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  snapshot.server_tick = server_tick_;
+
+  for (auto& [_, peer] : peers_) {
+    if (peer.state != PeerState::kJoined || peer.player_id == 0) {
+      continue;
+    }
+    protocol::Packet packet{};
+    packet.header.version = protocol::kProtocolVersion;
+    packet.header.message_type =
+        static_cast<std::uint8_t>(MessageType::kWorldSnapshot);
+    packet.header.flags = 0;
+    packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+    packet.header.timestamp_ms = NowMilliseconds();
+    peer.sequence_tracker.FillAckFields(&packet.header);
+    packet.payload = snapshot;
+    SendPacket(peer, packet);
+  }
 }
 
 }  // namespace server
