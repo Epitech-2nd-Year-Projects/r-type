@@ -37,6 +37,9 @@ int Application::Run() {
     return 1;
   }
 
+  input_layer_ = std::make_unique<InputLayer>(engine_->Input());
+  input_layer_->ApplyDefaultBindings();
+
   if (auto* audio = engine_->Audio()) {
     audio_manager_ = std::make_unique<AudioManager>(*audio);
     audio_manager_->LoadAssets();
@@ -81,6 +84,10 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     LogLifecycle(engine::util::LogLevel::kError,
                  "Engine pump stopped the client loop");
     return false;
+  }
+
+  if (input_layer_) {
+    input_layer_->Update();
   }
 
   join_flow_.Update(transport_);
