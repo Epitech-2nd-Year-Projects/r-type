@@ -25,7 +25,6 @@ void AnimationSystem::Update(engine::ecs::Registry &registry,
     animation.elapsed += dt;
 
     if (animation.elapsed >= animation.frame_duration) {
-
       while (animation.elapsed >= animation.frame_duration) {
         animation.elapsed -= animation.frame_duration;
         animation.current_frame++;
@@ -48,4 +47,4 @@ void AnimationSystem::Update(engine::ecs::Registry &registry,
   }
 }
 
-} // namespace game_logic::systems
+}  // namespace game_logic::systems
