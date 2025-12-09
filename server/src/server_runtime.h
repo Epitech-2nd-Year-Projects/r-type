@@ -17,6 +17,7 @@
 #include "protocol/input_state.h"
 #include "protocol/command.h"
 #include "protocol/snapshot_history.h"
+#include "protocol/error.h"
 #include "server_config.h"
 #include "peer_connection.h"
 #include "game_instance.h"
@@ -265,6 +266,7 @@ class ServerRuntime {
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
   protocol::SnapshotHistory snapshot_history_{32};         ///< Rolling window of recent snapshots for delta compression.
   bool running_{false};                                    ///< Whether the server loop is currently running.
+  protocol::DecodeMetrics decode_metrics_{};
 };
 
 }  // namespace server

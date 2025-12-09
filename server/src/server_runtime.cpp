@@ -164,11 +164,14 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
   protocol::DecodeError error{protocol::DecodeError::kOk};
 
   if (!protocol::DecodePacket(packet, decoded, &error)) {
+    protocol::UpdateDecodeMetrics(decode_metrics_, error);
     logger_->Warn("Dropped packet from ", EndpointKey(from), " (",
-                  protocol::DecodeErrorToString(error), ")");
+                  protocol::DecodeErrorToString(error),
+                  ") total=", decode_metrics_.total_packets,
+                  " rejected=", decode_metrics_.rejected_packets);
     return;
   }
-
+  protocol::UpdateDecodeMetrics(decode_metrics_, protocol::DecodeError::kOk);
   PeerConnection& peer = GetOrCreatePeer(from);
   peer.last_activity_ms = NowMilliseconds();
   peer.sequence_tracker.OnRemoteSequenceReceived(decoded.header.sequence);
@@ -216,14 +219,20 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       HandleClientCommand(peer, *command, decoded.header);
       break;
     }
+    case MessageType::kHello:
+    case MessageType::kPong:
+      logger_->Debug("Ignoring connectionless packet (type ",
+                     static_cast<int>(type), ") from ", peer.endpoint_key);
+      break;
     case MessageType::kServerCommand:
     case MessageType::kWorldSnapshot:
     case MessageType::kSpawnEntity:
     case MessageType::kDestroyEntity:
     case MessageType::kPlayerDied:
-    case MessageType::kHello:
-    case MessageType::kPong:
     case MessageType::kInvalid:
+      logger_->Warn("Received unexpected packet type ", static_cast<int>(type),
+                    " from ", peer.endpoint_key);
+      break;
     default:
       logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
@@ -251,8 +260,6 @@ void ServerRuntime::HandlePing(PeerConnection& peer,
 void ServerRuntime::HandleInputState(
     PeerConnection& peer, const protocol::InputStatePayload& input_state,
     const protocol::Header& header) {
-  (void)header;
-
   if (peer.player_id == 0) {
     logger_->Warn("Received input state from unjoined peer ",
                   peer.endpoint_key);
@@ -327,7 +334,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.state = PeerState::kJoined;
   peer.last_activity_ms = NowMilliseconds();
   players_[peer.player_id] = peer.endpoint_key;
-  game_instance_.OnPlayerJoined(peer.player_id);
+  game_instance_.OnPlayerJoined(peer.player_id, request.player_name);
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
