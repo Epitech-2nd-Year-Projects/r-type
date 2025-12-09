@@ -9,6 +9,7 @@
 #include "game_logic/entities/player_builder.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/collision_system.h"
+#include "game_logic/systems/game_state_system.h"
 #include "game_logic/systems/health_system.h"
 #include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
@@ -104,7 +105,7 @@ void GameInstance::RemovePlayer(std::uint32_t player_id) {
 
   auto score_it = std::find_if(
       game_state_.player_scores.begin(), game_state_.player_scores.end(),
-      [player_id](const PlayerScore& ps) { return ps.player_id == player_id; });
+      [player_id](const PlayerScore &ps) { return ps.player_id == player_id; });
   if (score_it != game_state_.player_scores.end()) {
     game_state_.player_scores.erase(score_it);
   }
@@ -147,7 +148,7 @@ void GameInstance::OnPlayerLeave(std::uint32_t player_id) {
 
   pending_inputs_.erase(
       std::remove_if(pending_inputs_.begin(), pending_inputs_.end(),
-                     [player_id](const QueuedInputEvent& evt) {
+                     [player_id](const QueuedInputEvent &evt) {
                        return evt.player_id == player_id;
                      }),
       pending_inputs_.end());
@@ -167,13 +168,13 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   pending_inputs_.push_back(evt);
 }
 
-engine::ecs::Registry& GameInstance::World() { return *registry_; }
+engine::ecs::Registry &GameInstance::World() { return *registry_; }
 
-const engine::ecs::Registry& GameInstance::World() const { return *registry_; }
+const engine::ecs::Registry &GameInstance::World() const { return *registry_; }
 
-const GameState& GameInstance::State() const { return game_state_; }
+const GameState &GameInstance::State() const { return game_state_; }
 
-GameState& GameInstance::State() { return game_state_; }
+GameState &GameInstance::State() { return game_state_; }
 
 bool GameInstance::IsRunning() const { return game_state_.is_running; }
 
@@ -240,6 +241,10 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
+  registry_->AddSystemClass(std::make_shared<systems::GameStateSystem>(*this),
+                            engine::ecs::SystemType::Fixed,
+                            engine::ecs::kDefaultPriority);
+
   registry_->AddSystem<engine::ecs::LifetimeComponent>(
       engine::ecs::LifetimeSystem::Update, engine::ecs::SystemType::Variable,
       engine::ecs::kDefaultPriority);
@@ -247,35 +252,6 @@ void GameInstance::RegisterSystems() {
 
 void GameInstance::InitializeGame() {}
 
-void GameInstance::UpdateGameState() {
-  auto& player_components =
-      registry_->GetComponents<components::PlayerComponent>();
-
-  for (auto&& [idx, player_comp] :
-       engine::ecs::IndexedZipper(player_components)) {
-    std::uint32_t player_id = player_comp.value().player_id;
-
-    for (auto& player_score : game_state_.player_scores) {
-      if (player_score.player_id == player_id) {
-        player_score.score = player_comp.value().score;
-        player_score.lives = player_comp.value().lives;
-        player_score.is_alive = player_comp.value().lives > 0;
-        break;
-      }
-    }
-  }
-
-  bool all_dead = true;
-  for (const auto& ps : game_state_.player_scores) {
-    if (ps.is_alive) {
-      all_dead = false;
-      break;
-    }
-  }
-  if (all_dead && !game_state_.player_scores.empty()) {
-    game_state_.is_game_over = true;
-    game_state_.is_running = false;
-  }
-}
+void GameInstance::UpdateGameState() {}
 
 }  // namespace game_logic

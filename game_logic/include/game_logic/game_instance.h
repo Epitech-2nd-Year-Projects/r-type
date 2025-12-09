@@ -21,6 +21,7 @@ class CollisionSystem;
 class WeaponSystem;
 class AISystem;
 class MovementSystem;
+class GameStateSystem;
 }  // namespace systems
 
 /**
@@ -102,8 +103,8 @@ class GameInstance {
   ~GameInstance();
 
   /// @brief Non-copyable
-  GameInstance(const GameInstance&) = delete;
-  GameInstance& operator=(const GameInstance&) = delete;
+  GameInstance(const GameInstance &) = delete;
+  GameInstance &operator=(const GameInstance &) = delete;
 
   /**
    * @brief Initialize and start the game
@@ -218,24 +219,24 @@ class GameInstance {
    * - Add/remove components
    * - Query component data
    */
-  engine::ecs::Registry& World();
+  engine::ecs::Registry &World();
 
   /**
    * @brief Get const access to ECS Registry
    */
-  const engine::ecs::Registry& World() const;
+  const engine::ecs::Registry &World() const;
 
   /**
    * @brief Get current game state (read-only)
    * @return Const reference to state snapshot
    */
-  const GameState& State() const;
+  const GameState &State() const;
 
   /**
    * @brief Get mutable game state
    * @return Reference to state (use with caution)
    */
-  GameState& State();
+  GameState &State();
 
   /**
    * @brief Check if game is currently running
@@ -278,6 +279,7 @@ class GameInstance {
 
   friend class systems::PlayerInputSystem;
   friend class systems::WeaponSystem;
+  friend class systems::GameStateSystem;
 
   /**
    * @brief Register all component types with Registry
