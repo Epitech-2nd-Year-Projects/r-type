@@ -47,7 +47,7 @@ class GameInstance {
    * Initializes player state tracking for input processing and simulation.
    * Future implementation will spawn the player entity in the game world.
    */
-  void OnPlayerJoined(std::uint32_t player_id);
+  void OnPlayerJoined(std::uint32_t player_id, std::string_view player_name);
 
   /**
    * @brief Called when a player leaves or times out.
@@ -170,6 +170,7 @@ class GameInstance {
     std::uint32_t last_applied_sequence{0};       ///< Highest input sequence number applied.
     std::uint32_t last_input_client_time_ms{0};   ///< Client timestamp of last processed input.
     std::uint32_t last_input_server_time_ms{0};   ///< Server timestamp when last input was processed.
+    std::uint8_t last_buttons{0};                     ///< Button bitfield of last processed input.
   };
 
   std::unordered_map<std::uint32_t, PlayerState> players_;  ///< Map of player IDs to their state.

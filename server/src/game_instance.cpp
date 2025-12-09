@@ -11,22 +11,30 @@ GameInstance::GameInstance(std::uint32_t seed)
   logic_->Start();
 }
 
-void GameInstance::OnPlayerJoined(std::uint32_t player_id) {
+void GameInstance::OnPlayerJoined(std::uint32_t player_id,
+                                  std::string_view player_name) {
   auto& logger = engine::util::Logger::Default();
   logger.Info("[GameInstance] Player joined: ", player_id);
 
   PlayerState state{};
   state.player_id = player_id;
   state.connected = true;
-
   players_[player_id] = state;
+  if (logic_) {
+    const std::string name = player_name.empty()
+                                 ? "Player_" + std::to_string(player_id)
+                                 : std::string{player_name};
+    logic_->OnPlayerJoin(player_id, name);
+  }
 }
 
 void GameInstance::OnPlayerLeft(std::uint32_t player_id) {
   auto& logger = engine::util::Logger::Default();
   logger.Info("[GameInstance] Player left: ", player_id);
-
   players_.erase(player_id);
+  if (logic_) {
+    logic_->OnPlayerLeave(player_id);
+  }
 }
 
 void GameInstance::OnPlayerInput(std::uint32_t player_id,
@@ -70,7 +78,37 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
         player_id);
     return;
   }
+  auto emit_edge = [&](protocol::InputButton flag,
+                       game_logic::GameInstance::InputEventType event_type,
+                       game_logic::GameInstance::InputEventType released_evt) {
+    const bool was_pressed =
+        (state.last_buttons & static_cast<std::uint8_t>(flag)) != 0;
+    const bool is_set =
+        (newest->buttons & static_cast<std::uint8_t>(flag)) != 0;
+    if (!logic_) return;
+    if (!was_pressed && is_set) {
+      logic_->OnPlayerInput(player_id, event_type);
+    } else if (was_pressed && !is_set) {
+      logic_->OnPlayerInput(player_id, released_evt);
+    }
+  };
+  emit_edge(protocol::InputButton::kInputUp,
+            game_logic::GameInstance::InputEventType::kMoveUpPressed,
+            game_logic::GameInstance::InputEventType::kMoveUpReleased);
+  emit_edge(protocol::InputButton::kInputDown,
+            game_logic::GameInstance::InputEventType::kMoveDownPressed,
+            game_logic::GameInstance::InputEventType::kMoveDownReleased);
+  emit_edge(protocol::InputButton::kInputLeft,
+            game_logic::GameInstance::InputEventType::kMoveLeftPressed,
+            game_logic::GameInstance::InputEventType::kMoveLeftReleased);
+  emit_edge(protocol::InputButton::kInputRight,
+            game_logic::GameInstance::InputEventType::kMoveRightPressed,
+            game_logic::GameInstance::InputEventType::kMoveRightReleased);
+  emit_edge(protocol::InputButton::kInputFire,
+            game_logic::GameInstance::InputEventType::kBasicShootPressed,
+            game_logic::GameInstance::InputEventType::kBasicShootReleased);
   state.last_command = *newest;
+  state.last_buttons = newest->buttons;
   state.last_applied_sequence = newest->input_sequence;
   state.last_input_client_time_ms = newest->client_time_ms;
   state.last_input_server_time_ms = static_cast<std::uint32_t>(
