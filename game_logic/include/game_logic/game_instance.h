@@ -21,7 +21,8 @@ class CollisionSystem;
 class WeaponSystem;
 class AISystem;
 class MovementSystem;
-}  // namespace systems
+class GameStateSystem;
+} // namespace systems
 
 /**
  * @class GameInstance
@@ -39,7 +40,7 @@ class MovementSystem;
  * different concurrent matches.
  */
 class GameInstance {
- public:
+public:
   /**
    * @brief Player-level input events handled by the game logic
    *
@@ -102,8 +103,8 @@ class GameInstance {
   ~GameInstance();
 
   /// @brief Non-copyable
-  GameInstance(const GameInstance&) = delete;
-  GameInstance& operator=(const GameInstance&) = delete;
+  GameInstance(const GameInstance &) = delete;
+  GameInstance &operator=(const GameInstance &) = delete;
 
   /**
    * @brief Initialize and start the game
@@ -180,8 +181,8 @@ class GameInstance {
    * - Spawns a fully-configured player entity via PlayerBuilder
    * - Stores mapping player_id -> EntityId for later lookups
    */
-  std::optional<engine::ecs::EntityId> OnPlayerJoin(
-      std::uint32_t player_id, std::string_view player_name);
+  std::optional<engine::ecs::EntityId>
+  OnPlayerJoin(std::uint32_t player_id, std::string_view player_name);
 
   /**
    * @brief High-level event: player left the room
@@ -218,24 +219,24 @@ class GameInstance {
    * - Add/remove components
    * - Query component data
    */
-  engine::ecs::Registry& World();
+  engine::ecs::Registry &World();
 
   /**
    * @brief Get const access to ECS Registry
    */
-  const engine::ecs::Registry& World() const;
+  const engine::ecs::Registry &World() const;
 
   /**
    * @brief Get current game state (read-only)
    * @return Const reference to state snapshot
    */
-  const GameState& State() const;
+  const GameState &State() const;
 
   /**
    * @brief Get mutable game state
    * @return Reference to state (use with caution)
    */
-  GameState& State();
+  GameState &State();
 
   /**
    * @brief Check if game is currently running
@@ -264,7 +265,7 @@ class GameInstance {
    */
   std::uint32_t ActivePlayerCount() const;
 
- private:
+private:
   /**
    * @brief Internal queued player input event
    */
@@ -278,6 +279,7 @@ class GameInstance {
 
   friend class systems::PlayerInputSystem;
   friend class systems::WeaponSystem;
+  friend class systems::GameStateSystem;
 
   /**
    * @brief Register all component types with Registry
@@ -350,6 +352,6 @@ class GameInstance {
   static constexpr float kInputMoveSpeed = 200.0f;
 };
 
-}  // namespace game_logic
+} // namespace game_logic
 
-#endif  // GAME_LOGIC_GAME_INSTANCE_H_
+#endif // GAME_LOGIC_GAME_INSTANCE_H_
