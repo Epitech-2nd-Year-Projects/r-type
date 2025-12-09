@@ -407,8 +407,13 @@ void ServerRuntime::CheckPeerTimeouts() {
     if (inactive_ms > kPeerTimeoutMs) {
       logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
-      RemovePeer(peer);
-      it = peers_.begin();
+      const std::uint32_t player_id = peer.player_id;
+      const std::string endpoint_key = peer.endpoint_key;
+      if (player_id != 0) {
+        players_.erase(player_id);
+        game_instance_.OnPlayerLeft(player_id);
+      }
+      it = peers_.erase(it);
       continue;
     }
     ++it;
