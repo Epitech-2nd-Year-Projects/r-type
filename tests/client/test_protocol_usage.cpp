@@ -1,4 +1,4 @@
-#include <iostream>
+#include <gtest/gtest.h>
 #include <vector>
 #include <cstdint>
 #include <string>
@@ -8,14 +8,6 @@
 #include "protocol/input_state.h"
 #include "protocol/world_snapshot.h"
 #include "engine/net/packet_buffer.h"
-
-template <typename F>
-bool RunTest(const char* name, F&& fn) {
-    std::cout << "Running " << name << "... ";
-    const bool ok = fn();
-    std::cout << (ok ? "[OK]" : "[FAIL]") << "\n";
-    return ok;
-}
 
 protocol::InputStatePayload CreatePayloadFromState(const client::ActionState& state, uint32_t sequence) {
     protocol::InputStatePayload payload{};
@@ -33,61 +25,31 @@ protocol::InputStatePayload CreatePayloadFromState(const client::ActionState& st
     return payload;
 }
 
-bool TestClientInputToProtocol() {
-    std::cout << "\n  [Step 1] Initializing Input System...\n";
+TEST(ProtocolUsageTest, ClientInputToProtocol) {
     engine::input::InputManager input_manager;
     client::InputLayer input_layer(input_manager);
     input_layer.ApplyDefaultBindings();
 
-    std::cout << "  [Step 2] Simulating user pressing 'W'...\n";
     input_manager.HandleKey(engine::input::Key::kW, true);
     input_layer.Update();
 
-    if (input_layer.state().move_up) {
-        std::cout << "    -> Success: InputLayer correctly mapped 'W' to 'MoveUp' action.\n";
-    } else {
-        std::cerr << "    -> Error: InputLayer failed to map 'W' to MoveUp\n";
-        return false;
-    }
+    EXPECT_TRUE(input_layer.state().move_up) << "InputLayer failed to map 'W' to MoveUp";
 
-    std::cout << "  [Step 3] Converting Client ActionState to Protocol Payload...\n";
     protocol::InputStatePayload payload = CreatePayloadFromState(input_layer.state(), 101);
 
-    if (payload.commands[0].buttons & protocol::kInputUp) {
-        std::cout << "    -> Success: Payload bitmask contains kInputUp.\n";
-    } else {
-        std::cerr << "    -> Error: Payload failed to include kInputUp bit\n";
-        return false;
-    }
+    EXPECT_TRUE(payload.commands[0].buttons & protocol::kInputUp) << "Payload failed to include kInputUp bit";
 
-    std::cout << "  [Step 4] Encoding payload to binary packet...\n";
     engine::net::PacketBuffer buffer;
-    if (!protocol::EncodeInputState(payload, buffer)) {
-        std::cerr << "    -> Error: Failed to encode input state\n";
-        return false;
-    }
-    std::cout << "    -> Encoded " << buffer.size() << " bytes.\n";
-
-    std::cout << "  [Step 5] Decoding binary packet back to struct (Round-trip verification)...\n";
+    ASSERT_TRUE(protocol::EncodeInputState(payload, buffer)) << "Failed to encode input state";
+    
     engine::net::PacketBuffer read_buffer(buffer.storage());
     protocol::InputStatePayload decoded{};
-    if (!protocol::DecodeInputState(read_buffer, decoded)) {
-        std::cerr << "    -> Error: Failed to decode\n";
-        return false;
-    }
+    ASSERT_TRUE(protocol::DecodeInputState(read_buffer, decoded)) << "Failed to decode";
 
-    if (decoded.commands[0].buttons == protocol::kInputUp) {
-        std::cout << "    -> Success: Decoded buttons match original input.\n";
-    } else {
-        std::cerr << "    -> Error: Decoded buttons mismatch\n";
-        return false;
-    }
-
-    return true;
+    EXPECT_EQ(decoded.commands[0].buttons, protocol::kInputUp) << "Decoded buttons mismatch";
 }
 
-bool TestSnapshotIntegration() {
-    std::cout << "\n  [Step 1] Creating a mock Server Snapshot...\n";
+TEST(ProtocolUsageTest, SnapshotIntegration) {
     protocol::WorldSnapshotPayload server_snapshot{};
     server_snapshot.snapshot_id = 50;
     
@@ -99,48 +61,25 @@ bool TestSnapshotIntegration() {
     delta.state.y = 100;
     server_snapshot.deltas.push_back(delta);
     
-    std::cout << "    -> Added EntityCreate Delta: ID=999, Type=2, Pos=(800, 100)\n";
-
-    std::cout << "  [Step 2] Encoding Snapshot to binary...\n";
     engine::net::PacketBuffer buffer;
-    if (!protocol::EncodeWorldSnapshot(server_snapshot, buffer)) {
-        std::cerr << "    -> Error: Encode failed\n";
-        return false;
-    }
-    std::cout << "    -> Encoded " << buffer.size() << " bytes.\n";
+    ASSERT_TRUE(protocol::EncodeWorldSnapshot(server_snapshot, buffer)) << "Encode failed";
 
-    std::cout << "  [Step 3] Client decoding binary packet...\n";
     engine::net::PacketBuffer read_buffer(buffer.storage());
     protocol::WorldSnapshotPayload decoded{};
-    if (!protocol::DecodeWorldSnapshot(read_buffer, decoded)) {
-        std::cerr << "    -> Error: Decode failed\n";
-        return false;
-    }
-
-    std::cout << "  [Step 4] Verifying decoded data integrity...\n";
+    ASSERT_TRUE(protocol::DecodeWorldSnapshot(read_buffer, decoded)) << "Decode failed";
     bool entity_found = false;
     for (const auto& d : decoded.deltas) {
         if (d.entity_id == 999 && d.op == protocol::EntityDeltaOp::kCreate) {
-            std::cout << "    -> Found Entity Delta: ID=" << d.entity_id << "\n";
-            if (d.state.x == 800 && d.state.y == 100) {
-                entity_found = true;
-                std::cout << "    -> Position matches (800, 100).\n";
-            }
+            EXPECT_EQ(d.state.x, 800);
+            EXPECT_EQ(d.state.y, 100);
+            entity_found = true;
         }
     }
 
-    if (!entity_found) {
-        std::cerr << "    -> Error: Client logic would not have found the correct entity update\n";
-        return false;
-    }
-
-    return true;
+    EXPECT_TRUE(entity_found) << "Client logic would not have found the correct entity update";
 }
 
-int main() {
-    int failures = 0;
-    if (!RunTest("TestClientInputToProtocol", TestClientInputToProtocol)) failures++;
-    if (!RunTest("TestSnapshotIntegration", TestSnapshotIntegration)) failures++;
-    
-    return failures == 0 ? 0 : 1;
+int main(int argc, char **argv) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
