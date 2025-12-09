@@ -1,10 +1,15 @@
 #include "game_instance.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace server {
 
-GameInstance::GameInstance(std::uint32_t seed) : rng_(seed) {}
+GameInstance::GameInstance(std::uint32_t seed)
+    : rng_(seed), logic_(std::make_unique<game_logic::GameInstance>(1u, 4u)) {
+  logic_->Start();
+}
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id) {
   auto& logger = engine::util::Logger::Default();
@@ -80,14 +85,96 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
 }
 
 void GameInstance::Update(const engine::time::TimeDelta& delta) {
-  (void)delta;
-
-  // Placeholder for now.
-  //
-  // Later, this method will:
-  //  - consume PlayerState::last_command for each player
-  //  - update entities via gamelogic & engine ECS
-  //  - handle collisions, projectiles, enemy waves, etc.
+  if (logic_) {
+    logic_->Update(delta);
+  }
 }
+
+std::uint16_t GameInstance::ResolveEntityType(
+    const engine::ecs::TagComponent* tag,
+    const game_logic::components::PlayerComponent* player) const {
+  if (player != nullptr) {
+    return 1;
+  }
+  if (tag == nullptr) {
+    return 0;
+  }
+  if (tag->tag == "Enemy") return 2;
+  if (tag->tag == "Missile") return 3;
+  if (tag->tag == "Obstacle") return 4;
+  return 0;
+}
+
+protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
+    std::uint32_t snapshot_id, std::uint32_t server_tick) {
+  protocol::WorldSnapshotPayload snapshot{};
+  snapshot.snapshot_id = snapshot_id;
+  snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  snapshot.server_tick = server_tick;
+
+  auto& registry = World();
+  auto& position = registry.GetComponents<engine::ecs::PositionComponent>();
+  auto& velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
+  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
+  auto& players =
+      registry.GetComponents<game_logic::components::PlayerComponent>();
+  auto& healths =
+      registry.GetComponents<game_logic::components::HealthComponent>();
+
+  const std::size_t count = position.size();
+  snapshot.deltas.reserve(count);
+
+  for (std::size_t i = 0; i < count; ++i) {
+    if (!position[i].has_value()) {
+      continue;
+    }
+    const auto& pos = position[i].value().position;
+    const auto* vel_opt = (i < velocities.size() && velocities[i].has_value())
+                              ? &velocities[i].value().velocity
+                              : nullptr;
+    const auto* tag_opt =
+        (i < tags.size() && tags[i].has_value()) ? &tags[i].value() : nullptr;
+    const auto* player_opt = (i < players.size() && players[i].has_value())
+                                 ? &players[i].value()
+                                 : nullptr;
+    const auto* health_opt = (i < healths.size() && healths[i].has_value())
+                                 ? &healths[i].value()
+                                 : nullptr;
+    protocol::EntityNetState state{};
+    state.entity_id = static_cast<std::uint32_t>(i);
+    state.type = ResolveEntityType(tag_opt, player_opt);
+    state.x = static_cast<std::int16_t>(std::lround(pos.x));
+    state.y = static_cast<std::int16_t>(std::lround(pos.y));
+
+    if (vel_opt != nullptr) {
+      state.vx = static_cast<std::int16_t>(std::lround(vel_opt->x));
+      state.vy = static_cast<std::int16_t>(std::lround(vel_opt->y));
+    }
+    if (health_opt != nullptr) {
+      state.hp = static_cast<std::uint8_t>(
+          std::min<std::uint32_t>(health_opt->current_health, 255u));
+      state.flags = health_opt->invulnerable ? 1u : 0u;
+    } else {
+      state.hp = 0;
+      state.flags = 0;
+    }
+    protocol::EntityDelta delta{};
+    delta.op = protocol::EntityDeltaOp::kCreate;
+    delta.entity_id = state.entity_id;
+    delta.state = state;
+    snapshot.deltas.push_back(delta);
+  }
+  return snapshot;
+}
+
+engine::ecs::Registry& GameInstance::World() { return logic_->World(); }
+
+const engine::ecs::Registry& GameInstance::World() const {
+  return logic_->World();
+}
+
+game_logic::GameInstance& GameInstance::Logic() { return *logic_; }
+
+const game_logic::GameInstance& GameInstance::Logic() const { return *logic_; }
 
 }  // namespace server

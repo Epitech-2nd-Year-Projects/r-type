@@ -7,8 +7,16 @@
 
 #include "engine/time/time_delta.h"
 #include "engine/util/logging.h"
+#include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/velocity_component.h"
+#include "engine/ecs/components/tag_component.h"
+#include "game_logic/components/player_component.h"
+#include "game_logic/components/health_component.h"
+#include "game_logic/game_instance.h"
 #include "protocol/input_state.h"
 #include "protocol/header.h"
+#include "protocol/world_snapshot.h"
+#include "protocol/snapshot_history.h"
 
 namespace server {
 
@@ -82,7 +90,71 @@ class GameInstance {
    */
   void Update(const engine::time::TimeDelta& delta);
 
- private:
+  /**
+   * @brief Build a world snapshot for network replication.
+   *
+   * This is called once per server tick by ServerRuntime. The snapshot
+   * is then broadcast to all joined peers.
+   *
+   * @param snapshot_id Monotonically increasing snapshot identifier.
+   * @param server_tick Current server tick counter.
+   * @return A WorldSnapshotPayload ready to be serialized by protocol::Encode.
+   *
+   * @note In this “minimal” implementation, we only fill the header fields
+   *       (snapshot_id, base_snapshot_id, server_tick) and leave the deltas
+   *       vector empty. A later issue will plug the real ECS/entity state.
+   */
+  [[nodiscard]] protocol::WorldSnapshotPayload BuildWorldSnapshot(std::uint32_t snapshot_id, std::uint32_t server_tick);
+
+  /**
+   * @brief Returns a mutable reference to the ECS registry.
+   * @return Reference to the entity-component-system registry.
+   * 
+   * Provides direct access to the underlying ECS world for entity and
+   * component management. Use for spawning, destroying, or querying entities.
+   */
+  engine::ecs::Registry& World();
+
+  /**
+   * @brief Returns a const reference to the ECS registry.
+   * @return Const reference to the entity-component-system registry.
+   * 
+   * Provides read-only access to the ECS world for queries and inspection
+   * without allowing modifications.
+   */
+  const engine::ecs::Registry& World() const;
+
+  /**
+   * @brief Returns a mutable reference to the game logic instance.
+   * @return Reference to the game logic subsystem.
+   * 
+   * Provides access to the gameplay rules, systems, and logic layer.
+   * Use for triggering game events, managing game state, or invoking
+   * gameplay-specific operations.
+   */
+  game_logic::GameInstance& Logic();
+
+  /**
+   * @brief Returns a const reference to the game logic instance.
+   * @return Const reference to the game logic subsystem.
+   * 
+   * Provides read-only access to the game logic layer for queries
+   * and inspection without allowing modifications.
+   */
+  const game_logic::GameInstance& Logic() const;
+
+  private:
+  /**
+   * @brief Resolves the entity type identifier for network serialization.
+   * @param tag The entity's tag component (may be nullptr).
+   * @param player The entity's player component (may be nullptr).
+   * @return The entity type ID for the WorldSnapshotPayload.
+   * 
+   * Maps ECS component combinations to protocol entity types.
+   * Used during snapshot building to classify entities for network replication.
+   * Handles player entities, enemies, projectiles, and other game objects.
+   */
+  std::uint16_t ResolveEntityType(const engine::ecs::TagComponent* tag, const game_logic::components::PlayerComponent* player) const;
   /**
    * @brief Per-player state tracked by the game instance.
    * 
@@ -102,6 +174,7 @@ class GameInstance {
 
   std::unordered_map<std::uint32_t, PlayerState> players_;  ///< Map of player IDs to their state.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic spawning.
+  std::unique_ptr<game_logic::GameInstance> logic_;         ///< Game logic subsystem managing gameplay rules and systems.
 };
 
 }  // namespace server
