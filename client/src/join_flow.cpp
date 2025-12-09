@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "protocol/error.h"
 #include "protocol/message_type.h"
+#include "protocol/sequence_tracker.h"
 
 namespace client {
 
@@ -29,9 +30,13 @@ JoinFlow::JoinFlow(std::string player_name, std::string room_code)
 void JoinFlow::Begin(NetworkTransport& transport) {
   state_ = JoinState::kConnecting;
   attempts_ = 0;
+  next_sequence_ = 1;
   player_id_.reset();
   last_reject_.reset();
   status_text_ = "Connecting to server";
+  if (sequence_tracker_ != nullptr) {
+    sequence_tracker_->Reset();
+  }
   SendJoinRequest(transport);
 }
 
@@ -47,6 +52,9 @@ void JoinFlow::Update(NetworkTransport& transport) {
     if (!protocol::DecodePacket(incoming.buffer, packet, &error)) {
       LogPacketError("decode", protocol::DecodeErrorToString(error));
       continue;
+    }
+    if (sequence_tracker_ != nullptr) {
+      sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
     }
     HandleDecodedPacket(packet);
   }
@@ -83,10 +91,15 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
       protocol::message_type::MessageType::kJoinRequest);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence = next_sequence_++;
+  packet.header.sequence = sequence_tracker_ != nullptr
+                               ? sequence_tracker_->NextLocalSequence()
+                               : next_sequence_++;
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
+  if (sequence_tracker_ != nullptr) {
+    sequence_tracker_->FillAckFields(&packet.header);
+  }
   packet.payload = payload;
 
   engine::net::PacketBuffer buffer;

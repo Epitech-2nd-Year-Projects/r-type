@@ -11,6 +11,10 @@
 #include "protocol/join.h"
 #include "protocol/packet.h"
 
+namespace protocol {
+  class SequenceTracker;
+}
+
 namespace client {
 
 /**
@@ -64,6 +68,13 @@ class JoinFlow {
     return last_reject_ ? &*last_reject_ : nullptr;
   }
 
+  /**
+   * @brief Provide a shared sequence tracker for ack fields and packet ids
+   */
+  void SetSequenceTracker(protocol::SequenceTracker* tracker) {
+    sequence_tracker_ = tracker;
+  }
+
  private:
   void SendJoinRequest(NetworkTransport& transport);
   void HandleDecodedPacket(protocol::Packet& packet);
@@ -80,6 +91,7 @@ class JoinFlow {
   std::uint32_t next_sequence_{1};
   int attempts_{0};
   std::chrono::steady_clock::time_point last_send_{};
+  protocol::SequenceTracker* sequence_tracker_{nullptr};
 };
 
 }  // namespace client
