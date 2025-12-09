@@ -45,4 +45,4 @@ void GameStateSystem::Update(engine::ecs::Registry &registry,
   }
 }
 
-}  // namespace game_logic::systems
+} // namespace game_logic::systems
