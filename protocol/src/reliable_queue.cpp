@@ -35,14 +35,11 @@ void ReliableQueue::OnAckReceived(std::uint32_t ack, std::uint32_t ack_bits) {
 }
 
 void ReliableQueue::CollectPacketsToResend(
-    std::uint32_t now_ms, std::vector<PendingPacket>* out_packets) {
-  if (out_packets == nullptr) {
-    return;
-  }
+    std::uint32_t now_ms, std::vector<PendingPacket>& out_packets) {
   for (PendingPacket& packet : pending_) {
     const std::uint32_t elapsed_ms = now_ms - packet.last_send_time_ms;
     if (elapsed_ms >= resend_timeout_ms_) {
-      out_packets->push_back(packet);
+      out_packets.push_back(packet);
       packet.last_send_time_ms = now_ms;
       ++packet.send_count;
     }
