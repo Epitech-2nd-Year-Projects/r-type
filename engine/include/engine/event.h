@@ -32,9 +32,7 @@ class EventBus {
     std::size_t id = 0;
     bool active = false;
 
-    [[nodiscard]] bool Valid() const noexcept {
-      return active && id != 0;
-    }
+    [[nodiscard]] bool Valid() const noexcept { return active && id != 0; }
 
     explicit operator bool() const noexcept { return Valid(); }
   };
@@ -113,8 +111,7 @@ class EventBus {
         : id(handler_id), callback(std::move(callback_fn)) {}
 
     void Invoke(const std::any& event) const override {
-      callback(
-          std::any_cast<std::reference_wrapper<const Event>>(event).get());
+      callback(std::any_cast<std::reference_wrapper<const Event>>(event).get());
     }
 
     [[nodiscard]] std::size_t Id() const noexcept override { return id; }

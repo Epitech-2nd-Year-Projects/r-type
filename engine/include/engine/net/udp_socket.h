@@ -6,8 +6,8 @@
 #endif
 
 #include <asio.hpp>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <span>
