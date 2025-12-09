@@ -155,12 +155,12 @@ class RaylibRenderer2D final : public Renderer2D {
 
   void DrawTexture(const Texture2D& texture,
                    const SpriteDrawParams& params) override {
-    const RaylibTexture2D& raylib_texture = [&texture]() -> const RaylibTexture2D& {
+    const RaylibTexture2D& raylib_texture =
+        [&texture]() -> const RaylibTexture2D& {
       try {
         return dynamic_cast<const RaylibTexture2D&>(texture);
       } catch (const std::bad_cast&) {
-        throw std::runtime_error(
-            "Texture provided was not created by Raylib.");
+        throw std::runtime_error("Texture provided was not created by Raylib.");
       }
     }();
 
