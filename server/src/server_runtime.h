@@ -2,7 +2,6 @@
 #define SERVER_SERVER_RUNTIME_H_
 
 #include <cstdint>
-#include <cmath>
 #include <random>
 #include <string>
 #include <string_view>
