@@ -45,7 +45,7 @@ int Application::Run() {
   input_sender_ = std::make_unique<InputSender>(*input_layer_, transport_,
                                                 sequence_tracker_);
 
-  if (engine_->Audio() != nullptr) {
+  if (engine_->Audio()) {
     audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());
     audio_manager_->LoadAssets();
     LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
