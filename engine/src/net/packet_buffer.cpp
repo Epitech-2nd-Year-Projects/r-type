@@ -1,6 +1,8 @@
 #include "../../include/engine/net/packet_buffer.h"
 
-#include <cstring>
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -50,12 +52,8 @@ PacketBuffer::PacketBuffer(std::size_t reserve_bytes) {
   buffer_.reserve(reserve_bytes);
 }
 
-PacketBuffer::PacketBuffer(const void* data, std::size_t size) {
-  if (data != nullptr && size > 0) {
-    const auto* bytes = static_cast<const value_type*>(data);
-    buffer_.assign(bytes, bytes + size);
-  }
-}
+PacketBuffer::PacketBuffer(ConstSpan data)
+    : buffer_(data.begin(), data.end()), read_offset_(0) {}
 
 PacketBuffer::PacketBuffer(Storage data)
     : buffer_(std::move(data)), read_offset_(0) {}
@@ -71,37 +69,67 @@ bool PacketBuffer::seek(std::size_t offset) {
   return true;
 }
 
-void PacketBuffer::write_bytes(const void* data, std::size_t size) {
-  if (size == 0 || data == nullptr) return;
-  const auto* bytes = static_cast<const value_type*>(data);
-  buffer_.insert(buffer_.end(), bytes, bytes + size);
+void PacketBuffer::write_bytes(ConstSpan data) {
+  if (data.empty()) return;
+  buffer_.insert(buffer_.end(), data.begin(), data.end());
 }
 
-bool PacketBuffer::read_bytes(void* destination, std::size_t size) {
-  if (size == 0) return true;
-  if (!EnsureReadable(size)) return false;
-  std::memcpy(destination, buffer_.data() + read_offset_, size);
-  read_offset_ += size;
+void PacketBuffer::write_bytes(std::span<const std::byte> data) {
+  if (data.empty()) return;
+  buffer_.reserve(buffer_.size() + data.size());
+  for (const auto byte : data) {
+    buffer_.push_back(std::to_integer<value_type>(byte));
+  }
+}
+
+bool PacketBuffer::read_bytes(Span destination) {
+  if (destination.empty()) return true;
+  if (!EnsureReadable(destination.size())) return false;
+  std::copy_n(buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_),
+              destination.size(), destination.begin());
+  read_offset_ += destination.size();
+  return true;
+}
+
+bool PacketBuffer::read_bytes(std::span<std::byte> destination) {
+  if (destination.empty()) return true;
+  if (!EnsureReadable(destination.size())) return false;
+  std::transform(
+      buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_),
+      buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_ +
+                                                    destination.size()),
+      destination.begin(),
+      [](value_type value) { return static_cast<std::byte>(value); });
+  read_offset_ += destination.size();
   return true;
 }
 
 void PacketBuffer::WriteUint8(std::uint8_t value) {
-  write_bytes(&value, sizeof(value));
+  buffer_.push_back(value);
 }
 
 void PacketBuffer::WriteUint16(std::uint16_t value) {
-  auto network_value = Endian::HostToNetwork(value);
-  write_bytes(&network_value, sizeof(network_value));
+  const auto network_value = Endian::HostToNetwork(value);
+  const auto bytes =
+      std::bit_cast<std::array<value_type, sizeof(network_value)>>(
+          network_value);
+  write_bytes(bytes);
 }
 
 void PacketBuffer::WriteUint32(std::uint32_t value) {
-  auto network_value = Endian::HostToNetwork(value);
-  write_bytes(&network_value, sizeof(network_value));
+  const auto network_value = Endian::HostToNetwork(value);
+  const auto bytes =
+      std::bit_cast<std::array<value_type, sizeof(network_value)>>(
+          network_value);
+  write_bytes(bytes);
 }
 
 void PacketBuffer::WriteUint64(std::uint64_t value) {
-  auto network_value = Endian::HostToNetwork(value);
-  write_bytes(&network_value, sizeof(network_value));
+  const auto network_value = Endian::HostToNetwork(value);
+  const auto bytes =
+      std::bit_cast<std::array<value_type, sizeof(network_value)>>(
+          network_value);
+  write_bytes(bytes);
 }
 
 void PacketBuffer::WriteInt8(std::int8_t value) {
@@ -127,25 +155,24 @@ void PacketBuffer::WriteInt64(std::int64_t value) {
 void PacketBuffer::WriteFloat(float value) {
   static_assert(sizeof(float) == sizeof(std::uint32_t),
                 "Unexpected float size");
-  std::uint32_t bits = 0;
-  std::memcpy(&bits, &value, sizeof(bits));
-  bits = Endian::HostToNetwork(bits);
-  write_bytes(&bits, sizeof(bits));
+  const auto bits = Endian::HostToNetwork(std::bit_cast<std::uint32_t>(value));
+  WriteUint32(bits);
 }
 
 void PacketBuffer::WriteDouble(double value) {
   static_assert(sizeof(double) == sizeof(std::uint64_t),
                 "Unexpected double size");
-  std::uint64_t bits = 0;
-  std::memcpy(&bits, &value, sizeof(bits));
-  bits = Endian::HostToNetwork(bits);
-  write_bytes(&bits, sizeof(bits));
+  const auto bits =
+      Endian::HostToNetwork(std::bit_cast<std::uint64_t>(value));
+  WriteUint64(bits);
 }
 
 bool PacketBuffer::WriteString(std::string_view value) {
   if (value.size() > std::numeric_limits<std::uint16_t>::max()) return false;
   WriteUint16(static_cast<std::uint16_t>(value.size()));
-  if (!value.empty()) write_bytes(value.data(), value.size());
+  if (!value.empty()) {
+    buffer_.insert(buffer_.end(), value.begin(), value.end());
+  }
   return true;
 }
 
@@ -156,23 +183,26 @@ bool PacketBuffer::ReadUint8(std::uint8_t& value) {
 }
 
 bool PacketBuffer::ReadUint16(std::uint16_t& value) {
-  std::uint16_t raw = 0;
-  if (!read_bytes(&raw, sizeof(raw))) return false;
-  value = Endian::NetworkToHost(raw);
+  std::array<value_type, sizeof(std::uint16_t)> raw{};
+  if (!read_bytes(raw)) return false;
+  const auto network_value = std::bit_cast<std::uint16_t>(raw);
+  value = Endian::NetworkToHost(network_value);
   return true;
 }
 
 bool PacketBuffer::ReadUint32(std::uint32_t& value) {
-  std::uint32_t raw = 0;
-  if (!read_bytes(&raw, sizeof(raw))) return false;
-  value = Endian::NetworkToHost(raw);
+  std::array<value_type, sizeof(std::uint32_t)> raw{};
+  if (!read_bytes(raw)) return false;
+  const auto network_value = std::bit_cast<std::uint32_t>(raw);
+  value = Endian::NetworkToHost(network_value);
   return true;
 }
 
 bool PacketBuffer::ReadUint64(std::uint64_t& value) {
-  std::uint64_t raw = 0;
-  if (!read_bytes(&raw, sizeof(raw))) return false;
-  value = Endian::NetworkToHost(raw);
+  std::array<value_type, sizeof(std::uint64_t)> raw{};
+  if (!read_bytes(raw)) return false;
+  const auto network_value = std::bit_cast<std::uint64_t>(raw);
+  value = Endian::NetworkToHost(network_value);
   return true;
 }
 
@@ -205,18 +235,18 @@ bool PacketBuffer::ReadInt64(std::int64_t& value) {
 }
 
 bool PacketBuffer::ReadFloat(float& value) {
-  std::uint32_t bits = 0;
-  if (!read_bytes(&bits, sizeof(bits))) return false;
-  bits = Endian::NetworkToHost(bits);
-  std::memcpy(&value, &bits, sizeof(bits));
+  std::array<value_type, sizeof(std::uint32_t)> raw{};
+  if (!read_bytes(raw)) return false;
+  const auto bits = Endian::NetworkToHost(std::bit_cast<std::uint32_t>(raw));
+  value = std::bit_cast<float>(bits);
   return true;
 }
 
 bool PacketBuffer::ReadDouble(double& value) {
-  std::uint64_t bits = 0;
-  if (!read_bytes(&bits, sizeof(bits))) return false;
-  bits = Endian::NetworkToHost(bits);
-  std::memcpy(&value, &bits, sizeof(bits));
+  std::array<value_type, sizeof(std::uint64_t)> raw{};
+  if (!read_bytes(raw)) return false;
+  const auto bits = Endian::NetworkToHost(std::bit_cast<std::uint64_t>(raw));
+  value = std::bit_cast<double>(bits);
   return true;
 }
 
@@ -224,8 +254,11 @@ bool PacketBuffer::ReadString(std::string& value) {
   std::uint16_t length = 0;
   if (!ReadUint16(length)) return false;
   if (!EnsureReadable(length)) return false;
-  value.assign(reinterpret_cast<const char*>(buffer_.data() + read_offset_),
-               length);
+  const auto begin_it =
+      buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_);
+  const auto end_it =
+      buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_ + length);
+  value.assign(begin_it, end_it);
   read_offset_ += length;
   return true;
 }

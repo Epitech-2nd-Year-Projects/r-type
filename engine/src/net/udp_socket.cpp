@@ -4,12 +4,6 @@ namespace engine::net {
 
 namespace {
 
-std::shared_ptr<asio::io_context> WrapExternalContext(
-    asio::io_context& context) {
-  return std::shared_ptr<asio::io_context>(&context,
-                                           [](asio::io_context*) noexcept {});
-}
-
 std::error_code MakeNotOpenError() {
   return std::make_error_code(std::errc::bad_file_descriptor);
 }
@@ -17,13 +11,15 @@ std::error_code MakeNotOpenError() {
 }  // namespace
 
 UdpSocket::UdpSocket(Protocol protocol)
-    : io_context_(std::make_shared<asio::io_context>()),
-      socket_(std::make_unique<asio::ip::udp::socket>(*io_context_)) {
+    : owned_context_(std::make_shared<asio::io_context>()),
+      context_ref_(*owned_context_),
+      socket_(std::make_unique<asio::ip::udp::socket>(context_ref_.get())) {
   open(protocol);
 }
 
 UdpSocket::UdpSocket(asio::io_context& external_context, Protocol protocol)
-    : io_context_(WrapExternalContext(external_context)),
+    : owned_context_(nullptr),
+      context_ref_(external_context),
       socket_(std::make_unique<asio::ip::udp::socket>(external_context)) {
   open(protocol);
 }
@@ -32,7 +28,7 @@ UdpSocket::~UdpSocket() { close(); }
 
 std::error_code UdpSocket::open(Protocol protocol) {
   if (!socket_) {
-    socket_ = std::make_unique<asio::ip::udp::socket>(*io_context_);
+    socket_ = std::make_unique<asio::ip::udp::socket>(context_ref_.get());
   }
   std::error_code ec;
   if (socket_->is_open()) {
@@ -71,44 +67,48 @@ std::error_code UdpSocket::connect(const Endpoint& endpoint) {
   return ec;
 }
 
-UdpSendResult UdpSocket::send(const void* data, std::size_t size) {
+UdpSendResult UdpSocket::send(std::span<const std::uint8_t> data) {
   if (!socket_) return {0, MakeNotOpenError()};
   UdpSendResult result{};
   asio::error_code ec;
-  result.bytes_transferred = socket_->send(asio::buffer(data, size), 0, ec);
+  result.bytes_transferred =
+      socket_->send(asio::buffer(data.data(), data.size()), 0, ec);
   result.error = ec;
   return result;
 }
 
-UdpSendResult UdpSocket::send_to(const void* data, std::size_t size,
+UdpSendResult UdpSocket::send_to(std::span<const std::uint8_t> data,
                                  const Endpoint& endpoint) {
   if (!socket_) return {0, MakeNotOpenError()};
   UdpSendResult result{};
   asio::error_code ec;
   result.bytes_transferred =
-      socket_->send_to(asio::buffer(data, size), endpoint.native(), 0, ec);
+      socket_->send_to(asio::buffer(data.data(), data.size()),
+                       endpoint.native(), 0, ec);
   result.error = ec;
   return result;
 }
 
-UdpReceiveResult UdpSocket::receive(void* data, std::size_t size) {
+UdpReceiveResult UdpSocket::receive(std::span<std::uint8_t> data) {
   if (!socket_) return {0, Endpoint(), MakeNotOpenError()};
   UdpReceiveResult result{};
   asio::error_code ec;
-  result.bytes_transferred = socket_->receive(asio::buffer(data, size), 0, ec);
+  result.bytes_transferred =
+      socket_->receive(asio::buffer(data.data(), data.size()), 0, ec);
   result.error = ec;
   if (!ec && has_connected_endpoint_)
     result.remote_endpoint = connected_endpoint_;
   return result;
 }
 
-UdpReceiveResult UdpSocket::receive_from(void* data, std::size_t size) {
+UdpReceiveResult UdpSocket::receive_from(std::span<std::uint8_t> data) {
   if (!socket_) return {0, Endpoint(), MakeNotOpenError()};
   UdpReceiveResult result{};
   asio::error_code ec;
   asio::ip::udp::endpoint sender;
   result.bytes_transferred =
-      socket_->receive_from(asio::buffer(data, size), sender, 0, ec);
+      socket_->receive_from(asio::buffer(data.data(), data.size()), sender, 0,
+                            ec);
   result.error = ec;
   if (!ec) result.remote_endpoint = Endpoint(sender, true);
   return result;
