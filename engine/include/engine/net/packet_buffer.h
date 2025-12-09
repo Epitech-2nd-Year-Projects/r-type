@@ -1,8 +1,10 @@
 #ifndef ENGINE_NET_PACKET_BUFFER_H_
 #define ENGINE_NET_PACKET_BUFFER_H_
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,6 +24,8 @@ class PacketBuffer {
  public:
   using value_type = std::uint8_t;
   using Storage = std::vector<value_type>;
+  using ConstSpan = std::span<const value_type>;
+  using Span = std::span<value_type>;
 
   /**
    * @brief Static endian conversion helpers
@@ -38,7 +42,7 @@ class PacketBuffer {
 
   PacketBuffer();
   explicit PacketBuffer(std::size_t reserve_bytes);
-  PacketBuffer(const void* data, std::size_t size);
+  explicit PacketBuffer(ConstSpan data);
   explicit PacketBuffer(Storage data);
 
   /**
@@ -48,10 +52,10 @@ class PacketBuffer {
   Storage& storage() noexcept { return buffer_; }
 
   /**
-   * @brief Pointer helpers for networking APIs
+   * @brief Span helpers for networking APIs
    */
-  const value_type* data() const noexcept { return buffer_.data(); }
-  value_type* data() noexcept { return buffer_.data(); }
+  ConstSpan data() const noexcept { return ConstSpan(buffer_); }
+  Span data() noexcept { return Span(buffer_); }
 
   /**
    * @brief Buffer size and cursor helpers
@@ -86,12 +90,22 @@ class PacketBuffer {
   /**
    * @brief Copy raw bytes into the buffer
    */
-  void write_bytes(const void* data, std::size_t size);
+  void write_bytes(ConstSpan data);
+  void write_bytes(std::span<const std::byte> data);
+  template <std::size_t N>
+  void write_bytes(const std::array<value_type, N>& data) {
+    write_bytes(ConstSpan(data));
+  }
 
   /**
    * @brief Read raw bytes from the buffer
    */
-  bool read_bytes(void* destination, std::size_t size);
+  bool read_bytes(Span destination);
+  bool read_bytes(std::span<std::byte> destination);
+  template <std::size_t N>
+  bool read_bytes(std::array<value_type, N>& destination) {
+    return read_bytes(Span(destination));
+  }
 
   /**
    * @name Integer write helpers (network byte order)

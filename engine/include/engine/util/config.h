@@ -64,7 +64,7 @@ class Configuration {
   static Configuration& Instance();
 
  private:
-  bool TryGetValue(std::string_view key, std::string* value) const;
+  bool TryGetValue(std::string_view key, std::string& value) const;
   void SetInternal(std::string key, std::string value, bool override_existing);
   static std::string NormalizeKey(std::string_view key);
   static std::string TrimCopy(std::string_view text);

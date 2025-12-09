@@ -14,6 +14,7 @@
 - API surface: ensure new public headers/functions/types have documentation comments in the established style; keep implementations out of headers unless necessary.
 - Style and naming: enforce two-space indentation, PascalCase types, camelCase identifiers, ALL_CAPS only for unavoidable constants/macros. Favor standard library facilities first.
 - Safety and correctness: watch for unchecked inputs (especially server-facing code), resource leaks, lifetime issues, and thread-safety concerns. Prefer RAII and validation before use.
+- Pointers and ownership: reject or flag any introduction of raw pointers; ensure smart pointers, spans, or references convey ownership and lifetimes.
 - Tests and coverage: require tests for new behaviors; ensure names reflect behavior (`EntityManager_AddsEntity` etc.) and remain deterministic/isolated. Call out missing coverage for edge cases.
 - Scope control: flag drive-by refactors or formatting churn unrelated to the PR intent; ensure commits/PR descriptions stay concise and imperative.
 - Assets/config/scripts: keep dependencies minimal and static; no gratuitous network/filesystem access. Benchmarks should stay opt-in via `BUILD_BENCHMARKS`.

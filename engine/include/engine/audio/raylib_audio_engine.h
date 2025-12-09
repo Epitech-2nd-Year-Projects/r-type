@@ -10,7 +10,7 @@ namespace engine::audio {
 /**
  * @brief Create a Raylib-based audio engine instance.
  */
-std::unique_ptr<AudioEngine> CreateRaylibAudioEngine();
+std::shared_ptr<AudioEngine> CreateRaylibAudioEngine();
 
 }  // namespace engine::audio
 

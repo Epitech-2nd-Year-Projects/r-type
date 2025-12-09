@@ -79,7 +79,7 @@ class EngineRuntime {
   /**
    * @brief Access the audio engine when enabled
    */
-  [[nodiscard]] audio::AudioEngine* Audio();
+  [[nodiscard]] std::shared_ptr<audio::AudioEngine> Audio();
 
   /**
    * @brief Pump OS events and update streaming subsystems
@@ -93,11 +93,11 @@ class EngineRuntime {
   void Initialize(const EngineRuntimeConfig& config);
 
   util::Configuration config_;
-  util::Logger* logger_{nullptr};
-  input::InputManager input_;
+  std::reference_wrapper<util::Logger> logger_;
+  std::shared_ptr<input::InputManager> input_;
   std::unique_ptr<render::WindowBackend> window_backend_;
   std::unique_ptr<render::Window> window_;
-  std::unique_ptr<audio::AudioEngine> audio_;
+  std::shared_ptr<audio::AudioEngine> audio_;
 };
 
 }  // namespace engine::core

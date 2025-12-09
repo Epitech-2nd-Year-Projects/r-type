@@ -2,6 +2,7 @@
 #define GAME_LOGIC_ENTITIES_ENEMY_DATA_H_
 
 #include <cstdint>
+#include <string_view>
 
 #include "game_logic/components/ai_component.h"
 
@@ -12,7 +13,7 @@ namespace game_logic::entities {
  * @brief Complete enemy type definition (immutable)
  */
 struct EnemyArchetypeData {
-  const char* name;
+  std::string_view name;
   std::uint32_t health;
   float speed;
   components::EnemyBehavior behavior;
@@ -21,7 +22,7 @@ struct EnemyArchetypeData {
   float sprite_height;
   float hitbox_width;
   float hitbox_height;
-  const char* texture_path;
+  std::string_view texture_path;
   float wave_amplitude;
   float wave_frequency;
 };

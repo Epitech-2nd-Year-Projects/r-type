@@ -58,7 +58,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     return;
   }
 
-  const protocol::InputCommand* newest = nullptr;
+  std::optional<std::reference_wrapper<const protocol::InputCommand>> newest;
 
   for (std::uint8_t i = 0; i < payload.command_count; ++i) {
     const protocol::InputCommand& cmd = payload.commands[i];
@@ -66,12 +66,12 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     if (cmd.input_sequence <= state.last_applied_sequence) {
       continue;
     }
-    if (newest == nullptr || cmd.input_sequence > newest->input_sequence) {
-      newest = &cmd;
+    if (!newest || cmd.input_sequence > newest->get().input_sequence) {
+      newest = std::cref(cmd);
     }
   }
 
-  if (newest == nullptr) {
+  if (!newest) {
     auto& logger = engine::util::Logger::Default();
     logger.Trace(
         "[GameInstance] All input commands already applied for player ",
@@ -84,7 +84,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     const bool was_pressed =
         (state.last_buttons & static_cast<std::uint8_t>(flag)) != 0;
     const bool is_set =
-        (newest->buttons & static_cast<std::uint8_t>(flag)) != 0;
+        (newest->get().buttons & static_cast<std::uint8_t>(flag)) != 0;
     if (!logic_) return;
     if (!was_pressed && is_set) {
       logic_->OnPlayerInput(player_id, event_type);
@@ -107,19 +107,19 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   emit_edge(protocol::InputButton::kInputFire,
             game_logic::GameInstance::InputEventType::kBasicShootPressed,
             game_logic::GameInstance::InputEventType::kBasicShootReleased);
-  state.last_command = *newest;
-  state.last_buttons = newest->buttons;
-  state.last_applied_sequence = newest->input_sequence;
-  state.last_input_client_time_ms = newest->client_time_ms;
+  state.last_command = newest->get();
+  state.last_buttons = newest->get().buttons;
+  state.last_applied_sequence = newest->get().input_sequence;
+  state.last_input_client_time_ms = newest->get().client_time_ms;
   state.last_input_server_time_ms = static_cast<std::uint32_t>(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
   auto& logger = engine::util::Logger::Default();
   logger.Trace("[GameInstance] Updated input for player ", player_id,
-               " seq=", newest->input_sequence,
-               " buttons=", static_cast<int>(newest->buttons),
-               " ax=", newest->analog_x, " ay=", newest->analog_y);
+               " seq=", newest->get().input_sequence,
+               " buttons=", static_cast<int>(newest->get().buttons),
+               " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
 void GameInstance::Update(const engine::time::TimeDelta& delta) {
@@ -129,17 +129,19 @@ void GameInstance::Update(const engine::time::TimeDelta& delta) {
 }
 
 std::uint16_t GameInstance::ResolveEntityType(
-    const engine::ecs::TagComponent* tag,
-    const game_logic::components::PlayerComponent* player) const {
-  if (player != nullptr) {
+    std::optional<std::reference_wrapper<const engine::ecs::TagComponent>> tag,
+    std::optional<
+        std::reference_wrapper<const game_logic::components::PlayerComponent>>
+        player) const {
+  if (player.has_value()) {
     return 1;
   }
-  if (tag == nullptr) {
+  if (!tag.has_value()) {
     return 0;
   }
-  if (tag->tag == "Enemy") return 2;
-  if (tag->tag == "Missile") return 3;
-  if (tag->tag == "Obstacle") return 4;
+  if (tag->get().tag == "Enemy") return 2;
+  if (tag->get().tag == "Missile") return 3;
+  if (tag->get().tag == "Obstacle") return 4;
   return 0;
 }
 
@@ -167,31 +169,42 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       continue;
     }
     const auto& pos = position[i].value().position;
-    const auto* vel_opt = (i < velocities.size() && velocities[i].has_value())
-                              ? &velocities[i].value().velocity
-                              : nullptr;
-    const auto* tag_opt =
-        (i < tags.size() && tags[i].has_value()) ? &tags[i].value() : nullptr;
-    const auto* player_opt = (i < players.size() && players[i].has_value())
-                                 ? &players[i].value()
-                                 : nullptr;
-    const auto* health_opt = (i < healths.size() && healths[i].has_value())
-                                 ? &healths[i].value()
-                                 : nullptr;
+    const auto vel_opt =
+        (i < velocities.size() && velocities[i].has_value())
+            ? std::optional<engine::math::Vector2f>(velocities[i]->velocity)
+            : std::nullopt;
+    const auto tag_opt =
+        (i < tags.size() && tags[i].has_value())
+            ? std::optional<
+                  std::reference_wrapper<const engine::ecs::TagComponent>>(
+                  tags[i].value())
+            : std::nullopt;
+    const auto player_opt =
+        (i < players.size() && players[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::PlayerComponent>>(
+                  players[i].value())
+            : std::nullopt;
+    const auto health_opt =
+        (i < healths.size() && healths[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::HealthComponent>>(
+                  healths[i].value())
+            : std::nullopt;
     protocol::EntityNetState state{};
     state.entity_id = static_cast<std::uint32_t>(i);
     state.type = ResolveEntityType(tag_opt, player_opt);
     state.x = static_cast<std::int16_t>(std::lround(pos.x));
     state.y = static_cast<std::int16_t>(std::lround(pos.y));
 
-    if (vel_opt != nullptr) {
+    if (vel_opt.has_value()) {
       state.vx = static_cast<std::int16_t>(std::lround(vel_opt->x));
       state.vy = static_cast<std::int16_t>(std::lround(vel_opt->y));
     }
-    if (health_opt != nullptr) {
+    if (health_opt.has_value()) {
       state.hp = static_cast<std::uint8_t>(
-          std::min<std::uint32_t>(health_opt->current_health, 255u));
-      state.flags = health_opt->invulnerable ? 1u : 0u;
+          std::min<std::uint32_t>(health_opt->get().current_health, 255u));
+      state.flags = health_opt->get().invulnerable ? 1u : 0u;
     } else {
       state.hp = 0;
       state.flags = 0;

@@ -31,11 +31,12 @@ std::uint8_t BuildButtonMask(const client::ActionState& state) {
 
 namespace client {
 
-InputSender::InputSender(InputLayer& input_layer, NetworkTransport& transport,
-                         protocol::SequenceTracker& sequence_tracker)
+InputSender::InputSender(
+    InputLayer& input_layer, NetworkTransport& transport,
+    std::shared_ptr<protocol::SequenceTracker> sequence_tracker)
     : input_layer_(input_layer),
       transport_(transport),
-      sequence_tracker_(sequence_tracker) {}
+      sequence_tracker_(std::move(sequence_tracker)) {}
 
 void InputSender::Reset() {
   history_ = protocol::InputHistoryWindow{};
@@ -83,11 +84,11 @@ bool InputSender::SendPayload(const protocol::InputStatePayload& payload,
   packet.header.message_type = static_cast<std::uint8_t>(
       protocol::message_type::MessageType::kInputState);
   packet.header.flags = 0;
-  packet.header.sequence = sequence_tracker_.NextLocalSequence();
+  packet.header.sequence = sequence_tracker_->NextLocalSequence();
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = client_time_ms;
-  sequence_tracker_.FillAckFields(&packet.header);
+  sequence_tracker_->FillAckFields(packet.header);
   packet.payload = payload;
 
   engine::net::PacketBuffer buffer;

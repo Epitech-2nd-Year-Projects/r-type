@@ -7,6 +7,7 @@
 #define CLIENT_INPUT_SENDER_H_
 
 #include <cstdint>
+#include <memory>
 
 #include "engine/time/time_delta.h"
 #include "protocol/input_state.h"
@@ -34,7 +35,7 @@ class InputSender {
    * @brief Construct an input sender bound to the input layer and transport
    */
   InputSender(InputLayer& input_layer, NetworkTransport& transport,
-              protocol::SequenceTracker& sequence_tracker);
+              std::shared_ptr<protocol::SequenceTracker> sequence_tracker);
 
   /**
    * @brief Reset input history and local sequence counters
@@ -53,7 +54,7 @@ class InputSender {
 
   InputLayer& input_layer_;
   NetworkTransport& transport_;
-  protocol::SequenceTracker& sequence_tracker_;
+  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_;
   protocol::InputHistoryWindow history_{};
   std::uint32_t next_input_sequence_{1};
   float send_interval_seconds_{1.0f / 60.0f};
