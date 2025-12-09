@@ -10,7 +10,7 @@ void EventBus::Unsubscribe(const SubscriptionHandle& handle) {
   if (!handle.Valid()) return;
 
   std::lock_guard lock(subscribers_mutex_);
-  auto it = subscribers_.find(TypeId(*handle.type));
+  auto it = subscribers_.find(handle.type);
   if (it == subscribers_.end()) return;
 
   auto& list = it->second;
