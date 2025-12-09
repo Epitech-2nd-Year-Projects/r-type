@@ -18,7 +18,9 @@ std::unique_ptr<render::WindowBackend> DefaultWindowBackend() {
 
 }  // namespace
 
-EngineRuntime::EngineRuntime() = default;
+EngineRuntime::EngineRuntime()
+    : logger_(util::Logger::Default()),
+      input_(std::make_shared<input::InputManager>()) {}
 
 EngineRuntime::~EngineRuntime() = default;
 
@@ -36,9 +38,9 @@ std::unique_ptr<EngineRuntime> EngineRuntime::Create(
 
 util::Configuration& EngineRuntime::Config() { return config_; }
 
-util::Logger& EngineRuntime::Logger() { return *logger_; }
+util::Logger& EngineRuntime::Logger() { return logger_.get(); }
 
-input::InputManager& EngineRuntime::Input() { return input_; }
+input::InputManager& EngineRuntime::Input() { return *input_; }
 
 render::Window& EngineRuntime::Window() { return *window_; }
 
@@ -50,7 +52,7 @@ render::Renderer2D& EngineRuntime::Renderer() {
   return window_->GetRenderContext().Get2DRenderer();
 }
 
-audio::AudioEngine* EngineRuntime::Audio() { return audio_.get(); }
+std::shared_ptr<audio::AudioEngine> EngineRuntime::Audio() { return audio_; }
 
 bool EngineRuntime::Pump() {
   if (window_) {
@@ -68,8 +70,8 @@ bool EngineRuntime::Pump() {
 }
 
 void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
-  logger_ = &util::Logger::Default();
-  logger_->SetLevel(config.log_level);
+  logger_ = util::Logger::Default();
+  logger_.get().SetLevel(config.log_level);
 
   if (!config.colorize_logs) {
     util::Logger::ClearDefaultSinks();
@@ -87,7 +89,7 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
   }
 
   render::WindowConfig window_config = config.window_config;
-  window_config.input_manager = &input_;
+  window_config.input_manager = input_;
   window_ = window_backend_->CreateWindow(window_config);
   if (!window_) {
     throw std::runtime_error("Window creation failed");
@@ -97,7 +99,7 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
     audio_ = audio::CreateRaylibAudioEngine();
   }
 
-  logger_->Info("Engine ready using backend ", window_backend_->Name());
+  logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
 
 }  // namespace engine::core
