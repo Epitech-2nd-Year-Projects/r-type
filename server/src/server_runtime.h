@@ -2,6 +2,7 @@
 #define SERVER_SERVER_RUNTIME_H_
 
 #include <cstdint>
+#include <cmath>
 #include <random>
 #include <string>
 #include <string_view>
@@ -16,6 +17,7 @@
 #include "protocol/packet.h"
 #include "protocol/input_state.h"
 #include "protocol/command.h"
+#include "protocol/snapshot_history.h"
 #include "server_config.h"
 #include "peer_connection.h"
 #include "game_instance.h"
@@ -247,6 +249,7 @@ class ServerRuntime {
   std::uint32_t next_snapshot_id_{1};                       ///< Next snapshot ID for world state broadcasts.
   engine::time::TimeDelta fixed_delta_;                     ///< Fixed simulation timestep (1.0 / tick_rate).
   engine::time::TimeDelta accumulator_;                     ///< Accumulates frame time for fixed-step simulation.
+  protocol::SnapshotHistory snapshot_history_{32};
   bool running_{false};                                     ///< Whether the server loop is currently running.
 };
 

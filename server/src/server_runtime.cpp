@@ -478,10 +478,9 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
 }
 
 void ServerRuntime::BroadcastWorldSnapshot() {
-  protocol::WorldSnapshotPayload snapshot{};
-  snapshot.snapshot_id = next_snapshot_id_++;
-  snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
-  snapshot.server_tick = server_tick_;
+  protocol::WorldSnapshotPayload snapshot =
+      game_instance_.BuildWorldSnapshot(next_snapshot_id_++, server_tick_);
+  snapshot_history_.AddSnapshot(snapshot);
 
   for (auto& [_, peer] : peers_) {
     if (peer.state != PeerState::kJoined || peer.player_id == 0) {
