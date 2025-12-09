@@ -48,4 +48,18 @@ void ReliableQueue::CollectPacketsToResend(
     }
   }
 }
+
+void ReliableQueue::MarkSendFailed(std::uint32_t sequence,
+                                   std::uint32_t now_ms) {
+  for (PendingPacket& packet : pending_) {
+    if (packet.sequence == sequence) {
+      if (now_ms >= resend_timeout_ms_) {
+        packet.last_send_time_ms = now_ms - resend_timeout_ms_;
+      } else {
+        packet.last_send_time_ms = 0;
+      }
+      return;
+    }
+  }
+}
 }  // namespace protocol
