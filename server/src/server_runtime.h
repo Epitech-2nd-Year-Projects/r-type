@@ -243,12 +243,11 @@ class ServerRuntime {
   std::unordered_map<std::uint32_t, std::string> players_;      ///< Map of player IDs to endpoint keys.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic seeds.
   GameInstance game_instance_;                              ///< Authoritative game instance.
-  std::uint32_t next_sequence_{1};                          ///< Next sequence number for outgoing packets.
   std::uint32_t server_tick_{0};                            ///< Current server tick counter since startup.
   std::uint32_t next_snapshot_id_{1};                       ///< Next snapshot ID for world state broadcasts.
   engine::time::TimeDelta fixed_delta_;                     ///< Fixed simulation timestep (1.0 / tick_rate).
   engine::time::TimeDelta accumulator_;                     ///< Accumulates frame time for fixed-step simulation.
-  bool running_{false};                                     ///< Whether the server loop is currently running.   
+  bool running_{false};                                     ///< Whether the server loop is currently running.
 };
 
 }  // namespace server
