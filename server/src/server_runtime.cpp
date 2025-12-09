@@ -428,15 +428,15 @@ PeerConnection* ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
 }
 
 void ServerRuntime::RemovePeer(PeerConnection& peer) {
-  logger_->Info("Removing peer ", peer.endpoint_key, " player id ",
-                peer.player_id);
+  const std::string endpoint_key = peer.endpoint_key;
+  const std::uint32_t player_id = peer.player_id;
 
-  if (peer.player_id != 0) {
-    players_.erase(peer.player_id);
-    game_instance_.OnPlayerLeft(peer.player_id);
+  logger_->Info("Removing peer ", endpoint_key, " player id ", player_id);
+  if (player_id != 0) {
+    players_.erase(player_id);
+    game_instance_.OnPlayerLeft(player_id);
   }
-  peer.state = PeerState::kDisconnected;
-  peers_.erase(peer.endpoint_key);
+  peers_.erase(endpoint_key);
 }
 
 }  // namespace server
