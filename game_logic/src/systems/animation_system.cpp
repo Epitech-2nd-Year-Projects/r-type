@@ -22,6 +22,10 @@ void AnimationSystem::Update(engine::ecs::Registry &registry,
       continue;
     }
 
+    if (animation.frame_duration <= engine::time::TimeDelta::zero()) {
+      continue;
+    }
+
     animation.elapsed += dt;
 
     if (animation.elapsed >= animation.frame_duration) {
@@ -39,10 +43,10 @@ void AnimationSystem::Update(engine::ecs::Registry &registry,
           }
         }
       }
+    }
 
-      if (animation.current_frame < animation.frames.size()) {
-        sprite_comp.source_rect = animation.frames[animation.current_frame];
-      }
+    if (animation.current_frame < animation.frames.size()) {
+      sprite_comp.source_rect = animation.frames[animation.current_frame];
     }
   }
 }
