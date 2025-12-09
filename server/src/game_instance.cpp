@@ -66,7 +66,8 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   state.last_command = *newest;
   state.last_applied_sequence = newest->input_sequence;
   state.last_input_client_time_ms = newest->client_time_ms;
-  state.last_input_server_time_ms = header.timestamp_ms;
+  state.last_input_server_time_ms =
+      std::chrono::steady_clock::now().time_since_epoch().count();
   auto& logger = engine::util::Logger::Default();
   logger.Trace("[GameInstance] Updated input for player ", player_id,
                " seq=", newest->input_sequence,
