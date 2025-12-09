@@ -14,6 +14,8 @@
 #include "engine/util/logging.h"
 #include "protocol/join.h"
 #include "protocol/packet.h"
+#include "protocol/input_state.h"
+#include "protocol/command.h"
 #include "server_config.h"
 #include "peer_connection.h"
 
@@ -92,6 +94,30 @@ class ServerRuntime {
    * Updates the peer's last activity timestamp and may respond with a pong.
    */
   void HandlePing(PeerConnection& peer, const protocol::PingPayload& ping);
+
+  /**
+   * @brief Handles an incoming input state message from a peer.
+   * @param peer The peer connection that sent the input state.
+   * @param input_state The input state payload containing player inputs.
+   * @param header The packet header associated with the input state.
+   *
+   * Processes the player's input commands and updates game state accordingly.
+   */
+  void HandleInputState(PeerConnection& peer,
+                          const protocol::InputStatePayload& input_state,
+                          const protocol::Header& header);
+
+  /**
+   * @brief Handles an incoming client command message from a peer.
+   * @param peer The peer connection that sent the command.
+   * @param command The command payload containing command ID and data.
+   * @param header The packet header associated with the command.
+   *
+   * Processes the client command and updates game state accordingly.
+   */
+  void HandleClientCommand(PeerConnection& peer,
+                           const protocol::CommandPayload& command,
+                           const protocol::Header& header);
   
   /**
    * @brief Processes a join request from a peer.

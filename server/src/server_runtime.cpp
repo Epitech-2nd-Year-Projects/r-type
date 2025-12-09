@@ -153,7 +153,34 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       HandlePing(peer, *ping);
       break;
     }
-
+    case MessageType::kInputState: {
+      const auto* input_state =
+          std::get_if<protocol::InputStatePayload>(&decoded.payload);
+      if (input_state == nullptr) {
+        logger_->Warn("Malformed input state from ", peer.endpoint_key);
+        return;
+      }
+      HandleInputState(peer, *input_state, decoded.header);
+      break;
+    }
+    case MessageType::kClientCommand: {
+      const auto* command =
+          std::get_if<protocol::CommandPayload>(&decoded.payload);
+      if (command == nullptr) {
+        logger_->Warn("Malformed client command from ", peer.endpoint_key);
+        return;
+      }
+      HandleClientCommand(peer, *command, decoded.header);
+      break;
+    }
+    case MessageType::kServerCommand:
+    case MessageType::kWorldSnapshot:
+    case MessageType::kSpawnEntity:
+    case MessageType::kDestroyEntity:
+    case MessageType::kPlayerDied:
+    case MessageType::kHello:
+    case MessageType::kPong:
+    case MessageType::kInvalid:
     default:
       logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
@@ -176,6 +203,43 @@ void ServerRuntime::HandlePing(PeerConnection& peer,
   peer.sequence_tracker.FillAckFields(&packet.header);
   packet.payload = pong;
   SendPacket(peer, packet);
+}
+
+void ServerRuntime::HandleInputState(
+    PeerConnection& peer, const protocol::InputStatePayload& input_state,
+    const protocol::Header& header) {
+  (void)header;
+
+  if (peer.player_id == 0) {
+    logger_->Warn("Received input state from unjoined peer ",
+                  peer.endpoint_key);
+    return;
+  }
+  logger_->Trace("InputState from player ", peer.player_id, " command_count=",
+                 static_cast<int>(input_state.command_count));
+  for (std::uint8_t i = 0; i < input_state.command_count; ++i) {
+    const auto& command = input_state.commands[i];
+    logger_->Trace("  Command ", i, ": seq=", command.input_sequence,
+                   " buttons=", static_cast<int>(command.buttons),
+                   " analog_x=", command.analog_x,
+                   " analog_y=", command.analog_y,
+                   " client_time_ms=", command.client_time_ms);
+  }
+}
+
+void ServerRuntime::HandleClientCommand(PeerConnection& peer,
+                                        const protocol::CommandPayload& command,
+                                        const protocol::Header& header) {
+  (void)header;
+
+  if (peer.player_id == 0) {
+    logger_->Warn("Received client command from unjoined peer ",
+                  peer.endpoint_key);
+    return;
+  }
+  logger_->Trace("ClientCommand from player ", peer.player_id,
+                 " command_id=", command.command_id,
+                 " data_size=", command.payload.size());
 }
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
