@@ -181,6 +181,21 @@ class ServerRuntime {
    * Encodes the packet and sends it via UDP to the peer's endpoint.
    */
   void SendPacket(PeerConnection& peer, const protocol::Packet& packet);
+
+  /**
+   * @brief Applies ACK information from the remote header to the reliable queue.
+   *
+   * Marks any pending reliable packets as acknowledged based on the incoming
+   * ack/ack_bits fields.
+   */
+  void ProcessPeerAcks(PeerConnection& peer, const protocol::Header& header);
+
+  /**
+   * @brief Retransmits timed-out reliable packets for all peers.
+   *
+   * Periodically called from the main loop to keep reliable messages flowing.
+   */
+  void ProcessReliableResends();
   
   /**
    * @brief Finds an existing peer connection by endpoint.

@@ -8,16 +8,20 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>  // Reliability: retransmission buffer.
 
 #include "engine/net/endpoint.h"
 #include "engine/net/packet_buffer.h"
 #include "protocol/join.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
+#include "protocol/reliability_policy.h"
 #include "protocol/world_snapshot.h"
 
 namespace server {
 constexpr std::uint32_t kPeerTimeoutMs = 15'000;
+constexpr std::uint32_t kReliableResendTimeoutMs = 250;
+constexpr std::size_t kReliableQueueMaxPending = 64;
 
 namespace {
 
@@ -97,9 +101,11 @@ void ServerRuntime::RunMainLoop() {
     const auto delta = frame_timer_.tick();
     accumulator_ += delta;
     PollNetwork();
+    ProcessReliableResends();
 
     while (accumulator_ >= fixed_delta_) {
       PollNetwork();
+      ProcessReliableResends();
       game_instance_.Update(fixed_delta_);
       ++server_tick_;
       BroadcastWorldSnapshot();
@@ -166,6 +172,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
   PeerConnection& peer = GetOrCreatePeer(from);
   peer.last_activity_ms = NowMilliseconds();
   peer.sequence_tracker.OnRemoteSequenceReceived(decoded.header.sequence);
+  ProcessPeerAcks(peer, decoded.header);
 
   const auto type = static_cast<MessageType>(decoded.header.message_type);
 
@@ -375,17 +382,66 @@ void ServerRuntime::SendReject(PeerConnection& peer,
 
 void ServerRuntime::SendPacket(PeerConnection& peer,
                                const protocol::Packet& packet) {
+  protocol::Packet packet_to_send = packet;
+  const auto type =
+      static_cast<MessageType>(packet_to_send.header.message_type);
+  const bool reliable_by_policy = protocol::IsReliable(type);
+  if (reliable_by_policy) {
+    packet_to_send.header.flags |=
+        static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
+  }
+
   engine::net::PacketBuffer buffer;
   buffer.reserve(128);
-  if (!protocol::EncodePacket(packet, buffer)) {
+  if (!protocol::EncodePacket(packet_to_send, buffer)) {
     logger_->Error("Failed to encode packet for ", peer.endpoint_key);
     return;
   }
+
+  const bool is_reliable =
+      reliable_by_policy ||
+      ((packet_to_send.header.flags &
+        static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable)) !=
+       0);
+
   const auto send_result =
       socket_.send_to(buffer.data(), buffer.size(), peer.endpoint);
   if (send_result.error) {
     logger_->Error("Send error to ", peer.endpoint_key, ": ",
                    send_result.error.message());
+  }
+
+  if (is_reliable && peer.reliable_queue) {
+    peer.reliable_queue->AddSentPacket(packet_to_send.header.sequence,
+                                       buffer.storage(), NowMilliseconds());
+  }
+}
+
+void ServerRuntime::ProcessPeerAcks(PeerConnection& peer,
+                                    const protocol::Header& header) {
+  if (peer.reliable_queue == nullptr) {
+    return;
+  }
+  peer.reliable_queue->OnAckReceived(header.ack, header.ack_bits);
+}
+
+void ServerRuntime::ProcessReliableResends() {
+  const std::uint32_t now_ms = NowMilliseconds();
+
+  for (auto& [_, peer] : peers_) {
+    if (!peer.reliable_queue) {
+      continue;
+    }
+    std::vector<protocol::PendingPacket> to_resend;
+    peer.reliable_queue->CollectPacketsToResend(now_ms, &to_resend);
+    for (const auto& pending : to_resend) {
+      const auto send_result = socket_.send_to(
+          pending.bytes.data(), pending.bytes.size(), peer.endpoint);
+      if (send_result.error) {
+        logger_->Warn("Resend error to ", peer.endpoint_key, ": ",
+                      send_result.error.message());
+      }
+    }
   }
 }
 
@@ -413,6 +469,10 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   const auto key = EndpointKey(endpoint);
   auto it = peers_.find(key);
   if (it != peers_.end()) {
+    if (!it->second.reliable_queue) {
+      it->second.reliable_queue = std::make_unique<protocol::ReliableQueue>(
+          kReliableResendTimeoutMs, kReliableQueueMaxPending);
+    }
     return it->second;
   }
 
@@ -421,6 +481,9 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   peer.endpoint = endpoint;
   peer.state = PeerState::kConnecting;
   peer.last_activity_ms = NowMilliseconds();
+  // Reliability: allocate retransmission queue for this peer on first sight.
+  peer.reliable_queue = std::make_unique<protocol::ReliableQueue>(
+      kReliableResendTimeoutMs, kReliableQueueMaxPending);
   auto [inserted_it, inserted] = peers_.emplace(key, std::move(peer));
   (void)inserted;
   return inserted_it->second;
