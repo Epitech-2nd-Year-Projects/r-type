@@ -82,9 +82,8 @@ UdpSendResult UdpSocket::send_to(std::span<const std::uint8_t> data,
   if (!socket_) return {0, MakeNotOpenError()};
   UdpSendResult result{};
   asio::error_code ec;
-  result.bytes_transferred =
-      socket_->send_to(asio::buffer(data.data(), data.size()),
-                       endpoint.native(), 0, ec);
+  result.bytes_transferred = socket_->send_to(
+      asio::buffer(data.data(), data.size()), endpoint.native(), 0, ec);
   result.error = ec;
   return result;
 }
@@ -106,9 +105,8 @@ UdpReceiveResult UdpSocket::receive_from(std::span<std::uint8_t> data) {
   UdpReceiveResult result{};
   asio::error_code ec;
   asio::ip::udp::endpoint sender;
-  result.bytes_transferred =
-      socket_->receive_from(asio::buffer(data.data(), data.size()), sender, 0,
-                            ec);
+  result.bytes_transferred = socket_->receive_from(
+      asio::buffer(data.data(), data.size()), sender, 0, ec);
   result.error = ec;
   if (!ec) result.remote_endpoint = Endpoint(sender, true);
   return result;

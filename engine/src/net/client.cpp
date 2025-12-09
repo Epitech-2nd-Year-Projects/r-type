@@ -129,9 +129,8 @@ void Client::WorkerLoop() {
     PacketBuffer::Storage outgoing_bytes;
     if (DequeueOutgoing(outgoing_bytes)) {
       did_work = true;
-      const auto send_result =
-          socket_.send_to(std::span<const std::uint8_t>(outgoing_bytes),
-                          endpoint_copy);
+      const auto send_result = socket_.send_to(
+          std::span<const std::uint8_t>(outgoing_bytes), endpoint_copy);
       if (send_result.error && !IsTransientError(send_result.error)) {
         running_.store(false, std::memory_order_release);
         break;

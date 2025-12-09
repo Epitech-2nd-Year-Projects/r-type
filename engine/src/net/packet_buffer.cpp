@@ -96,17 +96,15 @@ bool PacketBuffer::read_bytes(std::span<std::byte> destination) {
   if (!EnsureReadable(destination.size())) return false;
   std::transform(
       buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_),
-      buffer_.begin() + static_cast<std::ptrdiff_t>(read_offset_ +
-                                                    destination.size()),
+      buffer_.begin() +
+          static_cast<std::ptrdiff_t>(read_offset_ + destination.size()),
       destination.begin(),
       [](value_type value) { return static_cast<std::byte>(value); });
   read_offset_ += destination.size();
   return true;
 }
 
-void PacketBuffer::WriteUint8(std::uint8_t value) {
-  buffer_.push_back(value);
-}
+void PacketBuffer::WriteUint8(std::uint8_t value) { buffer_.push_back(value); }
 
 void PacketBuffer::WriteUint16(std::uint16_t value) {
   const auto network_value = Endian::HostToNetwork(value);
@@ -162,8 +160,7 @@ void PacketBuffer::WriteFloat(float value) {
 void PacketBuffer::WriteDouble(double value) {
   static_assert(sizeof(double) == sizeof(std::uint64_t),
                 "Unexpected double size");
-  const auto bits =
-      Endian::HostToNetwork(std::bit_cast<std::uint64_t>(value));
+  const auto bits = Endian::HostToNetwork(std::bit_cast<std::uint64_t>(value));
   WriteUint64(bits);
 }
 
