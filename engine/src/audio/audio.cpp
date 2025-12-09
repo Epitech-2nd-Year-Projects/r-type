@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -44,13 +45,13 @@ class RaylibAudioEngine final : public AudioEngine {
       return;
     }
 
-    ::Sound* sound = LoadSoundCached(path);
-    if (sound == nullptr) {
+    auto sound = LoadSoundCached(path);
+    if (!sound.has_value()) {
       return;
     }
 
-    ::SetSoundVolume(*sound, sfx_volume_);
-    ::PlaySound(*sound);
+    ::SetSoundVolume(sound->get(), sfx_volume_);
+    ::PlaySound(sound->get());
   }
 
   void PlayMusic(const std::string& path) override {
@@ -117,16 +118,17 @@ class RaylibAudioEngine final : public AudioEngine {
     sfx_cache_.clear();
   }
 
-  ::Sound* LoadSoundCached(const std::string& path) {
+  std::optional<std::reference_wrapper<::Sound>> LoadSoundCached(
+      const std::string& path) {
     auto [it, inserted] = sfx_cache_.try_emplace(path);
     if (inserted) {
       it->second = ::LoadSound(path.c_str());
       if (it->second.frameCount == 0) {
         sfx_cache_.erase(it);
-        return nullptr;
+        return std::nullopt;
       }
     }
-    return &it->second;
+    return std::ref(it->second);
   }
 
   float master_volume_ = 1.0f;
@@ -139,8 +141,8 @@ class RaylibAudioEngine final : public AudioEngine {
 
 }  // namespace
 
-std::unique_ptr<AudioEngine> CreateRaylibAudioEngine() {
-  return std::make_unique<RaylibAudioEngine>();
+std::shared_ptr<AudioEngine> CreateRaylibAudioEngine() {
+  return std::make_shared<RaylibAudioEngine>();
 }
 
 }  // namespace engine::audio
