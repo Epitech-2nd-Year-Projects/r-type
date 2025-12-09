@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <random>
 #include <unordered_map>
+#include <optional>
+#include <functional>
 
 #include "engine/time/time_delta.h"
 #include "engine/util/logging.h"
@@ -154,7 +156,12 @@ class GameInstance {
    * Used during snapshot building to classify entities for network replication.
    * Handles player entities, enemies, projectiles, and other game objects.
    */
-  std::uint16_t ResolveEntityType(const engine::ecs::TagComponent* tag, const game_logic::components::PlayerComponent* player) const;
+  std::uint16_t ResolveEntityType(
+      std::optional<std::reference_wrapper<const engine::ecs::TagComponent>>
+          tag,
+      std::optional<
+          std::reference_wrapper<const game_logic::components::PlayerComponent>>
+          player) const;
   /**
    * @brief Per-player state tracked by the game instance.
    * 
