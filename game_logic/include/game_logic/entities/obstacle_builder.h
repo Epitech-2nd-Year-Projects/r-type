@@ -2,6 +2,8 @@
 #define GAME_LOGIC_ENTITIES_OBSTACLE_BUILDER_H_
 
 #include <cstdint>
+#include <optional>
+#include <string>
 
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/registry.h"
@@ -29,7 +31,7 @@ struct ObstacleConfig {
   float height{64.0f};
   std::uint32_t health{100};
   std::uint32_t score_value{50};
-  const char* custom_texture{nullptr};
+  std::optional<std::string> custom_texture{};
 };
 
 /**
