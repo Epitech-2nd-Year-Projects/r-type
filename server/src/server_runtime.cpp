@@ -8,7 +8,7 @@
 #include <string>
 #include <thread>
 #include <utility>
-#include <vector>  // Reliability: retransmission buffer.
+#include <vector>
 
 #include "engine/net/endpoint.h"
 #include "engine/net/packet_buffer.h"
@@ -440,6 +440,7 @@ void ServerRuntime::ProcessReliableResends() {
       if (send_result.error) {
         logger_->Warn("Resend error to ", peer.endpoint_key, ": ",
                       send_result.error.message());
+        peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);
       }
     }
   }
@@ -481,7 +482,6 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   peer.endpoint = endpoint;
   peer.state = PeerState::kConnecting;
   peer.last_activity_ms = NowMilliseconds();
-  // Reliability: allocate retransmission queue for this peer on first sight.
   peer.reliable_queue = std::make_unique<protocol::ReliableQueue>(
       kReliableResendTimeoutMs, kReliableQueueMaxPending);
   auto [inserted_it, inserted] = peers_.emplace(key, std::move(peer));
