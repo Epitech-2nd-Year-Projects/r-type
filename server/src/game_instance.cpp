@@ -84,7 +84,6 @@ void GameInstance::Update(const engine::time::TimeDelta& delta) {
   //  - consume PlayerState::last_command for each player
   //  - update entities via gamelogic & engine ECS
   //  - handle collisions, projectiles, enemy waves, etc.
-
 }
 
 }  // namespace server
