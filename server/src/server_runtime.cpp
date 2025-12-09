@@ -44,7 +44,8 @@ ServerRuntime::ServerRuntime(ServerConfig config)
     : socket_(engine::net::UdpSocket::Protocol::kIpv4),
       config_(std::move(config)),
       frame_timer_(static_cast<float>(config_.tick_rate)),
-      rng_(config_.seed) {
+      rng_(config_.seed),
+      game_instance_(config_.seed) {
   logger_ = &engine::util::Logger::Default();
 }
 
@@ -79,6 +80,7 @@ void ServerRuntime::Run() {
     if (recv_result.error) {
       if (IsTransientError(recv_result.error)) {
         CheckPeerTimeouts();
+        game_instance_.Update(delta);
         TickRateSleep(delta);
         continue;
       }
@@ -92,6 +94,7 @@ void ServerRuntime::Run() {
       HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
     }
     CheckPeerTimeouts();
+    game_instance_.Update(delta);
     TickRateSleep(delta);
   }
 }
@@ -153,7 +156,34 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       HandlePing(peer, *ping);
       break;
     }
-
+    case MessageType::kInputState: {
+      const auto* input_state =
+          std::get_if<protocol::InputStatePayload>(&decoded.payload);
+      if (input_state == nullptr) {
+        logger_->Warn("Malformed input state from ", peer.endpoint_key);
+        return;
+      }
+      HandleInputState(peer, *input_state, decoded.header);
+      break;
+    }
+    case MessageType::kClientCommand: {
+      const auto* command =
+          std::get_if<protocol::CommandPayload>(&decoded.payload);
+      if (command == nullptr) {
+        logger_->Warn("Malformed client command from ", peer.endpoint_key);
+        return;
+      }
+      HandleClientCommand(peer, *command, decoded.header);
+      break;
+    }
+    case MessageType::kServerCommand:
+    case MessageType::kWorldSnapshot:
+    case MessageType::kSpawnEntity:
+    case MessageType::kDestroyEntity:
+    case MessageType::kPlayerDied:
+    case MessageType::kHello:
+    case MessageType::kPong:
+    case MessageType::kInvalid:
     default:
       logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
@@ -176,6 +206,44 @@ void ServerRuntime::HandlePing(PeerConnection& peer,
   peer.sequence_tracker.FillAckFields(&packet.header);
   packet.payload = pong;
   SendPacket(peer, packet);
+}
+
+void ServerRuntime::HandleInputState(
+    PeerConnection& peer, const protocol::InputStatePayload& input_state,
+    const protocol::Header& header) {
+  (void)header;
+
+  if (peer.player_id == 0) {
+    logger_->Warn("Received input state from unjoined peer ",
+                  peer.endpoint_key);
+    return;
+  }
+  logger_->Trace("InputState from player ", peer.player_id, " command_count=",
+                 static_cast<int>(input_state.command_count));
+  for (std::uint8_t i = 0; i < input_state.command_count; ++i) {
+    const auto& command = input_state.commands[i];
+    logger_->Trace("  Command ", i, ": seq=", command.input_sequence,
+                   " buttons=", static_cast<int>(command.buttons),
+                   " analog_x=", command.analog_x,
+                   " analog_y=", command.analog_y,
+                   " client_time_ms=", command.client_time_ms);
+  }
+  game_instance_.OnPlayerInput(peer.player_id, input_state, header);
+}
+
+void ServerRuntime::HandleClientCommand(PeerConnection& peer,
+                                        const protocol::CommandPayload& command,
+                                        const protocol::Header& header) {
+  (void)header;
+
+  if (peer.player_id == 0) {
+    logger_->Warn("Received client command from unjoined peer ",
+                  peer.endpoint_key);
+    return;
+  }
+  logger_->Trace("ClientCommand from player ", peer.player_id,
+                 " command_id=", command.command_id,
+                 " data_size=", command.payload.size());
 }
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
@@ -219,6 +287,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.state = PeerState::kJoined;
   peer.last_activity_ms = NowMilliseconds();
   players_[peer.player_id] = peer.endpoint_key;
+  game_instance_.OnPlayerJoined(peer.player_id);
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
@@ -338,8 +407,13 @@ void ServerRuntime::CheckPeerTimeouts() {
     if (inactive_ms > kPeerTimeoutMs) {
       logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
-      RemovePeer(peer);
-      it = peers_.begin();
+      const std::uint32_t player_id = peer.player_id;
+      const std::string endpoint_key = peer.endpoint_key;
+      if (player_id != 0) {
+        players_.erase(player_id);
+        game_instance_.OnPlayerLeft(player_id);
+      }
+      it = peers_.erase(it);
       continue;
     }
     ++it;
@@ -359,14 +433,15 @@ PeerConnection* ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
 }
 
 void ServerRuntime::RemovePeer(PeerConnection& peer) {
-  logger_->Info("Removing peer ", peer.endpoint_key, " player id ",
-                peer.player_id);
+  const std::string endpoint_key = peer.endpoint_key;
+  const std::uint32_t player_id = peer.player_id;
 
-  if (peer.player_id != 0) {
-    players_.erase(peer.player_id);
+  logger_->Info("Removing peer ", endpoint_key, " player id ", player_id);
+  if (player_id != 0) {
+    players_.erase(player_id);
+    game_instance_.OnPlayerLeft(player_id);
   }
-  peer.state = PeerState::kDisconnected;
-  peers_.erase(peer.endpoint_key);
+  peers_.erase(endpoint_key);
 }
 
 }  // namespace server
