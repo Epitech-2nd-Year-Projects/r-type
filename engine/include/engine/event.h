@@ -1,6 +1,7 @@
 #ifndef ENGINE_ENGINE_EVENT_H_
 #define ENGINE_ENGINE_EVENT_H_
 
+#include <any>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -27,11 +28,12 @@ class EventBus {
    * @brief Handle returned by Subscribe to later remove a listener.
    */
   struct SubscriptionHandle {
-    const std::type_info* type = nullptr;
+    std::type_index type{typeid(void)};
     std::size_t id = 0;
+    bool active = false;
 
     [[nodiscard]] bool Valid() const noexcept {
-      return type != nullptr && id != 0;
+      return active && id != 0;
     }
 
     explicit operator bool() const noexcept { return Valid(); }
@@ -100,7 +102,7 @@ class EventBus {
  private:
   struct HandlerBase {
     virtual ~HandlerBase() = default;
-    virtual void Invoke(const void* event) const = 0;
+    virtual void Invoke(const std::any& event) const = 0;
     [[nodiscard]] virtual std::size_t Id() const noexcept = 0;
   };
 
@@ -110,8 +112,9 @@ class EventBus {
                  std::function<void(const Event&)> callback_fn)
         : id(handler_id), callback(std::move(callback_fn)) {}
 
-    void Invoke(const void* event) const override {
-      callback(*static_cast<const Event*>(event));
+    void Invoke(const std::any& event) const override {
+      callback(
+          std::any_cast<std::reference_wrapper<const Event>>(event).get());
     }
 
     [[nodiscard]] std::size_t Id() const noexcept override { return id; }
@@ -138,7 +141,7 @@ class EventBus {
 template <typename Event, typename Callable>
 EventBus::SubscriptionHandle EventBus::Subscribe(Callable&& callback) {
   using DecayedEvent = std::decay_t<Event>;
-  const auto& type = typeid(DecayedEvent);
+  const auto type = std::type_index(typeid(DecayedEvent));
   auto fn = std::function<void(const DecayedEvent&)>(
       std::forward<Callable>(callback));
 
@@ -146,8 +149,8 @@ EventBus::SubscriptionHandle EventBus::Subscribe(Callable&& callback) {
   const std::size_t id = next_subscription_id_++;
   auto handler =
       std::make_shared<TypedHandler<DecayedEvent>>(id, std::move(fn));
-  subscribers_[TypeId(type)].push_back(std::move(handler));
-  return SubscriptionHandle{&type, id};
+  subscribers_[type].push_back(std::move(handler));
+  return SubscriptionHandle{type, id, true};
 }
 
 template <typename Event>
@@ -190,8 +193,9 @@ void EventBus::PublishImpl(const Event& event) {
     handlers = it->second;
   }
 
+  const std::any payload = std::cref(event);
   for (const auto& handler : handlers) {
-    handler->Invoke(&event);
+    handler->Invoke(payload);
   }
 }
 
