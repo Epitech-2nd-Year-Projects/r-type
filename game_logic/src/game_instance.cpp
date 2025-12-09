@@ -19,8 +19,10 @@
 namespace game_logic {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
-    : room_id_(room_id), max_players_(max_players),
-      registry_(std::make_unique<engine::ecs::Registry>()), game_state_(),
+    : room_id_(room_id),
+      max_players_(max_players),
+      registry_(std::make_unique<engine::ecs::Registry>()),
+      game_state_(),
       is_started_(false) {
   game_state_.room_id = room_id_;
   RegisterComponents();
@@ -109,9 +111,8 @@ void GameInstance::RemovePlayer(std::uint32_t player_id) {
   }
 }
 
-std::optional<engine::ecs::EntityId>
-GameInstance::OnPlayerJoin(std::uint32_t player_id,
-                           std::string_view player_name) {
+std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
+    std::uint32_t player_id, std::string_view player_name) {
   if (player_names_.size() >= max_players_) {
     return std::nullopt;
   }
@@ -253,4 +254,4 @@ void GameInstance::InitializeGame() {}
 
 void GameInstance::UpdateGameState() {}
 
-} // namespace game_logic
+}  // namespace game_logic
