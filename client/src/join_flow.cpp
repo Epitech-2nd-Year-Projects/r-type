@@ -91,9 +91,9 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
       protocol::message_type::MessageType::kJoinRequest);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence =
-      sequence_tracker_ ? sequence_tracker_->NextLocalSequence()
-                        : next_sequence_++;
+  packet.header.sequence = sequence_tracker_
+                               ? sequence_tracker_->NextLocalSequence()
+                               : next_sequence_++;
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
@@ -131,8 +131,7 @@ void JoinFlow::HandleDecodedPacket(protocol::Packet& packet) {
         LogPacketError("handshake", "Malformed JoinAccept payload");
         return;
       }
-      HandleJoinAccept(
-          std::get<protocol::JoinAcceptPayload>(packet.payload));
+      HandleJoinAccept(std::get<protocol::JoinAcceptPayload>(packet.payload));
       break;
     }
     case protocol::message_type::MessageType::kJoinReject: {
@@ -141,8 +140,7 @@ void JoinFlow::HandleDecodedPacket(protocol::Packet& packet) {
         LogPacketError("handshake", "Malformed JoinReject payload");
         return;
       }
-      HandleJoinReject(
-          std::get<protocol::JoinRejectPayload>(packet.payload));
+      HandleJoinReject(std::get<protocol::JoinRejectPayload>(packet.payload));
       break;
     }
     default:

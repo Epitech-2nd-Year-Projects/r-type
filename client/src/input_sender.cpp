@@ -31,8 +31,9 @@ std::uint8_t BuildButtonMask(const client::ActionState& state) {
 
 namespace client {
 
-InputSender::InputSender(InputLayer& input_layer, NetworkTransport& transport,
-                         std::shared_ptr<protocol::SequenceTracker> sequence_tracker)
+InputSender::InputSender(
+    InputLayer& input_layer, NetworkTransport& transport,
+    std::shared_ptr<protocol::SequenceTracker> sequence_tracker)
     : input_layer_(input_layer),
       transport_(transport),
       sequence_tracker_(std::move(sequence_tracker)) {}
