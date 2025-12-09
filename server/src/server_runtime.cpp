@@ -5,8 +5,8 @@
 #include <chrono>
 #include <csignal>
 #include <limits>
-#include <span>
 #include <optional>
+#include <span>
 #include <string>
 #include <thread>
 #include <utility>
@@ -206,16 +206,14 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
         logger_.get().Warn("Malformed input state from ", peer.endpoint_key);
         return;
       }
-      HandleInputState(
-          peer, std::get<protocol::InputStatePayload>(decoded.payload),
-          decoded.header);
+      HandleInputState(peer,
+                       std::get<protocol::InputStatePayload>(decoded.payload),
+                       decoded.header);
       break;
     }
     case MessageType::kClientCommand: {
-      if (!std::holds_alternative<protocol::CommandPayload>(
-              decoded.payload)) {
-        logger_.get().Warn("Malformed client command from ",
-                           peer.endpoint_key);
+      if (!std::holds_alternative<protocol::CommandPayload>(decoded.payload)) {
+        logger_.get().Warn("Malformed client command from ", peer.endpoint_key);
         return;
       }
       HandleClientCommand(peer,
@@ -275,9 +273,9 @@ void ServerRuntime::HandleInputState(
                        peer.endpoint_key);
     return;
   }
-  logger_.get().Trace("InputState from player ", peer.player_id,
-                      " command_count=",
-                      static_cast<int>(input_state.command_count));
+  logger_.get().Trace(
+      "InputState from player ", peer.player_id,
+      " command_count=", static_cast<int>(input_state.command_count));
   for (std::uint8_t i = 0; i < input_state.command_count; ++i) {
     const auto& command = input_state.commands[i];
     logger_.get().Trace("  Command ", i, ": seq=", command.input_sequence,
@@ -328,8 +326,8 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
-    logger_.get().Debug("Reusing existing player id ", peer.player_id,
-                        " for ", endpoint_key);
+    logger_.get().Debug("Reusing existing player id ", peer.player_id, " for ",
+                        endpoint_key);
     SendAccept(peer);
     return;
   }
@@ -482,8 +480,7 @@ void ServerRuntime::ProcessReliableResends() {
     std::vector<protocol::PendingPacket> to_resend;
     peer.reliable_queue->CollectPacketsToResend(now_ms, to_resend);
     for (const auto& pending : to_resend) {
-      const auto send_result =
-          socket_.send_to(pending.bytes, peer.endpoint);
+      const auto send_result = socket_.send_to(pending.bytes, peer.endpoint);
       if (send_result.error) {
         logger_.get().Warn("Resend error to ", peer.endpoint_key, ": ",
                            send_result.error.message());

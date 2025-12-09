@@ -130,8 +130,8 @@ void GameInstance::Update(const engine::time::TimeDelta& delta) {
 
 std::uint16_t GameInstance::ResolveEntityType(
     std::optional<std::reference_wrapper<const engine::ecs::TagComponent>> tag,
-    std::optional<std::reference_wrapper<
-        const game_logic::components::PlayerComponent>>
+    std::optional<
+        std::reference_wrapper<const game_logic::components::PlayerComponent>>
         player) const {
   if (player.has_value()) {
     return 1;
@@ -169,14 +169,15 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       continue;
     }
     const auto& pos = position[i].value().position;
-    const auto vel_opt = (i < velocities.size() && velocities[i].has_value())
-                             ? std::optional<engine::math::Vector2f>(
-                                   velocities[i]->velocity)
-                             : std::nullopt;
+    const auto vel_opt =
+        (i < velocities.size() && velocities[i].has_value())
+            ? std::optional<engine::math::Vector2f>(velocities[i]->velocity)
+            : std::nullopt;
     const auto tag_opt =
         (i < tags.size() && tags[i].has_value())
-            ? std::optional<std::reference_wrapper<
-                  const engine::ecs::TagComponent>>(tags[i].value())
+            ? std::optional<
+                  std::reference_wrapper<const engine::ecs::TagComponent>>(
+                  tags[i].value())
             : std::nullopt;
     const auto player_opt =
         (i < players.size() && players[i].has_value())
@@ -197,10 +198,8 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
     state.y = static_cast<std::int16_t>(std::lround(pos.y));
 
     if (vel_opt.has_value()) {
-      state.vx =
-          static_cast<std::int16_t>(std::lround(vel_opt->x));
-      state.vy =
-          static_cast<std::int16_t>(std::lround(vel_opt->y));
+      state.vx = static_cast<std::int16_t>(std::lround(vel_opt->x));
+      state.vy = static_cast<std::int16_t>(std::lround(vel_opt->y));
     }
     if (health_opt.has_value()) {
       state.hp = static_cast<std::uint8_t>(
