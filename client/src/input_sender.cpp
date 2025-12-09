@@ -69,12 +69,10 @@ protocol::InputCommand InputSender::BuildCommand() {
 
   const ActionState state = input_layer_->state();
   command.buttons = BuildButtonMask(state);
-  command.analog_x =
-      static_cast<std::int16_t>((state.move_right ? 1 : 0) -
-                                (state.move_left ? 1 : 0));
-  command.analog_y =
-      static_cast<std::int16_t>((state.move_down ? 1 : 0) -
-                                (state.move_up ? 1 : 0));
+  command.analog_x = static_cast<std::int16_t>((state.move_right ? 1 : 0) -
+                                               (state.move_left ? 1 : 0));
+  command.analog_y = static_cast<std::int16_t>((state.move_down ? 1 : 0) -
+                                               (state.move_up ? 1 : 0));
   command.client_time_ms = NowMilliseconds();
   return command;
 }

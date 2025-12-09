@@ -8,8 +8,8 @@
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
-#include "logging.h"
 #include "input_sender.h"
+#include "logging.h"
 
 namespace client {
 
