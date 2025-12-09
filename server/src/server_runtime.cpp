@@ -144,12 +144,38 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       ProcessJoin(peer, *request);
       break;
     }
+    case MessageType::kPing: {
+      const auto* ping = std::get_if<protocol::PingPayload>(&decoded.payload);
+      if (ping == nullptr) {
+        logger_->Warn("Malformed ping from ", peer.endpoint_key);
+        return;
+      }
+      HandlePing(peer, *ping);
+      break;
+    }
 
     default:
       logger_->Debug("Ignoring non-join packet (type ", static_cast<int>(type),
                      ") from ", peer.endpoint_key);
       break;
   }
+}
+
+void ServerRuntime::HandlePing(PeerConnection& peer,
+                               const protocol::PingPayload& ping) {
+  protocol::PongPayload pong{};
+  pong.client_time_ms = ping.client_time_ms;
+  pong.server_time_ms = NowMilliseconds();
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type = static_cast<std::uint8_t>(MessageType::kPong);
+  packet.header.flags = 0;
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.timestamp_ms = pong.server_time_ms;
+  peer.sequence_tracker.FillAckFields(&packet.header);
+  packet.payload = pong;
+  SendPacket(peer, packet);
 }
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
@@ -192,6 +218,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
   peer.last_activity_ms = NowMilliseconds();
+  players_[peer.player_id] = peer.endpoint_key;
   logger_->Info("Accepted join from ", endpoint_key, " assigned id ",
                 peer.player_id);
   SendAccept(peer);
@@ -308,15 +335,38 @@ void ServerRuntime::CheckPeerTimeouts() {
             : (std::numeric_limits<std::uint32_t>::max() -
                peer.last_activity_ms) +
                   1u + now_ms;
-    if (peer.state != PeerState::kDisconnected &&
-        inactive_ms > kPeerTimeoutMs) {
+    if (inactive_ms > kPeerTimeoutMs) {
       logger_->Info("Timing out peer ", peer.endpoint_key, " after ",
                     inactive_ms, " ms of inactivity");
-      it = peers_.erase(it);
+      RemovePeer(peer);
+      it = peers_.begin();
       continue;
     }
     ++it;
   }
+}
+
+PeerConnection* ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
+  auto it = players_.find(player_id);
+  if (it == players_.end()) {
+    return nullptr;
+  }
+  auto peer_it = peers_.find(it->second);
+  if (peer_it == peers_.end()) {
+    return nullptr;
+  }
+  return &peer_it->second;
+}
+
+void ServerRuntime::RemovePeer(PeerConnection& peer) {
+  logger_->Info("Removing peer ", peer.endpoint_key, " player id ",
+                peer.player_id);
+
+  if (peer.player_id != 0) {
+    players_.erase(peer.player_id);
+  }
+  peer.state = PeerState::kDisconnected;
+  peers_.erase(peer.endpoint_key);
 }
 
 }  // namespace server

@@ -83,6 +83,15 @@ class ServerRuntime {
    */
   void HandlePacket(engine::net::PacketBuffer packet,
                     const engine::net::Endpoint& from);
+
+  /**
+   * @brief Handles an incoming ping message from a peer.
+   * @param peer The peer connection that sent the ping.
+   * @param ping The ping payload containing client timestamp.
+   *
+   * Updates the peer's last activity timestamp and may respond with a pong.
+   */
+  void HandlePing(PeerConnection& peer, const protocol::PingPayload& ping);
   
   /**
    * @brief Processes a join request from a peer.
@@ -131,6 +140,19 @@ class ServerRuntime {
    * @return Pointer to the peer connection if found, nullptr otherwise.
    */
   PeerConnection* FindPeer(const engine::net::Endpoint& from);
+
+  /**
+   * @brief Finds an existing peer connection by player ID.
+   * @param player_id The player ID to search for.
+   * @return Pointer to the peer connection if found, nullptr otherwise.
+   */
+  PeerConnection* FindPeerByPlayerId(std::uint32_t player_id);
+
+  /**
+   * @brief Removes a peer connection by endpoint key.
+   * @param peer The peer connection to remove.
+   */
+  void RemovePeer(PeerConnection& peer);
   
   /**
    * @brief Gets or creates a peer connection for an endpoint.
@@ -162,6 +184,7 @@ class ServerRuntime {
   engine::time::FrameTimer frame_timer_;                    ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
+  std::unordered_map<std::uint32_t, std::string> players_;      ///< Map of player IDs to endpoint keys.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic seeds.
 };
 
