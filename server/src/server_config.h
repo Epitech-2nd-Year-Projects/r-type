@@ -49,6 +49,7 @@ struct ServerConfigParseResult {
  *   --port <num>       : UDP port to bind (default: 4242)
  *   --max-players <num>: Maximum concurrent players (default: 4)
  *   --tick-rate <num>  : Server tick rate in Hz (default: 60)
+ *   --timeout-ms <num> : Peer inactivity timeout in milliseconds (default: 15000, range: 10000-30000)
  *   --room-code <str>  : Optional room code
  *   --seed <num>       : Random seed for deterministic behavior
  *   --log-level <str>  : Log level (trace, debug, info, warn, error)
