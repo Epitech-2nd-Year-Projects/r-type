@@ -41,8 +41,8 @@ int Application::Run() {
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   input_layer_->ApplyDefaultBindings();
-  input_sender_ = std::make_unique<InputSender>(*input_layer_,
-                                                world_update_receiver_);
+  input_sender_ =
+      std::make_unique<InputSender>(*input_layer_, world_update_receiver_);
 
   if (engine_->Audio()) {
     audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());

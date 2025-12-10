@@ -28,8 +28,7 @@ std::uint8_t BuildButtonMask(const client::ActionState& state) {
 
 namespace client {
 
-InputSender::InputSender(InputLayer& input_layer,
-                         WorldUpdateReceiver& receiver)
+InputSender::InputSender(InputLayer& input_layer, WorldUpdateReceiver& receiver)
     : input_layer_(input_layer), receiver_(receiver) {}
 
 void InputSender::Reset() {

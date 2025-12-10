@@ -50,8 +50,7 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
 
 WorldUpdateReceiver::~WorldUpdateReceiver() { Stop(); }
 
-bool WorldUpdateReceiver::Start(
-    NetworkTransport& transport) {
+bool WorldUpdateReceiver::Start(NetworkTransport& transport) {
   if (running_.load(std::memory_order_acquire)) {
     return false;
   }
@@ -100,8 +99,7 @@ bool WorldUpdateReceiver::Push(WorldUpdateMessage&& message) {
 }
 
 bool WorldUpdateReceiver::EnqueueInputState(
-    const protocol::InputStatePayload& payload,
-    std::uint32_t client_time_ms) {
+    const protocol::InputStatePayload& payload, std::uint32_t client_time_ms) {
   if (!running_.load(std::memory_order_acquire)) {
     return false;
   }
@@ -138,8 +136,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
 
           protocol::Packet packet{};
           packet.header.version = protocol::kProtocolVersion;
-          packet.header.message_type =
-              static_cast<std::uint8_t>(message.type);
+          packet.header.message_type = static_cast<std::uint8_t>(message.type);
           packet.header.flags = 0;
           packet.header.sequence = sequence_tracker_.NextLocalSequence();
           packet.header.ack = 0;
