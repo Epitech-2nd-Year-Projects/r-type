@@ -337,9 +337,11 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.room_code = room_code;
   peer.room_id = room.Id();
   peer.last_seen_ms = NowMilliseconds();
-  if (!JoinRoom(peer, room_code, request.player_name)) {
+  if (!JoinRoom(peer, room, request.player_name)) {
     peer.player_id = 0;
     peer.state = PeerState::kConnecting;
+    peer.room_code.clear();
+    peer.room_id = 0;
     SendReject(peer, protocol::JoinRejectReason::kServerFull, "Room full");
     return;
   }
@@ -638,16 +640,16 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
   peers_.erase(endpoint_key);
 }
 
-bool ServerRuntime::JoinRoom(PeerConnection& peer, const std::string& room_code,
+bool ServerRuntime::JoinRoom(PeerConnection& peer,
+                             Room& room,
                              std::string_view player_name) {
-  Room& room = GetOrCreateRoom(room_code);
   if (room.PlayerCount() >= room.MaxPlayers()) {
     return false;
   }
   if (!room.AddPlayer(peer.player_id, player_name)) {
     return false;
   }
-  players_[peer.player_id] = PlayerSession{peer.endpoint_key, room_code};
+  players_[peer.player_id] = PlayerSession{peer.endpoint_key, room.Code()};
   room.MarkActive(peer.last_seen_ms);
   return true;
 }
@@ -681,14 +683,17 @@ void ServerRuntime::BroadcastWorldSnapshots() {
       continue;
     }
 
-    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot();
+    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot(server_tick_);
     room.MarkActive(now_ms);
 
-    for (auto& [_, peer] : peers_) {
-      if (peer.state != PeerState::kJoined || peer.player_id == 0) {
+    for (std::uint32_t player_id : room.Players()) {
+      auto peer_ref = FindPeerByPlayerId(player_id);
+      if (!peer_ref.has_value()) {
         continue;
       }
-      if (peer.room_code != room_code) {
+      PeerConnection& peer = peer_ref->get();
+      if (peer.state != PeerState::kJoined || peer.player_id == 0 ||
+          peer.room_code != room_code) {
         continue;
       }
       protocol::Packet packet{};
@@ -697,7 +702,7 @@ void ServerRuntime::BroadcastWorldSnapshots() {
           static_cast<std::uint8_t>(MessageType::kWorldSnapshot);
       packet.header.flags = 0;
       packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
-      packet.header.timestamp_ms = NowMilliseconds();
+      packet.header.timestamp_ms = now_ms;
       peer.sequence_tracker.FillAckFields(packet.header);
       packet.payload = snapshot;
       SendPacket(peer, packet);

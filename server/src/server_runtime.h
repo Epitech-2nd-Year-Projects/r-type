@@ -274,9 +274,7 @@ class ServerRuntime {
    * @param player_name Player display name.
    * @return true if join succeeded.
    */
-  bool JoinRoom(PeerConnection& peer,
-                const std::string& room_code,
-                std::string_view player_name);
+  bool JoinRoom(PeerConnection& peer, Room& room, std::string_view player_name);
 
   /**
    * @brief Removes a peer from its room and updates bookkeeping.
