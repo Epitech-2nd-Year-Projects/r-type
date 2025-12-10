@@ -74,7 +74,8 @@ std::error_code ServerRuntime::Start() {
       config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
   logger_.get().Info("Room ", room_label, " max players ", config_.max_players,
                      " tickrate ", config_.tick_rate, " timeout_ms ",
-                     config_.peer_timeout_ms, " seed ", config_.seed);
+                     config_.peer_timeout_ms, " room_idle_ms ",
+                     config_.room_idle_timeout_ms, " seed ", config_.seed);
   return {};
 }
 
@@ -331,29 +332,17 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   Room& room = GetOrCreateRoom(room_code);
 
-  const std::size_t joined_count = room.PlayerCount();
-  if (joined_count >= room.MaxPlayers()) {
-    logger_.get().Warn("Rejecting join from ", endpoint_key,
-                       " because lobby is full");
-    SendReject(peer, protocol::JoinRejectReason::kServerFull, "Server is full");
-    return;
-  }
-
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
   peer.room_code = room_code;
   peer.room_id = room.Id();
   peer.last_seen_ms = NowMilliseconds();
-  if (!room.AddPlayer(peer.player_id, request.player_name)) {
-    logger_.get().Warn("Rejecting join from ", endpoint_key,
-                       " due to room admission failure");
+  if (!JoinRoom(peer, room_code, request.player_name)) {
     peer.player_id = 0;
     peer.state = PeerState::kConnecting;
     SendReject(peer, protocol::JoinRejectReason::kServerFull, "Room full");
     return;
   }
-  players_[peer.player_id] = PlayerSession{peer.endpoint_key, room_code};
-  room.MarkActive(peer.last_seen_ms);
   logger_.get().Info("Accepted join from ", endpoint_key, " assigned id ",
                      peer.player_id, " room ", room_code);
   SendAccept(peer, room_code);
@@ -555,10 +544,11 @@ void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code,
   if (it == rooms_.end()) {
     return;
   }
-  constexpr std::uint32_t kRoomIdleTimeoutMs = 30'000;
+  const std::uint32_t last_active = it->second.LastActiveMs();
+  const std::uint32_t idle_timeout_ms = config_.room_idle_timeout_ms;
   const bool idle =
-      now_ms >= it->second.LastActiveMs()
-          ? now_ms - it->second.LastActiveMs() >= kRoomIdleTimeoutMs
+      last_active != 0 && now_ms >= last_active
+          ? now_ms - last_active >= idle_timeout_ms
           : false;
   if (!it->second.IsEmpty() || !idle) {
     return;
@@ -603,20 +593,7 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
         reason);
   }
   peer.state = PeerState::kDisconnected;
-  std::string room_code = peer.room_code;
-  if (peer.player_id != 0) {
-    std::string resolved_room = room_code;
-    const auto session = players_.find(peer.player_id);
-    if (session != players_.end()) {
-      resolved_room = session->second.room_code;
-      players_.erase(session);
-    }
-    if (auto room = FindRoom(resolved_room)) {
-      room->get().RemovePlayer(peer.player_id);
-      room->get().MarkActive(now_ms);
-    }
-    room_code = resolved_room;
-  }
+  std::string room_code = LeaveRoom(peer, now_ms);
   peer.player_id = 0;
   peer.room_code.clear();
   peer.room_id = 0;
@@ -660,6 +637,40 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
   const std::string endpoint_key = peer.endpoint_key;
   DisconnectPeer(peer, "removed", peer.state == PeerState::kJoined);
   peers_.erase(endpoint_key);
+}
+
+bool ServerRuntime::JoinRoom(PeerConnection& peer,
+                             const std::string& room_code,
+                             std::string_view player_name) {
+  Room& room = GetOrCreateRoom(room_code);
+  if (room.PlayerCount() >= room.MaxPlayers()) {
+    return false;
+  }
+  if (!room.AddPlayer(peer.player_id, player_name)) {
+    return false;
+  }
+  players_[peer.player_id] = PlayerSession{peer.endpoint_key, room_code};
+  room.MarkActive(peer.last_seen_ms);
+  return true;
+}
+
+std::string ServerRuntime::LeaveRoom(PeerConnection& peer,
+                                     std::uint32_t now_ms) {
+  std::string room_code = peer.room_code;
+  if (peer.player_id == 0) {
+    return room_code;
+  }
+  const auto session = players_.find(peer.player_id);
+  if (session != players_.end()) {
+    room_code = session->second.room_code;
+    players_.erase(session);
+  }
+  if (auto room = FindRoom(room_code)) {
+    if (room->get().RemovePlayer(peer.player_id)) {
+      room->get().MarkActive(now_ms);
+    }
+  }
+  return room_code;
 }
 
 void ServerRuntime::BroadcastWorldSnapshots() {

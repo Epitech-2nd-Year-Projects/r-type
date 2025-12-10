@@ -266,6 +266,25 @@ class ServerRuntime {
    * @param peer The peer connection to remove.
    */
   void RemovePeer(PeerConnection& peer);
+
+  /**
+   * @brief Joins a peer to a room and updates bookkeeping.
+   * @param peer Peer to attach.
+   * @param room_code Target room code.
+   * @param player_name Player display name.
+   * @return true if join succeeded.
+   */
+  bool JoinRoom(PeerConnection& peer,
+                const std::string& room_code,
+                std::string_view player_name);
+
+  /**
+   * @brief Removes a peer from its room and updates bookkeeping.
+   * @param peer Peer to detach.
+   * @param now_ms Current timestamp for activity tracking.
+   * @return Resolved room code the peer left (empty if none).
+   */
+  std::string LeaveRoom(PeerConnection& peer, std::uint32_t now_ms);
   
   /**
    * @brief Gets or creates a peer connection for an endpoint.
@@ -329,7 +348,7 @@ class ServerRuntime {
 
   /**
    * @brief Removes a room when no peers remain.
-   * @param room_code Room code to check and remove if empty.
+   * @param room_code Room code to check and remove if empty or idle.
    * @param now_ms Current timestamp for idle evaluation.
    */
   void CleanupRoomIfEmpty(const std::string& room_code, std::uint32_t now_ms);
