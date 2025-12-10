@@ -17,7 +17,6 @@ namespace client {
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(),
-      sequence_tracker_(std::make_shared<protocol::SequenceTracker>()),
       join_flow_(config_.player_name, config_.room_code) {}
 
 int Application::Run() {
@@ -42,8 +41,8 @@ int Application::Run() {
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   input_layer_->ApplyDefaultBindings();
-  input_sender_ = std::make_unique<InputSender>(*input_layer_, transport_,
-                                                sequence_tracker_);
+  input_sender_ = std::make_unique<InputSender>(*input_layer_,
+                                                world_update_receiver_);
 
   if (engine_->Audio()) {
     audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());
@@ -61,7 +60,6 @@ int Application::Run() {
   runtime_config_store.Set("client.player_name", config_.player_name);
   runtime_config_store.Set("client.room_code", config_.room_code);
 
-  join_flow_.SetSequenceTracker(sequence_tracker_);
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
@@ -108,7 +106,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   }
   if (join_state == JoinState::kConnected &&
       !world_update_receiver_.running()) {
-    if (!world_update_receiver_.Start(transport_, sequence_tracker_)) {
+    if (!world_update_receiver_.Start(transport_)) {
       LogLifecycle(engine::util::LogLevel::kError,
                    "Failed to start world update receiver");
       return false;
