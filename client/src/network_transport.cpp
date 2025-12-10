@@ -1,19 +1,10 @@
 #include "network_transport.h"
 
-#include <chrono>
 #include <system_error>
 
+#include "time_utils.h"
+
 namespace client {
-
-namespace {
-
-std::uint64_t NowMilliseconds() {
-  using namespace std::chrono;
-  const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint64_t>(duration_cast<milliseconds>(now).count());
-}
-
-}  // namespace
 
 std::error_code NetworkTransport::Start(
     std::string_view host, std::uint16_t port,
