@@ -33,11 +33,15 @@ namespace server {
  */
 class GameInstance {
  public:
-  /**
-   * @brief Constructs a game instance with a deterministic random seed.
-   * @param seed Random seed for deterministic simulation and spawning.
-   */
-  explicit GameInstance(std::uint32_t seed);
+ /**
+  * @brief Constructs a game instance with a deterministic random seed.
+  * @param room_id Logical room identifier associated with this instance.
+  * @param seed Random seed for deterministic simulation and spawning.
+  * @param max_players Maximum number of allowed players for this instance.
+  */
+  explicit GameInstance(std::uint32_t room_id,
+                        std::uint32_t seed,
+                        std::uint32_t max_players);
 
   GameInstance(const GameInstance&) = delete;
   GameInstance& operator=(const GameInstance&) = delete;

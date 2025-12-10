@@ -6,8 +6,11 @@
 
 namespace server {
 
-GameInstance::GameInstance(std::uint32_t seed)
-    : rng_(seed), logic_(std::make_unique<game_logic::GameInstance>(1u, 4u)) {
+GameInstance::GameInstance(std::uint32_t room_id,
+                           std::uint32_t seed,
+                           std::uint32_t max_players)
+    : rng_(seed),
+      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)) {
   logic_->Start();
 }
 
