@@ -16,7 +16,7 @@ namespace client {
 
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
-      transport_(),
+      transport_(std::make_shared<NetworkTransport>()),
       join_flow_(config_.player_name, config_.room_code) {}
 
 int Application::Run() {
@@ -65,7 +65,7 @@ int Application::Run() {
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "connecting");
 
-  const auto transport_error = transport_.Start(config_.host, config_.port);
+  const auto transport_error = transport_->Start(config_.host, config_.port);
   if (transport_error) {
     LogLifecycle(engine::util::LogLevel::kError,
                  std::string("Failed to start network transport: ") +
@@ -75,14 +75,14 @@ int Application::Run() {
   if (input_sender_) {
     input_sender_->Reset();
   }
-  join_flow_.Begin(transport_);
+  join_flow_.Begin(*transport_);
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
   world_update_receiver_.Stop();
-  transport_.Stop();
+  transport_->Stop();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
 }
@@ -98,7 +98,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     input_layer_->Update();
   }
 
-  join_flow_.Update(transport_);
+  join_flow_.Update(*transport_);
   const auto join_state = join_flow_.state();
   if (join_state == JoinState::kRefused) {
     LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
