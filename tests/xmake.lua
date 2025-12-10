@@ -1,0 +1,11 @@
+add_requires("gtest")
+
+target("client_tests")
+    set_kind("binary")
+    set_default(false)
+    add_packages("gtest")
+    add_files("client/*.cpp")
+    add_files("../client/src/*.cpp|main.cpp")
+    add_includedirs("../client/src")
+    add_deps("protocol", "engine")
+    add_tests("client_tests")
