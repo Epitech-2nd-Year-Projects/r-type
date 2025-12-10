@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -184,11 +185,12 @@ class ServerRuntime {
   /**
    * @brief Sends a join accept message to a peer.
    * @param peer The peer connection to accept.
+   * @param room_code Room code associated with the peer.
    * 
    * Constructs and sends a JoinAcceptPayload with server configuration
    * and assigned player ID.
    */
-  void SendAccept(PeerConnection& peer);
+  void SendAccept(PeerConnection& peer, const std::string& room_code);
   
   /**
    * @brief Sends a join reject message to a peer.
@@ -276,12 +278,8 @@ class ServerRuntime {
    */
   PeerConnection& GetOrCreatePeer(const engine::net::Endpoint& from);
   
-  /**
-   * @brief Counts the number of peers in the kJoined state.
-   * @return Number of fully joined players.
-   */
-  std::size_t CountJoinedPlayers() const;
-  
+  std::size_t CountJoinedPlayersInRoom(const std::string& room_code) const;
+
   /**
    * @brief Checks all peer connections for inactivity timeouts.
    * 
@@ -291,13 +289,36 @@ class ServerRuntime {
   void CheckPeerTimeouts();
 
   /**
-   * @brief Sends the current game state to all connected players.
+   * @brief Sends the current game state to connected players per room.
    * 
-   * Constructs a WorldSnapshotPayload containing entity deltas and broadcasts
-   * it to all peers in the kJoined state. Increments next_snapshot_id_ after
-   * sending to maintain snapshot ordering.
+   * Constructs a WorldSnapshotPayload for each active room and broadcasts
+   * it to peers that joined the corresponding room.
    */
-  void BroadcastWorldSnapshot();
+  void BroadcastWorldSnapshots();
+
+  struct RoomContext {
+    RoomContext(std::string room_code,
+                std::uint32_t room_id,
+                std::uint32_t seed,
+                std::uint16_t max_players);
+
+    std::string room_code;
+    std::uint32_t room_id;
+    std::uint32_t seed;
+    std::uint16_t max_players;
+    std::unique_ptr<GameInstance> game_instance;
+    protocol::SnapshotHistory snapshot_history;
+    std::uint32_t next_snapshot_id{1};
+  };
+
+  struct PlayerSession {
+    std::string endpoint_key;
+    std::string room_code;
+  };
+
+  RoomContext* FindRoom(const std::string& room_code);
+  RoomContext& GetOrCreateRoom(const std::string& room_code);
+  void CleanupRoomIfEmpty(const std::string& room_code);
 
   ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
@@ -305,14 +326,13 @@ class ServerRuntime {
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
-  std::unordered_map<std::uint32_t, std::string> players_; ///< Map of player IDs to endpoint keys.
+  std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to endpoint keys.
   std::mt19937 rng_;                                       ///< Random number generator for deterministic seeds.
-  GameInstance game_instance_;                             ///< Authoritative game instance.
+  std::unordered_map<std::string, RoomContext> rooms_;     ///< Active room contexts keyed by room code.
+  std::uint32_t next_room_id_{1};                          ///< Counter for room identifiers.
   std::uint32_t server_tick_{0};                           ///< Current server tick counter since startup.
-  std::uint32_t next_snapshot_id_{1};                      ///< Next snapshot ID for world state broadcasts.
   engine::time::TimeDelta fixed_delta_;                    ///< Fixed simulation timestep (1.0 / tick_rate).
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
-  protocol::SnapshotHistory snapshot_history_{32};         ///< Rolling window of recent snapshots for delta compression.
   bool running_{false};                                    ///< Whether the server loop is currently running.
   protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
 };
