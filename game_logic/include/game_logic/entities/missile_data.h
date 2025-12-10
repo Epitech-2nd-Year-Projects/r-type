@@ -57,7 +57,7 @@ inline constexpr MissileArchetypeData kBigPlayerMissileData = {
  */
 inline constexpr MissileArchetypeData kEnemyMissileData = {
     "EnemyMissile",
-    15,
+    50,
     1.0f,
     5.0f,
     12.0f,
