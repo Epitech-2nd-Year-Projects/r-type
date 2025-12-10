@@ -45,6 +45,10 @@ void JoinFlow::Update(NetworkTransport& transport) {
     return;
   }
 
+  if (state_ != JoinState::kConnecting) {
+    return;
+  }
+
   engine::net::Client::ReceivedPacket incoming;
   while (transport.Receive(incoming)) {
     protocol::Packet packet;
@@ -57,10 +61,9 @@ void JoinFlow::Update(NetworkTransport& transport) {
       sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
     }
     HandleDecodedPacket(packet);
-  }
-
-  if (state_ != JoinState::kConnecting) {
-    return;
+    if (state_ != JoinState::kConnecting) {
+      break;
+    }
   }
 
   const auto now = std::chrono::steady_clock::now();
