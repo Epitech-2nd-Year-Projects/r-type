@@ -1,9 +1,8 @@
 #include "server_transport.h"
 
 #include <array>
-#include <utility>
-
 #include <asio.hpp>
+#include <utility>
 
 namespace server {
 

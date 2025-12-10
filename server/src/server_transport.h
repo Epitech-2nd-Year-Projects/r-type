@@ -78,8 +78,7 @@ class ServerTransport {
    * @param size Number of bytes to send
    * @return Outcome of the send operation
    */
-  engine::net::UdpSendResult Send(const UdpEndpoint& to,
-                                  const void* data,
+  engine::net::UdpSendResult Send(const UdpEndpoint& to, const void* data,
                                   std::size_t size);
 
   /**
@@ -116,9 +115,10 @@ class ServerTransport {
  private:
   static constexpr std::size_t kMaxDatagramSize = 2048;
 
-  engine::net::UdpSocket socket_{engine::net::UdpSocket::Protocol::kIpv4};  ///< Underlying UDP socket.
-  UdpEndpoint bound_endpoint_{};                                            ///< Local endpoint the socket is bound to.
-  bool running_{false};                                                     ///< Transport running state.
+  engine::net::UdpSocket socket_{
+      engine::net::UdpSocket::Protocol::kIpv4};  ///< Underlying UDP socket.
+  UdpEndpoint bound_endpoint_{};  ///< Local endpoint the socket is bound to.
+  bool running_{false};           ///< Transport running state.
 };
 
 }  // namespace server
