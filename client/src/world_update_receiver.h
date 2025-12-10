@@ -53,8 +53,10 @@ struct WorldUpdateMessage {
  * @details
  * Spawns a worker thread that drains the transport receive queue, decodes
  * protocol packets and stores relevant gameplay messages in a bounded queue
- * for consumption on the main thread. Start is synchronous and will stop any
- * previous worker before launching a new one.
+ * for consumption on the main thread. It also owns a bounded outgoing queue
+ * for gameplay payloads (inputs) that need headers and encoding before send.
+ * Start is synchronous and will stop any previous worker before launching a
+ * new one.
  */
 class WorldUpdateReceiver {
  public:
