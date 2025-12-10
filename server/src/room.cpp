@@ -57,12 +57,12 @@ void Room::HandleInput(std::uint32_t player_id,
   }
 }
 
-protocol::WorldSnapshotPayload Room::BuildSnapshot() {
+protocol::WorldSnapshotPayload Room::BuildSnapshot(std::uint32_t server_tick) {
   if (!game_instance_) {
     return {};
   }
   protocol::WorldSnapshotPayload snapshot =
-      game_instance_->BuildWorldSnapshot(next_snapshot_id_++, room_tick_);
+      game_instance_->BuildWorldSnapshot(next_snapshot_id_++, server_tick);
   snapshot_history_.AddSnapshot(snapshot);
   return snapshot;
 }
@@ -80,6 +80,10 @@ std::uint16_t Room::MaxPlayers() const { return max_players_; }
 std::uint32_t Room::Seed() const { return seed_; }
 
 std::size_t Room::PlayerCount() const { return players_.size(); }
+
+const std::unordered_set<std::uint32_t>& Room::Players() const {
+  return players_;
+}
 
 std::uint32_t Room::LastActiveMs() const { return last_active_ms_; }
 

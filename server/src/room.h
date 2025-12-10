@@ -70,10 +70,9 @@ class Room {
 
   /**
    * @brief Builds the next world snapshot for this room.
-   * @param server_tick Current server tick.
    * @return Snapshot payload ready for encoding.
    */
-  protocol::WorldSnapshotPayload BuildSnapshot();
+  protocol::WorldSnapshotPayload BuildSnapshot(std::uint32_t server_tick);
 
   /**
    * @brief Marks room activity.
@@ -105,6 +104,11 @@ class Room {
    * @brief Returns current player count.
    */
   std::size_t PlayerCount() const;
+
+  /**
+   * @brief Returns the player IDs currently in the room.
+   */
+  const std::unordered_set<std::uint32_t>& Players() const;
 
   /**
    * @brief Returns last activity timestamp.
