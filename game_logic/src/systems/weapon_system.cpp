@@ -7,21 +7,21 @@
 namespace game_logic::systems {
 
 void WeaponSystem::Update(
-    engine::ecs::Registry& registry,
-    engine::ecs::SparseArray<engine::ecs::PositionComponent>& positions,
-    engine::ecs::SparseArray<components::PlayerComponent>& players,
-    engine::ecs::SparseArray<components::WeaponComponent>& weapons,
+    engine::ecs::Registry &registry,
+    engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
+    engine::ecs::SparseArray<components::PlayerComponent> &players,
+    engine::ecs::SparseArray<components::WeaponComponent> &weapons,
     engine::time::TimeDelta dt) {
-  for (auto&& [idx, position_opt, player_opt, weapon_opt] :
+  for (auto &&[idx, position_opt, player_opt, weapon_opt] :
        engine::ecs::IndexedZipper(positions, players, weapons)) {
     if (!position_opt.has_value() || !player_opt.has_value() ||
         !weapon_opt.has_value()) {
       continue;
     }
 
-    auto& position = position_opt.value();
-    auto& player = player_opt.value();
-    auto& weapon = weapon_opt.value();
+    auto &position = position_opt.value();
+    auto &player = player_opt.value();
+    auto &weapon = weapon_opt.value();
 
     if (weapon.cooldown_remaining > engine::time::TimeDelta::zero()) {
       weapon.cooldown_remaining -= dt;
@@ -46,7 +46,8 @@ void WeaponSystem::Update(
     engine::math::Vector2f missile_velocity(300.0f, 0.0f);
 
     entities::MissileBuilder::CreatePlayerMissile(
-        registry, player.player_id, spawn_position, missile_velocity);
+        registry, static_cast<std::uint32_t>(idx), spawn_position,
+        missile_velocity);
   }
 }
 
