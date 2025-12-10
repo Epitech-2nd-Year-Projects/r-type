@@ -1,6 +1,7 @@
 #include "world_update_receiver.h"
 
 #include <chrono>
+#include <optional>
 #include <utility>
 
 #include "logging.h"
@@ -10,19 +11,38 @@ namespace client {
 
 namespace {
 
-bool EnsurePayloadType(protocol::Packet& packet,
-                       protocol::message_type::MessageType expected_type) {
-  switch (expected_type) {
-    case protocol::message_type::MessageType::kWorldSnapshot:
-      return std::holds_alternative<protocol::WorldSnapshotPayload>(
-          packet.payload);
-    case protocol::message_type::MessageType::kPlayerDied:
-      return std::holds_alternative<protocol::PlayerDiedPayload>(
-          packet.payload);
-    case protocol::message_type::MessageType::kServerCommand:
-      return std::holds_alternative<protocol::CommandPayload>(packet.payload);
+std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
+    protocol::Packet& packet) {
+  const auto type = static_cast<protocol::message_type::MessageType>(
+      packet.header.message_type);
+
+  switch (type) {
+    case protocol::message_type::MessageType::kWorldSnapshot: {
+      WorldUpdateMessage message{};
+      message.type = type;
+      message.header = packet.header;
+      message.payload =
+          std::get<protocol::WorldSnapshotPayload>(std::move(packet.payload));
+      return message;
+    }
+    case protocol::message_type::MessageType::kPlayerDied: {
+      WorldUpdateMessage message{};
+      message.type = type;
+      message.header = packet.header;
+      message.payload =
+          std::get<protocol::PlayerDiedPayload>(std::move(packet.payload));
+      return message;
+    }
+    case protocol::message_type::MessageType::kServerCommand: {
+      WorldUpdateMessage message{};
+      message.type = type;
+      message.header = packet.header;
+      message.payload =
+          std::get<protocol::CommandPayload>(std::move(packet.payload));
+      return message;
+    }
     default:
-      return false;
+      return std::nullopt;
   }
 }
 
@@ -33,6 +53,9 @@ WorldUpdateReceiver::~WorldUpdateReceiver() { Stop(); }
 bool WorldUpdateReceiver::Start(
     NetworkTransport& transport,
     std::shared_ptr<protocol::SequenceTracker> sequence_tracker) {
+  if (running_.load(std::memory_order_acquire)) {
+    return false;
+  }
   if (!transport.running()) {
     return false;
   }
@@ -68,18 +91,6 @@ bool WorldUpdateReceiver::TryPop(WorldUpdateMessage& out_message) {
   return true;
 }
 
-bool WorldUpdateReceiver::ShouldQueue(
-    protocol::message_type::MessageType type) const {
-  switch (type) {
-    case protocol::message_type::MessageType::kWorldSnapshot:
-    case protocol::message_type::MessageType::kPlayerDied:
-    case protocol::message_type::MessageType::kServerCommand:
-      return true;
-    default:
-      return false;
-  }
-}
-
 bool WorldUpdateReceiver::Push(WorldUpdateMessage&& message) {
   std::lock_guard<std::mutex> lock(queue_mutex_);
   if (queue_.size() >= kMaxQueueDepth) {
@@ -108,39 +119,12 @@ void WorldUpdateReceiver::ReceiveLoop() {
         sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
       }
 
-      const auto type = static_cast<protocol::message_type::MessageType>(
-          packet.header.message_type);
-      if (!ShouldQueue(type)) {
+      auto message = MakeWorldUpdateMessage(packet);
+      if (!message.has_value()) {
         continue;
       }
 
-      if (!EnsurePayloadType(packet, type)) {
-        LogPacketError("recv payload", "unexpected payload type");
-        continue;
-      }
-
-      WorldUpdateMessage message{};
-      message.type = type;
-      message.header = packet.header;
-
-      switch (type) {
-        case protocol::message_type::MessageType::kWorldSnapshot:
-          message.payload =
-              std::get<protocol::WorldSnapshotPayload>(std::move(packet.payload));
-          break;
-        case protocol::message_type::MessageType::kPlayerDied:
-          message.payload =
-              std::get<protocol::PlayerDiedPayload>(std::move(packet.payload));
-          break;
-        case protocol::message_type::MessageType::kServerCommand:
-          message.payload =
-              std::get<protocol::CommandPayload>(std::move(packet.payload));
-          break;
-        default:
-          continue;
-      }
-
-      if (!Push(std::move(message))) {
+      if (!Push(std::move(*message))) {
         LogPacketError("recv queue", "world update queue full");
       }
     }
