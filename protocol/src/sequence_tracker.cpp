@@ -4,12 +4,35 @@
 
 namespace protocol {
 
+SequenceTracker::SequenceTracker(SequenceTracker&& other) noexcept {
+  const std::lock_guard<std::mutex> lock(other.mutex_);
+  local_sequence_ = other.local_sequence_;
+  remote_sequence_ = other.remote_sequence_;
+  remote_ack_bits_ = other.remote_ack_bits_;
+  has_remote_ = other.has_remote_;
+}
+
+SequenceTracker& SequenceTracker::operator=(
+    SequenceTracker&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  const std::scoped_lock lock(mutex_, other.mutex_);
+  local_sequence_ = other.local_sequence_;
+  remote_sequence_ = other.remote_sequence_;
+  remote_ack_bits_ = other.remote_ack_bits_;
+  has_remote_ = other.has_remote_;
+  return *this;
+}
+
 std::uint32_t SequenceTracker::NextLocalSequence() {
+  const std::lock_guard<std::mutex> lock(mutex_);
   ++local_sequence_;
   return local_sequence_;
 }
 
 void SequenceTracker::Reset() {
+  const std::lock_guard<std::mutex> lock(mutex_);
   local_sequence_ = 0;
   remote_sequence_ = 0;
   remote_ack_bits_ = 0;
@@ -17,6 +40,7 @@ void SequenceTracker::Reset() {
 }
 
 void SequenceTracker::OnRemoteSequenceReceived(std::uint32_t sequence) {
+  const std::lock_guard<std::mutex> lock(mutex_);
   if (!has_remote_) {
     has_remote_ = true;
     remote_sequence_ = sequence;
@@ -49,6 +73,7 @@ void SequenceTracker::OnRemoteSequenceReceived(std::uint32_t sequence) {
 }
 
 void SequenceTracker::FillAckFields(Header& header) const {
+  const std::lock_guard<std::mutex> lock(mutex_);
   if (!has_remote_) {
     return;
   }

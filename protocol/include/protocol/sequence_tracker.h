@@ -2,6 +2,7 @@
 #define PROTOCOL_SEQUENCE_TRACKER_H_
 
 #include <cstdint>
+#include <mutex>
 #include "protocol/header.h"
 
 namespace protocol {
@@ -13,6 +14,10 @@ namespace protocol {
       static constexpr std::uint32_t kAckBitsWindow = 32u;
 
       SequenceTracker() = default;
+      SequenceTracker(const SequenceTracker&) = delete;
+      SequenceTracker& operator=(const SequenceTracker&) = delete;
+      SequenceTracker(SequenceTracker&& other) noexcept;
+      SequenceTracker& operator=(SequenceTracker&& other) noexcept;
 
       /**
        * @brief Returns the next local sequence number to use for an outgoing packet.
@@ -49,10 +54,22 @@ namespace protocol {
        * @brief Accessors (useful for debugging / tests).
        * @{
        */
-      std::uint32_t local_sequence() const { return local_sequence_; }
-      std::uint32_t remote_sequence() const { return remote_sequence_; }
-      std::uint32_t remote_ack_bits() const { return remote_ack_bits_; }
-      bool has_remote() const { return has_remote_; }
+      std::uint32_t local_sequence() const {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        return local_sequence_;
+      }
+      std::uint32_t remote_sequence() const {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        return remote_sequence_;
+      }
+      std::uint32_t remote_ack_bits() const {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        return remote_ack_bits_;
+      }
+      bool has_remote() const {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        return has_remote_;
+      }
       /** @} */
 
     private:
@@ -60,6 +77,7 @@ namespace protocol {
       std::uint32_t remote_sequence_ = 0;  ///< Highest remote sequence number received.
       std::uint32_t remote_ack_bits_ = 0;  ///< Bitmap of received packets before remote_sequence_.
       bool has_remote_ = false;            ///< Whether any remote packet has been received.
+      mutable std::mutex mutex_;
   };
 }
 
