@@ -2,6 +2,7 @@
 #define CLIENT_APPLICATION_H_
 
 #include <memory>
+#include <string_view>
 
 #include "audio_manager.h"
 #include "client_config.h"
@@ -31,6 +32,11 @@ class Application {
   bool Tick(engine::time::TimeDelta dt);
   void UpdateAudio(engine::time::TimeDelta dt, JoinState join_state);
   void HandleGameOverAudio();
+  bool StartConnection();
+  void HandleServerCommand(const protocol::CommandPayload& payload);
+  void MonitorConnection(JoinState join_state);
+  void HandleConnectionLost(std::string_view reason);
+  void HandleReconnectInput(JoinState join_state);
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -43,6 +49,7 @@ class Application {
   JoinState last_join_state_{JoinState::kIdle};
   bool music_allowed_{false};
   bool music_blocked_{false};
+  bool reconnect_requested_{false};
 };
 
 }  // namespace client

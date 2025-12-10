@@ -21,8 +21,9 @@ namespace client {
  * connecting while waiting for a server reply
  * connected once a player id is assigned
  * refused when the server denies the request or times out
+ * disconnected when a previously connected session is lost
  */
-enum class JoinState { kIdle, kConnecting, kConnected, kRefused };
+enum class JoinState { kIdle, kConnecting, kConnected, kRefused, kDisconnected };
 
 /**
  * @brief Drives the JoinGame handshake and tracks the assigned player id
@@ -65,6 +66,11 @@ class JoinFlow {
   const std::optional<protocol::JoinRejectPayload>& rejection() const {
     return last_reject_;
   }
+
+  /**
+   * @brief Mark the current session as disconnected with a reason
+   */
+  void MarkDisconnected(std::string_view reason);
 
  private:
   void SendJoinRequest(NetworkTransport& transport);

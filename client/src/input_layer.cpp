@@ -11,18 +11,20 @@ constexpr std::string_view kMoveDownAction = "MoveDown";
 constexpr std::string_view kMoveLeftAction = "MoveLeft";
 constexpr std::string_view kMoveRightAction = "MoveRight";
 constexpr std::string_view kShootAction = "Shoot";
+constexpr std::string_view kReconnectAction = "Reconnect";
 
 struct Mapping {
   GameAction action;
   std::string_view name;
 };
 
-constexpr std::array<Mapping, 5> kMappings{
+constexpr std::array<Mapping, 6> kMappings{
     Mapping{GameAction::kMoveUp, kMoveUpAction},
     Mapping{GameAction::kMoveDown, kMoveDownAction},
     Mapping{GameAction::kMoveLeft, kMoveLeftAction},
     Mapping{GameAction::kMoveRight, kMoveRightAction},
     Mapping{GameAction::kShoot, kShootAction},
+    Mapping{GameAction::kReconnect, kReconnectAction},
 };
 
 constexpr GameActionEventType ToGameActionEventType(
@@ -56,6 +58,7 @@ void InputLayer::ApplyDefaultBindings() {
   manager.BindKey(std::string(kMoveRightAction), engine::input::Key::kRight);
 
   manager.BindKey(std::string(kShootAction), engine::input::Key::kSpace);
+  manager.BindKey(std::string(kReconnectAction), engine::input::Key::kR);
 }
 
 void InputLayer::Update() {
@@ -68,6 +71,10 @@ void InputLayer::Update() {
     if (!action) continue;
 
     events_.push_back({*action, ToGameActionEventType(event.type)});
+    if (*action == GameAction::kReconnect &&
+        event.type == engine::input::ActionEventType::kPressed) {
+      reconnect_requested_ = true;
+    }
   }
 
   RefreshState();
@@ -96,6 +103,12 @@ void InputLayer::RefreshState() {
   state_.move_left = manager.IsActionActive(std::string(kMoveLeftAction));
   state_.move_right = manager.IsActionActive(std::string(kMoveRightAction));
   state_.shoot = manager.IsActionActive(std::string(kShootAction));
+}
+
+bool InputLayer::ConsumeReconnectRequest() {
+  const bool requested = reconnect_requested_;
+  reconnect_requested_ = false;
+  return requested;
 }
 
 }  // namespace client
