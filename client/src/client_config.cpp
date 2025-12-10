@@ -18,6 +18,8 @@ namespace {
 
 constexpr std::uint16_t kMinPort = 1;
 constexpr std::uint16_t kMaxPort = std::numeric_limits<std::uint16_t>::max();
+constexpr std::uint32_t kMinTimeoutMs = 3'000;
+constexpr std::uint32_t kMaxTimeoutMs = 30'000;
 
 std::string Normalize(std::string_view value) {
   std::string normalized(value.size(), '\0');
@@ -64,6 +66,20 @@ bool TryParseLogLevel(std::string_view value,
 
 bool ValidateLength(std::string_view value, std::size_t max_length) {
   return value.size() <= max_length;
+}
+
+bool TryParseTimeout(std::string_view value, std::uint32_t& out_timeout) {
+  unsigned int parsed = 0;
+  const auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), parsed);
+  if (ec != std::errc() || ptr != value.data() + value.size()) {
+    return false;
+  }
+  if (parsed < kMinTimeoutMs || parsed > kMaxTimeoutMs) {
+    return false;
+  }
+  out_timeout = static_cast<std::uint32_t>(parsed);
+  return true;
 }
 
 }  // namespace
@@ -138,6 +154,21 @@ ClientConfigParseResult ParseClientConfig(
 
     if (arg == "--debug") {
       config.debug = true;
+      continue;
+    }
+
+    if (arg == "--timeout-ms") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --timeout-ms");
+      }
+      std::uint32_t timeout = 0;
+      if (!TryParseTimeout(args[i + 1], timeout)) {
+        return MakeError(
+            config,
+            "Invalid timeout (must be between 3000 and 30000 milliseconds)");
+      }
+      config.timeout_ms = timeout;
+      ++i;
       continue;
     }
 
