@@ -3,6 +3,8 @@
 #include <array>
 #include <utility>
 
+#include <asio.hpp>
+
 namespace server {
 
 namespace {
@@ -50,6 +52,9 @@ engine::net::UdpSendResult ServerTransport::Send(const UdpEndpoint& to,
 
 engine::net::UdpSendResult ServerTransport::Send(
     const UdpEndpoint& to, const engine::net::PacketBuffer& buffer) {
+  if (!running_) {
+    return {0, std::make_error_code(std::errc::not_connected)};
+  }
   return socket_.send_to(buffer.data(), to);
 }
 

@@ -58,6 +58,11 @@ class ServerTransport {
    * @brief Open and bind the UDP socket on the given port
    * @param port UDP port to bind
    * @return Error code describing startup failure
+   *
+   * @details
+   * Stops any existing socket, opens a fresh non-blocking UDP socket and binds
+   * to the requested port. Returns the first error encountered when opening or
+   * binding.
    */
   std::error_code Start(std::uint16_t port);
 
@@ -89,6 +94,12 @@ class ServerTransport {
   /**
    * @brief Drain all pending datagrams since last call
    * @return Collection of received packets and any fatal error
+   *
+   * @details
+   * Performs a non-blocking loop receiving all available UDP datagrams and
+   * returns them as PacketBuffers. On transient errors it stops polling but
+   * keeps running; on fatal errors it records the error and marks the transport
+   * as stopped.
    */
   PollResult PollNetwork();
 
@@ -105,9 +116,9 @@ class ServerTransport {
  private:
   static constexpr std::size_t kMaxDatagramSize = 2048;
 
-  engine::net::UdpSocket socket_{engine::net::UdpSocket::Protocol::kIpv4};
-  UdpEndpoint bound_endpoint_{};
-  bool running_{false};
+  engine::net::UdpSocket socket_{engine::net::UdpSocket::Protocol::kIpv4};  ///< Underlying UDP socket.
+  UdpEndpoint bound_endpoint_{};                                            ///< Local endpoint the socket is bound to.
+  bool running_{false};                                                     ///< Transport running state.
 };
 
 }  // namespace server
