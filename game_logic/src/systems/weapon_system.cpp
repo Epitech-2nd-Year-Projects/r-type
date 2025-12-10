@@ -3,6 +3,7 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/math/vector2.h"
 #include "game_logic/entities/missile_builder.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::systems {
 
@@ -29,24 +30,34 @@ void WeaponSystem::Update(
       }
     }
 
-    if (!weapon.is_trigger_held) {
-      continue;
+    if (weapon.big_shot_cooldown_remaining > engine::time::TimeDelta::zero()) {
+      weapon.big_shot_cooldown_remaining -= dt;
+      if (weapon.big_shot_cooldown_remaining <
+          engine::time::TimeDelta::zero()) {
+        weapon.big_shot_cooldown_remaining = engine::time::TimeDelta::zero();
+      }
     }
-
-    if (!weapon.can_fire()) {
-      continue;
-    }
-
-    weapon.fire();
 
     engine::math::Vector2f spawn_position = position.position;
     spawn_position.x += 16.0f;
 
-    engine::math::Vector2f missile_velocity(300.0f, 0.0f);
+    if (weapon.is_big_trigger_held && weapon.can_fire_big()) {
+      weapon.fire_big(entities::kBigPlayerMissileData.fire_rate);
+      engine::math::Vector2f missile_velocity(250.0f, 0.0f);
+      entities::MissileBuilder::CreateMissile(
+          registry, static_cast<std::uint32_t>(idx), spawn_position,
+          missile_velocity, entities::kBigPlayerMissileData,
+          entities::ProjectileFaction::kPlayer);
+    }
 
-    entities::MissileBuilder::CreatePlayerMissile(
-        registry, static_cast<std::uint32_t>(idx), spawn_position,
-        missile_velocity);
+    if (weapon.is_trigger_held && weapon.can_fire()) {
+      weapon.fire(entities::kPlayerMissileData.fire_rate);
+      engine::math::Vector2f missile_velocity(300.0f, 0.0f);
+      entities::MissileBuilder::CreateMissile(
+          registry, static_cast<std::uint32_t>(idx), spawn_position,
+          missile_velocity, entities::kPlayerMissileData,
+          entities::ProjectileFaction::kPlayer);
+    }
   }
 }
 

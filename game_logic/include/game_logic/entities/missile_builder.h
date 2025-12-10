@@ -6,6 +6,7 @@
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/registry.h"
 #include "engine/math/vector2.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::entities {
 
@@ -65,34 +66,25 @@ class MissileBuilder {
    * - SpriteComponent (visuals)
    * - TagComponent ("Missile")
    */
-  static engine::ecs::EntityId Create(engine::ecs::Registry& registry,
-                                      const MissileConfig& config);
+  static engine::ecs::EntityId Create(engine::ecs::Registry &registry,
+                                      const MissileConfig &config,
+                                      const MissileArchetypeData &archetype);
 
   /**
-   * @brief Create player projectile
+   * @brief Create a missile from an archetype
    * @param registry ECS registry
-   * @param owner_id Player entity ID
-   * @param spawn_position Initial position
-   * @param velocity Initial velocity
+   * @param owner_id Entity ID of the shooter
+   * @param spawn_position Spawn position
+   * @param velocity Missile velocity
+   * @param data Archetype data (stats, sprite, etc.)
+   * @param faction Projectile faction
    * @return EntityId of created missile
    */
-  static engine::ecs::EntityId CreatePlayerMissile(
-      engine::ecs::Registry& registry, std::uint32_t owner_id,
-      const engine::math::Vector2f& spawn_position,
-      const engine::math::Vector2f& velocity);
-
-  /**
-   * @brief Create enemy projectile
-   * @param registry ECS registry
-   * @param owner_id Enemy entity ID
-   * @param spawn_position Initial position
-   * @param velocity Initial velocity
-   * @return EntityId of created missile
-   */
-  static engine::ecs::EntityId CreateEnemyMissile(
-      engine::ecs::Registry& registry, std::uint32_t owner_id,
-      const engine::math::Vector2f& spawn_position,
-      const engine::math::Vector2f& velocity);
+  static engine::ecs::EntityId CreateMissile(
+      engine::ecs::Registry &registry, std::uint32_t owner_id,
+      const engine::math::Vector2f &spawn_position,
+      const engine::math::Vector2f &velocity, const MissileArchetypeData &data,
+      ProjectileFaction faction);
 };
 
 }  // namespace game_logic::entities
