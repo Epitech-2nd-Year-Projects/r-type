@@ -19,6 +19,8 @@ constexpr std::uint16_t kMinPlayers = 1;
 constexpr std::uint16_t kMaxPlayers = std::numeric_limits<std::uint8_t>::max();
 constexpr std::uint16_t kMinTickRate = 1;
 constexpr std::uint16_t kMaxTickRate = std::numeric_limits<std::uint8_t>::max();
+constexpr std::uint32_t kMinPeerTimeoutMs = 10'000;
+constexpr std::uint32_t kMaxPeerTimeoutMs = 30'000;
 
 std::string Normalize(std::string_view value) {
   std::string normalized(value.size(), '\0');
@@ -117,6 +119,21 @@ ServerConfigParseResult ParseServerConfig(
                          "Invalid tickrate (must be between 1 and 255)");
       }
       config.tick_rate = tick_rate;
+      ++i;
+      continue;
+    }
+
+    if (arg == "--timeout-ms") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --timeout-ms");
+      }
+      std::uint32_t timeout_ms = 0;
+      if (!TryParseBounded(args[i + 1], kMinPeerTimeoutMs, kMaxPeerTimeoutMs,
+                           timeout_ms)) {
+        return MakeError(
+            config, "Invalid timeout (must be between 10000 and 30000 ms)");
+      }
+      config.peer_timeout_ms = timeout_ms;
       ++i;
       continue;
     }

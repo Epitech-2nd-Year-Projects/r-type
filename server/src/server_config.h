@@ -21,6 +21,7 @@ struct ServerConfig {
   std::uint16_t port{4242};                                       ///< UDP port to bind the server socket (default: 4242).
   std::uint16_t max_players{4};                                   ///< Maximum number of concurrent players allowed (default: 4).
   std::uint16_t tick_rate{60};                                    ///< Server simulation ticks per second (default: 60 Hz).
+  std::uint32_t peer_timeout_ms{15'000};                          ///< Milliseconds of inactivity before a peer is considered disconnected (default: 15000 ms).
   std::string room_code{};                                        ///< Optional room code for matchmaking/filtering.
   std::uint32_t seed{std::random_device{}()};                    ///< Random seed for deterministic simulation (default: random).
   engine::util::LogLevel log_level{engine::util::LogLevel::kInfo}; ///< Logging verbosity level (default: Info).
@@ -48,6 +49,7 @@ struct ServerConfigParseResult {
  *   --port <num>       : UDP port to bind (default: 4242)
  *   --max-players <num>: Maximum concurrent players (default: 4)
  *   --tick-rate <num>  : Server tick rate in Hz (default: 60)
+ *   --timeout-ms <num> : Peer inactivity timeout in milliseconds (default: 15000, range: 10000-30000)
  *   --room-code <str>  : Optional room code
  *   --seed <num>       : Random seed for deterministic behavior
  *   --log-level <str>  : Log level (trace, debug, info, warn, error)

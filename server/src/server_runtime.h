@@ -248,6 +248,19 @@ class ServerRuntime {
       std::uint32_t player_id);
 
   /**
+   * @brief Marks a peer as disconnected and cleans up player mappings.
+   * @param peer Peer connection to disconnect.
+   * @param reason Human-readable reason for logging and notifications.
+   * @param notify_client Whether to attempt sending a disconnect notice.
+   *
+   * @note This function does not erase the peer from peers_. Callers are
+   *       responsible for removing the entry after invoking this helper.
+   */
+  void DisconnectPeer(PeerConnection& peer,
+                      std::string_view reason,
+                      bool notify_client);
+
+  /**
    * @brief Removes a peer connection by endpoint key.
    * @param peer The peer connection to remove.
    */
