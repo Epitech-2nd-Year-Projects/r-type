@@ -14,6 +14,13 @@
 
 namespace client {
 
+namespace {
+
+constexpr float kDisconnectFadeSeconds = 1.25f;
+constexpr float kGameOverFadeSeconds = 1.5f;
+
+}  // namespace
+
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(std::make_shared<NetworkTransport>()),
@@ -103,6 +110,10 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   join_flow_.Update(*transport_);
   const auto join_state = join_flow_.state();
+  if (join_state == JoinState::kRefused) {
+    LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
+    return false;
+  }
   if (join_state == JoinState::kConnected &&
       !world_update_receiver_.running()) {
     if (!world_update_receiver_.Start(transport_)) {
@@ -125,10 +136,6 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     }
   }
   UpdateAudio(dt, join_state);
-  if (join_state == JoinState::kRefused) {
-    LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
-    return false;
-  }
 
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
@@ -160,27 +167,26 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 }
 
 void Application::UpdateAudio(engine::time::TimeDelta dt,
-                              JoinState join_state) {
+                               JoinState join_state) {
   if (!audio_manager_) {
     return;
   }
 
   const bool connected = join_state == JoinState::kConnected;
   const bool was_connected = last_join_state_ == JoinState::kConnected;
+  const bool transport_running =
+      transport_ ? transport_->running() : false;
 
   if (connected && !music_blocked_) {
     music_allowed_ = true;
-  } else if (!connected && was_connected && audio_manager_->MusicActive()) {
-    music_allowed_ = false;
-    music_blocked_ = false;
-    audio_manager_->FadeOutMusic(1.25f);
   }
 
-  if (transport_ && !transport_->running()) {
+  const bool lost_connection = (!connected && was_connected) || !transport_running;
+  if (lost_connection) {
     music_allowed_ = false;
     music_blocked_ = false;
     if (audio_manager_->MusicActive()) {
-      audio_manager_->FadeOutMusic(1.25f);
+      audio_manager_->FadeOutMusic(kDisconnectFadeSeconds);
     }
   }
 
@@ -198,7 +204,7 @@ void Application::HandleGameOverAudio() {
   }
   music_allowed_ = false;
   music_blocked_ = true;
-  audio_manager_->FadeOutMusic(1.5f);
+  audio_manager_->FadeOutMusic(kGameOverFadeSeconds);
 }
 
 }  // namespace client

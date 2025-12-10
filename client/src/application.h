@@ -24,7 +24,8 @@ class Application {
    * @brief Construct an Application with user provided configuration
    */
   explicit Application(ClientConfig config);
- int Run();
+
+  int Run();
 
  private:
   bool Tick(engine::time::TimeDelta dt);
