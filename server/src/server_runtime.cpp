@@ -566,9 +566,9 @@ Room& ServerRuntime::GetOrCreateRoom(const std::string& room_code) {
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
-      room_code, Room{room_code, room_id,
-                      static_cast<std::uint16_t>(config_.max_players), seed,
-                      logger_.get()});
+      room_code,
+      Room{room_code, room_id, static_cast<std::uint16_t>(config_.max_players),
+           seed, logger_.get()});
   inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
 }

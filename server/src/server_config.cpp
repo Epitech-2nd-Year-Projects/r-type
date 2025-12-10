@@ -82,8 +82,7 @@ ServerConfigParseResult ParseServerConfig(
   auto missing_value_error = [&](std::string_view flag) {
     return MakeError(config, "Missing value for " + std::string(flag));
   };
-  auto next_value = [&](std::size_t index)
-                        -> std::optional<std::string_view> {
+  auto next_value = [&](std::size_t index) -> std::optional<std::string_view> {
     if (index + 1 >= args.size()) {
       return std::nullopt;
     }
@@ -159,8 +158,8 @@ ServerConfigParseResult ParseServerConfig(
         return missing_value_error("--room-idle-timeout-ms");
       }
       std::uint32_t idle_ms = 0;
-      if (!TryParseBounded(*value, kMinRoomIdleTimeoutMs,
-                           kMaxRoomIdleTimeoutMs, idle_ms)) {
+      if (!TryParseBounded(*value, kMinRoomIdleTimeoutMs, kMaxRoomIdleTimeoutMs,
+                           idle_ms)) {
         return MakeError(
             config,
             "Invalid room idle timeout (must be between 1000 and 600000 ms)");
@@ -196,8 +195,7 @@ ServerConfigParseResult ParseServerConfig(
         return missing_value_error("--seed");
       }
       std::uint32_t seed = 0;
-      if (!TryParseBounded(*value,
-                           std::numeric_limits<std::uint32_t>::min(),
+      if (!TryParseBounded(*value, std::numeric_limits<std::uint32_t>::min(),
                            std::numeric_limits<std::uint32_t>::max(), seed)) {
         return MakeError(config, "Invalid seed value");
       }

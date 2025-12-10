@@ -115,9 +115,9 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
   logger_.Trace("[GameInstance] Updated input for player ", player_id,
-               " seq=", newest->get().input_sequence,
-               " buttons=", static_cast<int>(newest->get().buttons),
-               " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
+                " seq=", newest->get().input_sequence,
+                " buttons=", static_cast<int>(newest->get().buttons),
+                " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
 void GameInstance::Update(const engine::time::TimeDelta& delta) {

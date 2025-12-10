@@ -17,8 +17,7 @@ int main(int argc, char** argv) {
       server::ParseServerConfig(std::span(args.data(), args.size()));
   if (!parse_result.ok) {
     std::cerr << parse_result.error << '\n';
-    std::cerr << "Usage: " << argv[0]
-              << " [--port <port>] [--max-players <n>]"
+    std::cerr << "Usage: " << argv[0] << " [--port <port>] [--max-players <n>]"
               << " [--tickrate|--tick-rate <hz>]"
               << " [--timeout-ms <ms>] [--room-idle-timeout-ms <ms>]"
               << " [--room|--room-code <code>] [--seed <seed>] "
