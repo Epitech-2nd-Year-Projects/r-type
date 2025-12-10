@@ -14,7 +14,12 @@ namespace game_logic::entities {
  * @enum EnemyType
  * @brief Available enemy archetypes
  */
-enum class EnemyType : std::uint8_t { kScout = 0, kBomber = 1, kTank = 2 };
+enum class EnemyType : std::uint8_t {
+  kScout = 0,
+  kBomber = 1,
+  kTank = 2,
+  kInterceptor = 3
+};
 
 /**
  * @struct EnemyConfig
@@ -61,8 +66,8 @@ class EnemyBuilder {
    * - SpriteComponent (visuals)
    * - TagComponent ("Enemy")
    */
-  static engine::ecs::EntityId Create(engine::ecs::Registry& registry,
-                                      const EnemyConfig& config);
+  static engine::ecs::EntityId Create(engine::ecs::Registry &registry,
+                                      const EnemyConfig &config);
 
   /**
    * @brief Create enemy with minimal parameters
@@ -72,8 +77,8 @@ class EnemyBuilder {
    * @return EntityId of created enemy
    */
   static engine::ecs::EntityId Create(
-      engine::ecs::Registry& registry, EnemyType type,
-      const engine::math::Vector2f& spawn_position);
+      engine::ecs::Registry &registry, EnemyType type,
+      const engine::math::Vector2f &spawn_position);
 
   /**
    * @brief Create a PataPata enemy (Basic Scout)
@@ -84,8 +89,8 @@ class EnemyBuilder {
    * @details Creates an enemy mapped to the 'Scout' archetype.
    */
   static engine::ecs::EntityId CreatePataPata(
-      engine::ecs::Registry& registry,
-      const engine::math::Vector2f& spawn_position);
+      engine::ecs::Registry &registry,
+      const engine::math::Vector2f &spawn_position);
 
   /**
    * @brief Create a Bydo enemy (Bomber)
@@ -96,8 +101,8 @@ class EnemyBuilder {
    * @details Creates an enemy mapped to the 'Bomber' archetype.
    */
   static engine::ecs::EntityId CreateBydo(
-      engine::ecs::Registry& registry,
-      const engine::math::Vector2f& spawn_position);
+      engine::ecs::Registry &registry,
+      const engine::math::Vector2f &spawn_position);
 };
 
 }  // namespace game_logic::entities
