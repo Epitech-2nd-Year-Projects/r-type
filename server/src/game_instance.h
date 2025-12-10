@@ -33,15 +33,17 @@ namespace server {
  */
 class GameInstance {
  public:
- /**
+  /**
   * @brief Constructs a game instance with a deterministic random seed.
   * @param room_id Logical room identifier associated with this instance.
   * @param seed Random seed for deterministic simulation and spawning.
   * @param max_players Maximum number of allowed players for this instance.
+  * @param logger Logger used for diagnostics.
   */
   explicit GameInstance(std::uint32_t room_id,
                         std::uint32_t seed,
-                        std::uint32_t max_players);
+                        std::uint32_t max_players,
+                        engine::util::Logger& logger);
 
   GameInstance(const GameInstance&) = delete;
   GameInstance& operator=(const GameInstance&) = delete;
@@ -187,6 +189,7 @@ class GameInstance {
   std::unordered_map<std::uint32_t, PlayerState> players_;  ///< Map of player IDs to their state.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic spawning.
   std::unique_ptr<game_logic::GameInstance> logic_;         ///< Game logic subsystem managing gameplay rules and systems.
+  engine::util::Logger& logger_;                            ///< Logger shared with the server runtime.
 };
 
 }  // namespace server
