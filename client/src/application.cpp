@@ -83,6 +83,7 @@ int Application::Run() {
       static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
+  world_update_receiver_.Stop();
   transport_.Stop();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
@@ -100,13 +101,23 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   }
 
   join_flow_.Update(transport_);
-  if (join_flow_.state() == JoinState::kRefused) {
+  const auto join_state = join_flow_.state();
+  if (join_state == JoinState::kRefused) {
     LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
     return false;
   }
+  if (join_state == JoinState::kConnected &&
+      !world_update_receiver_.running()) {
+    world_update_receiver_.Start(transport_, sequence_tracker_);
+  }
   if (input_sender_) {
-    const bool connected = join_flow_.state() == JoinState::kConnected;
+    const bool connected = join_state == JoinState::kConnected;
     input_sender_->Update(dt, connected);
+  }
+  if (world_update_receiver_.running()) {
+    WorldUpdateMessage message;
+    while (world_update_receiver_.TryPop(message)) {
+    }
   }
 
   auto& window = engine_->Window();

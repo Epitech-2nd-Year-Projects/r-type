@@ -9,6 +9,7 @@
 #include "network_transport.h"
 #include "input_layer.h"
 #include "input_sender.h"
+#include "world_update_receiver.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
 #include "protocol/sequence_tracker.h"
@@ -37,6 +38,7 @@ class Application {
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
+  WorldUpdateReceiver world_update_receiver_;
 };
 
 }  // namespace client
