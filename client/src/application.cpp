@@ -128,8 +128,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
         HandleGameOverAudio();
       }
-      if (message.type ==
-          protocol::message_type::MessageType::kServerCommand) {
+      if (message.type == protocol::message_type::MessageType::kServerCommand) {
         if (const auto command =
                 std::get_if<protocol::CommandPayload>(&message.payload)) {
           HandleServerCommand(*command);
@@ -182,8 +181,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 }
 
 bool Application::StartConnection() {
-  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host,
-                      config_.port, "connecting");
+  LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
+                      "connecting");
 
   world_update_receiver_.Stop();
   if (transport_) {
@@ -207,13 +206,11 @@ bool Application::StartConnection() {
   return true;
 }
 
-void Application::HandleServerCommand(
-    const protocol::CommandPayload& payload) {
+void Application::HandleServerCommand(const protocol::CommandPayload& payload) {
   if (payload.command_id ==
       static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice)) {
-    const std::string reason = payload.payload.empty()
-                                   ? "Disconnected by server"
-                                   : payload.payload;
+    const std::string reason =
+        payload.payload.empty() ? "Disconnected by server" : payload.payload;
     LogLifecycle(engine::util::LogLevel::kWarn, reason);
     HandleConnectionLost(reason);
   }
@@ -235,8 +232,7 @@ void Application::MonitorConnection(JoinState join_state) {
   }
 
   const auto now_ms = NowMilliseconds();
-  const auto silence_ms =
-      now_ms >= last_receive ? now_ms - last_receive : 0;
+  const auto silence_ms = now_ms >= last_receive ? now_ms - last_receive : 0;
   if (silence_ms > config_.timeout_ms) {
     HandleConnectionLost("Timed out waiting for server");
   }
