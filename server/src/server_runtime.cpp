@@ -112,13 +112,12 @@ void ServerRuntime::ConfigureLogging() {
 
 void ServerRuntime::PollNetwork() {
   const auto poll = transport_.PollNetwork();
+  for (auto& datagram : poll.datagrams) {
+    HandlePacket(std::move(datagram.payload), datagram.from);
+  }
   if (poll.error) {
     logger_.get().Error("Receive error: ", poll.error.message());
     running_ = false;
-    return;
-  }
-  for (auto& datagram : poll.datagrams) {
-    HandlePacket(std::move(datagram.payload), datagram.from);
   }
 }
 
