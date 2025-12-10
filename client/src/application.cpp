@@ -160,7 +160,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 }
 
 void Application::UpdateAudio(engine::time::TimeDelta dt,
-                               JoinState join_state) {
+                              JoinState join_state) {
   if (!audio_manager_) {
     return;
   }
