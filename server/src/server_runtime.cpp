@@ -599,16 +599,18 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
   peer.state = PeerState::kDisconnected;
   std::string room_code = peer.room_code;
   if (peer.player_id != 0) {
-    auto session = players_.find(peer.player_id);
+    std::string resolved_room = room_code;
+    const auto session = players_.find(peer.player_id);
     if (session != players_.end()) {
-      room_code = session->second.room_code;
+      resolved_room = session->second.room_code;
       players_.erase(session);
     }
-    if (RoomContext* room = FindRoom(room_code)) {
+    if (RoomContext* room = FindRoom(resolved_room)) {
       if (room->game_instance) {
         room->game_instance->OnPlayerLeft(peer.player_id);
       }
     }
+    room_code = resolved_room;
   }
   peer.player_id = 0;
   peer.room_code.clear();
@@ -693,7 +695,7 @@ void ServerRuntime::BroadcastWorldSnapshots() {
   }
 
   for (const auto& room_code : empty_rooms) {
-    CleanupRoomIfEmpty(room_code);
+    rooms_.erase(room_code);
   }
 }
 

@@ -278,6 +278,11 @@ class ServerRuntime {
    */
   PeerConnection& GetOrCreatePeer(const engine::net::Endpoint& from);
   
+  /**
+   * @brief Counts the number of players who have joined a specific room.
+   * @param room_code Room code to query.
+   * @return Number of joined peers in the given room.
+   */
   std::size_t CountJoinedPlayersInRoom(const std::string& room_code) const;
 
   /**
@@ -296,28 +301,57 @@ class ServerRuntime {
    */
   void BroadcastWorldSnapshots();
 
+  /**
+   * @brief Holds per-room state for an active game session.
+   *
+   * Each RoomContext owns its own GameInstance and snapshot history.
+   * Created lazily when a join targets a room that does not yet exist and
+   * destroyed when the room becomes empty.
+   */
   struct RoomContext {
     RoomContext(std::string room_code,
                 std::uint32_t room_id,
                 std::uint32_t seed,
                 std::uint16_t max_players);
 
-    std::string room_code;
-    std::uint32_t room_id;
-    std::uint32_t seed;
-    std::uint16_t max_players;
-    std::unique_ptr<GameInstance> game_instance;
-    protocol::SnapshotHistory snapshot_history;
-    std::uint32_t next_snapshot_id{1};
+    std::string room_code;                       ///< Client-facing room code.
+    std::uint32_t room_id;                       ///< Internal numeric identifier.
+    std::uint32_t seed;                          ///< Seed used for deterministic simulation.
+    std::uint16_t max_players;                   ///< Maximum players allowed in the room.
+    std::unique_ptr<GameInstance> game_instance; ///< Authoritative game simulation for the room.
+    protocol::SnapshotHistory snapshot_history;  ///< History of snapshots for delta/reference.
+    std::uint32_t next_snapshot_id{1};           ///< Next snapshot ID scoped to this room.
   };
 
+  /**
+   * @brief Tracks session details for a connected player.
+   *
+   * Associates a player identifier with the endpoint they came from and
+   * the room they joined to support room-aware routing.
+   */
   struct PlayerSession {
-    std::string endpoint_key;
-    std::string room_code;
+    std::string endpoint_key; ///< Key used to locate the peer connection.
+    std::string room_code;    ///< Room that the player is currently part of.
   };
 
+  /**
+   * @brief Finds an existing room context by room code.
+   * @param room_code Room code to search for.
+   * @return Pointer to the room if present, nullptr otherwise.
+   */
   RoomContext* FindRoom(const std::string& room_code);
+
+  /**
+   * @brief Retrieves an existing room or creates a new one.
+   * @param room_code Room code to resolve.
+   * @return Reference to the resolved or newly created room.
+   */
   RoomContext& GetOrCreateRoom(const std::string& room_code);
+
+  /**
+   * @brief Removes a room when it no longer has joined peers.
+   * @param room_code Room code to check and clean up.
+   */
   void CleanupRoomIfEmpty(const std::string& room_code);
 
   ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
@@ -326,7 +360,7 @@ class ServerRuntime {
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
-  std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to endpoint keys.
+  std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to player sessions.
   std::mt19937 rng_;                                       ///< Random number generator for deterministic seeds.
   std::unordered_map<std::string, RoomContext> rooms_;     ///< Active room contexts keyed by room code.
   std::uint32_t next_room_id_{1};                          ///< Counter for room identifiers.
