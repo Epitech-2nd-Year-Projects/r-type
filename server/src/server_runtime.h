@@ -18,12 +18,11 @@
 #include "protocol/packet.h"
 #include "protocol/input_state.h"
 #include "protocol/command.h"
-#include "protocol/snapshot_history.h"
 #include "protocol/error.h"
 #include "server_config.h"
 #include "peer_connection.h"
+#include "room.h"
 #include "server_transport.h"
-#include "game_instance.h"
 
 namespace server {
 
@@ -302,28 +301,6 @@ class ServerRuntime {
   void BroadcastWorldSnapshots();
 
   /**
-   * @brief Holds per-room state for an active game session.
-   *
-   * Each RoomContext owns its own GameInstance and snapshot history.
-   * Created lazily when a join targets a room that does not yet exist and
-   * destroyed when the room becomes empty.
-   */
-  struct RoomContext {
-    RoomContext(std::string room_code,
-                std::uint32_t room_id,
-                std::uint32_t seed,
-                std::uint16_t max_players);
-
-    std::string room_code;                       ///< Client-facing room code.
-    std::uint32_t room_id;                       ///< Internal numeric identifier.
-    std::uint32_t seed;                          ///< Seed used for deterministic simulation.
-    std::uint16_t max_players;                   ///< Maximum players allowed in the room.
-    std::unique_ptr<GameInstance> game_instance; ///< Authoritative game simulation for the room.
-    protocol::SnapshotHistory snapshot_history;  ///< History of snapshots for delta/reference.
-    std::uint32_t next_snapshot_id{1};           ///< Next snapshot ID scoped to this room.
-  };
-
-  /**
    * @brief Tracks session details for a connected player.
    *
    * Associates a player identifier with the endpoint they came from and
@@ -335,22 +312,31 @@ class ServerRuntime {
   };
 
   /**
-   * @brief Finds an existing room context by room code.
+  * @brief Finds a room by its code.
+  * @param room_code Room code to search for.
+   * @return Reference to the room if present.
+   */
+  std::optional<std::reference_wrapper<Room>> FindRoom(
+      const std::string& room_code);
+
+  /**
+   * @brief Finds a const room by its code.
    * @param room_code Room code to search for.
-   * @return Pointer to the room if present, nullptr otherwise.
+   * @return Const reference to the room if present.
    */
-  RoomContext* FindRoom(const std::string& room_code);
+  std::optional<std::reference_wrapper<const Room>> FindRoomConst(
+      const std::string& room_code) const;
 
   /**
-   * @brief Retrieves an existing room or creates a new one.
+   * @brief Returns an existing room or creates a new one.
    * @param room_code Room code to resolve.
-   * @return Reference to the resolved or newly created room.
+   * @return Reference to the resolved room instance.
    */
-  RoomContext& GetOrCreateRoom(const std::string& room_code);
+  Room& GetOrCreateRoom(const std::string& room_code);
 
   /**
-   * @brief Removes a room when it no longer has joined peers.
-   * @param room_code Room code to check and clean up.
+   * @brief Removes a room when no peers remain.
+   * @param room_code Room code to check and remove if empty.
    */
   void CleanupRoomIfEmpty(const std::string& room_code);
 
@@ -362,7 +348,7 @@ class ServerRuntime {
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
   std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to player sessions.
   std::mt19937 rng_;                                       ///< Random number generator for deterministic seeds.
-  std::unordered_map<std::string, RoomContext> rooms_;     ///< Active room contexts keyed by room code.
+  std::unordered_map<std::string, Room> rooms_;            ///< Active room contexts keyed by room code.
   std::uint32_t next_room_id_{1};                          ///< Counter for room identifiers.
   std::uint32_t server_tick_{0};                           ///< Current server tick counter since startup.
   engine::time::TimeDelta fixed_delta_;                    ///< Fixed simulation timestep (1.0 / tick_rate).

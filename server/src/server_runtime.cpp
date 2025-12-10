@@ -50,17 +50,6 @@ void InstallSignalHandlers() {
 
 }  // namespace
 
-ServerRuntime::RoomContext::RoomContext(std::string room_code,
-                                        std::uint32_t room_id,
-                                        std::uint32_t seed,
-                                        std::uint16_t max_players)
-    : room_code(std::move(room_code)),
-      room_id(room_id),
-      seed(seed),
-      max_players(max_players),
-      game_instance(std::make_unique<GameInstance>(room_id, seed, max_players)),
-      snapshot_history(32) {}
-
 ServerRuntime::ServerRuntime(ServerConfig config)
     : config_(std::move(config)),
       logger_(engine::util::Logger::Default()),
@@ -105,9 +94,7 @@ void ServerRuntime::RunMainLoop() {
       PollNetwork();
       ProcessReliableResends();
       for (auto& [_, room] : rooms_) {
-        if (room.game_instance) {
-          room.game_instance->Update(fixed_delta_);
-        }
+        room.Update(fixed_delta_);
       }
       ++server_tick_;
       BroadcastWorldSnapshots();
@@ -274,12 +261,13 @@ void ServerRuntime::HandleInputState(
                         " analog_y=", command.analog_y,
                         " client_time_ms=", command.client_time_ms);
   }
-  RoomContext* room = FindRoom(peer.room_code);
-  if (!room || !room->game_instance) {
+  auto room = FindRoom(peer.room_code);
+  if (!room.has_value()) {
     logger_.get().Warn("No game instance for peer ", peer.endpoint_key);
     return;
   }
-  room->game_instance->OnPlayerInput(peer.player_id, input_state, header);
+  room->get().HandleInput(peer.player_id, input_state, header);
+  room->get().MarkActive(NowMilliseconds());
 }
 
 void ServerRuntime::HandleClientCommand(PeerConnection& peer,
@@ -341,23 +329,24 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
 
-  const std::size_t joined_count = CountJoinedPlayersInRoom(room_code);
-  if (joined_count >= config_.max_players) {
+  Room& room = GetOrCreateRoom(room_code);
+
+  const std::size_t joined_count = room.PlayerCount();
+  if (joined_count >= room.MaxPlayers()) {
     logger_.get().Warn("Rejecting join from ", endpoint_key,
                        " because lobby is full");
     SendReject(peer, protocol::JoinRejectReason::kServerFull, "Server is full");
     return;
   }
 
-  RoomContext& room = GetOrCreateRoom(room_code);
-
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
   peer.room_code = room_code;
-  peer.room_id = room.room_id;
+  peer.room_id = room.Id();
   peer.last_seen_ms = NowMilliseconds();
   players_[peer.player_id] = PlayerSession{peer.endpoint_key, room_code};
-  room.game_instance->OnPlayerJoined(peer.player_id, request.player_name);
+  room.AddPlayer(peer.player_id, request.player_name);
+  room.MarkActive(peer.last_seen_ms);
   logger_.get().Info("Accepted join from ", endpoint_key, " assigned id ",
                      peer.player_id, " room ", room_code);
   SendAccept(peer, room_code);
@@ -395,14 +384,14 @@ void ServerRuntime::BroadcastServerCommand(std::uint16_t command_id,
 
 void ServerRuntime::SendAccept(PeerConnection& peer,
                                const std::string& room_code) {
-  const RoomContext* room = FindRoom(room_code);
+  auto room = FindRoomConst(room_code);
   protocol::JoinAcceptPayload payload;
   payload.server_version = protocol::kProtocolVersion;
   payload.player_id = peer.player_id;
-  payload.max_players =
-      static_cast<std::uint8_t>(room ? room->max_players : config_.max_players);
+  payload.max_players = static_cast<std::uint8_t>(
+      room ? room->get().MaxPlayers() : config_.max_players);
   payload.tick_rate = static_cast<std::uint8_t>(config_.tick_rate);
-  payload.seed = room ? room->seed : rng_();
+  payload.seed = room ? room->get().Seed() : rng_();
 
   protocol::Packet packet{};
   packet.header.version = protocol::kProtocolVersion;
@@ -520,26 +509,32 @@ std::optional<std::reference_wrapper<PeerConnection>> ServerRuntime::FindPeer(
 
 std::size_t ServerRuntime::CountJoinedPlayersInRoom(
     const std::string& room_code) const {
-  std::size_t count = 0;
-  for (const auto& [key, peer] : peers_) {
-    if (peer.state == PeerState::kJoined && peer.room_code == room_code) {
-      ++count;
-    }
+  auto it = rooms_.find(room_code);
+  if (it == rooms_.end()) {
+    return 0;
   }
-  return count;
+  return it->second.PlayerCount();
 }
 
-ServerRuntime::RoomContext* ServerRuntime::FindRoom(
+std::optional<std::reference_wrapper<Room>> ServerRuntime::FindRoom(
     const std::string& room_code) {
   auto it = rooms_.find(room_code);
   if (it == rooms_.end()) {
-    return nullptr;
+    return std::nullopt;
   }
-  return &it->second;
+  return std::ref(it->second);
 }
 
-ServerRuntime::RoomContext& ServerRuntime::GetOrCreateRoom(
-    const std::string& room_code) {
+std::optional<std::reference_wrapper<const Room>> ServerRuntime::FindRoomConst(
+    const std::string& room_code) const {
+  auto it = rooms_.find(room_code);
+  if (it == rooms_.end()) {
+    return std::nullopt;
+  }
+  return std::cref(it->second);
+}
+
+Room& ServerRuntime::GetOrCreateRoom(const std::string& room_code) {
   auto it = rooms_.find(room_code);
   if (it != rooms_.end()) {
     return it->second;
@@ -547,7 +542,8 @@ ServerRuntime::RoomContext& ServerRuntime::GetOrCreateRoom(
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
-      room_code, RoomContext{room_code, room_id, seed, config_.max_players});
+      room_code, Room{room_code, room_id,
+                      static_cast<std::uint16_t>(config_.max_players), seed});
   return inserted->second;
 }
 
@@ -605,10 +601,9 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
       resolved_room = session->second.room_code;
       players_.erase(session);
     }
-    if (RoomContext* room = FindRoom(resolved_room)) {
-      if (room->game_instance) {
-        room->game_instance->OnPlayerLeft(peer.player_id);
-      }
+    if (auto room = FindRoom(resolved_room)) {
+      room->get().RemovePlayer(peer.player_id);
+      room->get().MarkActive(NowMilliseconds());
     }
     room_code = resolved_room;
   }
@@ -661,18 +656,13 @@ void ServerRuntime::BroadcastWorldSnapshots() {
   std::vector<std::string> empty_rooms;
 
   for (auto& [room_code, room] : rooms_) {
-    if (!room.game_instance) {
-      continue;
-    }
-    if (CountJoinedPlayersInRoom(room_code) == 0) {
+    if (room.IsEmpty()) {
       empty_rooms.push_back(room_code);
       continue;
     }
 
-    protocol::WorldSnapshotPayload snapshot =
-        room.game_instance->BuildWorldSnapshot(room.next_snapshot_id++,
-                                               server_tick_);
-    room.snapshot_history.AddSnapshot(snapshot);
+    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot(server_tick_);
+    room.MarkActive(NowMilliseconds());
 
     for (auto& [_, peer] : peers_) {
       if (peer.state != PeerState::kJoined || peer.player_id == 0) {
