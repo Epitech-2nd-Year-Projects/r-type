@@ -44,9 +44,6 @@ void WeaponSystem::Update(
 
     engine::math::Vector2f missile_velocity(300.0f, 0.0f);
 
-    // We must pass the Entity ID (idx) as owner_id, because the HealthSystem
-    // uses it to look up the ScoreComponent/PlayerComponent on the attacker
-    // entity.
     entities::MissileBuilder::CreatePlayerMissile(
         registry, static_cast<std::uint32_t>(idx), spawn_position,
         missile_velocity);
