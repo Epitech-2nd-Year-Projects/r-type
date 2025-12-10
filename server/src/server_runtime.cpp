@@ -640,8 +640,7 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
   peers_.erase(endpoint_key);
 }
 
-bool ServerRuntime::JoinRoom(PeerConnection& peer,
-                             Room& room,
+bool ServerRuntime::JoinRoom(PeerConnection& peer, Room& room,
                              std::string_view player_name) {
   if (room.PlayerCount() >= room.MaxPlayers()) {
     return false;
