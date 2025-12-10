@@ -2,6 +2,7 @@
 #define GAME_LOGIC_ENTITIES_PLAYER_BUILDER_H_
 
 #include <cstdint>
+#include <string_view>
 
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/registry.h"
@@ -97,7 +98,8 @@ class PlayerBuilder {
   static constexpr float kDefaultMoveSpeed = 200.0f;
 
   /// @brief Default player sprite texture path
-  static constexpr const char* kPlayerTexturePath = "assets/sprites/player.png";
+  static constexpr std::string_view kPlayerTexturePath =
+      "assets/sprites/player.png";
 };
 
 }  // namespace game_logic::entities

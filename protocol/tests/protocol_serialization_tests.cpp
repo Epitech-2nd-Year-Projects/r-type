@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "engine/net/packet_buffer.h"
@@ -16,7 +17,7 @@
 namespace {
 
 template <typename F>
-bool RunTest(const char* name, F&& fn) {
+bool RunTest(std::string_view name, F&& fn) {
   const bool ok = fn();
   std::cout << (ok ? "[ OK ] " : "[FAIL] ") << name << "\n";
   return ok;

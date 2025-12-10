@@ -8,8 +8,10 @@
 #include "join_flow.h"
 #include "network_transport.h"
 #include "input_layer.h"
+#include "input_sender.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
+#include "protocol/sequence_tracker.h"
 
 namespace client {
 
@@ -29,9 +31,11 @@ class Application {
 
   ClientConfig config_;
   NetworkTransport transport_;
+  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_{};
   JoinFlow join_flow_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<InputLayer> input_layer_;
+  std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
 };
 

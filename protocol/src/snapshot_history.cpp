@@ -14,24 +14,25 @@ void SnapshotHistory::AddSnapshot(const WorldSnapshotPayload& snapshot) {
   snapshots_.push_back(snapshot);
 }
 
-const WorldSnapshotPayload* SnapshotHistory::GetSnapshot(
-    std::uint32_t snapshot_id) const {
+std::optional<std::reference_wrapper<const WorldSnapshotPayload>>
+SnapshotHistory::GetSnapshot(std::uint32_t snapshot_id) const {
   for (const auto& snapshot : snapshots_) {
     if (snapshot.snapshot_id == snapshot_id) {
-      return &snapshot;
+      return std::cref(snapshot);
     }
   }
-  return nullptr;
+  return std::nullopt;
 }
 
-const WorldSnapshotPayload* SnapshotHistory::GetLatestSnapshot() const {
+std::optional<std::reference_wrapper<const WorldSnapshotPayload>>
+SnapshotHistory::GetLatestSnapshot() const {
   if (snapshots_.empty()) {
-    return nullptr;
+    return std::nullopt;
   }
-  return &snapshots_.back();
+  return std::cref(snapshots_.back());
 }
 
 bool SnapshotHistory::Contains(std::uint32_t snapshot_id) const {
-  return GetSnapshot(snapshot_id) != nullptr;
+  return GetSnapshot(snapshot_id).has_value();
 }
 }  // namespace protocol

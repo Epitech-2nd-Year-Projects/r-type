@@ -34,7 +34,7 @@ struct PendingPacket {
  * 
  *  - Periodically (e.g., every tick):
  *      std::vector<PendingPacket> to_resend;
- *      queue.CollectPacketsToResend(now_ms, &to_resend);
+ *      queue.CollectPacketsToResend(now_ms, to_resend);
  *      // Re-send to_resend[i].bytes over the socket
  */
 class ReliableQueue {
@@ -82,7 +82,7 @@ class ReliableQueue {
    *   - Increments send_count
    */
   void CollectPacketsToResend(std::uint32_t now_ms,
-                              std::vector<PendingPacket>* out_packets);
+                              std::vector<PendingPacket>& out_packets);
 
   /**
    * @brief Marks a resend attempt as failed to avoid delaying the next retry.

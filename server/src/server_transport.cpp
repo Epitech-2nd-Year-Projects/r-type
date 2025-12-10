@@ -44,12 +44,13 @@ engine::net::UdpSendResult ServerTransport::Send(const UdpEndpoint& to,
   if (!running_) {
     return {0, std::make_error_code(std::errc::not_connected)};
   }
-  return socket_.send_to(data, size, to);
+  const auto* bytes = static_cast<const std::uint8_t*>(data);
+  return socket_.send_to(std::span(bytes, size), to);
 }
 
 engine::net::UdpSendResult ServerTransport::Send(
     const UdpEndpoint& to, const engine::net::PacketBuffer& buffer) {
-  return Send(to, buffer.data(), buffer.size());
+  return socket_.send_to(buffer.data(), to);
 }
 
 ServerTransport::PollResult ServerTransport::PollNetwork() {
@@ -59,8 +60,7 @@ ServerTransport::PollResult ServerTransport::PollNetwork() {
   std::array<std::uint8_t, kMaxDatagramSize> buffer{};
 
   while (true) {
-    const auto recv_result =
-        socket_.receive_from(buffer.data(), buffer.size());
+    const auto recv_result = socket_.receive_from(std::span(buffer));
     if (recv_result.error) {
       if (IsTransientError(recv_result.error)) {
         break;
@@ -74,8 +74,9 @@ ServerTransport::PollResult ServerTransport::PollNetwork() {
     }
     Datagram datagram{};
     datagram.from = recv_result.remote_endpoint;
-    datagram.payload = engine::net::PacketBuffer(
-        buffer.data(), recv_result.bytes_transferred);
+    const auto payload_view =
+        std::span(buffer).first(recv_result.bytes_transferred);
+    datagram.payload = engine::net::PacketBuffer(payload_view);
     result.datagrams.push_back(std::move(datagram));
   }
   return result;

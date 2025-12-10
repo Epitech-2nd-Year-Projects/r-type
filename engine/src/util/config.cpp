@@ -2,17 +2,12 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <utility>
-
-#if defined(_WIN32)
-extern char** _environ;
-#else
-extern char** environ;
-#endif
+#include <vector>
 
 namespace engine::util {
 
@@ -20,12 +15,31 @@ namespace {
 
 constexpr std::string_view kWhitespace = " \t\r\n";
 
-char** EnvironmentPointer() {
-#if defined(_WIN32)
-  return _environ;
-#else
-  return environ;
-#endif
+// Note: /proc/self/environ is Linux-specific; on platforms without /proc this
+// will simply yield an empty vector and fall back to programmatic overrides.
+std::vector<std::string> ReadEnvironmentEntries() {
+  std::ifstream env_stream("/proc/self/environ", std::ios::binary);
+  if (!env_stream) {
+    return {};
+  }
+
+  std::string content((std::istreambuf_iterator<char>(env_stream)),
+                      std::istreambuf_iterator<char>());
+  std::vector<std::string> entries;
+  std::size_t start = 0;
+  while (start < content.size()) {
+    const auto end = content.find('\0', start);
+    const auto length =
+        end == std::string::npos ? content.size() - start : end - start;
+    if (length > 0) {
+      entries.emplace_back(content.substr(start, length));
+    }
+    if (end == std::string::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+  return entries;
 }
 
 }  // namespace
@@ -61,13 +75,12 @@ bool Configuration::LoadFromFile(const std::filesystem::path& path,
 
 void Configuration::LoadFromEnvironment(const std::string& prefix,
                                         bool override_existing) {
-  auto* env = EnvironmentPointer();
-  if (env == nullptr) return;
+  const auto entries = ReadEnvironmentEntries();
+  if (entries.empty()) return;
 
   const auto normalized_prefix = NormalizeKey(prefix);
 
-  for (auto** current = env; *current != nullptr; ++current) {
-    std::string entry(*current);
+  for (const auto& entry : entries) {
     const auto pos = entry.find('=');
     if (pos == std::string::npos) continue;
 
@@ -107,13 +120,13 @@ bool Configuration::Has(std::string_view key) const {
 std::string Configuration::GetString(std::string_view key,
                                      std::string default_value) const {
   std::string value;
-  if (!TryGetValue(key, &value)) return default_value;
+  if (!TryGetValue(key, value)) return default_value;
   return value;
 }
 
 int Configuration::GetInt(std::string_view key, int default_value) const {
   std::string value;
-  if (!TryGetValue(key, &value)) return default_value;
+  if (!TryGetValue(key, value)) return default_value;
   try {
     return std::stoi(value);
   } catch (...) {
@@ -124,7 +137,7 @@ int Configuration::GetInt(std::string_view key, int default_value) const {
 double Configuration::GetDouble(std::string_view key,
                                 double default_value) const {
   std::string value;
-  if (!TryGetValue(key, &value)) return default_value;
+  if (!TryGetValue(key, value)) return default_value;
   try {
     return std::stod(value);
   } catch (...) {
@@ -134,7 +147,7 @@ double Configuration::GetDouble(std::string_view key,
 
 float Configuration::GetFloat(std::string_view key, float default_value) const {
   std::string value;
-  if (!TryGetValue(key, &value)) return default_value;
+  if (!TryGetValue(key, value)) return default_value;
   try {
     return std::stof(value);
   } catch (...) {
@@ -144,7 +157,7 @@ float Configuration::GetFloat(std::string_view key, float default_value) const {
 
 bool Configuration::GetBool(std::string_view key, bool default_value) const {
   std::string value;
-  if (!TryGetValue(key, &value)) return default_value;
+  if (!TryGetValue(key, value)) return default_value;
   return ParseBool(value, default_value);
 }
 
@@ -161,13 +174,12 @@ Configuration& Configuration::Instance() {
 Configuration& GlobalConfig() { return Configuration::Instance(); }
 
 bool Configuration::TryGetValue(std::string_view key,
-                                std::string* value) const {
-  if (value == nullptr) return false;
+                                std::string& value) const {
   const auto normalized = NormalizeKey(key);
   std::lock_guard lock(mutex_);
   auto it = values_.find(normalized);
   if (it == values_.end()) return false;
-  *value = it->second;
+  value = it->second;
   return true;
 }
 

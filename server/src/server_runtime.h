@@ -2,6 +2,8 @@
 #define SERVER_SERVER_RUNTIME_H_
 
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <random>
 #include <string>
 #include <string_view>
@@ -232,16 +234,18 @@ class ServerRuntime {
   /**
    * @brief Finds an existing peer connection by endpoint.
    * @param from The endpoint to search for.
-   * @return Pointer to the peer connection if found, nullptr otherwise.
+   * @return Peer connection reference if found.
    */
-  PeerConnection* FindPeer(const engine::net::Endpoint& from);
+  std::optional<std::reference_wrapper<PeerConnection>> FindPeer(
+      const engine::net::Endpoint& from);
 
   /**
    * @brief Finds an existing peer connection by player ID.
    * @param player_id The player ID to search for.
-   * @return Pointer to the peer connection if found, nullptr otherwise.
+   * @return Peer connection reference if found.
    */
-  PeerConnection* FindPeerByPlayerId(std::uint32_t player_id);
+  std::optional<std::reference_wrapper<PeerConnection>> FindPeerByPlayerId(
+      std::uint32_t player_id);
 
   /**
    * @brief Removes a peer connection by endpoint key.
@@ -284,7 +288,7 @@ class ServerRuntime {
 
   ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
-  engine::util::Logger* logger_{nullptr};                  ///< Logger instance for diagnostic output.
+  std::reference_wrapper<engine::util::Logger> logger_;    ///< Logger instance for diagnostic output.
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.

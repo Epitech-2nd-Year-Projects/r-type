@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <system_error>
 #include <vector>
 

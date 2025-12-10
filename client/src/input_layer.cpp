@@ -35,34 +35,33 @@ constexpr GameActionEventType ToGameActionEventType(
 }  // namespace
 
 InputLayer::InputLayer(engine::input::InputManager& manager)
-    : manager_(&manager) {}
+    : manager_(manager) {}
 
 void InputLayer::ApplyDefaultBindings() {
-  if (manager_ == nullptr) return;
+  auto& manager = manager_.get();
 
-  manager_->ResetBindings();
-  manager_->BindKey(std::string(kMoveUpAction), engine::input::Key::kW);
-  manager_->BindKey(std::string(kMoveUpAction), engine::input::Key::kZ);
-  manager_->BindKey(std::string(kMoveUpAction), engine::input::Key::kUp);
+  manager.ResetBindings();
+  manager.BindKey(std::string(kMoveUpAction), engine::input::Key::kW);
+  manager.BindKey(std::string(kMoveUpAction), engine::input::Key::kZ);
+  manager.BindKey(std::string(kMoveUpAction), engine::input::Key::kUp);
 
-  manager_->BindKey(std::string(kMoveDownAction), engine::input::Key::kS);
-  manager_->BindKey(std::string(kMoveDownAction), engine::input::Key::kDown);
+  manager.BindKey(std::string(kMoveDownAction), engine::input::Key::kS);
+  manager.BindKey(std::string(kMoveDownAction), engine::input::Key::kDown);
 
-  manager_->BindKey(std::string(kMoveLeftAction), engine::input::Key::kQ);
-  manager_->BindKey(std::string(kMoveLeftAction), engine::input::Key::kA);
-  manager_->BindKey(std::string(kMoveLeftAction), engine::input::Key::kLeft);
+  manager.BindKey(std::string(kMoveLeftAction), engine::input::Key::kQ);
+  manager.BindKey(std::string(kMoveLeftAction), engine::input::Key::kA);
+  manager.BindKey(std::string(kMoveLeftAction), engine::input::Key::kLeft);
 
-  manager_->BindKey(std::string(kMoveRightAction), engine::input::Key::kD);
-  manager_->BindKey(std::string(kMoveRightAction), engine::input::Key::kRight);
+  manager.BindKey(std::string(kMoveRightAction), engine::input::Key::kD);
+  manager.BindKey(std::string(kMoveRightAction), engine::input::Key::kRight);
 
-  manager_->BindKey(std::string(kShootAction), engine::input::Key::kSpace);
+  manager.BindKey(std::string(kShootAction), engine::input::Key::kSpace);
 }
 
 void InputLayer::Update() {
-  if (manager_ == nullptr) return;
-
+  auto& manager = manager_.get();
   events_.clear();
-  const auto raw_events = manager_->ConsumeEvents();
+  const auto raw_events = manager.ConsumeEvents();
 
   for (const auto& event : raw_events) {
     const auto action = ResolveAction(event.action);
@@ -91,11 +90,12 @@ std::optional<GameAction> InputLayer::ResolveAction(
 }
 
 void InputLayer::RefreshState() {
-  state_.move_up = manager_->IsActionActive(std::string(kMoveUpAction));
-  state_.move_down = manager_->IsActionActive(std::string(kMoveDownAction));
-  state_.move_left = manager_->IsActionActive(std::string(kMoveLeftAction));
-  state_.move_right = manager_->IsActionActive(std::string(kMoveRightAction));
-  state_.shoot = manager_->IsActionActive(std::string(kShootAction));
+  auto& manager = manager_.get();
+  state_.move_up = manager.IsActionActive(std::string(kMoveUpAction));
+  state_.move_down = manager.IsActionActive(std::string(kMoveDownAction));
+  state_.move_left = manager.IsActionActive(std::string(kMoveLeftAction));
+  state_.move_right = manager.IsActionActive(std::string(kMoveRightAction));
+  state_.shoot = manager.IsActionActive(std::string(kShootAction));
 }
 
 }  // namespace client

@@ -2,6 +2,7 @@
 #define GAME_LOGIC_SYSTEMS_COLLISION_SYSTEM_H_
 
 #include <functional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -27,8 +28,8 @@ namespace game_logic::systems {
  */
 class CollisionSystem : public engine::ecs::ISystem {
  public:
-  static constexpr const char* kPlayerTag = "Player";
-  static constexpr const char* kEnemyTag = "Enemy";
+  static constexpr std::string_view kPlayerTag = "Player";
+  static constexpr std::string_view kEnemyTag = "Enemy";
   static constexpr std::uint32_t kCrashDamage = 100;
 
   CollisionSystem(float cell_size = 100.0f);

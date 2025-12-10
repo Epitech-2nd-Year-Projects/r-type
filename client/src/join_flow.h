@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -10,6 +11,10 @@
 #include "network_transport.h"
 #include "protocol/join.h"
 #include "protocol/packet.h"
+
+namespace protocol {
+  class SequenceTracker;
+}
 
 namespace client {
 
@@ -60,8 +65,16 @@ class JoinFlow {
   /**
    * @brief Access the last rejection payload if present
    */
-  const protocol::JoinRejectPayload* rejection() const {
-    return last_reject_ ? &*last_reject_ : nullptr;
+  const std::optional<protocol::JoinRejectPayload>& rejection() const {
+    return last_reject_;
+  }
+
+  /**
+   * @brief Provide a shared sequence tracker for ack fields and packet ids
+   */
+  void SetSequenceTracker(
+      const std::shared_ptr<protocol::SequenceTracker>& tracker) {
+    sequence_tracker_ = tracker;
   }
 
  private:
@@ -80,6 +93,7 @@ class JoinFlow {
   std::uint32_t next_sequence_{1};
   int attempts_{0};
   std::chrono::steady_clock::time_point last_send_{};
+  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_{};
 };
 
 }  // namespace client

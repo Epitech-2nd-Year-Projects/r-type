@@ -3,6 +3,7 @@
 #include <array>
 #include <asio.hpp>
 #include <chrono>
+#include <span>
 #include <system_error>
 
 namespace engine::net {
@@ -129,18 +130,19 @@ void Client::WorkerLoop() {
     if (DequeueOutgoing(outgoing_bytes)) {
       did_work = true;
       const auto send_result = socket_.send_to(
-          outgoing_bytes.data(), outgoing_bytes.size(), endpoint_copy);
+          std::span<const std::uint8_t>(outgoing_bytes), endpoint_copy);
       if (send_result.error && !IsTransientError(send_result.error)) {
         running_.store(false, std::memory_order_release);
         break;
       }
     }
 
-    const auto recv_result =
-        socket_.receive_from(recv_buffer.data(), recv_buffer.size());
+    const auto recv_result = socket_.receive_from(std::span(recv_buffer));
     if (!recv_result.error && recv_result.bytes_transferred > 0) {
       did_work = true;
-      PacketBuffer packet(recv_buffer.data(), recv_result.bytes_transferred);
+      const auto packet_view =
+          std::span(recv_buffer).first(recv_result.bytes_transferred);
+      PacketBuffer packet(packet_view);
       ReceivedPacket received{recv_result.remote_endpoint, std::move(packet)};
       {
         std::lock_guard<std::mutex> lock(recv_mutex_);

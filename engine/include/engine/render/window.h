@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDER_WINDOW_H_
 #define ENGINE_RENDER_WINDOW_H_
 
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -26,7 +27,7 @@ struct WindowConfig {
   /**
    * @brief Optional input manager that receives translated window events
    */
-  input::InputManager* input_manager{nullptr};
+  std::shared_ptr<input::InputManager> input_manager{};
 };
 
 /**
@@ -42,7 +43,8 @@ class Window {
   /**
    * @brief Register an input manager sink for window input events
    */
-  virtual void SetInputManager(input::InputManager* input_manager) = 0;
+  virtual void SetInputManager(
+      std::shared_ptr<input::InputManager> input_manager) = 0;
 
   virtual math::Vector2i GetSize() const = 0;
   virtual void SetSize(const math::Vector2i& size) = 0;

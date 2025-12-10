@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -8,6 +9,7 @@
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
+#include "input_sender.h"
 #include "logging.h"
 
 namespace client {
@@ -15,6 +17,7 @@ namespace client {
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(),
+      sequence_tracker_(std::make_shared<protocol::SequenceTracker>()),
       join_flow_(config_.player_name, config_.room_code) {}
 
 int Application::Run() {
@@ -39,9 +42,11 @@ int Application::Run() {
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   input_layer_->ApplyDefaultBindings();
+  input_sender_ = std::make_unique<InputSender>(*input_layer_, transport_,
+                                                sequence_tracker_);
 
-  if (auto* audio = engine_->Audio()) {
-    audio_manager_ = std::make_unique<AudioManager>(*audio);
+  if (engine_->Audio()) {
+    audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());
     audio_manager_->LoadAssets();
     LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
   }
@@ -56,6 +61,7 @@ int Application::Run() {
   runtime_config_store.Set("client.player_name", config_.player_name);
   runtime_config_store.Set("client.room_code", config_.room_code);
 
+  join_flow_.SetSequenceTracker(sequence_tracker_);
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
@@ -67,6 +73,9 @@ int Application::Run() {
                  std::string("Failed to start network transport: ") +
                      transport_error.message());
     return 1;
+  }
+  if (input_sender_) {
+    input_sender_->Reset();
   }
   join_flow_.Begin(transport_);
 
@@ -94,6 +103,10 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (join_flow_.state() == JoinState::kRefused) {
     LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
     return false;
+  }
+  if (input_sender_) {
+    const bool connected = join_flow_.state() == JoinState::kConnected;
+    input_sender_->Update(dt, connected);
   }
 
   auto& window = engine_->Window();

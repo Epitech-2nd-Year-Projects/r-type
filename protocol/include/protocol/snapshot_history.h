@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <vector>
 
 #include "protocol/world_snapshot.h"
@@ -39,17 +41,19 @@ namespace protocol {
       /**
        * @brief Retrieves a snapshot by its ID.
        * @param snapshot_id The ID of the snapshot to retrieve.
-       * @return Pointer to the snapshot if found, nullptr otherwise.
+       * @return Snapshot reference if found.
        * 
        * Performs a linear search through the history. Use sparingly in performance-critical code.
        */
-      const WorldSnapshotPayload* GetSnapshot(std::uint32_t snapshot_id) const;
+      std::optional<std::reference_wrapper<const WorldSnapshotPayload>> GetSnapshot(
+          std::uint32_t snapshot_id) const;
 
       /**
        * @brief Retrieves the most recently added snapshot.
-       * @return Pointer to the latest snapshot, or nullptr if the history is empty.
+       * @return Snapshot reference for the latest entry if present.
        */
-      const WorldSnapshotPayload* GetLatestSnapshot() const;
+      std::optional<std::reference_wrapper<const WorldSnapshotPayload>> GetLatestSnapshot()
+          const;
 
       /**
        * @brief Checks if a snapshot with the given ID exists in the history.

@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <iostream>
+#include <string_view>
 
 #include "protocol/error.h"
 #include "protocol/latency_estimator.h"
@@ -14,7 +15,7 @@
 namespace {
 
 template <typename F>
-bool RunTest(const char* name, F&& fn) {
+bool RunTest(std::string_view name, F&& fn) {
   const bool ok = fn();
   std::cout << (ok ? "[ OK ] " : "[FAIL] ") << name << "\n";
   return ok;
@@ -70,7 +71,7 @@ bool TestSequenceTrackerBasic() {
   protocol::Header header{};
 
   tracker.OnRemoteSequenceReceived(100u);
-  tracker.FillAckFields(&header);
+  tracker.FillAckFields(header);
 
   if (header.ack != 100u) {
     std::cout << "Expected ack=100 after first packet, got " << header.ack
@@ -84,7 +85,7 @@ bool TestSequenceTrackerBasic() {
   }
 
   tracker.OnRemoteSequenceReceived(99u);
-  tracker.FillAckFields(&header);
+  tracker.FillAckFields(header);
 
   if (header.ack != 100u) {
     std::cout << "Expected ack=100 after second packet, got " << header.ack
@@ -184,7 +185,7 @@ bool TestReliableQueueAckBasics() {
   }
 
   std::vector<protocol::PendingPacket> to_resend;
-  queue.CollectPacketsToResend(/*now_ms=*/0u, &to_resend);
+  queue.CollectPacketsToResend(/*now_ms=*/0u, to_resend);
   if (!to_resend.empty()) {
     std::cout << "Expected no packets to resend yet\n";
     return false;
@@ -201,7 +202,7 @@ bool TestReliableQueueTimeoutResend() {
 
   {
     std::vector<protocol::PendingPacket> to_resend;
-    queue.CollectPacketsToResend(/*now_ms=*/50u, &to_resend);
+    queue.CollectPacketsToResend(/*now_ms=*/50u, to_resend);
     if (!to_resend.empty()) {
       std::cout << "Expected no resend at 50 ms\n";
       return false;
@@ -210,7 +211,7 @@ bool TestReliableQueueTimeoutResend() {
 
   {
     std::vector<protocol::PendingPacket> to_resend;
-    queue.CollectPacketsToResend(150u, &to_resend);
+    queue.CollectPacketsToResend(150u, to_resend);
     if (to_resend.size() != 1u) {
       std::cout << "Expected 1 packet to resend at 150 ms, got "
                 << to_resend.size() << "\n";
@@ -225,7 +226,7 @@ bool TestReliableQueueTimeoutResend() {
 
   {
     std::vector<protocol::PendingPacket> to_resend;
-    queue.CollectPacketsToResend(/*now_ms=*/260u, &to_resend);
+    queue.CollectPacketsToResend(/*now_ms=*/260u, to_resend);
     if (to_resend.size() != 1u) {
       std::cout << "Expected 1 packet to resend at 260 ms, got "
                 << to_resend.size() << "\n";
@@ -309,7 +310,7 @@ bool TestPacketDecodeInvalidVersion() {
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
-  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+  const bool ok = protocol::DecodePacket(buffer, decoded, error);
 
   if (ok) {
     std::cout << "Expected DecodePacket to fail for invalid version\n";
@@ -339,7 +340,7 @@ bool TestPacketDecodeInvalidMessageType() {
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
-  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+  const bool ok = protocol::DecodePacket(buffer, decoded, error);
 
   if (ok) {
     std::cout << "Expected DecodePacket to fail for invalid message_type\n";
@@ -362,7 +363,7 @@ bool TestPacketDecodeUnexpectedEndOfBuffer() {
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
-  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+  const bool ok = protocol::DecodePacket(buffer, decoded, error);
 
   if (ok) {
     std::cout << "Expected DecodePacket to fail for truncated header\n";
@@ -394,7 +395,7 @@ bool TestPacketDecodeInvalidPayload() {
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
-  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+  const bool ok = protocol::DecodePacket(buffer, decoded, error);
 
   if (ok) {
     std::cout << "Expected DecodePacket to fail for invalid payload\n";
@@ -479,30 +480,24 @@ bool TestDecodeMetricsAllErrors() {
 }
 
 bool TestDecodeErrorToString() {
-  const char* str_ok =
+  const auto str_ok =
       protocol::DecodeErrorToString(protocol::DecodeError::kOk);
-  const char* str_eob = protocol::DecodeErrorToString(
+  const auto str_eob = protocol::DecodeErrorToString(
       protocol::DecodeError::kUnexpectedEndOfBuffer);
-  const char* str_hdr =
+  const auto str_hdr =
       protocol::DecodeErrorToString(protocol::DecodeError::kInvalidHeader);
-  const char* str_type =
+  const auto str_type =
       protocol::DecodeErrorToString(protocol::DecodeError::kUnknownMessageType);
-  const char* str_ver =
+  const auto str_ver =
       protocol::DecodeErrorToString(protocol::DecodeError::kVersionMismatch);
-  const char* str_pay =
+  const auto str_pay =
       protocol::DecodeErrorToString(protocol::DecodeError::kInvalidPayload);
-  const char* str_snap =
+  const auto str_snap =
       protocol::DecodeErrorToString(protocol::DecodeError::kInvalidSnapshotId);
 
-  if (!str_ok || !str_eob || !str_hdr || !str_type || !str_ver || !str_pay ||
-      !str_snap) {
-    std::cout << "One or more error strings are null\n";
-    return false;
-  }
-
-  if (str_ok[0] == '\0' || str_eob[0] == '\0' || str_hdr[0] == '\0' ||
-      str_type[0] == '\0' || str_ver[0] == '\0' || str_pay[0] == '\0' ||
-      str_snap[0] == '\0') {
+  if (str_ok.empty() || str_eob.empty() || str_hdr.empty() ||
+      str_type.empty() || str_ver.empty() || str_pay.empty() ||
+      str_snap.empty()) {
     std::cout << "One or more error strings are empty\n";
     return false;
   }
@@ -515,7 +510,7 @@ bool TestPacketDecodeEmptyBuffer() {
 
   protocol::Packet decoded{};
   protocol::DecodeError error = protocol::DecodeError::kOk;
-  const bool ok = protocol::DecodePacket(buffer, decoded, &error);
+  const bool ok = protocol::DecodePacket(buffer, decoded, error);
 
   if (ok) {
     std::cout << "Expected DecodePacket to fail for empty buffer\n";
@@ -592,12 +587,13 @@ bool TestSnapshotHistoryBasic() {
     return false;
   }
 
-  const protocol::WorldSnapshotPayload* retrieved = history.GetSnapshot(100);
+  const auto retrieved = history.GetSnapshot(100);
   if (!retrieved) {
     std::cout << "Failed to retrieve snapshot with ID 100\n";
     return false;
   }
-  if (retrieved->snapshot_id != 100 || retrieved->server_tick != 1000) {
+  if (retrieved->get().snapshot_id != 100 ||
+      retrieved->get().server_tick != 1000) {
     std::cout << "Retrieved snapshot has wrong data\n";
     return false;
   }
@@ -654,8 +650,8 @@ bool TestSnapshotHistoryCapacity() {
 bool TestSnapshotHistoryGetLatest() {
   protocol::SnapshotHistory history(5);
 
-  if (history.GetLatestSnapshot() != nullptr) {
-    std::cout << "Expected nullptr for empty history\n";
+  if (history.GetLatestSnapshot().has_value()) {
+    std::cout << "Expected no snapshot for empty history\n";
     return false;
   }
 
@@ -666,14 +662,15 @@ bool TestSnapshotHistoryGetLatest() {
     history.AddSnapshot(snapshot);
   }
 
-  const protocol::WorldSnapshotPayload* latest = history.GetLatestSnapshot();
+  const auto latest = history.GetLatestSnapshot();
   if (!latest) {
     std::cout << "Failed to get latest snapshot\n";
     return false;
   }
-  if (latest->snapshot_id != 202 || latest->server_tick != 2002) {
-    std::cout << "Latest snapshot has wrong data: id=" << latest->snapshot_id
-              << " tick=" << latest->server_tick << "\n";
+  if (latest->get().snapshot_id != 202 || latest->get().server_tick != 2002) {
+    std::cout << "Latest snapshot has wrong data: id="
+              << latest->get().snapshot_id
+              << " tick=" << latest->get().server_tick << "\n";
     return false;
   }
 
@@ -709,17 +706,18 @@ bool TestSnapshotHistoryWithDeltas() {
 
   history.AddSnapshot(snapshot);
 
-  const protocol::WorldSnapshotPayload* retrieved = history.GetSnapshot(300);
+  const auto retrieved = history.GetSnapshot(300);
   if (!retrieved) {
     std::cout << "Failed to retrieve snapshot 300\n";
     return false;
   }
-  if (retrieved->deltas.size() != 2) {
-    std::cout << "Expected 2 deltas, got " << retrieved->deltas.size() << "\n";
+  if (retrieved->get().deltas.size() != 2) {
+    std::cout << "Expected 2 deltas, got " << retrieved->get().deltas.size()
+              << "\n";
     return false;
   }
-  if (retrieved->deltas[0].entity_id != 1 ||
-      retrieved->deltas[1].entity_id != 2) {
+  if (retrieved->get().deltas[0].entity_id != 1 ||
+      retrieved->get().deltas[1].entity_id != 2) {
     std::cout << "Delta entity IDs don't match\n";
     return false;
   }
@@ -734,9 +732,9 @@ bool TestSnapshotHistoryGetSnapshotNotFound() {
   snapshot.snapshot_id = 400;
   history.AddSnapshot(snapshot);
 
-  const protocol::WorldSnapshotPayload* not_found = history.GetSnapshot(999);
-  if (not_found != nullptr) {
-    std::cout << "Expected nullptr for non-existent snapshot\n";
+  const auto not_found = history.GetSnapshot(999);
+  if (not_found.has_value()) {
+    std::cout << "Expected no snapshot for non-existent id\n";
     return false;
   }
 

@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "protocol/error.h"
 #include "protocol/message_type.h"
+#include "protocol/sequence_tracker.h"
 
 namespace client {
 
@@ -29,9 +30,13 @@ JoinFlow::JoinFlow(std::string player_name, std::string room_code)
 void JoinFlow::Begin(NetworkTransport& transport) {
   state_ = JoinState::kConnecting;
   attempts_ = 0;
+  next_sequence_ = 1;
   player_id_.reset();
   last_reject_.reset();
   status_text_ = "Connecting to server";
+  if (sequence_tracker_) {
+    sequence_tracker_->Reset();
+  }
   SendJoinRequest(transport);
 }
 
@@ -44,9 +49,12 @@ void JoinFlow::Update(NetworkTransport& transport) {
   while (transport.Receive(incoming)) {
     protocol::Packet packet;
     protocol::DecodeError error{protocol::DecodeError::kOk};
-    if (!protocol::DecodePacket(incoming.buffer, packet, &error)) {
+    if (!protocol::DecodePacket(incoming.buffer, packet, error)) {
       LogPacketError("decode", protocol::DecodeErrorToString(error));
       continue;
+    }
+    if (sequence_tracker_) {
+      sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
     }
     HandleDecodedPacket(packet);
   }
@@ -83,10 +91,15 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
       protocol::message_type::MessageType::kJoinRequest);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence = next_sequence_++;
+  packet.header.sequence = sequence_tracker_
+                               ? sequence_tracker_->NextLocalSequence()
+                               : next_sequence_++;
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
+  if (sequence_tracker_) {
+    sequence_tracker_->FillAckFields(packet.header);
+  }
   packet.payload = payload;
 
   engine::net::PacketBuffer buffer;
@@ -113,23 +126,21 @@ void JoinFlow::HandleDecodedPacket(protocol::Packet& packet) {
       packet.header.message_type);
   switch (type) {
     case protocol::message_type::MessageType::kJoinAccept: {
-      const auto* payload =
-          std::get_if<protocol::JoinAcceptPayload>(&packet.payload);
-      if (!payload) {
+      if (!std::holds_alternative<protocol::JoinAcceptPayload>(
+              packet.payload)) {
         LogPacketError("handshake", "Malformed JoinAccept payload");
         return;
       }
-      HandleJoinAccept(*payload);
+      HandleJoinAccept(std::get<protocol::JoinAcceptPayload>(packet.payload));
       break;
     }
     case protocol::message_type::MessageType::kJoinReject: {
-      const auto* payload =
-          std::get_if<protocol::JoinRejectPayload>(&packet.payload);
-      if (!payload) {
+      if (!std::holds_alternative<protocol::JoinRejectPayload>(
+              packet.payload)) {
         LogPacketError("handshake", "Malformed JoinReject payload");
         return;
       }
-      HandleJoinReject(*payload);
+      HandleJoinReject(std::get<protocol::JoinRejectPayload>(packet.payload));
       break;
     }
     default:

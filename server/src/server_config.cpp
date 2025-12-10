@@ -39,30 +39,29 @@ ServerConfigParseResult MakeError(const ServerConfig& config,
 
 template <typename T>
 bool TryParseBounded(std::string_view value, T min_value, T max_value,
-                     T* out_value) {
+                     T& out_value) {
   std::uint64_t parsed = 0;
-  const auto* begin = value.data();
-  const auto* end = value.data() + value.size();
-  const auto [ptr, ec] = std::from_chars(begin, end, parsed);
-  if (ec != std::errc() || ptr != end) {
+  const auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), parsed);
+  if (ec != std::errc() || ptr != value.data() + value.size()) {
     return false;
   }
   if (parsed < min_value || parsed > max_value) {
     return false;
   }
-  *out_value = static_cast<T>(parsed);
+  out_value = static_cast<T>(parsed);
   return true;
 }
 
 bool TryParseLogLevel(std::string_view value,
-                      engine::util::LogLevel* out_level) {
+                      engine::util::LogLevel& out_level) {
   const auto normalized = Normalize(value);
   constexpr auto kFallback = engine::util::LogLevel::kInfo;
   const auto level = engine::util::ParseLogLevel(normalized, kFallback);
   if (level == kFallback && normalized != "info") {
     return false;
   }
-  *out_level = level;
+  out_level = level;
   return true;
 }
 
@@ -72,9 +71,9 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 }  // namespace
 
-ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
+ServerConfigParseResult ParseServerConfig(
+    std::span<const std::string_view> args) {
   ServerConfig config;
-  std::span args(argv, static_cast<std::size_t>(argc));
 
   for (std::size_t i = 1; i < args.size(); ++i) {
     std::string_view arg(args[i]);
@@ -83,7 +82,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
         return MakeError(config, "Missing value for --port");
       }
       std::uint16_t port = 0;
-      if (!TryParseBounded(args[i + 1], kMinPort, kMaxPort, &port)) {
+      if (!TryParseBounded(args[i + 1], kMinPort, kMaxPort, port)) {
         return MakeError(config,
                          "Invalid port supplied (must be between 1 and 65535)");
       }
@@ -98,7 +97,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       }
       std::uint16_t max_players = 0;
       if (!TryParseBounded(args[i + 1], kMinPlayers, kMaxPlayers,
-                           &max_players)) {
+                           max_players)) {
         return MakeError(config,
                          "Invalid max players (must be between 1 and 255)");
       }
@@ -113,7 +112,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       }
       std::uint16_t tick_rate = 0;
       if (!TryParseBounded(args[i + 1], kMinTickRate, kMaxTickRate,
-                           &tick_rate)) {
+                           tick_rate)) {
         return MakeError(config,
                          "Invalid tickrate (must be between 1 and 255)");
       }
@@ -148,7 +147,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
       std::uint32_t seed = 0;
       if (!TryParseBounded(args[i + 1],
                            std::numeric_limits<std::uint32_t>::min(),
-                           std::numeric_limits<std::uint32_t>::max(), &seed)) {
+                           std::numeric_limits<std::uint32_t>::max(), seed)) {
         return MakeError(config, "Invalid seed value");
       }
       config.seed = seed;
@@ -161,7 +160,7 @@ ServerConfigParseResult ParseServerConfig(int argc, char** argv) {
         return MakeError(config, "Missing value for --log-level");
       }
       engine::util::LogLevel level;
-      if (!TryParseLogLevel(args[i + 1], &level)) {
+      if (!TryParseLogLevel(args[i + 1], level)) {
         return MakeError(config,
                          "Invalid log level (trace, debug, info, warn/warning, "
                          "error, critical/fatal, off/none)");

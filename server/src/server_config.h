@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <random>
 #include <string>
+#include <span>
+#include <string_view>
 
 #include "engine/util/logging.h"
 
@@ -53,7 +55,8 @@ struct ServerConfigParseResult {
  * If parsing fails, the result will have ok=false and error will contain
  * a descriptive message.
  */
-ServerConfigParseResult ParseServerConfig(int argc, char** argv);
+ServerConfigParseResult ParseServerConfig(
+    std::span<const std::string_view> args);
 
 }  // namespace server
 

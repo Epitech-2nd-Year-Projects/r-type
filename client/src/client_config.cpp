@@ -36,30 +36,29 @@ ClientConfigParseResult MakeError(const ClientConfig& config,
   return result;
 }
 
-bool TryParsePort(std::string_view value, std::uint16_t* out_port) {
+bool TryParsePort(std::string_view value, std::uint16_t& out_port) {
   unsigned int parsed = 0;
-  const auto* begin = value.data();
-  const auto* end = value.data() + value.size();
-  const auto [ptr, ec] = std::from_chars(begin, end, parsed);
-  if (ec != std::errc() || ptr != end) {
+  const auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), parsed);
+  if (ec != std::errc() || ptr != value.data() + value.size()) {
     return false;
   }
   if (parsed < kMinPort || parsed > kMaxPort) {
     return false;
   }
-  *out_port = static_cast<std::uint16_t>(parsed);
+  out_port = static_cast<std::uint16_t>(parsed);
   return true;
 }
 
 bool TryParseLogLevel(std::string_view value,
-                      engine::util::LogLevel* out_level) {
+                      engine::util::LogLevel& out_level) {
   const auto normalized = Normalize(value);
   constexpr auto kFallback = engine::util::LogLevel::kInfo;
   const auto level = engine::util::ParseLogLevel(normalized, kFallback);
   if (level == kFallback && normalized != "info") {
     return false;
   }
-  *out_level = level;
+  out_level = level;
   return true;
 }
 
@@ -69,9 +68,9 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 }  // namespace
 
-ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
+ClientConfigParseResult ParseClientConfig(
+    std::span<const std::string_view> args) {
   ClientConfig config;
-  std::span args(argv, static_cast<std::size_t>(argc));
 
   for (std::size_t i = 1; i < args.size(); ++i) {
     std::string_view arg(args[i]);
@@ -92,7 +91,7 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
         return MakeError(config, "Missing value for --port");
       }
       std::uint16_t port = 0;
-      if (!TryParsePort(args[i + 1], &port)) {
+      if (!TryParsePort(args[i + 1], port)) {
         return MakeError(config,
                          "Invalid port supplied (must be between 1 and 65535)");
       }
@@ -147,7 +146,7 @@ ClientConfigParseResult ParseClientConfig(int argc, char** argv) {
         return MakeError(config, "Missing value for --log-level");
       }
       engine::util::LogLevel level;
-      if (!TryParseLogLevel(args[i + 1], &level)) {
+      if (!TryParseLogLevel(args[i + 1], level)) {
         return MakeError(config,
                          "Invalid log level (trace, debug, info, warn/warning, "
                          "error, critical/fatal, off/none)");

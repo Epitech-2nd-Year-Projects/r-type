@@ -2,6 +2,7 @@
 #define PROTOCOL_ERROR_H_
 
 #include <cstdint>
+#include <string_view>
 
 namespace protocol {
 
@@ -33,9 +34,9 @@ enum class DecodeError : std::uint8_t {
 /**
  * @brief Converts a DecodeError to a human-readable string.
  * @param error The error code to convert.
- * @return A null-terminated string describing the error.
+ * @return String describing the error.
  */
-const char* DecodeErrorToString(DecodeError error);
+std::string_view DecodeErrorToString(DecodeError error);
 
 /**
  * @brief Simple metrics for tracking packet decode errors.
