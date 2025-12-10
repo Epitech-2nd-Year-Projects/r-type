@@ -3,6 +3,8 @@
 #include "engine/ecs/component.h"
 #include "game_logic/components.h"
 #include "game_logic/entities/enemy_data.h"
+#include "game_logic/entities/missile_config.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::entities {
 
@@ -81,6 +83,19 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   sprite.tint.a = 255;
 
   registry.AddComponent<components::SpriteComponent>(enemy, std::move(sprite));
+
+  if (data.can_shoot) {
+    components::WeaponComponent weapon;
+    weapon.projectile_data = kEnemyMissileData;
+    weapon.projectile_data.fire_rate = data.fire_rate;
+    weapon.faction = ProjectileFaction::kEnemy;
+    weapon.set_unlimited_ammo();
+    weapon.is_trigger_held = true;
+    weapon.cooldown_remaining = engine::time::TimeDelta::from_seconds(0.0f);
+
+    registry.AddComponent<components::WeaponComponent>(enemy,
+                                                       std::move(weapon));
+  }
 
   registry.EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");
 

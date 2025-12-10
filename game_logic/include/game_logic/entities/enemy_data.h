@@ -26,12 +26,14 @@ struct EnemyArchetypeData {
   float wave_amplitude;
   float wave_frequency;
   float detection_range;
+  bool can_shoot;
+  float fire_rate;
 };
 
 inline constexpr EnemyArchetypeData kScoutData = {
     "Scout", 10,    150.0f, components::EnemyBehavior::kStraight, 100,  33.0f,
     33.0f,   33.0f, 33.0f,  "assets/sprites/enemy_scout.png",     0.0f, 0.0f,
-    0.0f};
+    0.0f,    true,  0.5f};
 
 inline constexpr EnemyArchetypeData kBomberData = {
     "Bomber", 20,
@@ -40,12 +42,13 @@ inline constexpr EnemyArchetypeData kBomberData = {
     33.0f,    33.0f,
     33.0f,    "assets/sprites/enemy_bomber.png",
     50.0f,    2.0f,
+    0.0f,     false,
     0.0f};
 
 inline constexpr EnemyArchetypeData kTankData = {
     "Tank", 150,   50.0f, components::EnemyBehavior::kPatrol, 500,  33.0f,
     33.0f,  33.0f, 33.0f, "assets/sprites/enemy_tank.png",    0.0f, 0.0f,
-    0.0f};
+    0.0f,   false, 0.0f};
 
 inline constexpr EnemyArchetypeData kInterceptorData = {
     "Interceptor", 10,
@@ -54,7 +57,8 @@ inline constexpr EnemyArchetypeData kInterceptorData = {
     33.0f,         33.0f,
     33.0f,         "assets/sprites/enemy_interceptor.png",
     0.0f,          0.0f,
-    1000.0f};
+    1000.0f,       false,
+    0.0f};
 
 }  // namespace game_logic::entities
 

@@ -8,8 +8,8 @@
 namespace {
 
 void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
-                          game_logic::GameInstance::InputState& input_state,
-                          engine::ecs::VelocityComponent& velocity,
+                          game_logic::GameInstance::InputState &input_state,
+                          engine::ecs::VelocityComponent &velocity,
                           float speed) {
   using InputType = game_logic::GameInstance::InputEventType;
 
@@ -40,10 +40,12 @@ void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
       break;
     case InputType::kBasicShootPressed:
     case InputType::kBasicShootReleased:
+    case InputType::kBigShootPressed:
+    case InputType::kBigShootReleased:
       break;
   }
 
-  engine::math::Vector2f& v = velocity.velocity;
+  engine::math::Vector2f &v = velocity.velocity;
 
   v.x = 0.0f;
   v.y = 0.0f;
@@ -66,13 +68,13 @@ void ApplyInputToVelocity(game_logic::GameInstance::InputEventType type,
 namespace game_logic::systems {
 
 void PlayerInputSystem::Update(
-    engine::ecs::Registry&,
-    engine::ecs::SparseArray<components::PlayerComponent>& players,
-    engine::ecs::SparseArray<engine::ecs::VelocityComponent>& velocities,
-    engine::ecs::SparseArray<components::WeaponComponent>& weapons,
+    engine::ecs::Registry &,
+    engine::ecs::SparseArray<components::PlayerComponent> &players,
+    engine::ecs::SparseArray<engine::ecs::VelocityComponent> &velocities,
+    engine::ecs::SparseArray<components::WeaponComponent> &weapons,
     engine::time::TimeDelta,
     std::reference_wrapper<GameInstance> instance_ref) {
-  GameInstance& instance = instance_ref.get();
+  GameInstance &instance = instance_ref.get();
 
   if (instance.pending_inputs_.empty()) {
     return;
@@ -80,7 +82,7 @@ void PlayerInputSystem::Update(
 
   using InputType = GameInstance::InputEventType;
 
-  for (const auto& evt : instance.pending_inputs_) {
+  for (const auto &evt : instance.pending_inputs_) {
     auto entity_it = instance.player_entities_.find(evt.player_id);
     if (entity_it == instance.player_entities_.end()) {
       continue;
@@ -97,26 +99,30 @@ void PlayerInputSystem::Update(
       continue;
     }
 
-    auto& player_opt = players[index];
-    auto& velocity_opt = velocities[index];
-    auto& weapon_opt = weapons[index];
+    auto &player_opt = players[index];
+    auto &velocity_opt = velocities[index];
+    auto &weapon_opt = weapons[index];
 
     if (!player_opt.has_value() || !velocity_opt.has_value()) {
       continue;
     }
 
-    auto& velocity = velocity_opt.value();
-    auto& input_state = input_it->second;
+    auto &velocity = velocity_opt.value();
+    auto &input_state = input_it->second;
 
     ApplyInputToVelocity(evt.type, input_state, velocity,
                          GameInstance::kInputMoveSpeed);
 
     if (weapon_opt.has_value()) {
-      auto& weapon = weapon_opt.value();
+      auto &weapon = weapon_opt.value();
       if (evt.type == InputType::kBasicShootPressed) {
         weapon.is_trigger_held = true;
       } else if (evt.type == InputType::kBasicShootReleased) {
         weapon.is_trigger_held = false;
+      } else if (evt.type == InputType::kBigShootPressed) {
+        weapon.is_big_trigger_held = true;
+      } else if (evt.type == InputType::kBigShootReleased) {
+        weapon.is_big_trigger_held = false;
       }
     }
   }

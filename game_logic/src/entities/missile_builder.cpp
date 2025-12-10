@@ -6,8 +6,9 @@
 
 namespace game_logic::entities {
 
-engine::ecs::EntityId MissileBuilder::Create(engine::ecs::Registry& registry,
-                                             const MissileConfig& config) {
+engine::ecs::EntityId MissileBuilder::Create(
+    engine::ecs::Registry &registry, const MissileConfig &config,
+    const MissileArchetypeData &archetype) {
   engine::ecs::EntityId missile = registry.SpawnEntity();
 
   registry.EmplaceComponent<engine::ecs::PositionComponent>(
@@ -26,11 +27,6 @@ engine::ecs::EntityId MissileBuilder::Create(engine::ecs::Registry& registry,
 
   registry.EmplaceComponent<engine::ecs::LifetimeComponent>(
       missile, engine::time::TimeDelta::from_seconds(config.lifetime));
-
-  const MissileArchetypeData& archetype =
-      (config.faction == ProjectileFaction::kPlayer)  ? kPlayerMissileData
-      : (config.faction == ProjectileFaction::kEnemy) ? kEnemyMissileData
-                                                      : kNeutralMissileData;
 
   const float hitbox_width = config.sprite_width * archetype.hitbox_scale;
   const float hitbox_height = config.sprite_height * archetype.hitbox_scale;
@@ -59,40 +55,23 @@ engine::ecs::EntityId MissileBuilder::Create(engine::ecs::Registry& registry,
   return missile;
 }
 
-engine::ecs::EntityId MissileBuilder::CreatePlayerMissile(
-    engine::ecs::Registry& registry, std::uint32_t owner_id,
-    const engine::math::Vector2f& spawn_position,
-    const engine::math::Vector2f& velocity) {
+engine::ecs::EntityId MissileBuilder::CreateMissile(
+    engine::ecs::Registry &registry, std::uint32_t owner_id,
+    const engine::math::Vector2f &spawn_position,
+    const engine::math::Vector2f &velocity,
+    const MissileArchetypeData &archetype, ProjectileFaction faction) {
   MissileConfig config;
   config.spawn_position = spawn_position;
   config.velocity = velocity;
-  config.damage = kPlayerMissileData.damage;
-  config.lifetime = kPlayerMissileData.lifetime_seconds;
+  config.damage = archetype.damage;
+  config.lifetime = archetype.lifetime_seconds;
   config.owner_id = owner_id;
-  config.faction = ProjectileFaction::kPlayer;
+  config.faction = faction;
   config.friendly_fire = false;
-  config.sprite_width = kPlayerMissileData.sprite_width;
-  config.sprite_height = kPlayerMissileData.sprite_height;
+  config.sprite_width = archetype.sprite_width;
+  config.sprite_height = archetype.sprite_height;
 
-  return Create(registry, config);
-}
-
-engine::ecs::EntityId MissileBuilder::CreateEnemyMissile(
-    engine::ecs::Registry& registry, std::uint32_t owner_id,
-    const engine::math::Vector2f& spawn_position,
-    const engine::math::Vector2f& velocity) {
-  MissileConfig config;
-  config.spawn_position = spawn_position;
-  config.velocity = velocity;
-  config.damage = kEnemyMissileData.damage;
-  config.lifetime = kEnemyMissileData.lifetime_seconds;
-  config.owner_id = owner_id;
-  config.faction = ProjectileFaction::kEnemy;
-  config.friendly_fire = false;
-  config.sprite_width = kEnemyMissileData.sprite_width;
-  config.sprite_height = kEnemyMissileData.sprite_height;
-
-  return Create(registry, config);
+  return Create(registry, config, archetype);
 }
 
 }  // namespace game_logic::entities
