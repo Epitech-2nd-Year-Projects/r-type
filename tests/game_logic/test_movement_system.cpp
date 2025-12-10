@@ -30,3 +30,24 @@ TEST(MovementSystemTest, UpdatesPositionBasedOnVelocity) {
     EXPECT_FLOAT_EQ(pos->position.y, 0.0f);
 }
 
+TEST(MovementSystemTest, UpdatesPositionBasedOnVelocityHalfSecond) {
+    engine::ecs::Registry registry;
+    registry.RegisterComponent<engine::ecs::PositionComponent>();
+    registry.RegisterComponent<engine::ecs::VelocityComponent>();
+    registry.RegisterComponent<game_logic::components::PlayerComponent>();
+
+    engine::ecs::EntityId entity = registry.SpawnEntity();
+    registry.EmplaceComponent<engine::ecs::PositionComponent>(entity, 10.0f, 10.0f);
+    registry.EmplaceComponent<engine::ecs::VelocityComponent>(entity, 0.0f, 20.0f); // Moving up
+
+    game_logic::systems::MovementSystem movementSystem;
+    
+    engine::time::TimeDelta dt = engine::time::TimeDelta::from_milliseconds(500);
+
+    movementSystem.Update(registry, dt);
+
+    auto& pos = registry.GetComponents<engine::ecs::PositionComponent>()[entity];
+    EXPECT_FLOAT_EQ(pos->position.x, 10.0f);
+    EXPECT_FLOAT_EQ(pos->position.y, 20.0f);
+}
+
