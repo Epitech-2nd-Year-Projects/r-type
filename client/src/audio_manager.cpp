@@ -13,14 +13,6 @@ AudioManager::AudioManager(engine::audio::AudioEngine& engine)
 
 void AudioManager::LoadAssets() {
   LogLifecycle(engine::util::LogLevel::kInfo, "Preloading audio assets...");
-  const float original_sfx_volume = engine_.GetSfxVolume();
-  engine_.SetSfxVolume(0.0f);
-
-  for (const auto& [type, path] : sound_paths_) {
-    engine_.PlaySoundEffect(path);
-  }
-
-  // Preload music files by playing each at zero volume and stopping immediately
   const float original_music_volume = engine_.GetMusicVolume();
   engine_.SetMusicVolume(0.0f);
   for (const auto& [type, path] : music_paths_) {
@@ -28,13 +20,6 @@ void AudioManager::LoadAssets() {
     engine_.StopMusic();
   }
   engine_.SetMusicVolume(original_music_volume);
-  engine_.SetSfxVolume(original_sfx_volume);
-}
-
-void AudioManager::PlaySound(SoundType type) {
-  if (sound_paths_.count(type)) {
-    engine_.PlaySoundEffect(sound_paths_.at(type));
-  }
 }
 
 void AudioManager::PlayMusic(MusicType type) {
@@ -43,7 +28,7 @@ void AudioManager::PlayMusic(MusicType type) {
     fade_remaining_ = 0.0f;
     fade_duration_ = 0.0f;
     current_music_ = type;
-    engine_.SetMusicVolume(target_music_volume_);
+    engine_.SetMusicVolume(default_music_volume_);
     engine_.PlayMusic(music_paths_.at(type));
   }
 }
@@ -80,7 +65,6 @@ void AudioManager::Update(float dt_seconds) {
   engine_.SetMusicVolume(initial_music_volume_ * t);
   if (fade_remaining_ <= 0.0f) {
     StopMusic();
-    engine_.SetMusicVolume(target_music_volume_);
   }
 }
 

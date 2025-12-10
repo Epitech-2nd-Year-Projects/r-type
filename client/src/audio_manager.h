@@ -9,12 +9,10 @@
 
 namespace client {
 
-enum class SoundType { kShot, kExplosion, kHit };
-
 enum class MusicType { kBackground };
 
 /**
- * @brief Simple wrapper around the engine audio subsystem for client assets
+ * @brief Simple wrapper around the engine audio subsystem for client music
  */
 class AudioManager {
  public:
@@ -24,17 +22,14 @@ class AudioManager {
   explicit AudioManager(engine::audio::AudioEngine& engine);
 
   /**
-   * @brief Preload configured sound effects and music
+   * @brief Preload configured music files
    */
   void LoadAssets();
 
   /**
-   * @brief Play a sound effect matching the given type
-   */
-  void PlaySound(SoundType type);
-
-  /**
    * @brief Start looping music for the provided category
+   *
+   * @param type Music entry to start
    */
   void PlayMusic(MusicType type);
 
@@ -45,28 +40,35 @@ class AudioManager {
 
   /**
    * @brief Fade out active music over the given duration
+   *
+   * @param duration_seconds Time in seconds to ramp volume down to silence
    */
   void FadeOutMusic(float duration_seconds);
 
   /**
    * @brief Progress fade timers and apply volume ramps
+   *
+   * @param dt_seconds Delta time in seconds since the previous update
    */
   void Update(float dt_seconds);
 
   /**
    * @brief Active music state helper
+   *
+   * @return true when a music track is currently playing
    */
   bool MusicActive() const;
 
  private:
+  static constexpr float kDefaultMusicVolume = 0.65f;
+
   engine::audio::AudioEngine& engine_;
-  std::unordered_map<SoundType, std::string> sound_paths_;
   std::unordered_map<MusicType, std::string> music_paths_;
   std::optional<MusicType> current_music_;
   float fade_remaining_{0.0f};
   float fade_duration_{0.0f};
-  float initial_music_volume_{1.0f};
-  float target_music_volume_{0.65f};
+  float initial_music_volume_{0.0f};
+  float default_music_volume_{kDefaultMusicVolume};
   bool fading_{false};
 };
 
