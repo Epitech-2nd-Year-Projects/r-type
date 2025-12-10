@@ -29,7 +29,7 @@ class InputLayer;
 class InputSender {
  public:
   /**
-   * @brief Construct an input sender bound to the input layer and transport
+   * @brief Construct an input sender bound to the input layer and network worker
    */
   InputSender(InputLayer& input_layer, WorldUpdateReceiver& receiver);
 
