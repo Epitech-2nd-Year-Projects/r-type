@@ -51,8 +51,7 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
 WorldUpdateReceiver::~WorldUpdateReceiver() { Stop(); }
 
 bool WorldUpdateReceiver::Start(
-    NetworkTransport& transport,
-    std::shared_ptr<protocol::SequenceTracker> sequence_tracker) {
+    NetworkTransport& transport) {
   if (running_.load(std::memory_order_acquire)) {
     return false;
   }
@@ -62,7 +61,7 @@ bool WorldUpdateReceiver::Start(
 
   Stop();
   transport_ = &transport;
-  sequence_tracker_ = std::move(sequence_tracker);
+  sequence_tracker_.Reset();
   running_.store(true, std::memory_order_release);
   worker_ = std::thread(&WorldUpdateReceiver::ReceiveLoop, this);
   return true;
@@ -100,11 +99,68 @@ bool WorldUpdateReceiver::Push(WorldUpdateMessage&& message) {
   return true;
 }
 
+bool WorldUpdateReceiver::EnqueueInputState(
+    const protocol::InputStatePayload& payload,
+    std::uint32_t client_time_ms) {
+  if (!running_.load(std::memory_order_acquire)) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(outgoing_mutex_);
+  if (outgoing_queue_.size() >= kMaxQueueDepth) {
+    return false;
+  }
+  OutgoingMessage message{};
+  message.type = protocol::message_type::MessageType::kInputState;
+  message.input_state = payload;
+  message.client_time_ms = client_time_ms;
+  outgoing_queue_.push_back(std::move(message));
+  outgoing_cv_.notify_one();
+  return true;
+}
+
 void WorldUpdateReceiver::ReceiveLoop() {
   engine::net::Client::ReceivedPacket incoming;
 
   while (running_.load(std::memory_order_acquire)) {
     bool did_work = false;
+    {
+      std::unique_lock<std::mutex> lock(outgoing_mutex_);
+      if (outgoing_cv_.wait_for(lock, std::chrono::milliseconds(1), [this] {
+            return !outgoing_queue_.empty() ||
+                   !running_.load(std::memory_order_acquire);
+          })) {
+        while (running_.load(std::memory_order_acquire) &&
+               !outgoing_queue_.empty()) {
+          did_work = true;
+          OutgoingMessage message = std::move(outgoing_queue_.front());
+          outgoing_queue_.pop_front();
+          lock.unlock();
+
+          protocol::Packet packet{};
+          packet.header.version = protocol::kProtocolVersion;
+          packet.header.message_type =
+              static_cast<std::uint8_t>(message.type);
+          packet.header.flags = 0;
+          packet.header.sequence = sequence_tracker_.NextLocalSequence();
+          packet.header.ack = 0;
+          packet.header.ack_bits = 0;
+          packet.header.timestamp_ms = message.client_time_ms;
+          sequence_tracker_.FillAckFields(packet.header);
+          packet.payload = message.input_state;
+
+          engine::net::PacketBuffer buffer;
+          buffer.reserve(128);
+          if (protocol::EncodePacket(packet, buffer)) {
+            transport_->Send(std::move(buffer));
+          } else {
+            LogPacketError("encode", "failed to encode outgoing payload");
+          }
+
+          lock.lock();
+        }
+      }
+    }
+
     while (running_.load(std::memory_order_acquire) && transport_ &&
            transport_->Receive(incoming)) {
       did_work = true;
@@ -115,9 +171,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
         continue;
       }
 
-      if (sequence_tracker_) {
-        sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
-      }
+      sequence_tracker_.OnRemoteSequenceReceived(packet.header.sequence);
 
       auto message = MakeWorldUpdateMessage(packet);
       if (!message.has_value()) {
