@@ -519,8 +519,7 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
   if (notify_client && peer.state == PeerState::kJoined) {
     SendServerCommand(
         peer,
-        static_cast<std::uint16_t>(
-            protocol::CommandType::kDisconnectNotice),
+        static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice),
         reason);
   }
   peer.state = PeerState::kDisconnected;
@@ -538,8 +537,7 @@ void ServerRuntime::CheckPeerTimeouts() {
     const std::uint32_t inactive_ms =
         now_ms >= peer.last_seen_ms
             ? now_ms - peer.last_seen_ms
-            : (std::numeric_limits<std::uint32_t>::max() -
-               peer.last_seen_ms) +
+            : (std::numeric_limits<std::uint32_t>::max() - peer.last_seen_ms) +
                   1u + now_ms;
     if (inactive_ms <= config_.peer_timeout_ms) {
       ++it;
