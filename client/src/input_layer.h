@@ -6,9 +6,12 @@
 #ifndef CLIENT_INPUT_LAYER_H_
 #define CLIENT_INPUT_LAYER_H_
 
+#include <array>
 #include <optional>
 #include <functional>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "engine/input.h"
@@ -93,7 +96,10 @@ class InputLayer {
   std::optional<GameAction> ResolveAction(std::string_view action_name) const;
   void RefreshState();
 
+  static constexpr std::size_t kActionCount = 6;
   std::reference_wrapper<engine::input::InputManager> manager_;
+  std::array<std::string, kActionCount> action_names_{};
+  std::unordered_map<std::string_view, GameAction> action_lookup_;
   ActionState state_{};
   std::vector<GameActionEvent> events_{};
   bool reconnect_requested_{false};
