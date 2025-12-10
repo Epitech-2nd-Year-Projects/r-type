@@ -92,6 +92,8 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
   packet.header.sequence = sequence_tracker_.NextLocalSequence();
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
+  // Protocol header uses 32-bit millisecond timestamps; wraparound is accepted
+  // by the server for latency measurement.
   packet.header.timestamp_ms =
       static_cast<std::uint32_t>(engine::time::NowMilliseconds());
   sequence_tracker_.FillAckFields(packet.header);

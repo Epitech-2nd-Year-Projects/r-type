@@ -10,6 +10,8 @@
 namespace {
 
 std::uint32_t NowMilliseconds() {
+  // Protocol header uses 32-bit millisecond timestamps; wraparound is accepted
+  // by the server for latency measurement.
   return static_cast<std::uint32_t>(engine::time::NowMilliseconds());
 }
 
