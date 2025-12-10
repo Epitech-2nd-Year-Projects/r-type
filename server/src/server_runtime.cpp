@@ -344,8 +344,15 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   peer.room_code = room_code;
   peer.room_id = room.Id();
   peer.last_seen_ms = NowMilliseconds();
+  if (!room.AddPlayer(peer.player_id, request.player_name)) {
+    logger_.get().Warn("Rejecting join from ", endpoint_key,
+                       " due to room admission failure");
+    peer.player_id = 0;
+    peer.state = PeerState::kConnecting;
+    SendReject(peer, protocol::JoinRejectReason::kServerFull, "Room full");
+    return;
+  }
   players_[peer.player_id] = PlayerSession{peer.endpoint_key, room_code};
-  room.AddPlayer(peer.player_id, request.player_name);
   room.MarkActive(peer.last_seen_ms);
   logger_.get().Info("Accepted join from ", endpoint_key, " assigned id ",
                      peer.player_id, " room ", room_code);
@@ -507,15 +514,6 @@ std::optional<std::reference_wrapper<PeerConnection>> ServerRuntime::FindPeer(
   return std::nullopt;
 }
 
-std::size_t ServerRuntime::CountJoinedPlayersInRoom(
-    const std::string& room_code) const {
-  auto it = rooms_.find(room_code);
-  if (it == rooms_.end()) {
-    return 0;
-  }
-  return it->second.PlayerCount();
-}
-
 std::optional<std::reference_wrapper<Room>> ServerRuntime::FindRoom(
     const std::string& room_code) {
   auto it = rooms_.find(room_code);
@@ -544,17 +542,28 @@ Room& ServerRuntime::GetOrCreateRoom(const std::string& room_code) {
   auto [inserted, _] = rooms_.emplace(
       room_code, Room{room_code, room_id,
                       static_cast<std::uint16_t>(config_.max_players), seed});
+  inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
 }
 
-void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code) {
+void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code,
+                                       std::uint32_t now_ms) {
   if (room_code.empty()) {
     return;
   }
-  if (CountJoinedPlayersInRoom(room_code) != 0) {
+  auto it = rooms_.find(room_code);
+  if (it == rooms_.end()) {
     return;
   }
-  rooms_.erase(room_code);
+  constexpr std::uint32_t kRoomIdleTimeoutMs = 30'000;
+  const bool idle =
+      now_ms >= it->second.LastActiveMs()
+          ? now_ms - it->second.LastActiveMs() >= kRoomIdleTimeoutMs
+          : false;
+  if (!it->second.IsEmpty() || !idle) {
+    return;
+  }
+  rooms_.erase(it);
 }
 
 PeerConnection& ServerRuntime::GetOrCreatePeer(
@@ -584,6 +593,7 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
 void ServerRuntime::DisconnectPeer(PeerConnection& peer,
                                    std::string_view reason,
                                    bool notify_client) {
+  const auto now_ms = NowMilliseconds();
   logger_.get().Info("Disconnecting peer ", peer.endpoint_key, " player id ",
                      peer.player_id, " reason ", reason);
   if (notify_client && peer.state == PeerState::kJoined) {
@@ -603,14 +613,14 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
     }
     if (auto room = FindRoom(resolved_room)) {
       room->get().RemovePlayer(peer.player_id);
-      room->get().MarkActive(NowMilliseconds());
+      room->get().MarkActive(now_ms);
     }
     room_code = resolved_room;
   }
   peer.player_id = 0;
   peer.room_code.clear();
   peer.room_id = 0;
-  CleanupRoomIfEmpty(room_code);
+  CleanupRoomIfEmpty(room_code, now_ms);
 }
 
 void ServerRuntime::CheckPeerTimeouts() {
@@ -654,6 +664,7 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
 
 void ServerRuntime::BroadcastWorldSnapshots() {
   std::vector<std::string> empty_rooms;
+  const auto now_ms = NowMilliseconds();
 
   for (auto& [room_code, room] : rooms_) {
     if (room.IsEmpty()) {
@@ -661,8 +672,8 @@ void ServerRuntime::BroadcastWorldSnapshots() {
       continue;
     }
 
-    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot(server_tick_);
-    room.MarkActive(NowMilliseconds());
+    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot();
+    room.MarkActive(now_ms);
 
     for (auto& [_, peer] : peers_) {
       if (peer.state != PeerState::kJoined || peer.player_id == 0) {
@@ -685,7 +696,7 @@ void ServerRuntime::BroadcastWorldSnapshots() {
   }
 
   for (const auto& room_code : empty_rooms) {
-    rooms_.erase(room_code);
+    CleanupRoomIfEmpty(room_code, now_ms);
   }
 }
 

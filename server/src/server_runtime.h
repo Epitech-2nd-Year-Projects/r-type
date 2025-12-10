@@ -276,13 +276,6 @@ class ServerRuntime {
    * kConnecting state.
    */
   PeerConnection& GetOrCreatePeer(const engine::net::Endpoint& from);
-  
-  /**
-   * @brief Counts the number of players who have joined a specific room.
-   * @param room_code Room code to query.
-   * @return Number of joined peers in the given room.
-   */
-  std::size_t CountJoinedPlayersInRoom(const std::string& room_code) const;
 
   /**
    * @brief Checks all peer connections for inactivity timeouts.
@@ -337,8 +330,9 @@ class ServerRuntime {
   /**
    * @brief Removes a room when no peers remain.
    * @param room_code Room code to check and remove if empty.
+   * @param now_ms Current timestamp for idle evaluation.
    */
-  void CleanupRoomIfEmpty(const std::string& room_code);
+  void CleanupRoomIfEmpty(const std::string& room_code, std::uint32_t now_ms);
 
   ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
