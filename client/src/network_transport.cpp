@@ -2,7 +2,7 @@
 
 #include <system_error>
 
-#include "time_utils.h"
+#include "engine/time/monotonic_time.h"
 
 namespace client {
 
@@ -23,7 +23,8 @@ std::error_code NetworkTransport::Start(
 
   const auto error = client_.Start(server, bind_endpoint);
   if (!error) {
-    last_receive_ms_.store(NowMilliseconds(), std::memory_order_release);
+    last_receive_ms_.store(engine::time::NowMilliseconds(),
+                           std::memory_order_release);
   }
   return error;
 }
@@ -41,7 +42,8 @@ bool NetworkTransport::Receive(
     engine::net::Client::ReceivedPacket& out_packet) {
   const bool dequeued = client_.TryDequeue(out_packet);
   if (dequeued) {
-    last_receive_ms_.store(NowMilliseconds(), std::memory_order_release);
+    last_receive_ms_.store(engine::time::NowMilliseconds(),
+                           std::memory_order_release);
   }
   return dequeued;
 }
