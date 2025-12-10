@@ -39,6 +39,8 @@ struct PeerConnection {
   engine::net::Endpoint endpoint;    ///< Remote UDP endpoint for sending packets.
 
   std::uint32_t player_id{0};        ///< Assigned player ID (0 = not assigned yet).
+  std::uint32_t room_id{0};          ///< Assigned room identifier for the current session.
+  std::string room_code;             ///< Room code chosen during join.
   PeerState state{PeerState::kConnecting};  ///< Current connection state.
 
   std::uint32_t last_seen_ms{0};     ///< Timestamp of last received valid packet (for timeout detection).

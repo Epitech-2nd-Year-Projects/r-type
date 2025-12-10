@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -17,12 +18,11 @@
 #include "protocol/packet.h"
 #include "protocol/input_state.h"
 #include "protocol/command.h"
-#include "protocol/snapshot_history.h"
 #include "protocol/error.h"
 #include "server_config.h"
 #include "peer_connection.h"
+#include "room.h"
 #include "server_transport.h"
-#include "game_instance.h"
 
 namespace server {
 
@@ -184,11 +184,12 @@ class ServerRuntime {
   /**
    * @brief Sends a join accept message to a peer.
    * @param peer The peer connection to accept.
+   * @param room_code Room code associated with the peer.
    * 
    * Constructs and sends a JoinAcceptPayload with server configuration
    * and assigned player ID.
    */
-  void SendAccept(PeerConnection& peer);
+  void SendAccept(PeerConnection& peer, const std::string& room_code);
   
   /**
    * @brief Sends a join reject message to a peer.
@@ -265,6 +266,23 @@ class ServerRuntime {
    * @param peer The peer connection to remove.
    */
   void RemovePeer(PeerConnection& peer);
+
+  /**
+   * @brief Joins a peer to a room and updates bookkeeping.
+   * @param peer Peer to attach.
+   * @param room_code Target room code.
+   * @param player_name Player display name.
+   * @return true if join succeeded.
+   */
+  bool JoinRoom(PeerConnection& peer, Room& room, std::string_view player_name);
+
+  /**
+   * @brief Removes a peer from its room and updates bookkeeping.
+   * @param peer Peer to detach.
+   * @param now_ms Current timestamp for activity tracking.
+   * @return Resolved room code the peer left (empty if none).
+   */
+  std::string LeaveRoom(PeerConnection& peer, std::uint32_t now_ms);
   
   /**
    * @brief Gets or creates a peer connection for an endpoint.
@@ -275,13 +293,7 @@ class ServerRuntime {
    * kConnecting state.
    */
   PeerConnection& GetOrCreatePeer(const engine::net::Endpoint& from);
-  
-  /**
-   * @brief Counts the number of peers in the kJoined state.
-   * @return Number of fully joined players.
-   */
-  std::size_t CountJoinedPlayers() const;
-  
+
   /**
    * @brief Checks all peer connections for inactivity timeouts.
    * 
@@ -291,13 +303,53 @@ class ServerRuntime {
   void CheckPeerTimeouts();
 
   /**
-   * @brief Sends the current game state to all connected players.
+   * @brief Sends the current game state to connected players per room.
    * 
-   * Constructs a WorldSnapshotPayload containing entity deltas and broadcasts
-   * it to all peers in the kJoined state. Increments next_snapshot_id_ after
-   * sending to maintain snapshot ordering.
+   * Constructs a WorldSnapshotPayload for each active room and broadcasts
+   * it to peers that joined the corresponding room.
    */
-  void BroadcastWorldSnapshot();
+  void BroadcastWorldSnapshots();
+
+  /**
+   * @brief Tracks session details for a connected player.
+   *
+   * Associates a player identifier with the endpoint they came from and
+   * the room they joined to support room-aware routing.
+   */
+  struct PlayerSession {
+    std::string endpoint_key; ///< Key used to locate the peer connection.
+    std::string room_code;    ///< Room that the player is currently part of.
+  };
+
+  /**
+  * @brief Finds a room by its code.
+  * @param room_code Room code to search for.
+   * @return Reference to the room if present.
+   */
+  std::optional<std::reference_wrapper<Room>> FindRoom(
+      const std::string& room_code);
+
+  /**
+   * @brief Finds a const room by its code.
+   * @param room_code Room code to search for.
+   * @return Const reference to the room if present.
+   */
+  std::optional<std::reference_wrapper<const Room>> FindRoomConst(
+      const std::string& room_code) const;
+
+  /**
+   * @brief Returns an existing room or creates a new one.
+   * @param room_code Room code to resolve.
+   * @return Reference to the resolved room instance.
+   */
+  Room& GetOrCreateRoom(const std::string& room_code);
+
+  /**
+   * @brief Removes a room when no peers remain.
+   * @param room_code Room code to check and remove if empty or idle.
+   * @param now_ms Current timestamp for idle evaluation.
+   */
+  void CleanupRoomIfEmpty(const std::string& room_code, std::uint32_t now_ms);
 
   ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
@@ -305,14 +357,13 @@ class ServerRuntime {
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
-  std::unordered_map<std::uint32_t, std::string> players_; ///< Map of player IDs to endpoint keys.
+  std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to player sessions.
   std::mt19937 rng_;                                       ///< Random number generator for deterministic seeds.
-  GameInstance game_instance_;                             ///< Authoritative game instance.
+  std::unordered_map<std::string, Room> rooms_;            ///< Active room contexts keyed by room code.
+  std::uint32_t next_room_id_{1};                          ///< Counter for room identifiers.
   std::uint32_t server_tick_{0};                           ///< Current server tick counter since startup.
-  std::uint32_t next_snapshot_id_{1};                      ///< Next snapshot ID for world state broadcasts.
   engine::time::TimeDelta fixed_delta_;                    ///< Fixed simulation timestep (1.0 / tick_rate).
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
-  protocol::SnapshotHistory snapshot_history_{32};         ///< Rolling window of recent snapshots for delta compression.
   bool running_{false};                                    ///< Whether the server loop is currently running.
   protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
 };

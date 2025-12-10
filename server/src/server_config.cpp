@@ -21,6 +21,8 @@ constexpr std::uint16_t kMinTickRate = 1;
 constexpr std::uint16_t kMaxTickRate = std::numeric_limits<std::uint8_t>::max();
 constexpr std::uint32_t kMinPeerTimeoutMs = 10'000;
 constexpr std::uint32_t kMaxPeerTimeoutMs = 30'000;
+constexpr std::uint32_t kMinRoomIdleTimeoutMs = 1'000;
+constexpr std::uint32_t kMaxRoomIdleTimeoutMs = 600'000;
 
 std::string Normalize(std::string_view value) {
   std::string normalized(value.size(), '\0');
@@ -134,6 +136,22 @@ ServerConfigParseResult ParseServerConfig(
             config, "Invalid timeout (must be between 10000 and 30000 ms)");
       }
       config.peer_timeout_ms = timeout_ms;
+      ++i;
+      continue;
+    }
+
+    if (arg == "--room-idle-timeout-ms") {
+      if (i + 1 >= args.size()) {
+        return MakeError(config, "Missing value for --room-idle-timeout-ms");
+      }
+      std::uint32_t idle_ms = 0;
+      if (!TryParseBounded(args[i + 1], kMinRoomIdleTimeoutMs,
+                           kMaxRoomIdleTimeoutMs, idle_ms)) {
+        return MakeError(
+            config,
+            "Invalid room idle timeout (must be between 1000 and 600000 ms)");
+      }
+      config.room_idle_timeout_ms = idle_ms;
       ++i;
       continue;
     }
