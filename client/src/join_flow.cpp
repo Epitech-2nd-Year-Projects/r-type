@@ -167,6 +167,17 @@ void JoinFlow::HandleJoinReject(const protocol::JoinRejectPayload& payload) {
                    payload.message);
 }
 
+void JoinFlow::MarkDisconnected(std::string_view reason) {
+  if (state_ == JoinState::kDisconnected) {
+    return;
+  }
+  player_id_.reset();
+  last_reject_.reset();
+  state_ = JoinState::kDisconnected;
+  status_text_.assign(reason.begin(), reason.end());
+  LogLifecycle(engine::util::LogLevel::kWarn, status_text_);
+}
+
 void JoinFlow::Fail(std::string_view message) {
   state_ = JoinState::kRefused;
   status_text_.assign(message.begin(), message.end());
