@@ -66,6 +66,10 @@ void JoinFlow::Update(NetworkTransport& transport) {
     }
   }
 
+  if (state_ != JoinState::kConnecting) {
+    return;
+  }
+
   const auto now = std::chrono::steady_clock::now();
   if (attempts_ < kMaxJoinAttempts && now - last_send_ >= kJoinRetryDelay) {
     SendJoinRequest(transport);
