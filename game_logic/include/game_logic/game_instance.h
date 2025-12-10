@@ -77,7 +77,13 @@ class GameInstance {
     kBasicShootPressed = 8,
 
     /// @brief  Stop Basic shoot event
-    kBasicShootReleased = 9
+    kBasicShootReleased = 9,
+
+    /// @brief Start Big shoot event
+    kBigShootPressed = 10,
+
+    /// @brief Stop Big shoot event
+    kBigShootReleased = 11
   };
 
   /**
