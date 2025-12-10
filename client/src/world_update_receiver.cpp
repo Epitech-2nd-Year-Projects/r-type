@@ -50,16 +50,16 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
 
 WorldUpdateReceiver::~WorldUpdateReceiver() { Stop(); }
 
-bool WorldUpdateReceiver::Start(NetworkTransport& transport) {
+bool WorldUpdateReceiver::Start(std::shared_ptr<NetworkTransport> transport) {
   if (running_.load(std::memory_order_acquire)) {
     return false;
   }
-  if (!transport.running()) {
+  if (!transport || !transport->running()) {
     return false;
   }
 
   Stop();
-  transport_ = &transport;
+  transport_ = std::move(transport);
   sequence_tracker_.Reset();
   running_.store(true, std::memory_order_release);
   worker_ = std::thread(&WorldUpdateReceiver::ReceiveLoop, this);
@@ -72,7 +72,7 @@ void WorldUpdateReceiver::Stop() {
     worker_.join();
   }
 
-  transport_ = nullptr;
+  transport_.reset();
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     queue_.clear();

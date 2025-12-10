@@ -68,12 +68,11 @@ class WorldUpdateReceiver {
 
   /**
    * @brief Start the receive loop using the given transport
-   * @param transport Non-owning transport reference that must outlive this
-   * receiver
+   * @param transport Shared transport used for send/receive ownership is shared
    * @return true when the worker thread is launched, false if the transport is
    * not running or the receiver is already active
    */
-  bool Start(NetworkTransport& transport);
+  bool Start(std::shared_ptr<NetworkTransport> transport);
 
   /**
    * @brief Stop the receive loop and clear queued messages
@@ -89,6 +88,9 @@ class WorldUpdateReceiver {
 
   /**
    * @brief Enqueue an input state payload to be encoded and sent on the network thread
+   * @param payload Input payload to encode and send
+   * @param client_time_ms Client timestamp for the packet header
+   * @return true when queued, false if the worker is not running or queue is full
    */
   bool EnqueueInputState(const protocol::InputStatePayload& payload,
                          std::uint32_t client_time_ms);
@@ -105,7 +107,7 @@ class WorldUpdateReceiver {
 
   static constexpr std::size_t kMaxQueueDepth = 256;
 
-  NetworkTransport* transport_{nullptr};
+  std::shared_ptr<NetworkTransport> transport_{};
   protocol::SequenceTracker sequence_tracker_{};
   std::condition_variable outgoing_cv_;
   std::mutex outgoing_mutex_;
