@@ -1,12 +1,10 @@
 #include "server_runtime.h"
 
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <csignal>
 #include <limits>
 #include <optional>
-#include <span>
 #include <string>
 #include <thread>
 #include <utility>
@@ -33,11 +31,6 @@ std::atomic_bool g_shutdown_requested{false};
 
 void SignalHandler(int) { g_shutdown_requested.store(true); }
 
-bool IsTransientError(const std::error_code& ec) {
-  return ec == asio::error::would_block || ec == asio::error::try_again ||
-         ec == asio::error::interrupted;
-}
-
 std::string EndpointKey(const engine::net::Endpoint& endpoint) {
   std::string key = endpoint.address();
   key.append(":");
@@ -59,8 +52,7 @@ void InstallSignalHandlers() {
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerConfig config)
-    : socket_(engine::net::UdpSocket::Protocol::kIpv4),
-      config_(std::move(config)),
+    : config_(std::move(config)),
       logger_(engine::util::Logger::Default()),
       frame_timer_(static_cast<float>(config_.tick_rate)),
       rng_(config_.seed),
@@ -74,17 +66,12 @@ std::error_code ServerRuntime::Start() {
   ConfigureLogging();
   InstallSignalHandlers();
 
-  const auto bind_endpoint = engine::net::Endpoint::AnyIpv4(config_.port);
-  if (auto open_error = socket_.open(engine::net::UdpSocket::Protocol::kIpv4);
-      open_error) {
-    return open_error;
-  }
-  if (auto bind_error = socket_.bind(bind_endpoint); bind_error) {
-    return bind_error;
+  if (const auto start_error = transport_.Start(config_.port); start_error) {
+    return start_error;
   }
 
-  logger_.get().Info("Server listening on ", bind_endpoint.address(), ":",
-                     bind_endpoint.port());
+  logger_.get().Info("Server listening on ",
+                     transport_.local_endpoint().address());
   const std::string room_label =
       config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
   logger_.get().Info("Room ", room_label, " max players ", config_.max_players,
@@ -124,24 +111,13 @@ void ServerRuntime::ConfigureLogging() {
 }
 
 void ServerRuntime::PollNetwork() {
-  std::array<std::uint8_t, 2048> buffer{};
-  while (true) {
-    const auto recv_result = socket_.receive_from(std::span(buffer));
-    if (recv_result.error) {
-      if (IsTransientError(recv_result.error)) {
-        break;
-      }
-      logger_.get().Error("Receive error: ", recv_result.error.message());
-      running_ = false;
-      break;
-    }
-    if (recv_result.bytes_transferred == 0) {
-      break;
-    }
-    const auto payload_view =
-        std::span(buffer).first(recv_result.bytes_transferred);
-    engine::net::PacketBuffer packet_buffer(payload_view);
-    HandlePacket(std::move(packet_buffer), recv_result.remote_endpoint);
+  const auto poll = transport_.PollNetwork();
+  for (auto& datagram : poll.datagrams) {
+    HandlePacket(std::move(datagram.payload), datagram.from);
+  }
+  if (poll.error) {
+    logger_.get().Error("Receive error: ", poll.error.message());
+    running_ = false;
   }
 }
 
@@ -450,7 +426,7 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
         static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable)) !=
        0);
 
-  const auto send_result = socket_.send_to(buffer.data(), peer.endpoint);
+  const auto send_result = transport_.Send(peer.endpoint, buffer);
   if (send_result.error) {
     logger_.get().Error("Send error to ", peer.endpoint_key, ": ",
                         send_result.error.message());
@@ -480,7 +456,8 @@ void ServerRuntime::ProcessReliableResends() {
     std::vector<protocol::PendingPacket> to_resend;
     peer.reliable_queue->CollectPacketsToResend(now_ms, to_resend);
     for (const auto& pending : to_resend) {
-      const auto send_result = socket_.send_to(pending.bytes, peer.endpoint);
+      const auto send_result = transport_.Send(
+          peer.endpoint, pending.bytes.data(), pending.bytes.size());
       if (send_result.error) {
         logger_.get().Warn("Resend error to ", peer.endpoint_key, ": ",
                            send_result.error.message());

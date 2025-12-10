@@ -10,7 +10,6 @@
 #include <system_error>
 #include <unordered_map>
 
-#include "engine/net/udp_socket.h"
 #include "engine/net/packet_buffer.h"
 #include "engine/time/frame_timer.h"
 #include "engine/util/logging.h"
@@ -22,6 +21,7 @@
 #include "protocol/error.h"
 #include "server_config.h"
 #include "peer_connection.h"
+#include "server_transport.h"
 #include "game_instance.h"
 
 namespace server {
@@ -286,7 +286,7 @@ class ServerRuntime {
    */
   void BroadcastWorldSnapshot();
 
-  engine::net::UdpSocket socket_;                          ///< UDP socket for network communication.
+  ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
   std::reference_wrapper<engine::util::Logger> logger_;    ///< Logger instance for diagnostic output.
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
