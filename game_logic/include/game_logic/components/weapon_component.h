@@ -4,6 +4,8 @@
 #include <cstdint>
 
 #include "engine/time/time_delta.h"
+#include "game_logic/entities/missile_config.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::components {
 
@@ -126,6 +128,12 @@ struct WeaponComponent {
     big_shot_cooldown_remaining =
         engine::time::TimeDelta::from_seconds(1.0f / rate);
   }
+
+  /// @brief Archetype data for the projectile this weapon fires
+  entities::MissileArchetypeData projectile_data{entities::kPlayerMissileData};
+
+  /// @brief Faction of the projectile
+  entities::ProjectileFaction faction{entities::ProjectileFaction::kPlayer};
 };
 
 }  // namespace game_logic::components

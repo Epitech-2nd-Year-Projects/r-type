@@ -24,12 +24,10 @@ class WeaponSystem {
    * @param dt Frame delta time
    */
   static void Update(
-      engine::ecs::Registry& registry,
-      engine::ecs::SparseArray<engine::ecs::PositionComponent>& positions,
-      engine::ecs::SparseArray<game_logic::components::PlayerComponent>&
-          players,
-      engine::ecs::SparseArray<game_logic::components::WeaponComponent>&
-          weapons,
+      engine::ecs::Registry &registry,
+      engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
+      engine::ecs::SparseArray<game_logic::components::WeaponComponent>
+          &weapons,
       engine::time::TimeDelta dt);
 };
 
