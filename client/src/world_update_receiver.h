@@ -1,7 +1,5 @@
 #ifndef CLIENT_WORLD_UPDATE_RECEIVER_H_
 #define CLIENT_WORLD_UPDATE_RECEIVER_H_
-#ifndef CLIENT_WORLD_UPDATE_RECEIVER_H_
-#define CLIENT_WORLD_UPDATE_RECEIVER_H_
 /**
  * @file world_update_receiver.h
  * @brief Background decoding of gameplay updates
