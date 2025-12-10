@@ -28,12 +28,12 @@ struct Mapping {
 };
 
 constexpr std::array<Mapping, 6> kMappings{
-    Mapping{GameAction::kMoveUp, kMoveUpAction},      // kMoveUpIndex
-    Mapping{GameAction::kMoveDown, kMoveDownAction},  // kMoveDownIndex
-    Mapping{GameAction::kMoveLeft, kMoveLeftAction},  // kMoveLeftIndex
+    Mapping{GameAction::kMoveUp, kMoveUpAction},        // kMoveUpIndex
+    Mapping{GameAction::kMoveDown, kMoveDownAction},    // kMoveDownIndex
+    Mapping{GameAction::kMoveLeft, kMoveLeftAction},    // kMoveLeftIndex
     Mapping{GameAction::kMoveRight, kMoveRightAction},  // kMoveRightIndex
-    Mapping{GameAction::kShoot, kShootAction},        // kShootIndex
-    Mapping{GameAction::kReconnect, kReconnectAction}  // kReconnectIndex
+    Mapping{GameAction::kShoot, kShootAction},          // kShootIndex
+    Mapping{GameAction::kReconnect, kReconnectAction}   // kReconnectIndex
 };
 
 constexpr GameActionEventType ToGameActionEventType(
