@@ -24,10 +24,13 @@ class Application {
    * @brief Construct an Application with user provided configuration
    */
   explicit Application(ClientConfig config);
+
   int Run();
 
  private:
   bool Tick(engine::time::TimeDelta dt);
+  void UpdateAudio(engine::time::TimeDelta dt, JoinState join_state);
+  void HandleGameOverAudio();
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -37,6 +40,9 @@ class Application {
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
   WorldUpdateReceiver world_update_receiver_;
+  JoinState last_join_state_{JoinState::kIdle};
+  bool music_allowed_{false};
+  bool music_blocked_{false};
 };
 
 }  // namespace client

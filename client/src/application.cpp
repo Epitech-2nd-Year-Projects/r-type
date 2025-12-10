@@ -14,6 +14,13 @@
 
 namespace client {
 
+namespace {
+
+constexpr float kDisconnectFadeSeconds = 1.25f;
+constexpr float kGameOverFadeSeconds = 1.5f;
+
+}  // namespace
+
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(std::make_shared<NetworkTransport>()),
@@ -81,6 +88,9 @@ int Application::Run() {
       static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
+  if (audio_manager_) {
+    audio_manager_->StopMusic();
+  }
   world_update_receiver_.Stop();
   transport_->Stop();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
@@ -119,9 +129,13 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (world_update_receiver_.running()) {
     WorldUpdateMessage message;
     while (world_update_receiver_.TryPop(message)) {
+      if (message.type == protocol::message_type::MessageType::kPlayerDied) {
+        HandleGameOverAudio();
+      }
       // TODO: Dispatch world updates to gameplay systems.
     }
   }
+  UpdateAudio(dt, join_state);
 
   auto& window = engine_->Window();
   auto& context = window.GetRenderContext();
@@ -150,6 +164,47 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   context.EndFrame();
   return true;
+}
+
+void Application::UpdateAudio(engine::time::TimeDelta dt,
+                              JoinState join_state) {
+  if (!audio_manager_) {
+    return;
+  }
+
+  const bool connected = join_state == JoinState::kConnected;
+  const bool was_connected = last_join_state_ == JoinState::kConnected;
+  const bool transport_running = transport_ ? transport_->running() : false;
+
+  if (connected && !music_blocked_) {
+    music_allowed_ = true;
+  }
+
+  const bool lost_connection =
+      (!connected && was_connected) || !transport_running;
+  if (lost_connection) {
+    music_allowed_ = false;
+    music_blocked_ = false;
+    if (audio_manager_->MusicActive()) {
+      audio_manager_->FadeOutMusic(kDisconnectFadeSeconds);
+    }
+  }
+
+  if (music_allowed_ && !music_blocked_ && !audio_manager_->MusicActive()) {
+    audio_manager_->PlayMusic(MusicType::kBackground);
+  }
+
+  audio_manager_->Update(dt.as_seconds());
+  last_join_state_ = join_state;
+}
+
+void Application::HandleGameOverAudio() {
+  if (!audio_manager_) {
+    return;
+  }
+  music_allowed_ = false;
+  music_blocked_ = true;
+  audio_manager_->FadeOutMusic(kGameOverFadeSeconds);
 }
 
 }  // namespace client
