@@ -42,7 +42,7 @@ class Room {
   Room& operator=(Room&&) = default;
 
   /**
-   * @brief Steps the room simulation.
+   * @brief Steps the room simulation and advances the room tick counter.
    * @param delta Fixed timestep.
    */
   void Update(const engine::time::TimeDelta& delta);
@@ -51,14 +51,15 @@ class Room {
    * @brief Adds a player to the room.
    * @param player_id Unique player identifier.
    * @param player_name Display name.
+   * @return true if the player was added, false on duplicate or capacity hit.
    */
-  void AddPlayer(std::uint32_t player_id, std::string_view player_name);
+  bool AddPlayer(std::uint32_t player_id, std::string_view player_name);
 
   /**
    * @brief Removes a player from the room.
    * @param player_id Identifier to remove.
    */
-  void RemovePlayer(std::uint32_t player_id);
+  bool RemovePlayer(std::uint32_t player_id);
 
   /**
    * @brief Routes an input payload to the room game instance.
@@ -72,7 +73,7 @@ class Room {
    * @param server_tick Current server tick.
    * @return Snapshot payload ready for encoding.
    */
-  protocol::WorldSnapshotPayload BuildSnapshot(std::uint32_t server_tick);
+  protocol::WorldSnapshotPayload BuildSnapshot();
 
   /**
    * @brief Marks room activity.
@@ -121,6 +122,7 @@ class Room {
   std::uint16_t max_players_;
   std::uint32_t seed_;
   std::uint32_t next_snapshot_id_{1};
+  std::uint32_t room_tick_{0};
   std::uint32_t last_active_ms_{0};
   std::unordered_set<std::uint32_t> players_;
   std::unique_ptr<GameInstance> game_instance_;

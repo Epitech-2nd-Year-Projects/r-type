@@ -18,24 +18,35 @@ void Room::Update(const engine::time::TimeDelta& delta) {
   if (game_instance_) {
     game_instance_->Update(delta);
   }
+  ++room_tick_;
 }
 
-void Room::AddPlayer(std::uint32_t player_id, std::string_view player_name) {
-  if (game_instance_ && players_.insert(player_id).second) {
-    game_instance_->OnPlayerJoined(player_id, player_name);
-  }
-}
-
-void Room::RemovePlayer(std::uint32_t player_id) {
+bool Room::AddPlayer(std::uint32_t player_id, std::string_view player_name) {
   if (!game_instance_) {
-    return;
+    return false;
+  }
+  if (players_.size() >= max_players_) {
+    return false;
+  }
+  const auto [_, inserted] = players_.insert(player_id);
+  if (!inserted) {
+    return false;
+  }
+  game_instance_->OnPlayerJoined(player_id, player_name);
+  return true;
+}
+
+bool Room::RemovePlayer(std::uint32_t player_id) {
+  if (!game_instance_) {
+    return false;
   }
   const auto it = players_.find(player_id);
   if (it == players_.end()) {
-    return;
+    return false;
   }
   game_instance_->OnPlayerLeft(player_id);
   players_.erase(it);
+  return true;
 }
 
 void Room::HandleInput(std::uint32_t player_id,
@@ -46,12 +57,12 @@ void Room::HandleInput(std::uint32_t player_id,
   }
 }
 
-protocol::WorldSnapshotPayload Room::BuildSnapshot(std::uint32_t server_tick) {
+protocol::WorldSnapshotPayload Room::BuildSnapshot() {
   if (!game_instance_) {
     return {};
   }
   protocol::WorldSnapshotPayload snapshot =
-      game_instance_->BuildWorldSnapshot(next_snapshot_id_++, server_tick);
+      game_instance_->BuildWorldSnapshot(next_snapshot_id_++, room_tick_);
   snapshot_history_.AddSnapshot(snapshot);
   return snapshot;
 }
