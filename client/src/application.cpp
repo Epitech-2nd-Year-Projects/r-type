@@ -1,6 +1,5 @@
 #include "application.h"
 
-#include <chrono>
 #include <cstdint>
 #include <iomanip>
 #include <memory>
@@ -14,6 +13,7 @@
 #include "input_sender.h"
 #include "logging.h"
 #include "protocol/command.h"
+#include "time_utils.h"
 
 namespace client {
 
@@ -21,12 +21,6 @@ namespace {
 
 constexpr float kDisconnectFadeSeconds = 1.25f;
 constexpr float kGameOverFadeSeconds = 1.5f;
-
-std::uint64_t NowMilliseconds() {
-  using namespace std::chrono;
-  const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint64_t>(duration_cast<milliseconds>(now).count());
-}
 
 }  // namespace
 
