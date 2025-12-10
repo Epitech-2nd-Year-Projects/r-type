@@ -252,6 +252,9 @@ class ServerRuntime {
    * @param peer Peer connection to disconnect.
    * @param reason Human-readable reason for logging and notifications.
    * @param notify_client Whether to attempt sending a disconnect notice.
+   *
+   * @note This function does not erase the peer from peers_. Callers are
+   *       responsible for removing the entry after invoking this helper.
    */
   void DisconnectPeer(PeerConnection& peer,
                       std::string_view reason,
