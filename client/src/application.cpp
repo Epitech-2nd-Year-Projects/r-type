@@ -108,7 +108,11 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   }
   if (join_state == JoinState::kConnected &&
       !world_update_receiver_.running()) {
-    world_update_receiver_.Start(transport_, sequence_tracker_);
+    if (!world_update_receiver_.Start(transport_, sequence_tracker_)) {
+      LogLifecycle(engine::util::LogLevel::kError,
+                   "Failed to start world update receiver");
+      return false;
+    }
   }
   if (input_sender_) {
     const bool connected = join_state == JoinState::kConnected;
@@ -117,6 +121,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (world_update_receiver_.running()) {
     WorldUpdateMessage message;
     while (world_update_receiver_.TryPop(message)) {
+      // TODO: Dispatch world updates to gameplay systems.
     }
   }
 
