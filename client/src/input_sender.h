@@ -12,14 +12,11 @@
 #include "engine/time/time_delta.h"
 #include "protocol/input_state.h"
 
-namespace protocol {
-  class SequenceTracker;
-}
-
 namespace client {
 
+class WorldUpdateReceiver;
+
 class InputLayer;
-class NetworkTransport;
 
 /**
  * @class InputSender
@@ -34,8 +31,7 @@ class InputSender {
   /**
    * @brief Construct an input sender bound to the input layer and transport
    */
-  InputSender(InputLayer& input_layer, NetworkTransport& transport,
-              std::shared_ptr<protocol::SequenceTracker> sequence_tracker);
+  InputSender(InputLayer& input_layer, WorldUpdateReceiver& receiver);
 
   /**
    * @brief Reset input history and local sequence counters
@@ -53,8 +49,7 @@ class InputSender {
                    std::uint32_t client_time_ms);
 
   InputLayer& input_layer_;
-  NetworkTransport& transport_;
-  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_;
+  WorldUpdateReceiver& receiver_;
   protocol::InputHistoryWindow history_{};
   std::uint32_t next_input_sequence_{1};
   float send_interval_seconds_{1.0f / 60.0f};
