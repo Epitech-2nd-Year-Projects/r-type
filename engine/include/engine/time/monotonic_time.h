@@ -1,15 +1,15 @@
 /**
- * @file time_utils.h
- * @brief Thin helpers for monotonic time queries
+ * @file monotonic_time.h
+ * @brief Monotonic timestamp helpers in milliseconds
  */
 
-#ifndef CLIENT_TIME_UTILS_H_
-#define CLIENT_TIME_UTILS_H_
+#ifndef ENGINE_TIME_MONOTONIC_TIME_H_
+#define ENGINE_TIME_MONOTONIC_TIME_H_
 
 #include <chrono>
 #include <cstdint>
 
-namespace client {
+namespace engine::time {
 
 /**
  * @brief Current monotonic time in milliseconds
@@ -20,6 +20,6 @@ inline std::uint64_t NowMilliseconds() {
   return static_cast<std::uint64_t>(duration_cast<milliseconds>(now).count());
 }
 
-}  // namespace client
+}  // namespace engine::time
 
-#endif  // CLIENT_TIME_UTILS_H_
+#endif  // ENGINE_TIME_MONOTONIC_TIME_H_
