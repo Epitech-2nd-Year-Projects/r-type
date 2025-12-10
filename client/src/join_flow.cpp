@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "engine/time/monotonic_time.h"
 #include "logging.h"
 #include "protocol/error.h"
 #include "protocol/message_type.h"
@@ -13,12 +14,6 @@ namespace {
 
 constexpr int kMaxJoinAttempts = 5;
 constexpr auto kJoinRetryDelay = std::chrono::milliseconds(500);
-
-std::uint32_t NowMilliseconds() {
-  using namespace std::chrono;
-  const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
-}
 
 }  // namespace
 
@@ -97,7 +92,8 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
   packet.header.sequence = sequence_tracker_.NextLocalSequence();
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
-  packet.header.timestamp_ms = NowMilliseconds();
+  packet.header.timestamp_ms =
+      static_cast<std::uint32_t>(engine::time::NowMilliseconds());
   sequence_tracker_.FillAckFields(packet.header);
   packet.payload = payload;
 
