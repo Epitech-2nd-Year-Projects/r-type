@@ -546,10 +546,9 @@ void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code,
   }
   const std::uint32_t last_active = it->second.LastActiveMs();
   const std::uint32_t idle_timeout_ms = config_.room_idle_timeout_ms;
-  const bool idle =
-      last_active != 0 && now_ms >= last_active
-          ? now_ms - last_active >= idle_timeout_ms
-          : false;
+  const bool idle = last_active != 0 && now_ms >= last_active
+                        ? now_ms - last_active >= idle_timeout_ms
+                        : false;
   if (!it->second.IsEmpty() || !idle) {
     return;
   }
@@ -639,8 +638,7 @@ void ServerRuntime::RemovePeer(PeerConnection& peer) {
   peers_.erase(endpoint_key);
 }
 
-bool ServerRuntime::JoinRoom(PeerConnection& peer,
-                             const std::string& room_code,
+bool ServerRuntime::JoinRoom(PeerConnection& peer, const std::string& room_code,
                              std::string_view player_name) {
   Room& room = GetOrCreateRoom(room_code);
   if (room.PlayerCount() >= room.MaxPlayers()) {
