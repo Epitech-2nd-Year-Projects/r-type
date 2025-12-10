@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+#include "engine/time/monotonic_time.h"
 #include "input_layer.h"
 #include "logging.h"
 #include "world_update_receiver.h"
@@ -9,9 +10,9 @@
 namespace {
 
 std::uint32_t NowMilliseconds() {
-  using namespace std::chrono;
-  const auto now = steady_clock::now().time_since_epoch();
-  return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
+  // Protocol header uses 32-bit millisecond timestamps; wraparound is accepted
+  // by the server for latency measurement.
+  return static_cast<std::uint32_t>(engine::time::NowMilliseconds());
 }
 
 std::uint8_t BuildButtonMask(const client::ActionState& state) {
