@@ -19,7 +19,14 @@ namespace client {
  * @enum GameAction
  * @brief High level gameplay actions exposed to the client
  */
-enum class GameAction { kMoveUp, kMoveDown, kMoveLeft, kMoveRight, kShoot };
+enum class GameAction {
+  kMoveUp,
+  kMoveDown,
+  kMoveLeft,
+  kMoveRight,
+  kShoot,
+  kReconnect
+};
 
 /**
  * @enum GameActionEventType
@@ -77,6 +84,11 @@ class InputLayer {
    */
  std::vector<GameActionEvent> ConsumeEvents();
 
+  /**
+   * @brief Retrieve and clear any reconnect request
+   */
+  bool ConsumeReconnectRequest();
+
  private:
   std::optional<GameAction> ResolveAction(std::string_view action_name) const;
   void RefreshState();
@@ -84,6 +96,7 @@ class InputLayer {
   std::reference_wrapper<engine::input::InputManager> manager_;
   ActionState state_{};
   std::vector<GameActionEvent> events_{};
+  bool reconnect_requested_{false};
 };
 
 }  // namespace client
