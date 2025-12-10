@@ -7,16 +7,17 @@
 namespace server {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
-                           std::uint32_t max_players)
+                           std::uint32_t max_players,
+                           engine::util::Logger& logger)
     : rng_(seed),
-      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)) {
+      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
+      logger_(logger) {
   logic_->Start();
 }
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
                                   std::string_view player_name) {
-  auto& logger = engine::util::Logger::Default();
-  logger.Info("[GameInstance] Player joined: ", player_id);
+  logger_.Info("[GameInstance] Player joined: ", player_id);
 
   PlayerState state{};
   state.player_id = player_id;
@@ -31,8 +32,7 @@ void GameInstance::OnPlayerJoined(std::uint32_t player_id,
 }
 
 void GameInstance::OnPlayerLeft(std::uint32_t player_id) {
-  auto& logger = engine::util::Logger::Default();
-  logger.Info("[GameInstance] Player left: ", player_id);
+  logger_.Info("[GameInstance] Player left: ", player_id);
   players_.erase(player_id);
   if (logic_) {
     logic_->OnPlayerLeave(player_id);
@@ -44,8 +44,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
                                  const protocol::Header& header) {
   auto it = players_.find(player_id);
   if (it == players_.end()) {
-    auto& logger = engine::util::Logger::Default();
-    logger.Warn("[GameInstance] Input from unknown player: ", player_id);
+    logger_.Warn("[GameInstance] Input from unknown player: ", player_id);
     return;
   }
 
@@ -53,8 +52,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
 
   if (payload.command_count == 0 ||
       payload.command_count > protocol::kMaxInputSequenceHistory) {
-    auto& logger = engine::util::Logger::Default();
-    logger.Warn(
+    logger_.Warn(
         "[GameInstance] Invalid InputStatePayload from player ", player_id,
         " (command_count=", static_cast<int>(payload.command_count), ")");
     return;
@@ -74,8 +72,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   }
 
   if (!newest) {
-    auto& logger = engine::util::Logger::Default();
-    logger.Trace(
+    logger_.Trace(
         "[GameInstance] All input commands already applied for player ",
         player_id);
     return;
@@ -117,11 +114,10 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
-  auto& logger = engine::util::Logger::Default();
-  logger.Trace("[GameInstance] Updated input for player ", player_id,
-               " seq=", newest->get().input_sequence,
-               " buttons=", static_cast<int>(newest->get().buttons),
-               " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
+  logger_.Trace("[GameInstance] Updated input for player ", player_id,
+                " seq=", newest->get().input_sequence,
+                " buttons=", static_cast<int>(newest->get().buttons),
+                " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
 void GameInstance::Update(const engine::time::TimeDelta& delta) {

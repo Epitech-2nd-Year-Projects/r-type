@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include "engine/time/time_delta.h"
+#include "engine/util/logging.h"
 #include "game_instance.h"
 #include "protocol/snapshot_history.h"
 #include "protocol/world_snapshot.h"
@@ -30,16 +31,18 @@ class Room {
    * @param room_id Internal numeric identifier.
    * @param max_players Maximum allowed players for the room.
    * @param seed Seed for deterministic simulation.
+   * @param logger Logger used for diagnostics.
    */
   Room(std::string room_code,
        std::uint32_t room_id,
        std::uint16_t max_players,
-       std::uint32_t seed);
+       std::uint32_t seed,
+       engine::util::Logger& logger);
 
   Room(const Room&) = delete;
   Room& operator=(const Room&) = delete;
-  Room(Room&&) = default;
-  Room& operator=(Room&&) = default;
+  Room(Room&& other) noexcept;
+  Room& operator=(Room&&) = delete;
 
   /**
    * @brief Steps the room simulation and advances the room tick counter.
@@ -131,6 +134,7 @@ class Room {
   std::unordered_set<std::uint32_t> players_;
   std::unique_ptr<GameInstance> game_instance_;
   protocol::SnapshotHistory snapshot_history_;
+  engine::util::Logger& logger_;
 };
 
 }  // namespace server

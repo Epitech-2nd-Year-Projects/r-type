@@ -68,7 +68,7 @@ class ServerTransport {
    * to the requested port. Returns the first error encountered when opening or
    * binding.
    */
-  std::error_code Start(std::uint16_t port);
+  [[nodiscard]] std::error_code Start(std::uint16_t port);
 
   /**
    * @brief Close the socket and reset state

@@ -4,6 +4,7 @@
 #include <cctype>
 #include <charconv>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -78,15 +79,25 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 ServerConfigParseResult ParseServerConfig(
     std::span<const std::string_view> args) {
   ServerConfig config;
+  auto missing_value_error = [&](std::string_view flag) {
+    return MakeError(config, "Missing value for " + std::string(flag));
+  };
+  auto next_value = [&](std::size_t index) -> std::optional<std::string_view> {
+    if (index + 1 >= args.size()) {
+      return std::nullopt;
+    }
+    return args[index + 1];
+  };
 
   for (std::size_t i = 1; i < args.size(); ++i) {
     std::string_view arg(args[i]);
     if (arg == "--port") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --port");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--port");
       }
       std::uint16_t port = 0;
-      if (!TryParseBounded(args[i + 1], kMinPort, kMaxPort, port)) {
+      if (!TryParseBounded(*value, kMinPort, kMaxPort, port)) {
         return MakeError(config,
                          "Invalid port supplied (must be between 1 and 65535)");
       }
@@ -96,12 +107,12 @@ ServerConfigParseResult ParseServerConfig(
     }
 
     if (arg == "--max-players") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --max-players");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--max-players");
       }
       std::uint16_t max_players = 0;
-      if (!TryParseBounded(args[i + 1], kMinPlayers, kMaxPlayers,
-                           max_players)) {
+      if (!TryParseBounded(*value, kMinPlayers, kMaxPlayers, max_players)) {
         return MakeError(config,
                          "Invalid max players (must be between 1 and 255)");
       }
@@ -110,13 +121,13 @@ ServerConfigParseResult ParseServerConfig(
       continue;
     }
 
-    if (arg == "--tickrate") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --tickrate");
+    if (arg == "--tickrate" || arg == "--tick-rate") {
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error(arg);
       }
       std::uint16_t tick_rate = 0;
-      if (!TryParseBounded(args[i + 1], kMinTickRate, kMaxTickRate,
-                           tick_rate)) {
+      if (!TryParseBounded(*value, kMinTickRate, kMaxTickRate, tick_rate)) {
         return MakeError(config,
                          "Invalid tickrate (must be between 1 and 255)");
       }
@@ -126,11 +137,12 @@ ServerConfigParseResult ParseServerConfig(
     }
 
     if (arg == "--timeout-ms") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --timeout-ms");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--timeout-ms");
       }
       std::uint32_t timeout_ms = 0;
-      if (!TryParseBounded(args[i + 1], kMinPeerTimeoutMs, kMaxPeerTimeoutMs,
+      if (!TryParseBounded(*value, kMinPeerTimeoutMs, kMaxPeerTimeoutMs,
                            timeout_ms)) {
         return MakeError(
             config, "Invalid timeout (must be between 10000 and 30000 ms)");
@@ -141,12 +153,13 @@ ServerConfigParseResult ParseServerConfig(
     }
 
     if (arg == "--room-idle-timeout-ms") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --room-idle-timeout-ms");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--room-idle-timeout-ms");
       }
       std::uint32_t idle_ms = 0;
-      if (!TryParseBounded(args[i + 1], kMinRoomIdleTimeoutMs,
-                           kMaxRoomIdleTimeoutMs, idle_ms)) {
+      if (!TryParseBounded(*value, kMinRoomIdleTimeoutMs, kMaxRoomIdleTimeoutMs,
+                           idle_ms)) {
         return MakeError(
             config,
             "Invalid room idle timeout (must be between 1000 and 600000 ms)");
@@ -156,11 +169,12 @@ ServerConfigParseResult ParseServerConfig(
       continue;
     }
 
-    if (arg == "--room") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --room");
+    if (arg == "--room" || arg == "--room-code") {
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error(arg);
       }
-      std::string_view room_value(args[i + 1]);
+      std::string_view room_value(*value);
       if (room_value.empty()) {
         return MakeError(config, "Room code cannot be empty");
       }
@@ -176,12 +190,12 @@ ServerConfigParseResult ParseServerConfig(
     }
 
     if (arg == "--seed") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --seed");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--seed");
       }
       std::uint32_t seed = 0;
-      if (!TryParseBounded(args[i + 1],
-                           std::numeric_limits<std::uint32_t>::min(),
+      if (!TryParseBounded(*value, std::numeric_limits<std::uint32_t>::min(),
                            std::numeric_limits<std::uint32_t>::max(), seed)) {
         return MakeError(config, "Invalid seed value");
       }
@@ -191,11 +205,12 @@ ServerConfigParseResult ParseServerConfig(
     }
 
     if (arg == "--log-level") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --log-level");
+      const auto value = next_value(i);
+      if (!value) {
+        return missing_value_error("--log-level");
       }
       engine::util::LogLevel level;
-      if (!TryParseLogLevel(args[i + 1], level)) {
+      if (!TryParseLogLevel(*value, level)) {
         return MakeError(config,
                          "Invalid log level (trace, debug, info, warn/warning, "
                          "error, critical/fatal, off/none)");

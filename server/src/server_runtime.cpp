@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -46,6 +47,14 @@ std::uint32_t NowMilliseconds() {
 void InstallSignalHandlers() {
   std::signal(SIGINT, SignalHandler);
   std::signal(SIGTERM, SignalHandler);
+}
+
+bool IsValidRoomCode(std::string_view room_code) {
+  return room_code.size() <= protocol::kMaxRoomCodeLength;
+}
+
+bool IsValidPlayerName(std::string_view player_name) {
+  return player_name.size() <= protocol::kMaxPlayerNameLength;
 }
 
 }  // namespace
@@ -89,10 +98,12 @@ void ServerRuntime::RunMainLoop() {
     const auto delta = frame_timer_.tick();
     accumulator_ += delta;
     PollNetwork();
+    if (!running_) break;
     ProcessReliableResends();
 
-    while (accumulator_ >= fixed_delta_) {
+    while (running_ && accumulator_ >= fixed_delta_) {
       PollNetwork();
+      if (!running_) break;
       ProcessReliableResends();
       for (auto& [_, room] : rooms_) {
         room.Update(fixed_delta_);
@@ -105,6 +116,7 @@ void ServerRuntime::RunMainLoop() {
     TickRateSleep(delta);
   }
   running_ = false;
+  transport_.Stop();
 }
 
 void ServerRuntime::ConfigureLogging() {
@@ -293,6 +305,22 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   logger_.get().Debug("Join request from ", endpoint_key, " player ",
                       request.player_name, " room ", request.room_code);
 
+  if (!IsValidRoomCode(request.room_code)) {
+    logger_.get().Warn("Rejecting join from ", endpoint_key,
+                       " invalid room code length");
+    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+               "Room code too long");
+    return;
+  }
+
+  if (!IsValidPlayerName(request.player_name)) {
+    logger_.get().Warn("Rejecting join from ", endpoint_key,
+                       " invalid player name length");
+    SendReject(peer, protocol::JoinRejectReason::kUnknown,
+               "Player name too long");
+    return;
+  }
+
   if (request.client_version != protocol::kProtocolVersion) {
     logger_.get().Warn("Rejecting join from ", endpoint_key,
                        " due to version mismatch");
@@ -314,6 +342,13 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
       request.room_code.empty() ? config_.room_code : request.room_code;
   if (room_code.empty()) {
     room_code = "default";
+  }
+  if (!IsValidRoomCode(room_code)) {
+    logger_.get().Warn("Rejecting join from ", endpoint_key,
+                       " resolved room code too long");
+    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+               "Room code too long");
+    return;
   }
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
@@ -531,8 +566,9 @@ Room& ServerRuntime::GetOrCreateRoom(const std::string& room_code) {
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
-      room_code, Room{room_code, room_id,
-                      static_cast<std::uint16_t>(config_.max_players), seed});
+      room_code,
+      Room{room_code, room_id, static_cast<std::uint16_t>(config_.max_players),
+           seed, logger_.get()});
   inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
 }
