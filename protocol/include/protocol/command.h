@@ -20,7 +20,7 @@ enum class CommandType : std::uint16_t {
   kSetReady = 2,     ///< Player ready status.
   kUnready = 3,      ///< Player unready status.
   kChatMessage = 4,  ///< Chat message.
-  kDisconnectNotice = 5,  ///< Server-initiated disconnect notice.
+  kDisconnectNotice = 5,  ///< Server-initiated disconnect notice (payload: disconnect reason string).
 };
 
 /**
