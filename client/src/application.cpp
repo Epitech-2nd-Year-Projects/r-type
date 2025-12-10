@@ -10,10 +10,10 @@
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
+#include "engine/time/monotonic_time.h"
 #include "input_sender.h"
 #include "logging.h"
 #include "protocol/command.h"
-#include "time_utils.h"
 
 namespace client {
 
@@ -225,7 +225,7 @@ void Application::MonitorConnection(JoinState join_state) {
     return;
   }
 
-  const auto now_ms = NowMilliseconds();
+  const auto now_ms = engine::time::NowMilliseconds();
   const auto silence_ms = now_ms >= last_receive ? now_ms - last_receive : 0;
   if (silence_ms > config_.timeout_ms) {
     HandleConnectionLost("Timed out waiting for server");
@@ -248,12 +248,11 @@ void Application::HandleConnectionLost(std::string_view reason) {
 }
 
 void Application::HandleReconnectInput(JoinState join_state) {
-  const bool reconnect_down =
-      engine_->Input().IsKeyDown(engine::input::Key::kR);
-  if (reconnect_down && !reconnect_key_down_) {
+  const bool request =
+      input_layer_ ? input_layer_->ConsumeReconnectRequest() : false;
+  if (request) {
     reconnect_requested_ = true;
   }
-  reconnect_key_down_ = reconnect_down;
 
   const bool can_retry = join_state != JoinState::kConnected &&
                          join_state != JoinState::kConnecting;

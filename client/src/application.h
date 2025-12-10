@@ -49,7 +49,6 @@ class Application {
   JoinState last_join_state_{JoinState::kIdle};
   bool music_allowed_{false};
   bool music_blocked_{false};
-  bool reconnect_key_down_{false};
   bool reconnect_requested_{false};
 };
 
