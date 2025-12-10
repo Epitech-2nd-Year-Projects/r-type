@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <limits>
 
 #include "engine/ecs/components/position_component.h"
@@ -12,15 +13,15 @@
 
 namespace game_logic::systems {
 
-void AISystem::Update(engine::ecs::Registry& registry,
+void AISystem::Update(engine::ecs::Registry &registry,
                       engine::time::TimeDelta dt) {
-  auto& ais = registry.GetComponents<components::AIComponent>();
-  auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
-  auto& velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
-  auto& players = registry.GetComponents<components::PlayerComponent>();
+  auto &ais = registry.GetComponents<components::AIComponent>();
+  auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
+  auto &velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
+  auto &players = registry.GetComponents<components::PlayerComponent>();
 
   auto find_nearest_player =
-      [&](const engine::math::Vector2f& source_pos,
+      [&](const engine::math::Vector2f &source_pos,
           float range) -> std::optional<engine::math::Vector2f> {
     engine::math::Vector2f target_pos = source_pos;
     float min_dist_sq = std::numeric_limits<float>::max();
