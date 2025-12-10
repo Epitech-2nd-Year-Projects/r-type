@@ -13,6 +13,8 @@ namespace protocol {
       static constexpr std::uint32_t kAckBitsWindow = 32u;
 
       SequenceTracker() = default;
+      SequenceTracker(const SequenceTracker&) = default;
+      SequenceTracker& operator=(const SequenceTracker&) = default;
 
       /**
        * @brief Returns the next local sequence number to use for an outgoing packet.

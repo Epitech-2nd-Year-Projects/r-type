@@ -16,8 +16,7 @@ namespace client {
 
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
-      transport_(),
-      sequence_tracker_(std::make_shared<protocol::SequenceTracker>()),
+      transport_(std::make_shared<NetworkTransport>()),
       join_flow_(config_.player_name, config_.room_code) {}
 
 int Application::Run() {
@@ -42,8 +41,8 @@ int Application::Run() {
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   input_layer_->ApplyDefaultBindings();
-  input_sender_ = std::make_unique<InputSender>(*input_layer_, transport_,
-                                                sequence_tracker_);
+  input_sender_ =
+      std::make_unique<InputSender>(*input_layer_, world_update_receiver_);
 
   if (engine_->Audio()) {
     audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());
@@ -61,13 +60,12 @@ int Application::Run() {
   runtime_config_store.Set("client.player_name", config_.player_name);
   runtime_config_store.Set("client.room_code", config_.room_code);
 
-  join_flow_.SetSequenceTracker(sequence_tracker_);
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "connecting");
 
-  const auto transport_error = transport_.Start(config_.host, config_.port);
+  const auto transport_error = transport_->Start(config_.host, config_.port);
   if (transport_error) {
     LogLifecycle(engine::util::LogLevel::kError,
                  std::string("Failed to start network transport: ") +
@@ -77,13 +75,14 @@ int Application::Run() {
   if (input_sender_) {
     input_sender_->Reset();
   }
-  join_flow_.Begin(transport_);
+  join_flow_.Begin(*transport_);
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
 
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
-  transport_.Stop();
+  world_update_receiver_.Stop();
+  transport_->Stop();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
 }
@@ -99,14 +98,29 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     input_layer_->Update();
   }
 
-  join_flow_.Update(transport_);
-  if (join_flow_.state() == JoinState::kRefused) {
+  join_flow_.Update(*transport_);
+  const auto join_state = join_flow_.state();
+  if (join_state == JoinState::kRefused) {
     LogLifecycle(engine::util::LogLevel::kError, join_flow_.status());
     return false;
   }
+  if (join_state == JoinState::kConnected &&
+      !world_update_receiver_.running()) {
+    if (!world_update_receiver_.Start(transport_)) {
+      LogLifecycle(engine::util::LogLevel::kError,
+                   "Failed to start world update receiver");
+      return false;
+    }
+  }
   if (input_sender_) {
-    const bool connected = join_flow_.state() == JoinState::kConnected;
+    const bool connected = join_state == JoinState::kConnected;
     input_sender_->Update(dt, connected);
+  }
+  if (world_update_receiver_.running()) {
+    WorldUpdateMessage message;
+    while (world_update_receiver_.TryPop(message)) {
+      // TODO: Dispatch world updates to gameplay systems.
+    }
   }
 
   auto& window = engine_->Window();

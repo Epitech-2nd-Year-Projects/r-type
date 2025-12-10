@@ -4,10 +4,7 @@
 
 #include "input_layer.h"
 #include "logging.h"
-#include "network_transport.h"
-#include "protocol/message_type.h"
-#include "protocol/packet.h"
-#include "protocol/sequence_tracker.h"
+#include "world_update_receiver.h"
 
 namespace {
 
@@ -31,12 +28,8 @@ std::uint8_t BuildButtonMask(const client::ActionState& state) {
 
 namespace client {
 
-InputSender::InputSender(
-    InputLayer& input_layer, NetworkTransport& transport,
-    std::shared_ptr<protocol::SequenceTracker> sequence_tracker)
-    : input_layer_(input_layer),
-      transport_(transport),
-      sequence_tracker_(std::move(sequence_tracker)) {}
+InputSender::InputSender(InputLayer& input_layer, WorldUpdateReceiver& receiver)
+    : input_layer_(input_layer), receiver_(receiver) {}
 
 void InputSender::Reset() {
   history_ = protocol::InputHistoryWindow{};
@@ -45,7 +38,7 @@ void InputSender::Reset() {
 }
 
 void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
-  if (!sending_enabled || !transport_.running()) {
+  if (!sending_enabled || !receiver_.running()) {
     return;
   }
 
@@ -79,24 +72,7 @@ protocol::InputCommand InputSender::BuildCommand() {
 
 bool InputSender::SendPayload(const protocol::InputStatePayload& payload,
                               std::uint32_t client_time_ms) {
-  protocol::Packet packet{};
-  packet.header.version = protocol::kProtocolVersion;
-  packet.header.message_type = static_cast<std::uint8_t>(
-      protocol::message_type::MessageType::kInputState);
-  packet.header.flags = 0;
-  packet.header.sequence = sequence_tracker_->NextLocalSequence();
-  packet.header.ack = 0;
-  packet.header.ack_bits = 0;
-  packet.header.timestamp_ms = client_time_ms;
-  sequence_tracker_->FillAckFields(packet.header);
-  packet.payload = payload;
-
-  engine::net::PacketBuffer buffer;
-  buffer.reserve(128);
-  if (!protocol::EncodePacket(packet, buffer)) {
-    return false;
-  }
-  return transport_.Send(std::move(buffer));
+  return receiver_.EnqueueInputState(payload, client_time_ms);
 }
 
 }  // namespace client

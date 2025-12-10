@@ -9,9 +9,9 @@
 #include "network_transport.h"
 #include "input_layer.h"
 #include "input_sender.h"
+#include "world_update_receiver.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
-#include "protocol/sequence_tracker.h"
 
 namespace client {
 
@@ -30,13 +30,13 @@ class Application {
   bool Tick(engine::time::TimeDelta dt);
 
   ClientConfig config_;
-  NetworkTransport transport_;
-  std::shared_ptr<protocol::SequenceTracker> sequence_tracker_{};
+  std::shared_ptr<NetworkTransport> transport_;
   JoinFlow join_flow_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
+  WorldUpdateReceiver world_update_receiver_;
 };
 
 }  // namespace client

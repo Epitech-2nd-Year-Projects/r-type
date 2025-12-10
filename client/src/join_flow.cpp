@@ -34,14 +34,16 @@ void JoinFlow::Begin(NetworkTransport& transport) {
   player_id_.reset();
   last_reject_.reset();
   status_text_ = "Connecting to server";
-  if (sequence_tracker_) {
-    sequence_tracker_->Reset();
-  }
+  sequence_tracker_.Reset();
   SendJoinRequest(transport);
 }
 
 void JoinFlow::Update(NetworkTransport& transport) {
   if (state_ == JoinState::kIdle) {
+    return;
+  }
+
+  if (state_ != JoinState::kConnecting) {
     return;
   }
 
@@ -53,10 +55,11 @@ void JoinFlow::Update(NetworkTransport& transport) {
       LogPacketError("decode", protocol::DecodeErrorToString(error));
       continue;
     }
-    if (sequence_tracker_) {
-      sequence_tracker_->OnRemoteSequenceReceived(packet.header.sequence);
-    }
+    sequence_tracker_.OnRemoteSequenceReceived(packet.header.sequence);
     HandleDecodedPacket(packet);
+    if (state_ != JoinState::kConnecting) {
+      break;
+    }
   }
 
   if (state_ != JoinState::kConnecting) {
@@ -91,15 +94,11 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
       protocol::message_type::MessageType::kJoinRequest);
   packet.header.flags =
       static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
-  packet.header.sequence = sequence_tracker_
-                               ? sequence_tracker_->NextLocalSequence()
-                               : next_sequence_++;
+  packet.header.sequence = sequence_tracker_.NextLocalSequence();
   packet.header.ack = 0;
   packet.header.ack_bits = 0;
   packet.header.timestamp_ms = NowMilliseconds();
-  if (sequence_tracker_) {
-    sequence_tracker_->FillAckFields(packet.header);
-  }
+  sequence_tracker_.FillAckFields(packet.header);
   packet.payload = payload;
 
   engine::net::PacketBuffer buffer;
