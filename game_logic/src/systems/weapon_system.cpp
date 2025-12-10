@@ -11,15 +11,21 @@ void WeaponSystem::Update(
     engine::ecs::Registry &registry,
     engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
     engine::ecs::SparseArray<components::WeaponComponent> &weapons,
+    engine::ecs::SparseArray<components::SpriteComponent> &sprites,
     engine::time::TimeDelta dt) {
-  for (auto &&[idx, position_opt, weapon_opt] :
-       engine::ecs::IndexedZipper(positions, weapons)) {
+  for (auto &&[idx, position_opt, weapon_opt, sprite_opt] :
+       engine::ecs::IndexedZipper(positions, weapons, sprites)) {
     if (!position_opt.has_value() || !weapon_opt.has_value()) {
       continue;
     }
 
     auto &position = position_opt.value();
     auto &weapon = weapon_opt.value();
+
+    float spawn_offset_x = 16.0f;
+    if (sprite_opt.has_value()) {
+      spawn_offset_x = sprite_opt->source_rect.width_ / 2.0f;
+    }
 
     if (weapon.cooldown_remaining > engine::time::TimeDelta::zero()) {
       weapon.cooldown_remaining -= dt;
@@ -40,15 +46,16 @@ void WeaponSystem::Update(
 
     float speed_multiplier = 1.0f;
     if (weapon.faction == entities::ProjectileFaction::kEnemy) {
-      spawn_position.x -= 16.0f;
+      spawn_position.x -= spawn_offset_x;
       speed_multiplier = -1.0f;
     } else {
-      spawn_position.x += 16.0f;
+      spawn_position.x += spawn_offset_x;
     }
 
     if (weapon.is_big_trigger_held && weapon.can_fire_big()) {
       weapon.fire_big(entities::kBigPlayerMissileData.fire_rate);
-      engine::math::Vector2f missile_velocity(250.0f * speed_multiplier, 0.0f);
+      engine::math::Vector2f missile_velocity(
+          entities::kBigPlayerMissileData.speed * speed_multiplier, 0.0f);
       entities::MissileBuilder::CreateMissile(
           registry, static_cast<std::uint32_t>(idx), spawn_position,
           missile_velocity, entities::kBigPlayerMissileData, weapon.faction);
@@ -56,7 +63,8 @@ void WeaponSystem::Update(
 
     if (weapon.is_trigger_held && weapon.can_fire()) {
       weapon.fire(weapon.projectile_data.fire_rate);
-      engine::math::Vector2f missile_velocity(300.0f * speed_multiplier, 0.0f);
+      engine::math::Vector2f missile_velocity(
+          weapon.projectile_data.speed * speed_multiplier, 0.0f);
       entities::MissileBuilder::CreateMissile(
           registry, static_cast<std::uint32_t>(idx), spawn_position,
           missile_velocity, weapon.projectile_data, weapon.faction);

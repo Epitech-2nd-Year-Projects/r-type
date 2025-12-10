@@ -100,7 +100,6 @@ struct WeaponComponent {
    */
   void set_limited_ammo(std::uint32_t count) {
     has_unlimited_ammo = false;
-    has_unlimited_ammo = false;
     ammo_count = count;
   }
 

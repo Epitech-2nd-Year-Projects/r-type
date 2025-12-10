@@ -19,8 +19,8 @@ class WeaponSystem {
    *
    * @param registry ECS registry
    * @param positions Position components array
-   * @param players Player components array
    * @param weapons Weapon components array
+   * @param sprites Sprite components array
    * @param dt Frame delta time
    */
   static void Update(
@@ -28,6 +28,8 @@ class WeaponSystem {
       engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
       engine::ecs::SparseArray<game_logic::components::WeaponComponent>
           &weapons,
+      engine::ecs::SparseArray<game_logic::components::SpriteComponent>
+          &sprites,
       engine::time::TimeDelta dt);
 };
 

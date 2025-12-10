@@ -22,6 +22,7 @@ struct MissileArchetypeData {
   float hitbox_scale;
   std::string_view texture_path;
   engine::render::Color tint_color;
+  float speed;
 };
 
 /**
@@ -36,7 +37,8 @@ inline constexpr MissileArchetypeData kPlayerMissileData = {
     8.0f,
     0.8f,
     "assets/sprites/player_missile.png",
-    engine::render::Color::FromBytes(100, 150, 255, 255)};
+    engine::render::Color::FromBytes(100, 150, 255, 255),
+    300.0f};
 
 /**
  * @brief Big Player missile archetype data
@@ -50,7 +52,8 @@ inline constexpr MissileArchetypeData kBigPlayerMissileData = {
     16.0f,
     0.8f,
     "assets/sprites/big_missile.png",
-    engine::render::Color::FromBytes(255, 50, 50, 255)};
+    engine::render::Color::FromBytes(255, 50, 50, 255),
+    250.0f};
 
 /**
  * @brief Enemy missile archetype data
@@ -64,7 +67,8 @@ inline constexpr MissileArchetypeData kEnemyMissileData = {
     12.0f,
     0.8f,
     "assets/sprites/enemy_missile.png",
-    engine::render::Color::FromBytes(255, 100, 100, 255)};
+    engine::render::Color::FromBytes(255, 100, 100, 255),
+    300.0f};
 
 /**
  * @brief Neutral/environment projectile archetype data
@@ -78,7 +82,8 @@ inline constexpr MissileArchetypeData kNeutralMissileData = {
     10.0f,
     0.8f,
     "assets/sprites/neutral_missile.png",
-    engine::render::Color::FromBytes(200, 200, 200, 255)};
+    engine::render::Color::FromBytes(200, 200, 200, 255),
+    150.0f};
 
 }  // namespace game_logic::entities
 
