@@ -68,11 +68,16 @@ bool WorldUpdateReceiver::Start(std::shared_ptr<NetworkTransport> transport) {
 
 void WorldUpdateReceiver::Stop() {
   running_.store(false, std::memory_order_release);
+  outgoing_cv_.notify_all();
   if (worker_.joinable()) {
     worker_.join();
   }
 
   transport_.reset();
+  {
+    std::lock_guard<std::mutex> lock(outgoing_mutex_);
+    outgoing_queue_.clear();
+  }
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     queue_.clear();
@@ -118,8 +123,19 @@ bool WorldUpdateReceiver::EnqueueInputState(
 
 void WorldUpdateReceiver::ReceiveLoop() {
   engine::net::Client::ReceivedPacket incoming;
+  bool transport_reported_stopped = false;
 
   while (running_.load(std::memory_order_acquire)) {
+    if (!transport_ || !transport_->running()) {
+      if (!transport_reported_stopped) {
+        LogLifecycle(engine::util::LogLevel::kWarn,
+                     "Stopping receiver: transport not running");
+        transport_reported_stopped = true;
+      }
+      running_.store(false, std::memory_order_release);
+      break;
+    }
+
     bool did_work = false;
     {
       std::unique_lock<std::mutex> lock(outgoing_mutex_);
@@ -186,6 +202,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
       std::this_thread::yield();
     }
   }
+  running_.store(false, std::memory_order_release);
 }
 
 }  // namespace client
