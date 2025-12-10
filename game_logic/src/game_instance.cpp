@@ -217,8 +217,7 @@ void GameInstance::RegisterSystems() {
           engine::ecs::kHighPriority, std::ref(*this));
 
   registry_
-      ->AddSystem<engine::ecs::PositionComponent, components::PlayerComponent,
-                  components::WeaponComponent>(
+      ->AddSystem<engine::ecs::PositionComponent, components::WeaponComponent>(
           systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kDefaultPriority);
 
