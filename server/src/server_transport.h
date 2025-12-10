@@ -34,7 +34,9 @@ class ServerTransport {
    * @brief One UDP datagram received from a remote endpoint
    */
   struct Datagram {
+    /// @brief Remote endpoint that sent the datagram
     UdpEndpoint from;
+    /// @brief Raw payload bytes received from the sender
     engine::net::PacketBuffer payload;
   };
 
@@ -42,7 +44,9 @@ class ServerTransport {
    * @brief Result bundle returned by PollNetwork
    */
   struct PollResult {
+    /// @brief Collected datagrams from the last poll
     std::vector<Datagram> datagrams;
+    /// @brief Fatal receive error encountered while polling
     std::error_code error{};
   };
 
@@ -68,6 +72,10 @@ class ServerTransport {
 
   /**
    * @brief Close the socket and reset state
+   *
+   * @details
+   * Shuts down the underlying socket and clears the bound endpoint then marks
+   * the transport as stopped so subsequent sends fail fast
    */
   void Stop();
 
@@ -86,6 +94,10 @@ class ServerTransport {
    * @param to Destination endpoint
    * @param buffer Encoded packet payload
    * @return Outcome of the send operation
+   *
+   * @details
+   * Returns not_connected when the transport is not running to mirror the raw
+   * byte overload behavior
    */
   engine::net::UdpSendResult Send(const UdpEndpoint& to,
                                   const engine::net::PacketBuffer& buffer);
@@ -116,9 +128,9 @@ class ServerTransport {
   static constexpr std::size_t kMaxDatagramSize = 2048;
 
   engine::net::UdpSocket socket_{
-      engine::net::UdpSocket::Protocol::kIpv4};  ///< Underlying UDP socket.
-  UdpEndpoint bound_endpoint_{};  ///< Local endpoint the socket is bound to.
-  bool running_{false};           ///< Transport running state.
+      engine::net::UdpSocket::Protocol::kIpv4};  ///< Underlying UDP socket
+  UdpEndpoint bound_endpoint_{};  ///< Local endpoint bound on Start
+  bool running_{false};           ///< Transport running state flag
 };
 
 }  // namespace server
