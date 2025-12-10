@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     std::cerr
         << "Usage: " << argv[0]
         << " [--host <host>] [--port <port>] [--name <player>] [--room <room>]"
-        << " [--log-level <level>] [--debug]\n";
+        << " [--log-level <level>] [--timeout-ms <ms>] [--debug]\n";
     return 1;
   }
 
