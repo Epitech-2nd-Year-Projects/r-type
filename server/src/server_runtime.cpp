@@ -58,8 +58,7 @@ ServerRuntime::RoomContext::RoomContext(std::string room_code,
       room_id(room_id),
       seed(seed),
       max_players(max_players),
-      game_instance(
-          std::make_unique<GameInstance>(room_id, seed, max_players)),
+      game_instance(std::make_unique<GameInstance>(room_id, seed, max_players)),
       snapshot_history(32) {}
 
 ServerRuntime::ServerRuntime(ServerConfig config)
@@ -322,9 +321,8 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
 
-  std::string room_code = request.room_code.empty()
-                              ? config_.room_code
-                              : request.room_code;
+  std::string room_code =
+      request.room_code.empty() ? config_.room_code : request.room_code;
   if (room_code.empty()) {
     room_code = "default";
   }
@@ -401,8 +399,8 @@ void ServerRuntime::SendAccept(PeerConnection& peer,
   protocol::JoinAcceptPayload payload;
   payload.server_version = protocol::kProtocolVersion;
   payload.player_id = peer.player_id;
-  payload.max_players = static_cast<std::uint8_t>(
-      room ? room->max_players : config_.max_players);
+  payload.max_players =
+      static_cast<std::uint8_t>(room ? room->max_players : config_.max_players);
   payload.tick_rate = static_cast<std::uint8_t>(config_.tick_rate);
   payload.seed = room ? room->seed : rng_();
 
