@@ -167,21 +167,21 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 }
 
 void Application::UpdateAudio(engine::time::TimeDelta dt,
-                               JoinState join_state) {
+                              JoinState join_state) {
   if (!audio_manager_) {
     return;
   }
 
   const bool connected = join_state == JoinState::kConnected;
   const bool was_connected = last_join_state_ == JoinState::kConnected;
-  const bool transport_running =
-      transport_ ? transport_->running() : false;
+  const bool transport_running = transport_ ? transport_->running() : false;
 
   if (connected && !music_blocked_) {
     music_allowed_ = true;
   }
 
-  const bool lost_connection = (!connected && was_connected) || !transport_running;
+  const bool lost_connection =
+      (!connected && was_connected) || !transport_running;
   if (lost_connection) {
     music_allowed_ = false;
     music_blocked_ = false;
