@@ -19,7 +19,6 @@
 #include "protocol/world_snapshot.h"
 
 namespace server {
-constexpr std::uint32_t kPeerTimeoutMs = 15'000;
 constexpr std::uint32_t kReliableResendTimeoutMs = 250;
 constexpr std::size_t kReliableQueueMaxPending = 64;
 
@@ -75,7 +74,8 @@ std::error_code ServerRuntime::Start() {
   const std::string room_label =
       config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
   logger_.get().Info("Room ", room_label, " max players ", config_.max_players,
-                     " tickrate ", config_.tick_rate, " seed ", config_.seed);
+                     " tickrate ", config_.tick_rate, " timeout_ms ",
+                     config_.peer_timeout_ms, " seed ", config_.seed);
   return {};
 }
 
@@ -151,7 +151,7 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
   }
   protocol::UpdateDecodeMetrics(decode_metrics_, protocol::DecodeError::kOk);
   PeerConnection& peer = GetOrCreatePeer(from);
-  peer.last_activity_ms = NowMilliseconds();
+  peer.last_seen_ms = NowMilliseconds();
   peer.sequence_tracker.OnRemoteSequenceReceived(decoded.header.sequence);
   ProcessPeerAcks(peer, decoded.header);
 
@@ -317,7 +317,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
-  peer.last_activity_ms = NowMilliseconds();
+  peer.last_seen_ms = NowMilliseconds();
   players_[peer.player_id] = peer.endpoint_key;
   game_instance_.OnPlayerJoined(peer.player_id, request.player_name);
   logger_.get().Info("Accepted join from ", endpoint_key, " assigned id ",
@@ -503,12 +503,31 @@ PeerConnection& ServerRuntime::GetOrCreatePeer(
   peer.endpoint_key = key;
   peer.endpoint = endpoint;
   peer.state = PeerState::kConnecting;
-  peer.last_activity_ms = NowMilliseconds();
+  peer.last_seen_ms = NowMilliseconds();
   peer.reliable_queue = std::make_unique<protocol::ReliableQueue>(
       kReliableResendTimeoutMs, kReliableQueueMaxPending);
   auto [inserted_it, inserted] = peers_.emplace(key, std::move(peer));
   (void)inserted;
   return inserted_it->second;
+}
+
+void ServerRuntime::DisconnectPeer(PeerConnection& peer,
+                                   std::string_view reason,
+                                   bool notify_client) {
+  logger_.get().Info("Disconnecting peer ", peer.endpoint_key, " player id ",
+                     peer.player_id, " reason ", reason);
+  if (notify_client && peer.state == PeerState::kJoined) {
+    SendServerCommand(
+        peer,
+        static_cast<std::uint16_t>(
+            protocol::CommandType::kDisconnectNotice),
+        reason);
+  }
+  peer.state = PeerState::kDisconnected;
+  if (peer.player_id != 0) {
+    players_.erase(peer.player_id);
+    game_instance_.OnPlayerLeft(peer.player_id);
+  }
 }
 
 void ServerRuntime::CheckPeerTimeouts() {
@@ -517,24 +536,18 @@ void ServerRuntime::CheckPeerTimeouts() {
   for (auto it = peers_.begin(); it != peers_.end();) {
     PeerConnection& peer = it->second;
     const std::uint32_t inactive_ms =
-        now_ms >= peer.last_activity_ms
-            ? now_ms - peer.last_activity_ms
+        now_ms >= peer.last_seen_ms
+            ? now_ms - peer.last_seen_ms
             : (std::numeric_limits<std::uint32_t>::max() -
-               peer.last_activity_ms) +
+               peer.last_seen_ms) +
                   1u + now_ms;
-    if (inactive_ms > kPeerTimeoutMs) {
-      logger_.get().Info("Timing out peer ", peer.endpoint_key, " after ",
-                         inactive_ms, " ms of inactivity");
-      const std::uint32_t player_id = peer.player_id;
-      const std::string endpoint_key = peer.endpoint_key;
-      if (player_id != 0) {
-        players_.erase(player_id);
-        game_instance_.OnPlayerLeft(player_id);
-      }
-      it = peers_.erase(it);
+    if (inactive_ms <= config_.peer_timeout_ms) {
+      ++it;
       continue;
     }
-    ++it;
+
+    DisconnectPeer(peer, "timeout", peer.state == PeerState::kJoined);
+    it = peers_.erase(it);
   }
 }
 
@@ -553,13 +566,7 @@ ServerRuntime::FindPeerByPlayerId(std::uint32_t player_id) {
 
 void ServerRuntime::RemovePeer(PeerConnection& peer) {
   const std::string endpoint_key = peer.endpoint_key;
-  const std::uint32_t player_id = peer.player_id;
-
-  logger_.get().Info("Removing peer ", endpoint_key, " player id ", player_id);
-  if (player_id != 0) {
-    players_.erase(player_id);
-    game_instance_.OnPlayerLeft(player_id);
-  }
+  DisconnectPeer(peer, "removed", peer.state == PeerState::kJoined);
   peers_.erase(endpoint_key);
 }
 
