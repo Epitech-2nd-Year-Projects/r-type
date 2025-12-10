@@ -4,15 +4,14 @@
 
 namespace server {
 
-Room::Room(std::string room_code,
-           std::uint32_t room_id,
-           std::uint16_t max_players,
-           std::uint32_t seed)
+Room::Room(std::string room_code, std::uint32_t room_id,
+           std::uint16_t max_players, std::uint32_t seed)
     : room_code_(std::move(room_code)),
       room_id_(room_id),
       max_players_(max_players),
       seed_(seed),
-      game_instance_(std::make_unique<GameInstance>(room_id, seed, max_players)),
+      game_instance_(
+          std::make_unique<GameInstance>(room_id, seed, max_players)),
       snapshot_history_(32) {}
 
 void Room::Update(const engine::time::TimeDelta& delta) {
@@ -57,7 +56,9 @@ protocol::WorldSnapshotPayload Room::BuildSnapshot(std::uint32_t server_tick) {
   return snapshot;
 }
 
-void Room::MarkActive(std::uint32_t timestamp_ms) { last_active_ms_ = timestamp_ms; }
+void Room::MarkActive(std::uint32_t timestamp_ms) {
+  last_active_ms_ = timestamp_ms;
+}
 
 const std::string& Room::Code() const { return room_code_; }
 
