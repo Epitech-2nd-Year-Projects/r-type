@@ -1,14 +1,49 @@
 #include "audio_manager.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <filesystem>
+#include <string_view>
 
 #include "logging.h"
 
 namespace client {
+namespace {
+
+std::string ResolveAssetPath(std::string_view relative_path) {
+  if (const char* asset_root = std::getenv("ASSET_ROOT")) {
+    std::filesystem::path candidate =
+        std::filesystem::path(asset_root) / relative_path;
+    if (std::filesystem::exists(candidate)) {
+      return candidate.string();
+    }
+  }
+
+  std::filesystem::path cwd_candidate(relative_path);
+  if (std::filesystem::exists(cwd_candidate)) {
+    return std::filesystem::absolute(cwd_candidate).string();
+  }
+
+  std::filesystem::path cursor = std::filesystem::current_path();
+  for (int i = 0; i < 5 && !cursor.empty(); ++i) {
+    std::filesystem::path candidate = cursor / relative_path;
+    if (std::filesystem::exists(candidate)) {
+      return candidate.string();
+    }
+    cursor = cursor.parent_path();
+  }
+
+  LogLifecycle(engine::util::LogLevel::kError,
+               "Failed to resolve asset path: " + std::string(relative_path));
+  return std::string();
+}
+
+}  // namespace
 
 AudioManager::AudioManager(engine::audio::AudioEngine& engine)
     : engine_(engine) {
-  music_paths_[MusicType::kBackground] = "assets/background_music.mp3";
+  music_paths_[MusicType::kBackground] =
+      ResolveAssetPath("assets/background_music.ogg");
 }
 
 void AudioManager::LoadAssets() {
@@ -23,14 +58,18 @@ void AudioManager::LoadAssets() {
 }
 
 void AudioManager::PlayMusic(MusicType type) {
-  if (music_paths_.count(type)) {
-    fading_ = false;
-    fade_remaining_ = 0.0f;
-    fade_duration_ = 0.0f;
-    current_music_ = type;
-    engine_.SetMusicVolume(default_music_volume_);
-    engine_.PlayMusic(music_paths_.at(type));
+  const auto it = music_paths_.find(type);
+  if (it == music_paths_.end() || it->second.empty()) {
+    LogLifecycle(engine::util::LogLevel::kError,
+                 "No audio path available for requested music type");
+    return;
   }
+  fading_ = false;
+  fade_remaining_ = 0.0f;
+  fade_duration_ = 0.0f;
+  current_music_ = type;
+  engine_.SetMusicVolume(default_music_volume_);
+  engine_.PlayMusic(it->second);
 }
 
 void AudioManager::StopMusic() {
