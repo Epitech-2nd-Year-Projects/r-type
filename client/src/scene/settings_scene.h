@@ -45,6 +45,7 @@ class SettingsScene : public Scene {
           button(std::move(button_in)) {}
   };
   std::vector<BindingRow> binding_rows_;
+  BindingRow* FindRow(GameAction action);
 };
 
 }  // namespace client

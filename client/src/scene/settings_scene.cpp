@@ -35,16 +35,6 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
   }
 }
 
-SettingsScene::BindingRow* FindRow(std::vector<SettingsScene::BindingRow>& rows,
-                                   GameAction action) {
-  for (auto& row : rows) {
-    if (row.action == action) {
-      return &row;
-    }
-  }
-  return nullptr;
-}
-
 }  // namespace
 
 SettingsScene::SettingsScene(Application& app) : app_(app) {
@@ -152,7 +142,7 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     if (rebind_status_label_) {
       rebind_status_label_->SetText("Press a key for " + ActionLabel(action));
     }
-    if (auto* row = FindRow(binding_rows_, action)) {
+    if (auto* row = FindRow(action)) {
       if (row->button) {
         row->button->SetText("Press key...");
       }
@@ -232,6 +222,15 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
   }
 }
 
+SettingsScene::BindingRow* SettingsScene::FindRow(GameAction action) {
+  for (auto& row : binding_rows_) {
+    if (row.action == action) {
+      return &row;
+    }
+  }
+  return nullptr;
+}
+
 void SettingsScene::Update(engine::time::TimeDelta dt) {
   auto& input = app_.GetEngine().Input();
   for (auto& elem : ui_elements_) {
@@ -242,7 +241,7 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
     if (input.IsKeyDown(engine::input::Key::kEscape)) {
       if (rebind_status_label_)
         rebind_status_label_->SetText("Rebind canceled");
-      if (auto* row = FindRow(binding_rows_, *pending_rebind_)) {
+      if (auto* row = FindRow(*pending_rebind_)) {
         if (row->button) {
           row->button->SetText(
               KeyDisplayName(app_.key_bindings().Primary(row->action)));
@@ -281,7 +280,7 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
         }
 
         const bool saved = app_.UpdateKeyBinding(action, keys[i]);
-        if (auto* row = FindRow(binding_rows_, action)) {
+        if (auto* row = FindRow(action)) {
           if (row->button) {
             row->button->SetText(
                 KeyDisplayName(app_.key_bindings().Primary(action)));
