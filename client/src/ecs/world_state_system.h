@@ -42,8 +42,11 @@ class WorldStateSystem {
   /**
    * @brief Apply a world snapshot to the registry
    * @param snapshot Decoded snapshot payload from the server
+   * @param receipt_timestamp_ms Monotonic timestamp when the snapshot was
+   *        received locally
    */
-  void ApplySnapshot(const protocol::WorldSnapshotPayload& snapshot);
+  void ApplySnapshot(const protocol::WorldSnapshotPayload& snapshot,
+                     std::uint64_t receipt_timestamp_ms);
 
   /**
    * @brief Last applied snapshot identifier
@@ -53,9 +56,11 @@ class WorldStateSystem {
  private:
   void RegisterComponents();
   void ApplyCreate(const protocol::EntityDelta& delta,
-                   std::uint32_t snapshot_id);
+                   std::uint32_t snapshot_id,
+                   std::uint64_t receipt_timestamp_ms);
   void ApplyUpdate(const protocol::EntityDelta& delta,
-                   std::uint32_t snapshot_id);
+                   std::uint32_t snapshot_id,
+                   std::uint64_t receipt_timestamp_ms);
   void ApplyDelete(const protocol::EntityDelta& delta);
   engine::ecs::EntityId ResolveOrCreateEntity(std::uint32_t network_id,
                                               std::uint32_t snapshot_id,

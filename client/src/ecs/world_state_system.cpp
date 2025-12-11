@@ -28,6 +28,7 @@ void WorldStateSystem::RegisterComponents() {
   registry_.RegisterComponent<EnemyTag>();
   registry_.RegisterComponent<MissileTag>();
   registry_.RegisterComponent<LocalPlayerTag>();
+  registry_.RegisterComponent<SnapshotInterpolationComponent>();
 }
 
 void WorldStateSystem::Reset() {
@@ -40,7 +41,8 @@ void WorldStateSystem::Reset() {
 }
 
 void WorldStateSystem::ApplySnapshot(
-    const protocol::WorldSnapshotPayload& snapshot) {
+    const protocol::WorldSnapshotPayload& snapshot,
+    std::uint64_t receipt_timestamp_ms) {
   if (snapshot.snapshot_id <= last_snapshot_id_) {
     return;
   }
@@ -53,11 +55,11 @@ void WorldStateSystem::ApplySnapshot(
   for (const auto& delta : snapshot.deltas) {
     switch (delta.op) {
       case protocol::EntityDeltaOp::kCreate:
-        ApplyCreate(delta, snapshot.snapshot_id);
+        ApplyCreate(delta, snapshot.snapshot_id, receipt_timestamp_ms);
         seen.insert(delta.entity_id);
         break;
       case protocol::EntityDeltaOp::kUpdate:
-        ApplyUpdate(delta, snapshot.snapshot_id);
+        ApplyUpdate(delta, snapshot.snapshot_id, receipt_timestamp_ms);
         seen.insert(delta.entity_id);
         break;
       case protocol::EntityDeltaOp::kDelete:
@@ -82,7 +84,8 @@ void WorldStateSystem::ApplySnapshot(
 }
 
 void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
-                                   std::uint32_t snapshot_id) {
+                                   std::uint32_t snapshot_id,
+                                   std::uint64_t receipt_timestamp_ms) {
   const auto entity =
       ResolveOrCreateEntity(delta.entity_id, snapshot_id, delta.state.type);
 
@@ -94,6 +97,7 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   const auto position = ToVector(delta.state.x, delta.state.y);
   auto& positions = registry_.GetComponents<PositionComponent>();
   positions[entity] = PositionComponent(position, position);
+  positions[entity]->render_position = position;
 
   const auto velocity = ToVector(delta.state.vx, delta.state.vy);
   auto& velocities = registry_.GetComponents<VelocityComponent>();
@@ -102,10 +106,16 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   auto& health = registry_.GetComponents<HealthComponent>();
   const auto hp = delta.state.hp;
   health[entity] = HealthComponent(hp, hp);
+
+  auto& snapshots =
+      registry_.GetComponents<SnapshotInterpolationComponent>();
+  snapshots[entity] =
+      SnapshotInterpolationComponent(receipt_timestamp_ms, receipt_timestamp_ms);
 }
 
 void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
-                                   std::uint32_t snapshot_id) {
+                                   std::uint32_t snapshot_id,
+                                   std::uint64_t receipt_timestamp_ms) {
   const auto it = network_to_entity_.find(delta.entity_id);
   const bool created = it == network_to_entity_.end();
   const auto entity = created
@@ -144,9 +154,11 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     const engine::math::Vector2f target{target_x, target_y};
     if (!pos.has_value()) {
       pos = PositionComponent(target, target);
+      pos->render_position = target;
     } else {
       pos->previous_position = pos->position;
       pos->position = target;
+      pos->render_position = pos->previous_position;
     }
   }
 
@@ -179,6 +191,17 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
       hp->current = delta.state.hp;
       hp->max = std::max(hp->max, delta.state.hp);
     }
+  }
+
+  auto& snapshots =
+      registry_.GetComponents<SnapshotInterpolationComponent>();
+  auto& snapshot = snapshots[entity];
+  if (!snapshot.has_value()) {
+    snapshot = SnapshotInterpolationComponent(receipt_timestamp_ms,
+                                              receipt_timestamp_ms);
+  } else {
+    snapshot->previous_snapshot_ms = snapshot->last_snapshot_ms;
+    snapshot->last_snapshot_ms = receipt_timestamp_ms;
   }
 }
 
