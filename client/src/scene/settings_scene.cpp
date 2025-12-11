@@ -29,9 +29,7 @@ std::string VolumeToString(float volume) {
 void RefreshKeyStateBuffer(engine::input::InputManager& input,
                            std::vector<bool>& buffer) {
   const auto keys = BindableKeys();
-  if (buffer.size() != keys.size()) {
-    buffer.assign(keys.size(), false);
-  }
+  if (buffer.size() != keys.size()) buffer.assign(keys.size(), false);
   for (std::size_t i = 0; i < keys.size(); ++i) {
     buffer[i] = input.IsKeyDown(keys[i]);
   }
@@ -241,6 +239,19 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
   }
 
   if (pending_rebind_) {
+    if (input.IsKeyDown(engine::input::Key::kEscape)) {
+      if (rebind_status_label_) rebind_status_label_->SetText("Rebind canceled");
+      if (auto* row = FindRow(binding_rows_, *pending_rebind_)) {
+        if (row->button) {
+          row->button->SetText(
+              KeyDisplayName(app_.key_bindings().Primary(row->action)));
+        }
+      }
+      pending_rebind_.reset();
+      RefreshKeyStateBuffer(input, key_state_buffer_);
+      return;
+    }
+
     const auto keys = BindableKeys();
     if (key_state_buffer_.size() != keys.size()) {
       key_state_buffer_.assign(keys.size(), false);
@@ -251,6 +262,23 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
       const bool was_down = key_state_buffer_[i];
       if (down && !was_down) {
         const GameAction action = *pending_rebind_;
+        bool conflict = false;
+        for (GameAction other : app_.key_bindings().Actions()) {
+          if (other == action) continue;
+          if (app_.key_bindings().Primary(other) == keys[i]) {
+            conflict = true;
+            if (rebind_status_label_) {
+              rebind_status_label_->SetText(
+                  "Key already bound to " + ActionLabel(other));
+            }
+            break;
+          }
+        }
+        if (conflict) {
+          RefreshKeyStateBuffer(input, key_state_buffer_);
+          break;
+        }
+
         const bool saved = app_.UpdateKeyBinding(action, keys[i]);
         if (auto* row = FindRow(binding_rows_, action)) {
           if (row->button) {
@@ -259,10 +287,10 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           }
         }
         if (rebind_status_label_) {
-          const std::string status = saved
-                                         ? "Bound " + ActionLabel(action) +
-                                               " to " + KeyDisplayName(keys[i])
-                                         : "Failed to save key bindings";
+          const std::string status =
+              saved ? "Bound " + ActionLabel(action) + " to " +
+                          KeyDisplayName(keys[i])
+                    : "Failed to save key bindings";
           rebind_status_label_->SetText(status);
         }
         pending_rebind_.reset();
