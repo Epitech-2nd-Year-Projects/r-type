@@ -74,7 +74,7 @@ class Application {
   void OnQuitToMenu();
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
-  NetworkTransport& GetTransport() { return transport_; }
+  NetworkTransport& GetTransport() { return *transport_; }
 
  private:
   bool Tick(engine::time::TimeDelta dt);
