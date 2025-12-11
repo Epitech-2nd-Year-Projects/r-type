@@ -234,8 +234,8 @@ class RaylibRenderer2D final : public Renderer2D {
       }
       fonts_[name] = font;
     } else {
-      engine::util::Logger::Default().Error(
-          "Failed to load font '", name, "' from path '", path, "'");
+      engine::util::Logger::Default().Error("Failed to load font '", name,
+                                            "' from path '", path, "'");
     }
   }
 
@@ -243,8 +243,8 @@ class RaylibRenderer2D final : public Renderer2D {
     if (fonts_.count(name)) {
       current_font_ = fonts_[name];
     } else {
-      engine::util::Logger::Default().Warn(
-          "SetFont: Font '", name, "' not loaded");
+      engine::util::Logger::Default().Warn("SetFont: Font '", name,
+                                           "' not loaded");
     }
   }
 
