@@ -1,8 +1,8 @@
 #include "input_sender.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <algorithm>
 
 #include "input_layer.h"
 #include "logging.h"
@@ -49,8 +49,7 @@ void InputSender::SetSendRateHz(float hz) {
       std::clamp(hz, 30.0f, 120.0f);  // Avoid starving or flooding the network.
   send_rate_hz_ = clamped;
   send_interval_seconds_ = 1.0f / send_rate_hz_;
-  accumulator_seconds_ =
-      std::min(accumulator_seconds_, send_interval_seconds_);
+  accumulator_seconds_ = std::min(accumulator_seconds_, send_interval_seconds_);
 }
 
 void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
@@ -67,8 +66,7 @@ void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
   while (accumulator_seconds_ >= send_interval_seconds_ &&
          sends_this_update < kMaxBurstPerUpdate) {
     accumulator_seconds_ -= send_interval_seconds_;
-    const auto sample =
-        input_buffer_.NextSample(NowMilliseconds());
+    const auto sample = input_buffer_.NextSample(NowMilliseconds());
     const auto command = BuildCommand(sample);
     history_.Push(command);
     const auto payload = history_.BuildPayload();
@@ -82,8 +80,7 @@ void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
   const float max_accumulator =
       send_interval_seconds_ * static_cast<float>(kMaxBurstPerUpdate);
   if (accumulator_seconds_ > max_accumulator) {
-    accumulator_seconds_ =
-        std::min(accumulator_seconds_, max_accumulator);
+    accumulator_seconds_ = std::min(accumulator_seconds_, max_accumulator);
   }
 }
 
@@ -93,10 +90,10 @@ protocol::InputCommand InputSender::BuildCommand(
   command.input_sequence = next_input_sequence_++;
 
   command.buttons = BuildButtonMask(sample.state);
-  command.analog_x = static_cast<std::int16_t>((sample.state.move_right ? 1 : 0) -
-                                               (sample.state.move_left ? 1 : 0));
-  command.analog_y = static_cast<std::int16_t>((sample.state.move_down ? 1 : 0) -
-                                               (sample.state.move_up ? 1 : 0));
+  command.analog_x = static_cast<std::int16_t>(
+      (sample.state.move_right ? 1 : 0) - (sample.state.move_left ? 1 : 0));
+  command.analog_y = static_cast<std::int16_t>(
+      (sample.state.move_down ? 1 : 0) - (sample.state.move_up ? 1 : 0));
   command.client_time_ms = sample.client_time_ms;
   return command;
 }
