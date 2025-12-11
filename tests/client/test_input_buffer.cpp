@@ -74,8 +74,3 @@ TEST(InputBufferTest, FallsBackToCurrentStateWhenQueueIsEmpty) {
   EXPECT_FALSE(sample.state.move_down);
   EXPECT_EQ(sample.client_time_ms, 150u);
 }
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
