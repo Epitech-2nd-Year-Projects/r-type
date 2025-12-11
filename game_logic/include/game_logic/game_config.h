@@ -49,18 +49,16 @@ struct EnemyConfig {
   std::string name;
   std::uint32_t health;
   float speed;
-  std::string behavior_type;  // String representation of behavior
+  std::string behavior_type;
   std::uint32_t score;
   float sprite_width;
   float sprite_height;
   float hitbox_width;
   float hitbox_height;
   std::string texture_path;
-  // Specific behavior params
   float wave_amplitude{0.0f};
   float wave_frequency{0.0f};
   float detection_range{0.0f};
-  // Weapon params
   bool can_shoot{false};
   float fire_rate{0.0f};
 };
@@ -72,10 +70,7 @@ struct EnemyConfig {
 struct MissileConfig {
   std::string name;
   std::uint32_t damage;
-  float speed;  // Added speed here as it was missing in struct but present in
-                // data
-  float fire_rate_unused;  // Kept for schema compatibility if needed, but logic
-                           // uses EnemyConfig.fire_rate usually
+  float speed;
   float lifetime_seconds;
   float sprite_width;
   float sprite_height;

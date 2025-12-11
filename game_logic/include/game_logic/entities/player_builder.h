@@ -42,12 +42,21 @@ class PlayerBuilder {
  public:
   /**
    * @brief Create player entity with configuration
+   * @param registry ECS registry
+   * @param ctx Player creation context with ID, slot, and overrides
+   * @return EntityId of created player
    */
   static engine::ecs::EntityId Create(engine::ecs::Registry& registry,
                                       const PlayerSpawnContext& ctx);
 
   /**
    * @brief Create player with minimal parameters
+   * @param registry ECS registry
+   * @param player_id Unique player ID
+   * @param room_id Game room ID
+   * @param player_slot Player slot index (0-3)
+   * @param spawn_position Initial spawn position
+   * @return EntityId of created player
    */
   static engine::ecs::EntityId Create(
       engine::ecs::Registry& registry, std::uint32_t player_id,

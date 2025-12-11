@@ -30,10 +30,10 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   const EnemyConfig &data = [&]() -> const EnemyConfig & {
     try {
       return GameConfig::Get().GetEnemy(GetEnemyName(config.type));
-    } catch (const std::out_of_range &) {
+    } catch (const std::exception &) {
       try {
         return GameConfig::Get().GetEnemy("Scout");
-      } catch (const std::out_of_range &) {
+      } catch (const std::exception &) {
         static const EnemyConfig kDefaultEnemy{};
         return kDefaultEnemy;
       }
@@ -63,8 +63,14 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
     ai.behavior = components::EnemyBehavior::kWavePattern;
   else if (data.behavior_type == "ChasePlayer")
     ai.behavior = components::EnemyBehavior::kChasePlayer;
-  else
+  else if (data.behavior_type == "Straight")
     ai.behavior = components::EnemyBehavior::kStraight;
+  else {
+    std::cerr << "Warning: Unknown behavior type '" << data.behavior_type
+              << "' for enemy '" << data.name << "'. Defaulting to Straight."
+              << std::endl;
+    ai.behavior = components::EnemyBehavior::kStraight;
+  }
 
   if (config.use_custom_behavior) ai.behavior = config.custom_behavior;
 
@@ -75,7 +81,7 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
 
   if (ai.behavior == components::EnemyBehavior::kPatrol) {
     auto &w = GameConfig::Get().GetWorld();
-    ai.patrol_min = engine::math::Vector2f{w.grid_cell_size, w.patrol_min_y};
+    ai.patrol_min = engine::math::Vector2f{w.patrol_min_x, w.patrol_min_y};
     ai.patrol_max = engine::math::Vector2f{w.patrol_max_x, w.patrol_max_y};
   }
 
@@ -124,11 +130,16 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
       weapon.is_trigger_held = true;
       weapon.cooldown_remaining = engine::time::TimeDelta::from_seconds(0.0f);
 
+      weapon.projectile_data.speed = m_data.speed;
       weapon.faction = ProjectileFaction::kEnemy;
 
       registry.AddComponent<components::WeaponComponent>(enemy,
                                                          std::move(weapon));
+    } catch (const std::exception &e) {
+      std::cerr << "Error loading enemy missile config: " << e.what()
+                << std::endl;
     } catch (...) {
+      std::cerr << "Unknown error loading enemy missile config." << std::endl;
     }
   }
 

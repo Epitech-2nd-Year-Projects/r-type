@@ -47,7 +47,11 @@ engine::ecs::EntityId PlayerBuilder::Create(engine::ecs::Registry& registry,
     weapon.projectile_data.tint_color = m_data.tint_color;
     weapon.projectile_data.speed = m_data.speed;
     weapon.faction = ProjectileFaction::kPlayer;
+  } catch (const std::exception& e) {
+    std::cerr << "Error loading player missile config: " << e.what()
+              << std::endl;
   } catch (...) {
+    std::cerr << "Unknown error loading player missile config." << std::endl;
   }
 
   registry.AddComponent<components::WeaponComponent>(player, std::move(weapon));

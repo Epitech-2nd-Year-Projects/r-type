@@ -25,11 +25,17 @@ void WaveSystem::LoadLevel(int level_id) {
         type = entities::EnemyType::kTank;
       else if (spawn.enemy_type == "Interceptor")
         type = entities::EnemyType::kInterceptor;
+      else if (spawn.enemy_type != "Scout") {
+        std::cerr << "Warning: Unknown enemy type '" << spawn.enemy_type
+                  << "' in wave config. Defaulting to Scout." << std::endl;
+      }
 
       pending_spawns_.push_back(
           {spawn.time, type, {spawn.x, spawn.y}, spawn.random_y});
     }
-  } catch (const std::out_of_range& e) {
+  } catch (const std::exception& e) {
+    std::cerr << "Error loading level " << level_id << ": " << e.what()
+              << std::endl;
   }
 }
 
