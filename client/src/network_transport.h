@@ -1,6 +1,7 @@
 #ifndef CLIENT_NETWORK_TRANSPORT_H_
 #define CLIENT_NETWORK_TRANSPORT_H_
 
+#include <atomic>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -63,8 +64,16 @@ class NetworkTransport {
    */
   bool running() const { return client_.running(); }
 
+  /**
+   * @brief Timestamp in milliseconds of the last received packet
+   */
+  std::uint64_t last_receive_ms() const {
+    return last_receive_ms_.load(std::memory_order_acquire);
+  }
+
  private:
   engine::net::Client client_{};
+  std::atomic<std::uint64_t> last_receive_ms_{0};
 };
 
 }  // namespace client

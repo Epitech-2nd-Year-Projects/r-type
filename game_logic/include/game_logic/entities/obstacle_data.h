@@ -2,6 +2,7 @@
 #define GAME_LOGIC_ENTITIES_OBSTACLE_DATA_H_
 
 #include <cstdint>
+#include <string_view>
 
 #include "engine/render/color.h"
 
@@ -12,12 +13,12 @@ namespace game_logic::entities {
  * @brief Complete obstacle type definition (immutable)
  */
 struct ObstacleArchetypeData {
-  const char* name;
+  std::string_view name;
   bool destructible;
   std::uint32_t health;
   std::uint32_t score_value;
   float hitbox_scale;
-  const char* texture_path;
+  std::string_view texture_path;
   engine::render::Color tint_color;
 };
 

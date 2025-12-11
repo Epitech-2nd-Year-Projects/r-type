@@ -48,12 +48,12 @@ void SequenceTracker::OnRemoteSequenceReceived(std::uint32_t sequence) {
   }
 }
 
-void SequenceTracker::FillAckFields(Header* header) const {
-  if (header == nullptr || !has_remote_) {
+void SequenceTracker::FillAckFields(Header& header) const {
+  if (!has_remote_) {
     return;
   }
-  header->ack = remote_sequence_;
-  header->ack_bits = remote_ack_bits_;
+  header.ack = remote_sequence_;
+  header.ack_bits = remote_ack_bits_;
 }
 
 }  // namespace protocol

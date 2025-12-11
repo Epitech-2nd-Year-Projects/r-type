@@ -4,6 +4,8 @@
 #include <cstdint>
 
 #include "engine/time/time_delta.h"
+#include "game_logic/entities/missile_config.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::components {
 
@@ -65,11 +67,11 @@ struct WeaponComponent {
 
   /**
    * @brief Trigger weapon fire (resets cooldown, consumes ammo if limited)
+   * @param rate Fire rate (shots per second)
    */
-  void fire() {
-    if (fire_rate <= 0.0f) return;
-    cooldown_remaining =
-        engine::time::TimeDelta::from_seconds(1.0f / fire_rate);
+  void fire(float rate) {
+    if (rate <= 0.0f) return;
+    cooldown_remaining = engine::time::TimeDelta::from_seconds(1.0f / rate);
     if (!has_unlimited_ammo && ammo_count > 0) {
       ammo_count--;
     }
@@ -100,6 +102,37 @@ struct WeaponComponent {
     has_unlimited_ammo = false;
     ammo_count = count;
   }
+
+  /// @brief Whether the big shot trigger is currently held
+  bool is_big_trigger_held{false};
+
+  /// @brief Remaining cooldown before next big shot
+  engine::time::TimeDelta big_shot_cooldown_remaining{
+      engine::time::TimeDelta::zero()};
+
+  /**
+   * @brief Check if weapon can fire big shot
+   * @return true if cooldown expired
+   */
+  bool can_fire_big() const {
+    return big_shot_cooldown_remaining <= engine::time::TimeDelta::zero();
+  }
+
+  /**
+   * @brief Trigger big weapon fire (resets cooldown)
+   * @param rate Fire rate (shots per second)
+   */
+  void fire_big(float rate) {
+    if (rate <= 0.0f) return;
+    big_shot_cooldown_remaining =
+        engine::time::TimeDelta::from_seconds(1.0f / rate);
+  }
+
+  /// @brief Archetype data for the projectile this weapon fires
+  entities::MissileArchetypeData projectile_data{entities::kPlayerMissileData};
+
+  /// @brief Faction of the projectile
+  entities::ProjectileFaction faction{entities::ProjectileFaction::kPlayer};
 };
 
 }  // namespace game_logic::components

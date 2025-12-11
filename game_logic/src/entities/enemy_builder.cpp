@@ -2,11 +2,14 @@
 
 #include "engine/ecs/component.h"
 #include "game_logic/components.h"
+#include "game_logic/constants.h"
 #include "game_logic/entities/enemy_data.h"
+#include "game_logic/entities/missile_config.h"
+#include "game_logic/entities/missile_data.h"
 
 namespace game_logic::entities {
 
-const EnemyArchetypeData& GetArchetypeData(EnemyType type) {
+const EnemyArchetypeData &GetArchetypeData(EnemyType type) {
   switch (type) {
     case EnemyType::kScout:
       return kScoutData;
@@ -14,14 +17,16 @@ const EnemyArchetypeData& GetArchetypeData(EnemyType type) {
       return kBomberData;
     case EnemyType::kTank:
       return kTankData;
+    case EnemyType::kInterceptor:
+      return kInterceptorData;
     default:
       return kScoutData;
   }
 }
 
-engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry& registry,
-                                           const EnemyConfig& config) {
-  const auto& data = GetArchetypeData(config.type);
+engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
+                                           const EnemyConfig &config) {
+  const auto &data = GetArchetypeData(config.type);
 
   engine::ecs::EntityId enemy = registry.SpawnEntity();
 
@@ -42,14 +47,15 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry& registry,
   components::AIComponent ai;
   ai.behavior =
       config.use_custom_behavior ? config.custom_behavior : data.behavior;
+
   ai.speed = config.custom_speed > 0.0f ? config.custom_speed : data.speed;
-  ai.detection_range = 0.0f;
+  ai.detection_range = data.detection_range;
   ai.wave_amplitude = data.wave_amplitude;
   ai.wave_frequency = data.wave_frequency;
 
   if (ai.behavior == components::EnemyBehavior::kPatrol) {
-    ai.patrol_min = engine::math::Vector2f{0.0f, 100.0f};
-    ai.patrol_max = engine::math::Vector2f{800.0f, 500.0f};
+    ai.patrol_min = engine::math::Vector2f{kPatrolMinX, kPatrolMinY};
+    ai.patrol_max = engine::math::Vector2f{kPatrolMaxX, kPatrolMaxY};
   }
 
   registry.AddComponent<components::AIComponent>(enemy, std::move(ai));
@@ -70,14 +76,27 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry& registry,
   sprite.texture_path = data.texture_path;
   sprite.source_rect =
       engine::math::RectF(0.0f, 0.0f, data.sprite_width, data.sprite_height);
-  sprite.layer = 5;
+  sprite.layer = kEnemyLayer;
   sprite.visible = true;
-  sprite.tint.r = 255;
-  sprite.tint.g = 80;
-  sprite.tint.b = 80;
-  sprite.tint.a = 255;
+  sprite.tint.r = kEnemyTintR;
+  sprite.tint.g = kEnemyTintG;
+  sprite.tint.b = kEnemyTintB;
+  sprite.tint.a = kEnemyTintA;
 
   registry.AddComponent<components::SpriteComponent>(enemy, std::move(sprite));
+
+  if (data.can_shoot) {
+    components::WeaponComponent weapon;
+    weapon.projectile_data = kEnemyMissileData;
+    weapon.projectile_data.fire_rate = data.fire_rate;
+    weapon.faction = ProjectileFaction::kEnemy;
+    weapon.set_unlimited_ammo();
+    weapon.is_trigger_held = true;
+    weapon.cooldown_remaining = engine::time::TimeDelta::from_seconds(0.0f);
+
+    registry.AddComponent<components::WeaponComponent>(enemy,
+                                                       std::move(weapon));
+  }
 
   registry.EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");
 
@@ -85,8 +104,8 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry& registry,
 }
 
 engine::ecs::EntityId EnemyBuilder::Create(
-    engine::ecs::Registry& registry, EnemyType type,
-    const engine::math::Vector2f& spawn_position) {
+    engine::ecs::Registry &registry, EnemyType type,
+    const engine::math::Vector2f &spawn_position) {
   EnemyConfig config;
   config.type = type;
   config.spawn_position = spawn_position;
@@ -94,14 +113,14 @@ engine::ecs::EntityId EnemyBuilder::Create(
 }
 
 engine::ecs::EntityId EnemyBuilder::CreatePataPata(
-    engine::ecs::Registry& registry,
-    const engine::math::Vector2f& spawn_position) {
+    engine::ecs::Registry &registry,
+    const engine::math::Vector2f &spawn_position) {
   return Create(registry, EnemyType::kScout, spawn_position);
 }
 
 engine::ecs::EntityId EnemyBuilder::CreateBydo(
-    engine::ecs::Registry& registry,
-    const engine::math::Vector2f& spawn_position) {
+    engine::ecs::Registry &registry,
+    const engine::math::Vector2f &spawn_position) {
   return Create(registry, EnemyType::kBomber, spawn_position);
 }
 

@@ -1,8 +1,10 @@
 #include "protocol/error.h"
 
+#include <string_view>
+
 namespace protocol {
 
-const char* DecodeErrorToString(DecodeError error) {
+std::string_view DecodeErrorToString(DecodeError error) {
   switch (error) {
     case DecodeError::kOk:
       return "ok";

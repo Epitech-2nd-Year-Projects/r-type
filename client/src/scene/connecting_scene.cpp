@@ -10,9 +10,6 @@ ConnectingScene::ConnectingScene(Application& app) : app_(app) {}
 
 void ConnectingScene::Update(engine::time::TimeDelta /*dt*/) {
   auto& join_flow = app_.GetJoinFlow();
-  auto& transport = app_.GetTransport();
-
-  join_flow.Update(transport);
 
   if (join_flow.state() == JoinState::kConnected) {
     app_.OnConnected();

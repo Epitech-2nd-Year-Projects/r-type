@@ -31,8 +31,8 @@ engine::ecs::EntityId ObstacleBuilder::Create(engine::ecs::Registry& registry,
   sprite.layer = 3;
   sprite.visible = true;
 
-  if (config.custom_texture != nullptr) {
-    sprite.texture_path = config.custom_texture;
+  if (config.custom_texture.has_value()) {
+    sprite.texture_path = *config.custom_texture;
     sprite.tint.r = 255;
     sprite.tint.g = 255;
     sprite.tint.b = 255;

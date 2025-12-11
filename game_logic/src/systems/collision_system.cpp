@@ -11,6 +11,7 @@
 #include "engine/ecs/registry.h"
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
+#include "game_logic/constants.h"
 
 namespace game_logic::systems {
 
@@ -45,6 +46,82 @@ bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
   return a.Intersects(b);
 }
 
+void CollisionSystem::ResolveCollision(engine::ecs::Registry& registry,
+                                       engine::ecs::EntityId e1,
+                                       engine::ecs::EntityId e2) {
+  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
+  auto& damageables =
+      registry.GetComponents<game_logic::components::DamageableComponent>();
+  auto& healths =
+      registry.GetComponents<game_logic::components::HealthComponent>();
+
+  if (e1 >= tags.size() || e2 >= tags.size()) return;
+
+  auto& tag1 = tags[e1];
+  auto& tag2 = tags[e2];
+
+  if (!tag1.has_value() || !tag2.has_value()) return;
+
+  const std::string& t1 = tag1->tag;
+  const std::string& t2 = tag2->tag;
+
+  bool e1_is_player = (t1 == kPlayerTag);
+  bool e2_is_player = (t2 == kPlayerTag);
+  bool e1_is_enemy = (t1 == kEnemyTag);
+  bool e2_is_enemy = (t2 == kEnemyTag);
+
+  if ((e1_is_player && e2_is_enemy) || (e1_is_enemy && e2_is_player)) {
+    auto apply_crash = [&](engine::ecs::EntityId victim,
+                           engine::ecs::EntityId attacker) {
+      if (victim < healths.size() && healths[victim].has_value()) {
+        healths[victim]->take_damage(game_logic::kCrashDamage);
+        healths[victim]->last_attacker_id = attacker;
+      }
+    };
+    apply_crash(e1, e2);
+    apply_crash(e2, e1);
+  }
+
+  bool has_dmg1 = (e1 < damageables.size() && damageables[e1].has_value());
+  bool has_dmg2 = (e2 < damageables.size() && damageables[e2].has_value());
+
+  if (has_dmg1 && !has_dmg2) {
+    ResolveProjectile(registry, e1, e2, damageables[e1].value());
+  } else if (!has_dmg1 && has_dmg2) {
+    ResolveProjectile(registry, e2, e1, damageables[e2].value());
+  }
+}
+
+void CollisionSystem::ResolveProjectile(
+    engine::ecs::Registry& registry, engine::ecs::EntityId proj,
+    engine::ecs::EntityId target,
+    const game_logic::components::DamageableComponent& dmg_comp) {
+  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
+  auto& healths =
+      registry.GetComponents<game_logic::components::HealthComponent>();
+
+  if (target >= tags.size()) return;
+  auto& target_tag = tags[target];
+  if (!target_tag.has_value()) return;
+
+  bool hit = false;
+
+  if (dmg_comp.faction == 0 && target_tag->tag == kEnemyTag) {
+    hit = true;
+  }
+  if (dmg_comp.faction == 1 && target_tag->tag == kPlayerTag) {
+    hit = true;
+  }
+
+  if (hit) {
+    if (target < healths.size() && healths[target].has_value()) {
+      healths[target]->take_damage(dmg_comp.damage);
+      healths[target]->last_attacker_id = dmg_comp.owner_id;
+    }
+    registry.KillEntity(proj);
+  }
+}
+
 void CollisionSystem::Update(engine::ecs::Registry& registry,
                              engine::time::TimeDelta) {
   grid_.clear();
@@ -52,10 +129,6 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
   auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
   auto& boxes = registry.GetComponents<engine::ecs::BoundingBoxComponent>();
   auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
-  auto& healths =
-      registry.GetComponents<game_logic::components::HealthComponent>();
-  auto& damageables =
-      registry.GetComponents<game_logic::components::DamageableComponent>();
 
   for (auto&& [entity_idx, pos, box, tag] :
        engine::ecs::IndexedZipper(positions, boxes, tags)) {
@@ -82,24 +155,18 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
         if (checked_pairs.count(pair_hash)) continue;
         checked_pairs.insert(pair_hash);
 
-        if (static_cast<size_t>(e1) >= tags.size() ||
-            static_cast<size_t>(e2) >= tags.size() ||
-            static_cast<size_t>(e1) >= positions.size() ||
-            static_cast<size_t>(e2) >= positions.size() ||
-            static_cast<size_t>(e1) >= boxes.size() ||
-            static_cast<size_t>(e2) >= boxes.size()) {
+        if (e1 >= positions.size() || e2 >= positions.size() ||
+            e1 >= boxes.size() || e2 >= boxes.size()) {
           continue;
         }
 
-        auto& tag1 = tags[static_cast<size_t>(e1)];
-        auto& tag2 = tags[static_cast<size_t>(e2)];
-        auto& pos1 = positions[static_cast<size_t>(e1)];
-        auto& pos2 = positions[static_cast<size_t>(e2)];
-        auto& box1 = boxes[static_cast<size_t>(e1)];
-        auto& box2 = boxes[static_cast<size_t>(e2)];
+        auto& pos1 = positions[e1];
+        auto& pos2 = positions[e2];
+        auto& box1 = boxes[e1];
+        auto& box2 = boxes[e2];
 
-        if (!tag1.has_value() || !tag2.has_value() || !pos1.has_value() ||
-            !pos2.has_value() || !box1.has_value() || !box2.has_value())
+        if (!pos1.has_value() || !pos2.has_value() || !box1.has_value() ||
+            !box2.has_value())
           continue;
 
         engine::math::RectF rect1 = box1->bounds;
@@ -111,75 +178,7 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
         rect2.top_left_y_ += pos2->position.y;
 
         if (CheckOneWayCollision(rect1, rect2)) {
-          const std::string& t1 = tag1->tag;
-          const std::string& t2 = tag2->tag;
-
-          bool e1_is_player = (t1 == kPlayerTag);
-          bool e2_is_player = (t2 == kPlayerTag);
-          bool e1_is_enemy = (t1 == kEnemyTag);
-          bool e2_is_enemy = (t2 == kEnemyTag);
-
-          auto get_damageable = [&](engine::ecs::EntityId e)
-              -> std::optional<game_logic::components::DamageableComponent> {
-            if (static_cast<size_t>(e) < damageables.size()) {
-              return damageables[static_cast<size_t>(e)];
-            }
-            return std::nullopt;
-          };
-
-          auto dmg1 = get_damageable(e1);
-          auto dmg2 = get_damageable(e2);
-
-          bool e1_has_damage = dmg1.has_value();
-          bool e2_has_damage = dmg2.has_value();
-
-          auto apply_damage = [&](engine::ecs::EntityId victim,
-                                  uint32_t dmg_amount,
-                                  std::optional<std::uint32_t> attacker_id) {
-            if (static_cast<size_t>(victim) < healths.size()) {
-              auto& hp = healths[static_cast<size_t>(victim)];
-              if (hp.has_value()) {
-                hp->take_damage(dmg_amount);
-                if (attacker_id.has_value()) {
-                  hp->last_attacker_id = attacker_id;
-                }
-              }
-            }
-          };
-
-          if ((e1_is_player && e2_is_enemy) || (e1_is_enemy && e2_is_player)) {
-            apply_damage(e1, kCrashDamage, e2);
-            apply_damage(e2, kCrashDamage, e1);
-          }
-
-          auto handle_projectile =
-              [&](engine::ecs::EntityId proj, engine::ecs::EntityId target,
-                  const components::DamageableComponent& dmg_comp) {
-                if (static_cast<size_t>(target) >= tags.size()) return;
-                auto& target_tag_opt = tags[static_cast<size_t>(target)];
-                if (!target_tag_opt.has_value()) return;
-
-                bool hit = false;
-                if (dmg_comp.faction == 0 &&
-                    (target_tag_opt->tag == kEnemyTag)) {
-                  hit = true;
-                }
-                if (dmg_comp.faction == 1 &&
-                    (target_tag_opt->tag == kPlayerTag)) {
-                  hit = true;
-                }
-
-                if (hit) {
-                  apply_damage(target, dmg_comp.damage, dmg_comp.owner_id);
-                  registry.KillEntity(proj);
-                }
-              };
-
-          if (e1_has_damage && !e2_has_damage) {
-            handle_projectile(e1, e2, dmg1.value());
-          } else if (!e1_has_damage && e2_has_damage) {
-            handle_projectile(e2, e1, dmg2.value());
-          }
+          ResolveCollision(registry, e1, e2);
         }
       }
     }

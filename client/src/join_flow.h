@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -10,6 +11,7 @@
 #include "network_transport.h"
 #include "protocol/join.h"
 #include "protocol/packet.h"
+#include "protocol/sequence_tracker.h"
 
 namespace client {
 
@@ -19,8 +21,9 @@ namespace client {
  * connecting while waiting for a server reply
  * connected once a player id is assigned
  * refused when the server denies the request or times out
+ * disconnected when a previously connected session is lost
  */
-enum class JoinState { kIdle, kConnecting, kConnected, kRefused };
+enum class JoinState { kIdle, kConnecting, kConnected, kRefused, kDisconnected };
 
 /**
  * @brief Drives the JoinGame handshake and tracks the assigned player id
@@ -60,9 +63,14 @@ class JoinFlow {
   /**
    * @brief Access the last rejection payload if present
    */
-  const protocol::JoinRejectPayload* rejection() const {
-    return last_reject_ ? &*last_reject_ : nullptr;
+  const std::optional<protocol::JoinRejectPayload>& rejection() const {
+    return last_reject_;
   }
+
+  /**
+   * @brief Mark the current session as disconnected with a reason
+   */
+  void MarkDisconnected(std::string_view reason);
 
  private:
   void SendJoinRequest(NetworkTransport& transport);
@@ -80,6 +88,7 @@ class JoinFlow {
   std::uint32_t next_sequence_{1};
   int attempts_{0};
   std::chrono::steady_clock::time_point last_send_{};
+  protocol::SequenceTracker sequence_tracker_{};
 };
 
 }  // namespace client

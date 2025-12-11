@@ -1,6 +1,8 @@
 #include "protocol/packet.h"
 
 #include <utility>
+#include <optional>
+#include <functional>
 
 #include "protocol/message_type.h"
 
@@ -163,24 +165,21 @@ bool DecodePayloadByType(engine::net::PacketBuffer& buffer, MessageType type,
   }
 }
 
-bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
-                          DecodeError* out_error) {
-  if (out_error != nullptr) {
-    *out_error = DecodeError::kOk;
+bool DecodePacketInternal(
+    engine::net::PacketBuffer& buffer, Packet& out_packet,
+    std::optional<std::reference_wrapper<DecodeError>> out_error) {
+  if (out_error) {
+    out_error->get() = DecodeError::kOk;
   }
 
   Header header{};
   if (!DecodeHeader(buffer, header)) {
-    if (out_error != nullptr) {
-      *out_error = DecodeError::kUnexpectedEndOfBuffer;
-    }
+    if (out_error) out_error->get() = DecodeError::kUnexpectedEndOfBuffer;
     return false;
   }
 
   if (header.version != kProtocolVersion) {
-    if (out_error != nullptr) {
-      *out_error = DecodeError::kVersionMismatch;
-    }
+    if (out_error) out_error->get() = DecodeError::kVersionMismatch;
     return false;
   }
 
@@ -203,17 +202,13 @@ bool DecodePacketInternal(engine::net::PacketBuffer& buffer, Packet& out_packet,
       break;
     case MessageType::kInvalid:
     default:
-      if (out_error != nullptr) {
-        *out_error = DecodeError::kUnknownMessageType;
-      }
+      if (out_error) out_error->get() = DecodeError::kUnknownMessageType;
       return false;
   }
 
   PacketPayload payload;
   if (!DecodePayloadByType(buffer, type, payload)) {
-    if (out_error != nullptr) {
-      *out_error = DecodeError::kInvalidPayload;
-    }
+    if (out_error) out_error->get() = DecodeError::kInvalidPayload;
     return false;
   }
 
@@ -232,12 +227,13 @@ bool EncodePacket(const Packet& packet, engine::net::PacketBuffer& buffer) {
 }
 
 bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet) {
-  return DecodePacketInternal(buffer, out_packet, nullptr);
+  return DecodePacketInternal(buffer, out_packet, std::nullopt);
 }
 
 bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet,
-                  DecodeError* out_error) {
-  return DecodePacketInternal(buffer, out_packet, out_error);
+                  DecodeError& out_error) {
+  return DecodePacketInternal(buffer, out_packet,
+                              std::ref(out_error));
 }
 
 }  // namespace protocol

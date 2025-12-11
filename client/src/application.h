@@ -2,15 +2,19 @@
 #define CLIENT_APPLICATION_H_
 
 #include <memory>
+#include <string>
+#include <string_view>
 
 #include "audio_manager.h"
 #include "client_config.h"
-#include "audio_manager.h"
-#include "join_flow.h"
-#include "network_transport.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
+#include "input_layer.h"
+#include "input_sender.h"
+#include "join_flow.h"
+#include "network_transport.h"
 #include "scene/scene.h"
+#include "world_update_receiver.h"
 
 namespace client {
 
@@ -23,6 +27,7 @@ class Application {
    * @brief Construct an Application with user provided configuration
    */
   explicit Application(ClientConfig config);
+
   int Run();
 
   /**
@@ -35,14 +40,17 @@ class Application {
    */
   void SwitchScene(std::unique_ptr<Scene> scene);
 
-  void StartConnection();
+  /**
+   * @brief Begin the connection handshake
+   */
+  bool StartConnection();
   void OnConnected();
   void OnConnectionFailed(const std::string& reason);
   void OnGameStart();
   void OnGamePause();
   void OnGameResume();
   void OnGameOver();
-  void OnDisconnect();
+  void OnDisconnect(std::string reason);
   void OnQuitToMenu();
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
@@ -50,13 +58,26 @@ class Application {
 
  private:
   bool Tick(engine::time::TimeDelta dt);
+  void UpdateAudio(engine::time::TimeDelta dt, JoinState join_state);
+  void HandleGameOverAudio();
+  void HandleServerCommand(const protocol::CommandPayload& payload);
+  void MonitorConnection(JoinState join_state);
+  void HandleConnectionLost(std::string_view reason);
+  void HandleReconnectInput(JoinState join_state);
 
   ClientConfig config_;
-  NetworkTransport transport_;
+  std::shared_ptr<NetworkTransport> transport_;
   JoinFlow join_flow_;
   std::unique_ptr<Scene> current_scene_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
+  std::unique_ptr<InputLayer> input_layer_;
+  std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
+  WorldUpdateReceiver world_update_receiver_;
+  JoinState last_join_state_{JoinState::kIdle};
+  bool music_allowed_{false};
+  bool music_blocked_{false};
+  bool reconnect_requested_{false};
 };
 
 }  // namespace client

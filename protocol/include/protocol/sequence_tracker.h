@@ -13,6 +13,8 @@ namespace protocol {
       static constexpr std::uint32_t kAckBitsWindow = 32u;
 
       SequenceTracker() = default;
+      SequenceTracker(const SequenceTracker&) = default;
+      SequenceTracker& operator=(const SequenceTracker&) = default;
 
       /**
        * @brief Returns the next local sequence number to use for an outgoing packet.
@@ -33,12 +35,12 @@ namespace protocol {
       void OnRemoteSequenceReceived(std::uint32_t remote_sequence);
 
       /**
-       * @brief Fills the ack and ack_bits fields of the given header with the current
+      * @brief Fills the ack and ack_bits fields of the given header with the current
        *        remote sequence tracking information.
-       * @param header Pointer to the header structure to fill.
-       * @note Does nothing if header is nullptr or if no remote packet has been received yet.
+       * @param header Header structure to fill.
+       * @note Does nothing if no remote packet has been received yet.
        */
-      void FillAckFields(Header* header) const;
+      void FillAckFields(Header& header) const;
 
       /**
        * @brief Resets the sequence tracker to its initial state.

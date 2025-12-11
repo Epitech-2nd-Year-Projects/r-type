@@ -155,12 +155,16 @@ class RaylibRenderer2D final : public Renderer2D {
 
   void DrawTexture(const Texture2D& texture,
                    const SpriteDrawParams& params) override {
-    const auto* raylib_texture = dynamic_cast<const RaylibTexture2D*>(&texture);
-    if (raylib_texture == nullptr) {
-      throw std::runtime_error("Texture provided was not created by Raylib.");
-    }
+    const RaylibTexture2D& raylib_texture =
+        [&texture]() -> const RaylibTexture2D& {
+      try {
+        return dynamic_cast<const RaylibTexture2D&>(texture);
+      } catch (const std::bad_cast&) {
+        throw std::runtime_error("Texture provided was not created by Raylib.");
+      }
+    }();
 
-    const math::Vector2i texture_size = raylib_texture->GetSize();
+    const math::Vector2i texture_size = raylib_texture.GetSize();
 
     ::Rectangle source{
         0.0f,
@@ -183,7 +187,7 @@ class RaylibRenderer2D final : public Renderer2D {
     };
 
     ::Vector2 origin = ToRaylibVector(params.origin);
-    ::DrawTexturePro(raylib_texture->GetNative(), source, dest, origin,
+    ::DrawTexturePro(raylib_texture.GetNative(), source, dest, origin,
                      params.rotation, ToRaylibColor(params.tint));
   }
 
@@ -245,7 +249,7 @@ class RaylibWindow final : public Window {
 
     ::InitWindow(config.size.x, config.size.y, config.title.c_str());
     input_manager_ = config.input_manager;
-    if (input_manager_ != nullptr) {
+    if (input_manager_) {
       input_manager_->ClearState();
     }
     window_alive_ = true;
@@ -265,7 +269,7 @@ class RaylibWindow final : public Window {
   void PollEvents() override {
     ::PollInputEvents();
 
-    if (input_manager_ == nullptr) return;
+    if (!input_manager_) return;
     if (!::IsWindowFocused()) {
       input_manager_->ClearState();
       return;
@@ -294,9 +298,10 @@ class RaylibWindow final : public Window {
 
   void RequestClose() override { should_close_ = true; }
 
-  void SetInputManager(input::InputManager* input_manager) override {
+  void SetInputManager(
+      std::shared_ptr<input::InputManager> input_manager) override {
     input_manager_ = input_manager;
-    if (input_manager_ != nullptr) {
+    if (input_manager_) {
       input_manager_->ClearState();
     }
   }
@@ -321,7 +326,7 @@ class RaylibWindow final : public Window {
  private:
   WindowConfig config_;
   bool should_close_{false};
-  input::InputManager* input_manager_{nullptr};
+  std::shared_ptr<input::InputManager> input_manager_{};
   RaylibRenderer2D renderer_;
   RaylibRenderContext context_;
 
