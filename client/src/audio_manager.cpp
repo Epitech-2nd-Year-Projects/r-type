@@ -33,8 +33,10 @@ std::string ResolveAssetPath(std::string_view relative_path) {
     cursor = cursor.parent_path();
   }
 
-  std::filesystem::path source_root =
-      std::filesystem::absolute(__FILE__).parent_path().parent_path().parent_path();
+  std::filesystem::path source_root = std::filesystem::absolute(__FILE__)
+                                          .parent_path()
+                                          .parent_path()
+                                          .parent_path();
   std::filesystem::path source_candidate = source_root / relative_path;
   if (std::filesystem::exists(source_candidate)) {
     return source_candidate.string();
