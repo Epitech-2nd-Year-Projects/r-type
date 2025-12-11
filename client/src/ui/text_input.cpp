@@ -1,10 +1,6 @@
 #include "text_input.h"
 
-#include <cmath>
-#include <iostream>
-
 #include "engine/render/renderer2d.h"
-#include "engine/util/logging.h"
 
 namespace client::ui {
 
@@ -15,33 +11,27 @@ char KeyToChar(engine::input::Key key, bool shift) {
 
   if (key >= Key::kA && key <= Key::kZ) {
     char base = shift ? 'A' : 'a';
-    char c = base + (static_cast<int>(key) - static_cast<int>(Key::kA));
-
-    // AZERTY Swaps
-    if (key == Key::kA)
-      c = shift ? 'Q' : 'q';
-    else if (key == Key::kQ)
-      c = shift ? 'A' : 'a';
-    else if (key == Key::kZ)
-      c = shift ? 'W' : 'w';
-    else if (key == Key::kW)
-      c = shift ? 'Z' : 'z';
-    else if (key == Key::kM)
-      return shift ? '?' : ',';
-
-    return c;
+    return base + (static_cast<int>(key) - static_cast<int>(Key::kA));
   }
 
-  if (key == Key::kSemicolon) return shift ? 'M' : 'm';
-  if (key == Key::kComma) return shift ? '.' : ';';
-  if (key == Key::kPeriod) return shift ? '/' : ':';
   if (key >= Key::kNum0 && key <= Key::kNum9) {
-    char base = '0';
-    return base + (static_cast<int>(key) - static_cast<int>(Key::kNum0));
+    int idx = static_cast<int>(key) - static_cast<int>(Key::kNum0);
+    if (shift) {
+      static constexpr char kShiftedNumbers[] = {')', '!', '@', '#', '$',
+                                                 '%', '^', '&', '*', '('};
+      return kShiftedNumbers[idx];
+    }
+    return static_cast<char>('0' + idx);
   }
 
   if (key == Key::kSpace) return ' ';
   if (key == Key::kMinus) return shift ? '_' : '-';
+  if (key == Key::kEqual) return shift ? '+' : '=';
+  if (key == Key::kSemicolon) return shift ? ':' : ';';
+  if (key == Key::kComma) return shift ? '<' : ',';
+  if (key == Key::kPeriod) return shift ? '>' : '.';
+  if (key == Key::kSlash) return shift ? '?' : '/';
+  if (key == Key::kBackslash) return shift ? '|' : '\\';
 
   return 0;
 }
@@ -51,7 +41,8 @@ char KeyToChar(engine::input::Key key, bool shift) {
 TextInput::TextInput(engine::math::Vector2f position,
                      engine::math::Vector2f size)
     : position_(position), size_(size) {
-  last_key_states_.resize(100, false);
+  last_key_states_.resize(
+      static_cast<std::size_t>(engine::input::Key::kRightAlt) + 1, false);
 }
 
 void TextInput::Update(engine::time::TimeDelta dt,
@@ -98,13 +89,11 @@ void TextInput::Draw(engine::render::Renderer2D& renderer) {
                     color);
 
   if (focused_ && show_cursor_) {
+    float cursor_x = position_.x + 10.0f;
     if (!text_.empty()) {
-      renderer.DrawText(display_text + "|", {position_.x + 10.0f, text_y},
-                        font_size, color);
-    } else {
-      renderer.DrawText("|", {position_.x + 10.0f, text_y}, font_size,
-                        text_color_);
+      cursor_x += renderer.MeasureText(text_, font_size).x;
     }
+    renderer.DrawText("|", {cursor_x, text_y}, font_size, text_color_);
   }
 }
 
@@ -132,8 +121,6 @@ void TextInput::HandleTyping(engine::input::InputManager& input) {
     if (!last_key_states_[key_idx]) {
       if (!text_.empty()) {
         text_.pop_back();
-        engine::util::Logger::Default().Info(
-            "TextInput: Backspace. Current text: ", text_);
       }
     }
     last_key_states_[key_idx] = true;
@@ -154,8 +141,6 @@ void TextInput::HandleTyping(engine::input::InputManager& input) {
       char c = KeyToChar(key, shift);
       if (c != 0) {
         text_ += c;
-        engine::util::Logger::Default().Info("TextInput: Added char '", c,
-                                             "'. Current text: ", text_);
       }
     }
     last_key_states_[idx] = down;
@@ -173,6 +158,9 @@ void TextInput::HandleTyping(engine::input::InputManager& input) {
   check_key(Key::kMinus);
   check_key(Key::kSemicolon);
   check_key(Key::kComma);
+  check_key(Key::kSlash);
+  check_key(Key::kBackslash);
+  check_key(Key::kEqual);
 }
 
 }  // namespace client::ui
