@@ -1,6 +1,8 @@
 #include "connecting_scene.h"
 
 #include "application.h"
+#include "engine/core/engine_runtime.h"
+#include "engine/input.h"
 #include "engine/render/color.h"
 #include "join_flow.h"
 
@@ -9,12 +11,9 @@ namespace client {
 ConnectingScene::ConnectingScene(Application& app) : app_(app) {}
 
 void ConnectingScene::Update(engine::time::TimeDelta /*dt*/) {
-  auto& join_flow = app_.GetJoinFlow();
-
-  if (join_flow.state() == JoinState::kConnected) {
-    app_.OnConnected();
-  } else if (join_flow.state() == JoinState::kRefused) {
-    app_.OnConnectionFailed(join_flow.status());
+  auto& input = app_.GetEngine().Input();
+  if (input.IsActionActive("Cancel")) {
+    app_.OnQuitToMenu();
   }
 }
 
