@@ -45,24 +45,6 @@ constexpr GameActionEventType ToGameActionEventType(
              : GameActionEventType::kReleased;
 }
 
-constexpr std::size_t ActionIndex(GameAction action) {
-  switch (action) {
-    case GameAction::kMoveUp:
-      return kMoveUpIndex;
-    case GameAction::kMoveDown:
-      return kMoveDownIndex;
-    case GameAction::kMoveLeft:
-      return kMoveLeftIndex;
-    case GameAction::kMoveRight:
-      return kMoveRightIndex;
-    case GameAction::kShoot:
-      return kShootIndex;
-    case GameAction::kReconnect:
-      return kReconnectIndex;
-  }
-  return 0;
-}
-
 }  // namespace
 
 InputLayer::InputLayer(engine::input::InputManager& manager)
