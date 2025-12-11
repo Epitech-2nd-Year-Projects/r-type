@@ -62,10 +62,28 @@ class Renderer2D {
                         float font_size, const Color& color) = 0;
 
   /**
+   * @brief Measure the dimensions of a text string with the current font.
+   */
+  virtual math::Vector2f MeasureText(std::string_view text, float font_size) = 0;
+
+  /**
    * @brief Load texture resource.
    */
   virtual std::shared_ptr<Texture2D> LoadTextureFromFile(
       const std::string& path) = 0;
+
+  /**
+   * @brief Load a font from a file.
+   * @param name Unique identifier for the font.
+   * @param path Path to the font file.
+   */
+  virtual void LoadFont(const std::string& name, const std::string& path) = 0;
+
+  /**
+   * @brief Set the current font to be used by DrawText.
+   * @param name The identifier of the font to use.
+   */
+  virtual void SetFont(const std::string& name) = 0;
 
   /**
    * @brief Flush any pending batched draw calls.
