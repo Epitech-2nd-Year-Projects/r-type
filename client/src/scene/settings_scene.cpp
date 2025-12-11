@@ -113,8 +113,8 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
         });
     ui_elements_.push_back(back_btn);
     
-    auto btn_tex = renderer.LoadTextureFromFile("assets/kenney_ui-pack-space-expansion/PNG/Grey/Default/button_square_header_large_rectangle.png");
-    auto small_btn_tex = renderer.LoadTextureFromFile("assets/kenney_ui-pack-space-expansion/PNG/Grey/Default/button_square_header_blade_square.png");
+    auto btn_tex = renderer.LoadTextureFromFile("assets/ui/button_large.png");
+    auto small_btn_tex = renderer.LoadTextureFromFile("assets/ui/button_small.png");
 
     if (btn_tex) {
         back_btn->SetTexture(btn_tex);

@@ -12,7 +12,7 @@ namespace client {
 MainMenuScene::MainMenuScene(Application& app) : app_(app) {
     auto& renderer = app_.GetEngine().Renderer();
     
-    renderer.LoadFont("kenney_future", "assets/kenney_ui-pack-space-expansion/Font/Kenney Future.ttf");
+    renderer.LoadFont("kenney_future", "assets/ui/kenney_future.ttf");
     renderer.SetFont("kenney_future");
 
     auto white = engine::render::Color::White();
@@ -79,7 +79,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
         });
     ui_elements_.push_back(settings_btn);
     
-    auto btn_tex = renderer.LoadTextureFromFile("assets/kenney_ui-pack-space-expansion/PNG/Grey/Default/button_square_header_large_rectangle.png");
+    auto btn_tex = renderer.LoadTextureFromFile("assets/ui/button_large.png");
     if (btn_tex) {
         connect_btn->SetTexture(btn_tex);
         settings_btn->SetTexture(btn_tex);
