@@ -1,4 +1,5 @@
 set_project("r-type")
+add_requires("asio")
 set_version("0.1.0")
 set_xmakever("2.8.5")
 
