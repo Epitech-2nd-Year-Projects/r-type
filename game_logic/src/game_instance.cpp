@@ -8,6 +8,7 @@
 #include "game_logic/components.h"
 #include "game_logic/constants.h"
 #include "game_logic/entities/player_builder.h"
+#include "game_logic/game_config.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/animation_system.h"
 #include "game_logic/systems/collision_system.h"
@@ -27,6 +28,12 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
       game_state_(),
       is_started_(false) {
   game_state_.room_id = room_id_;
+  if (!GameConfig::Get().Load("config")) {
+    std::cerr
+        << "FATAL: Failed to load game config! Defaults usage is dangerous "
+           "and may cause crashes."
+        << std::endl;
+  }
   RegisterComponents();
   RegisterSystems();
 }

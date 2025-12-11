@@ -1,3 +1,4 @@
+add_requires("nlohmann_json")
 add_rules("mode.debug", "mode.release")
 
 target("game_logic")
@@ -5,4 +6,5 @@ target("game_logic")
     add_files("src/**.cpp")
     add_includedirs("include", {public = true})
     add_headerfiles("include/game_logic/(**.h|**.hpp)")
+    add_packages("nlohmann_json")
     add_deps("engine")

@@ -1,0 +1,55 @@
+{
+    "Scout": {
+        "name": "Scout",
+        "health": 10,
+        "speed": 150.0,
+        "behavior": "Straight",
+        "score": 100,
+        "sprite_width": 33.0,
+        "sprite_height": 33.0,
+        "hitbox_width": 33.0,
+        "hitbox_height": 33.0,
+        "texture_path": "assets/sprites/enemy_scout.png",
+        "can_shoot": true,
+        "fire_rate": 0.5
+    },
+    "Bomber": {
+        "name": "Bomber",
+        "health": 20,
+        "speed": 100.0,
+        "behavior": "WavePattern",
+        "score": 200,
+        "sprite_width": 33.0,
+        "sprite_height": 33.0,
+        "hitbox_width": 33.0,
+        "hitbox_height": 33.0,
+        "texture_path": "assets/sprites/enemy_bomber.png",
+        "wave_amplitude": 50.0,
+        "wave_frequency": 2.0
+    },
+    "Tank": {
+        "name": "Tank",
+        "health": 150,
+        "speed": 50.0,
+        "behavior": "Patrol",
+        "score": 500,
+        "sprite_width": 33.0,
+        "sprite_height": 33.0,
+        "hitbox_width": 33.0,
+        "hitbox_height": 33.0,
+        "texture_path": "assets/sprites/enemy_tank.png"
+    },
+    "Interceptor": {
+        "name": "Interceptor",
+        "health": 10,
+        "speed": 150.0,
+        "behavior": "ChasePlayer",
+        "score": 300,
+        "sprite_width": 33.0,
+        "sprite_height": 33.0,
+        "hitbox_width": 33.0,
+        "hitbox_height": 33.0,
+        "texture_path": "assets/sprites/enemy_interceptor.png",
+        "detection_range": 1000.0
+    }
+}

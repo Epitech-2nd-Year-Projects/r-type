@@ -6,27 +6,39 @@
 #include "game_logic/entities/enemy_data.h"
 #include "game_logic/entities/missile_config.h"
 #include "game_logic/entities/missile_data.h"
+#include "game_logic/game_config.h"
 
 namespace game_logic::entities {
 
-const EnemyArchetypeData &GetArchetypeData(EnemyType type) {
+std::string GetEnemyName(EnemyType type) {
   switch (type) {
     case EnemyType::kScout:
-      return kScoutData;
+      return "Scout";
     case EnemyType::kBomber:
-      return kBomberData;
+      return "Bomber";
     case EnemyType::kTank:
-      return kTankData;
+      return "Tank";
     case EnemyType::kInterceptor:
-      return kInterceptorData;
+      return "Interceptor";
     default:
-      return kScoutData;
+      return "Scout";
   }
 }
 
 engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
-                                           const EnemyConfig &config) {
-  const auto &data = GetArchetypeData(config.type);
+                                           const EnemySpawnConfig &config) {
+  const EnemyConfig &data = [&]() -> const EnemyConfig & {
+    try {
+      return GameConfig::Get().GetEnemy(GetEnemyName(config.type));
+    } catch (const std::exception &) {
+      try {
+        return GameConfig::Get().GetEnemy("Scout");
+      } catch (const std::exception &) {
+        static const EnemyConfig kDefaultEnemy{};
+        return kDefaultEnemy;
+      }
+    }
+  }();
 
   engine::ecs::EntityId enemy = registry.SpawnEntity();
 
@@ -45,8 +57,22 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   registry.EmplaceComponent<components::HealthComponent>(enemy, health);
 
   components::AIComponent ai;
-  ai.behavior =
-      config.use_custom_behavior ? config.custom_behavior : data.behavior;
+  if (data.behavior_type == "Patrol")
+    ai.behavior = components::EnemyBehavior::kPatrol;
+  else if (data.behavior_type == "WavePattern")
+    ai.behavior = components::EnemyBehavior::kWavePattern;
+  else if (data.behavior_type == "ChasePlayer")
+    ai.behavior = components::EnemyBehavior::kChasePlayer;
+  else if (data.behavior_type == "Straight")
+    ai.behavior = components::EnemyBehavior::kStraight;
+  else {
+    std::cerr << "Warning: Unknown behavior type '" << data.behavior_type
+              << "' for enemy '" << data.name << "'. Defaulting to Straight."
+              << std::endl;
+    ai.behavior = components::EnemyBehavior::kStraight;
+  }
+
+  if (config.use_custom_behavior) ai.behavior = config.custom_behavior;
 
   ai.speed = config.custom_speed > 0.0f ? config.custom_speed : data.speed;
   ai.detection_range = data.detection_range;
@@ -54,8 +80,9 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   ai.wave_frequency = data.wave_frequency;
 
   if (ai.behavior == components::EnemyBehavior::kPatrol) {
-    ai.patrol_min = engine::math::Vector2f{kPatrolMinX, kPatrolMinY};
-    ai.patrol_max = engine::math::Vector2f{kPatrolMaxX, kPatrolMaxY};
+    auto &w = GameConfig::Get().GetWorld();
+    ai.patrol_min = engine::math::Vector2f{w.patrol_min_x, w.patrol_min_y};
+    ai.patrol_max = engine::math::Vector2f{w.patrol_max_x, w.patrol_max_y};
   }
 
   registry.AddComponent<components::AIComponent>(enemy, std::move(ai));
@@ -87,15 +114,33 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
 
   if (data.can_shoot) {
     components::WeaponComponent weapon;
-    weapon.projectile_data = kEnemyMissileData;
-    weapon.projectile_data.fire_rate = data.fire_rate;
-    weapon.faction = ProjectileFaction::kEnemy;
-    weapon.set_unlimited_ammo();
-    weapon.is_trigger_held = true;
-    weapon.cooldown_remaining = engine::time::TimeDelta::from_seconds(0.0f);
+    try {
+      const auto &m_data = GameConfig::Get().GetMissile("EnemyMissile");
+      weapon.projectile_data.name = m_data.name;
+      weapon.projectile_data.damage = m_data.damage;
+      weapon.projectile_data.fire_rate = data.fire_rate;
+      weapon.projectile_data.lifetime_seconds = m_data.lifetime_seconds;
+      weapon.projectile_data.sprite_width = m_data.sprite_width;
+      weapon.projectile_data.sprite_height = m_data.sprite_height;
+      weapon.projectile_data.hitbox_scale = m_data.hitbox_scale;
+      weapon.projectile_data.texture_path = m_data.texture_path;
+      weapon.projectile_data.tint_color = m_data.tint_color;
 
-    registry.AddComponent<components::WeaponComponent>(enemy,
-                                                       std::move(weapon));
+      weapon.set_unlimited_ammo();
+      weapon.is_trigger_held = true;
+      weapon.cooldown_remaining = engine::time::TimeDelta::from_seconds(0.0f);
+
+      weapon.projectile_data.speed = m_data.speed;
+      weapon.faction = ProjectileFaction::kEnemy;
+
+      registry.AddComponent<components::WeaponComponent>(enemy,
+                                                         std::move(weapon));
+    } catch (const std::exception &e) {
+      std::cerr << "Error loading enemy missile config: " << e.what()
+                << std::endl;
+    } catch (...) {
+      std::cerr << "Unknown error loading enemy missile config." << std::endl;
+    }
   }
 
   registry.EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");
@@ -106,7 +151,7 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
 engine::ecs::EntityId EnemyBuilder::Create(
     engine::ecs::Registry &registry, EnemyType type,
     const engine::math::Vector2f &spawn_position) {
-  EnemyConfig config;
+  EnemySpawnConfig config;
   config.type = type;
   config.spawn_position = spawn_position;
   return Create(registry, config);

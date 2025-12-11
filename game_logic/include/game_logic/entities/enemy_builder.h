@@ -25,16 +25,18 @@ enum class EnemyType : std::uint8_t {
  * @struct EnemyConfig
  * @brief Enemy entity creation configuration
  */
-struct EnemyConfig {
+struct EnemySpawnConfig {
   EnemyType type{EnemyType::kScout};
-  engine::math::Vector2f spawn_position{800.0f, 300.0f};
+  engine::math::Vector2f spawn_position{0.0f, 0.0f};
   engine::math::Vector2f initial_velocity{0.0f, 0.0f};
+
   std::uint32_t custom_health{0};
   std::uint32_t custom_score{0};
-  float custom_speed{0.0f};
+
+  bool use_custom_behavior{false};
   components::EnemyBehavior custom_behavior{
       components::EnemyBehavior::kStraight};
-  bool use_custom_behavior{false};
+  float custom_speed{0.0f};
 };
 
 /**
@@ -64,10 +66,9 @@ class EnemyBuilder {
    * - ScoreValueComponent (points awarded on death)
    * - BoundingBoxComponent (collision)
    * - SpriteComponent (visuals)
-   * - TagComponent ("Enemy")
    */
   static engine::ecs::EntityId Create(engine::ecs::Registry &registry,
-                                      const EnemyConfig &config);
+                                      const EnemySpawnConfig &config);
 
   /**
    * @brief Create enemy with minimal parameters

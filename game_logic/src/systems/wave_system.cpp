@@ -4,58 +4,38 @@
 
 #include "game_logic/constants.h"
 #include "game_logic/entities/enemy_builder.h"
+#include "game_logic/game_config.h"
 
 namespace game_logic::systems {
 
 WaveSystem::WaveSystem() : rng_(std::random_device{}()) { LoadLevel(1); }
-
-namespace {
-
-struct SpawnDef {
-  float time;
-  entities::EnemyType type;
-  float x;
-  float y;
-  bool random_y;
-};
-
-const std::vector<SpawnDef> kLevel1Data = {
-    {2.0f, entities::EnemyType::kScout, 850.0f, 0.0f, true},
-    {3.0f, entities::EnemyType::kScout, 850.0f, 0.0f, true},
-    {4.0f, entities::EnemyType::kScout, 850.0f, 0.0f, true},
-    {8.0f, entities::EnemyType::kBomber, 900.0f, 0.0f, true},
-    {8.5f, entities::EnemyType::kBomber, 900.0f, 0.0f, true},
-    {9.0f, entities::EnemyType::kBomber, 900.0f, 0.0f, true},
-    {12.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {12.5f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {13.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {15.0f, entities::EnemyType::kScout, 900.0f, 0.0f, true},
-    {15.0f, entities::EnemyType::kScout, 900.0f, 0.0f, true},
-    {16.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {20.0f, entities::EnemyType::kBomber, 900.0f, 0.0f, true},
-    {20.0f, entities::EnemyType::kBomber, 900.0f, 0.0f, true},
-    {22.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {22.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-    {24.0f, entities::EnemyType::kInterceptor, 900.0f, 0.0f, true},
-};
-
-}  // namespace
 
 void WaveSystem::LoadLevel(int level_id) {
   current_level_ = level_id;
   current_wave_time_ = 0.0f;
   pending_spawns_.clear();
 
-  const std::vector<SpawnDef>* data = nullptr;
-  if (current_level_ == 1) {
-    data = &kLevel1Data;
-  }
+  try {
+    const LevelConfig& level = GameConfig::Get().GetLevel(level_id);
+    for (const auto& spawn : level.waves) {
+      entities::EnemyType type = entities::EnemyType::kScout;
+      if (spawn.enemy_type == "Bomber")
+        type = entities::EnemyType::kBomber;
+      else if (spawn.enemy_type == "Tank")
+        type = entities::EnemyType::kTank;
+      else if (spawn.enemy_type == "Interceptor")
+        type = entities::EnemyType::kInterceptor;
+      else if (spawn.enemy_type != "Scout") {
+        std::cerr << "Warning: Unknown enemy type '" << spawn.enemy_type
+                  << "' in wave config. Defaulting to Scout." << std::endl;
+      }
 
-  if (data) {
-    for (const auto& spawn : *data) {
       pending_spawns_.push_back(
-          {spawn.time, spawn.type, {spawn.x, spawn.y}, spawn.random_y});
+          {spawn.time, type, {spawn.x, spawn.y}, spawn.random_y});
     }
+  } catch (const std::exception& e) {
+    std::cerr << "Error loading level " << level_id << ": " << e.what()
+              << std::endl;
   }
 }
 
@@ -63,8 +43,9 @@ void WaveSystem::Update(engine::ecs::Registry& registry,
                         engine::time::TimeDelta dt) {
   current_wave_time_ += dt.as_seconds();
 
-  std::uniform_real_distribution<float> dist(game_logic::kSpawnMinY,
-                                             game_logic::kSpawnMaxY);
+  const auto& world = GameConfig::Get().GetWorld();
+  std::uniform_real_distribution<float> dist(world.spawn_min_y,
+                                             world.spawn_max_y);
 
   while (!pending_spawns_.empty()) {
     const auto& next_spawn = pending_spawns_.front();
