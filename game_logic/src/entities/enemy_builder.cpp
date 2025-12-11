@@ -2,6 +2,7 @@
 
 #include "engine/ecs/component.h"
 #include "game_logic/components.h"
+#include "game_logic/constants.h"
 #include "game_logic/entities/enemy_data.h"
 #include "game_logic/entities/missile_config.h"
 #include "game_logic/entities/missile_data.h"
@@ -53,8 +54,8 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   ai.wave_frequency = data.wave_frequency;
 
   if (ai.behavior == components::EnemyBehavior::kPatrol) {
-    ai.patrol_min = engine::math::Vector2f{0.0f, 100.0f};
-    ai.patrol_max = engine::math::Vector2f{800.0f, 500.0f};
+    ai.patrol_min = engine::math::Vector2f{kPatrolMinX, kPatrolMinY};
+    ai.patrol_max = engine::math::Vector2f{kPatrolMaxX, kPatrolMaxY};
   }
 
   registry.AddComponent<components::AIComponent>(enemy, std::move(ai));
@@ -75,12 +76,12 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   sprite.texture_path = data.texture_path;
   sprite.source_rect =
       engine::math::RectF(0.0f, 0.0f, data.sprite_width, data.sprite_height);
-  sprite.layer = 5;
+  sprite.layer = kEnemyLayer;
   sprite.visible = true;
-  sprite.tint.r = 255;
-  sprite.tint.g = 80;
-  sprite.tint.b = 80;
-  sprite.tint.a = 255;
+  sprite.tint.r = kEnemyTintR;
+  sprite.tint.g = kEnemyTintG;
+  sprite.tint.b = kEnemyTintB;
+  sprite.tint.a = kEnemyTintA;
 
   registry.AddComponent<components::SpriteComponent>(enemy, std::move(sprite));
 
