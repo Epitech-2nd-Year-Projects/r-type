@@ -13,7 +13,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
     : rng_(seed),
       logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
       logger_(logger) {
-  // Start is invoked once game transitions to playing; remain in lobby initially.
+  // Start is invoked once game transitions to playing; remain in lobby
+  // initially.
 }
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
@@ -134,8 +135,7 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
     return std::nullopt;
   }
 
-  const auto cmd_type =
-      static_cast<protocol::CommandType>(command.command_id);
+  const auto cmd_type = static_cast<protocol::CommandType>(command.command_id);
   bool target_ready = it->second.is_ready;
 
   switch (cmd_type) {
@@ -149,8 +149,7 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
       return std::nullopt;
   }
 
-  if (it->second.is_ready == target_ready)
-    return std::nullopt;
+  if (it->second.is_ready == target_ready) return std::nullopt;
   it->second.is_ready = target_ready;
 
   ReadyEvent evt{};
