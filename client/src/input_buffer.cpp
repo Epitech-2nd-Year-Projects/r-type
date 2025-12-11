@@ -14,9 +14,8 @@ bool StatesEqual(const ActionState& lhs, const ActionState& rhs) {
 void InputBuffer::Reset(const ActionState& initial_state,
                         std::uint32_t time_ms) {
   current_state_ = initial_state;
-  last_queued_state_ = initial_state;
   pending_samples_.clear();
-  pending_samples_.push_back({initial_state, time_ms});
+  last_queued_state_ = initial_state;
 }
 
 void InputBuffer::PushEvents(const std::vector<GameActionEvent>& events,
