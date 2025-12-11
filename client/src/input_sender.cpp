@@ -16,6 +16,8 @@ std::uint32_t NowMilliseconds() {
   return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
 }
 
+constexpr int kMaxBurstPerUpdate = 4;
+
 std::uint8_t BuildButtonMask(const client::ActionState& state) {
   std::uint8_t buttons = 0;
   if (state.move_up) buttons |= protocol::kInputUp;
@@ -47,6 +49,8 @@ void InputSender::SetSendRateHz(float hz) {
       std::clamp(hz, 30.0f, 120.0f);  // Avoid starving or flooding the network.
   send_rate_hz_ = clamped;
   send_interval_seconds_ = 1.0f / send_rate_hz_;
+  accumulator_seconds_ =
+      std::min(accumulator_seconds_, send_interval_seconds_);
 }
 
 void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
@@ -59,10 +63,9 @@ void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
 
   accumulator_seconds_ += dt.as_seconds();
 
-  int sends_this_frame = 0;
-  static constexpr int kMaxBurstPerTick = 4;
+  int sends_this_update = 0;
   while (accumulator_seconds_ >= send_interval_seconds_ &&
-         sends_this_frame < kMaxBurstPerTick) {
+         sends_this_update < kMaxBurstPerUpdate) {
     accumulator_seconds_ -= send_interval_seconds_;
     const auto sample =
         input_buffer_.NextSample(NowMilliseconds());
@@ -73,13 +76,14 @@ void InputSender::Update(engine::time::TimeDelta dt, bool sending_enabled) {
       LogPacketError("input send", "failed to encode or queue InputState");
       break;
     }
-    ++sends_this_frame;
+    ++sends_this_update;
   }
 
   const float max_accumulator =
-      send_interval_seconds_ * static_cast<float>(kMaxBurstPerTick);
+      send_interval_seconds_ * static_cast<float>(kMaxBurstPerUpdate);
   if (accumulator_seconds_ > max_accumulator) {
-    accumulator_seconds_ = std::fmod(accumulator_seconds_, max_accumulator);
+    accumulator_seconds_ =
+        std::min(accumulator_seconds_, max_accumulator);
   }
 }
 

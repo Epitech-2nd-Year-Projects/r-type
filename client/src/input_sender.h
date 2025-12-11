@@ -7,8 +7,6 @@
 #define CLIENT_INPUT_SENDER_H_
 
 #include <cstdint>
-#include <memory>
-
 #include "engine/time/time_delta.h"
 #include "input_buffer.h"
 #include "protocol/input_state.h"
