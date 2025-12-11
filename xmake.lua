@@ -1,5 +1,4 @@
 set_project("r-type")
-add_requires("asio")
 set_version("0.1.0")
 set_xmakever("2.8.5")
 
@@ -22,3 +21,5 @@ add_deps("engine", "server", "client", "protocol", "game_logic")
 if os.getenv("BUILD_BENCHMARKS") then
     includes("benchmarks/engine")
 end
+
+includes("tests/visual")
