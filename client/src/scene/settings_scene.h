@@ -8,11 +8,15 @@
 #include "scene.h"
 #include "../ui/ui_element.h"
 #include "../ui/label.h"
+#include "../ui/button.h"
 #include "../input_layer.h"
 
 namespace client {
 
 class Application;
+namespace ui {
+class Button;
+}
 
 class SettingsScene : public Scene {
  public:
@@ -34,6 +38,11 @@ class SettingsScene : public Scene {
     GameAction action;
     std::shared_ptr<ui::Label> label;
     std::shared_ptr<ui::Button> button;
+
+    BindingRow(GameAction action_in, std::shared_ptr<ui::Label> label_in,
+               std::shared_ptr<ui::Button> button_in)
+        : action(action_in), label(std::move(label_in)),
+          button(std::move(button_in)) {}
   };
   std::vector<BindingRow> binding_rows_;
 };

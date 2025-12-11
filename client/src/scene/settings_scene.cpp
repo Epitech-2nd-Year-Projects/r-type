@@ -175,7 +175,7 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
         KeyDisplayName(app_.key_bindings().Primary(action)),
         [begin_rebind, action]() { begin_rebind(action); });
 
-    binding_rows_.push_back({action, label, button});
+    binding_rows_.emplace_back(action, label, button);
     ui_elements_.push_back(label);
     ui_elements_.push_back(button);
   }
