@@ -107,7 +107,8 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
 void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                                    std::uint32_t snapshot_id) {
   const auto it = network_to_entity_.find(delta.entity_id);
-  const auto entity = it == network_to_entity_.end()
+  const bool created = it == network_to_entity_.end();
+  const auto entity = created
                           ? ResolveOrCreateEntity(delta.entity_id, snapshot_id,
                                                   delta.state.type)
                           : it->second;
@@ -115,7 +116,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
   auto& net_comp = net[entity];
   const std::uint32_t last_applied =
       net_comp.has_value() ? net_comp->last_snapshot : 0u;
-  if (last_applied >= snapshot_id) {
+  if (!created && last_applied >= snapshot_id) {
     return;
   }
   if (!net_comp.has_value()) {
