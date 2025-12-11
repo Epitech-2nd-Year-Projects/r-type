@@ -107,6 +107,24 @@ class ServerRuntime {
    * when appropriate to aid monitoring.
    */
   void MaybeLogDecodeMetrics();
+
+  /**
+   * @brief Periodically logs server-level diagnostics.
+   *
+   * Emits counts for peers and rooms alongside tickrate health indicators to
+   * surface degraded performance.
+   */
+  void MaybeLogServerStats();
+
+  /**
+   * @brief Logs the current sessions, peers, and rooms.
+   */
+  void DumpSessions();
+
+  /**
+   * @brief Reloads runtime configuration such as log level.
+   */
+  void ReloadConfiguration();
   /**
    * @brief Logs a summary of decode metrics.
    * @param force If true logs metrics regardless of packet count.
@@ -383,7 +401,12 @@ class ServerRuntime {
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
   bool running_{false};                                    ///< Whether the server loop is currently running.
   protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
-  std::uint32_t last_decode_metrics_log_ms_{0};             ///< Last timestamp when decode metrics were logged.
+  std::uint32_t last_decode_metrics_log_ms_{0};            ///< Last timestamp when decode metrics were logged.
+  std::uint32_t last_server_stats_log_ms_{0};              ///< Last timestamp when server stats were logged.
+  std::uint32_t last_tick_health_sample_ms_{0};            ///< Start timestamp for the tick health window.
+  std::uint32_t last_tick_health_sample_tick_{0};          ///< Tick counter at start of the health window.
+  double frame_time_accumulator_ms_{0.0};                  ///< Accumulated frame durations for health averages.
+  std::uint64_t frame_time_samples_{0};                    ///< Frame count contributing to health averages.
 };
 
 }  // namespace server

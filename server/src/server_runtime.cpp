@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <limits>
 #include <optional>
 #include <string>
@@ -23,6 +24,8 @@ namespace server {
 constexpr std::uint32_t kReliableResendTimeoutMs = 250;
 constexpr std::size_t kReliableQueueMaxPending = 64;
 constexpr std::uint32_t kDecodeMetricsLogIntervalMs = 10'000;
+constexpr std::uint32_t kServerDiagnosticsLogIntervalMs = 10'000;
+constexpr float kTickHealthWarningThreshold = 0.9f;
 
 namespace {
 
@@ -30,9 +33,18 @@ using protocol::message_type::MessageType;
 
 std::atomic_bool g_shutdown_requested{false};
 std::atomic_bool g_dump_metrics_requested{false};
+std::atomic_bool g_dump_sessions_requested{false};
+std::atomic_bool g_reload_config_requested{false};
+std::atomic_bool g_force_shutdown_requested{false};
 
 void SignalHandler(int) { g_shutdown_requested.store(true); }
 void MetricsSignalHandler(int) { g_dump_metrics_requested.store(true); }
+void SessionsSignalHandler(int) { g_dump_sessions_requested.store(true); }
+void ReloadSignalHandler(int) { g_reload_config_requested.store(true); }
+void ForceShutdownHandler(int) {
+  g_force_shutdown_requested.store(true);
+  g_shutdown_requested.store(true);
+}
 
 std::string EndpointKey(const engine::net::Endpoint& endpoint) {
   std::string key = endpoint.address();
@@ -59,6 +71,15 @@ void InstallSignalHandlers() {
 #ifdef SIGUSR1
   std::signal(SIGUSR1, MetricsSignalHandler);
 #endif
+#ifdef SIGUSR2
+  std::signal(SIGUSR2, SessionsSignalHandler);
+#endif
+#ifdef SIGHUP
+  std::signal(SIGHUP, ReloadSignalHandler);
+#endif
+#ifdef SIGQUIT
+  std::signal(SIGQUIT, ForceShutdownHandler);
+#endif
 }
 
 bool IsValidRoomCode(std::string_view room_code) {
@@ -67,6 +88,18 @@ bool IsValidRoomCode(std::string_view room_code) {
 
 bool IsValidPlayerName(std::string_view player_name) {
   return player_name.size() <= protocol::kMaxPlayerNameLength;
+}
+
+const char* ToString(PeerState state) {
+  switch (state) {
+    case PeerState::kConnecting:
+      return "connecting";
+    case PeerState::kJoined:
+      return "joined";
+    case PeerState::kDisconnected:
+      return "disconnected";
+  }
+  return "unknown";
 }
 
 }  // namespace
@@ -105,10 +138,19 @@ void ServerRuntime::Run() { RunMainLoop(); }
 void ServerRuntime::RunMainLoop() {
   running_ = true;
   accumulator_ = engine::time::TimeDelta::zero();
-  last_decode_metrics_log_ms_ = NowMilliseconds();
+  const auto start_ms = NowMilliseconds();
+  last_decode_metrics_log_ms_ = start_ms;
+  last_server_stats_log_ms_ = start_ms;
+  last_tick_health_sample_ms_ = start_ms;
+  last_tick_health_sample_tick_ = server_tick_;
+  frame_time_accumulator_ms_ = 0.0;
+  frame_time_samples_ = 0;
 
   while (running_ && !g_shutdown_requested.load()) {
     const auto delta = frame_timer_.tick();
+    frame_time_accumulator_ms_ +=
+        static_cast<double>(delta.as_milliseconds());
+    ++frame_time_samples_;
     accumulator_ += delta;
     PollNetwork();
     if (!running_) break;
@@ -127,6 +169,18 @@ void ServerRuntime::RunMainLoop() {
     }
     CheckPeerTimeouts();
     MaybeLogDecodeMetrics();
+    MaybeLogServerStats();
+    if (g_force_shutdown_requested.exchange(false)) {
+      logger_.get().Warn("Force shutdown requested");
+      running_ = false;
+      break;
+    }
+    if (g_dump_sessions_requested.exchange(false)) {
+      DumpSessions();
+    }
+    if (g_reload_config_requested.exchange(false)) {
+      ReloadConfiguration();
+    }
     TickRateSleep(delta);
   }
   LogDecodeMetricsSummary(true);
@@ -175,6 +229,105 @@ void ServerRuntime::MaybeLogDecodeMetrics() {
   }
   last_decode_metrics_log_ms_ = now_ms;
   LogDecodeMetricsSummary(force_dump);
+}
+
+void ServerRuntime::MaybeLogServerStats() {
+  const auto now_ms = NowMilliseconds();
+  const auto elapsed_ms =
+      ElapsedMilliseconds(last_server_stats_log_ms_, now_ms);
+  if (elapsed_ms < kServerDiagnosticsLogIntervalMs) {
+    return;
+  }
+
+  std::size_t joined_peers = 0;
+  std::size_t connecting_peers = 0;
+  std::size_t disconnected_peers = 0;
+  for (const auto& [_, peer] : peers_) {
+    switch (peer.state) {
+      case PeerState::kJoined:
+        ++joined_peers;
+        break;
+      case PeerState::kConnecting:
+        ++connecting_peers;
+        break;
+      case PeerState::kDisconnected:
+        ++disconnected_peers;
+        break;
+    }
+  }
+
+  const auto health_window_ms =
+      ElapsedMilliseconds(last_tick_health_sample_ms_, now_ms);
+  const auto ticks_sampled =
+      server_tick_ >= last_tick_health_sample_tick_
+          ? server_tick_ - last_tick_health_sample_tick_
+          : 0;
+  const double elapsed_seconds =
+      health_window_ms > 0 ? static_cast<double>(health_window_ms) / 1000.0
+                           : 0.0;
+  const double actual_tick_rate =
+      elapsed_seconds > 0.0
+          ? static_cast<double>(ticks_sampled) / elapsed_seconds
+          : 0.0;
+  const double target_tick_rate =
+      static_cast<double>(config_.tick_rate > 0 ? config_.tick_rate : 1);
+  const double health_ratio = target_tick_rate > 0.0
+                                  ? actual_tick_rate / target_tick_rate
+                                  : 0.0;
+  const bool tick_healthy = health_ratio >= kTickHealthWarningThreshold;
+  const double avg_frame_ms =
+      frame_time_samples_ > 0
+          ? frame_time_accumulator_ms_ /
+                static_cast<double>(frame_time_samples_)
+          : 0.0;
+
+  logger_.get().Info(
+      "Diagnostics peers total=", peers_.size(), " joined=", joined_peers,
+      " connecting=", connecting_peers, " disconnected=", disconnected_peers,
+      " players=", players_.size(), " rooms=", rooms_.size(),
+      " tickrate target=", config_.tick_rate,
+      " actual=", actual_tick_rate, " avg_frame_ms=", avg_frame_ms,
+      " backlog_ms=", accumulator_.as_milliseconds(),
+      " health=", tick_healthy ? "ok" : "degraded");
+
+  for (const auto& [room_code, room] : rooms_) {
+    logger_.get().Info("Room ", room_code, " players ", room.PlayerCount(),
+                       "/", room.MaxPlayers());
+  }
+
+  last_server_stats_log_ms_ = now_ms;
+  last_tick_health_sample_ms_ = now_ms;
+  last_tick_health_sample_tick_ = server_tick_;
+  frame_time_accumulator_ms_ = 0.0;
+  frame_time_samples_ = 0;
+}
+
+void ServerRuntime::DumpSessions() {
+  logger_.get().Info("Session dump peers=", peers_.size(),
+                     " players=", players_.size(), " rooms=", rooms_.size(),
+                     " tick=", server_tick_);
+
+  for (const auto& [room_code, room] : rooms_) {
+    logger_.get().Info("Room ", room_code, " id=", room.Id(), " players ",
+                       room.PlayerCount(), "/", room.MaxPlayers(),
+                       " seed=", room.Seed());
+  }
+
+  for (const auto& [endpoint, peer] : peers_) {
+    logger_.get().Info("Peer ", endpoint, " state=", ToString(peer.state),
+                       " player_id=", peer.player_id, " room=", peer.room_code);
+  }
+}
+
+void ServerRuntime::ReloadConfiguration() {
+  const char* env_log_level = std::getenv("RTYPE_SERVER_LOG_LEVEL");
+  if (env_log_level != nullptr) {
+    config_.log_level = engine::util::ParseLogLevel(
+        env_log_level, config_.log_level);
+  }
+  ConfigureLogging();
+  logger_.get().Info("Configuration reloaded log_level=",
+                     engine::util::ToString(config_.log_level));
 }
 
 void ServerRuntime::LogDecodeMetricsSummary(bool force) {
