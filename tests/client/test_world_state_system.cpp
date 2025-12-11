@@ -131,6 +131,39 @@ TEST(WorldStateSystemTest, DeletesEntitiesOnDelta) {
   EXPECT_EQ(FindEntityIndex(net, 2), net.size());
 }
 
+TEST(WorldStateSystemTest, UpdateCreatesMissingEntityWithMaskedFields) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  protocol::WorldSnapshotPayload update{};
+  update.snapshot_id = 1;
+  update.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  protocol::EntityDelta delta{};
+  delta.op = protocol::EntityDeltaOp::kUpdate;
+  delta.entity_id = 9;
+  delta.field_mask = protocol::EntityFieldMask::kFieldX |
+                     protocol::EntityFieldMask::kFieldHp;
+  delta.state.x = 12;
+  delta.state.hp = 6;
+  update.deltas.push_back(delta);
+  system.ApplySnapshot(update);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 9);
+  ASSERT_LT(index, net.size());
+  const auto& pos = registry.GetComponents<PositionComponent>()[index];
+  const auto& vel = registry.GetComponents<VelocityComponent>()[index];
+  const auto& hp = registry.GetComponents<HealthComponent>()[index];
+
+  ASSERT_TRUE(pos.has_value());
+  EXPECT_FLOAT_EQ(pos->position.x, 12.0f);
+  EXPECT_FLOAT_EQ(pos->previous_position.x, 12.0f);
+  EXPECT_FALSE(vel.has_value());
+  ASSERT_TRUE(hp.has_value());
+  EXPECT_EQ(hp->current, 6u);
+  EXPECT_EQ(hp->max, 6u);
+}
+
 TEST(WorldStateSystemTest, FullSnapshotPrunesMissingEntities) {
   engine::ecs::Registry registry;
   client::ecs::WorldStateSystem system(registry);
@@ -154,4 +187,32 @@ TEST(WorldStateSystemTest, FullSnapshotPrunesMissingEntities) {
   EXPECT_EQ(index_missing, net.size());
   ASSERT_LT(index_kept, net.size());
   EXPECT_EQ(net[index_kept]->last_snapshot, 2u);
+}
+
+TEST(WorldStateSystemTest, RejectsStaleSnapshots) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  protocol::WorldSnapshotPayload first{};
+  first.snapshot_id = 2;
+  first.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  first.deltas.push_back(MakeCreateDelta(4, 1, 1, 1, 0, 0, 9));
+  system.ApplySnapshot(first);
+
+  protocol::WorldSnapshotPayload stale{};
+  stale.snapshot_id = 1;
+  stale.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  stale.deltas.push_back(MakeCreateDelta(4, 1, 5, 5, 0, 0, 1));
+  system.ApplySnapshot(stale);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 4);
+  ASSERT_LT(index, net.size());
+  const auto& pos = registry.GetComponents<PositionComponent>()[index];
+  const auto& hp = registry.GetComponents<HealthComponent>()[index];
+  ASSERT_TRUE(pos.has_value());
+  EXPECT_FLOAT_EQ(pos->position.x, 1.0f);
+  ASSERT_TRUE(hp.has_value());
+  EXPECT_EQ(hp->current, 9u);
+  EXPECT_EQ(system.last_snapshot_id(), 2u);
 }
