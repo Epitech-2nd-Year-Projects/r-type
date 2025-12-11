@@ -168,9 +168,10 @@ struct SnapshotInterpolationComponent {
   std::uint64_t last_snapshot_ms{0};
 
   SnapshotInterpolationComponent() = default;
-  SnapshotInterpolationComponent(std::uint64_t timestamp,
-                                 std::uint64_t previous)
-      : previous_snapshot_ms(previous), last_snapshot_ms(timestamp) {}
+  SnapshotInterpolationComponent(std::uint64_t last_snapshot_ms,
+                                 std::uint64_t previous_snapshot_ms)
+      : previous_snapshot_ms(previous_snapshot_ms),
+        last_snapshot_ms(last_snapshot_ms) {}
 };
 
 }  // namespace client::ecs
