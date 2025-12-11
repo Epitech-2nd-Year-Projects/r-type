@@ -84,8 +84,20 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
+  /**
+   * @brief Access the mutable ECS world
+   * @note Not thread-safe; call from the main/game thread
+   */
   engine::ecs::Registry& World() { return *world_registry_; }
+  /**
+   * @brief Access the immutable ECS world
+   * @note Not thread-safe; call from the main/game thread
+   */
   const engine::ecs::Registry& World() const { return *world_registry_; }
+  /**
+   * @brief Access the world state synchronization system
+   * @note Not thread-safe; call from the main/game thread
+   */
   ecs::WorldStateSystem& WorldSync() { return *world_state_system_; }
 
  private:
