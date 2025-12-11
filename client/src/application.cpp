@@ -21,6 +21,9 @@ namespace {
 
 constexpr float kDisconnectFadeSeconds = 1.25f;
 constexpr float kGameOverFadeSeconds = 1.5f;
+const engine::math::Vector2i kBaseResolution{1600, 900};
+constexpr engine::render::Color kClearColor =
+    engine::render::Color::FromBytes(12, 12, 16);
 
 }  // namespace
 
@@ -37,10 +40,21 @@ int Application::Run() {
 
   engine::core::EngineRuntimeConfig runtime_config;
   runtime_config.window_config.title = "R-Type Client";
-  runtime_config.window_config.size = engine::math::Vector2i(1280, 720);
+  runtime_config.window_config.size = kBaseResolution;
+  runtime_config.window_config.resizable = false;
   runtime_config.window_config.vsync = true;
   runtime_config.window_config.target_fps = 60;
   runtime_config.log_level = config_.log_level;
+  runtime_config.window_backend_factory = engine::render::CreateRaylibBackend;
+
+  const float aspect_ratio =
+      static_cast<float>(runtime_config.window_config.size.x) /
+      static_cast<float>(runtime_config.window_config.size.y);
+  std::ostringstream window_info;
+  window_info << "Window " << runtime_config.window_config.size.x << 'x'
+              << runtime_config.window_config.size.y << " (" << std::fixed
+              << std::setprecision(2) << aspect_ratio << ":1) raylib backend";
+  LogLifecycle(engine::util::LogLevel::kInfo, window_info.str());
 
   engine_ = engine::core::EngineRuntime::Create(runtime_config);
   if (!engine_) {
@@ -140,9 +154,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   HandleReconnectInput(join_state);
   UpdateAudio(dt, join_state);
 
-  auto& window = engine_->Window();
-  auto& context = window.GetRenderContext();
-  auto& renderer = context.Get2DRenderer();
+  auto& context = engine_->RenderContext();
+  auto& renderer = engine_->Renderer();
 
   const float fps = dt.as_seconds() > 0.0f ? 1.0f / dt.as_seconds() : 0.0f;
 
@@ -151,7 +164,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   const auto connection_status = join_flow_.status();
 
   context.BeginFrame();
-  context.Clear(engine::render::Color::FromBytes(12, 12, 16));
+  context.Clear(kClearColor);
 
   renderer.DrawText("R-Type Client", {24.0f, 28.0f}, 28.0f,
                     engine::render::Color::White());
