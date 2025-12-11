@@ -29,9 +29,10 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
       is_started_(false) {
   game_state_.room_id = room_id_;
   if (!GameConfig::Get().Load("config")) {
-    std::cerr << "FATAL: Failed to load game config! Defaults usage is dangerous "
-                 "and may cause crashes."
-              << std::endl;
+    std::cerr
+        << "FATAL: Failed to load game config! Defaults usage is dangerous "
+           "and may cause crashes."
+        << std::endl;
   }
   RegisterComponents();
   RegisterSystems();
