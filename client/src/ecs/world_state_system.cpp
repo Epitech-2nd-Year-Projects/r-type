@@ -1,6 +1,7 @@
 #include "ecs/world_state_system.h"
 
 #include <algorithm>
+#include <unordered_set>
 #include <utility>
 
 namespace client::ecs {
@@ -30,7 +31,8 @@ void WorldStateSystem::RegisterComponents() {
 }
 
 void WorldStateSystem::Reset() {
-  for (const auto& [_, entity] : network_to_entity_) {
+  for (const auto& [network_id, entity] : network_to_entity_) {
+    (void)network_id;
     registry_.KillEntity(entity);
   }
   network_to_entity_.clear();
@@ -85,8 +87,9 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
       ResolveOrCreateEntity(delta.entity_id, snapshot_id, delta.state.type);
 
   auto& net = registry_.GetComponents<NetworkedEntityComponent>();
-  net[entity].value().type_code = delta.state.type;
-  net[entity].value().last_snapshot = snapshot_id;
+  auto& net_comp = net[entity].value();
+  net_comp.type_code = delta.state.type;
+  net_comp.last_snapshot = snapshot_id;
 
   const auto position = ToVector(delta.state.x, delta.state.y);
   auto& positions = registry_.GetComponents<PositionComponent>();
@@ -98,20 +101,16 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
 
   auto& health = registry_.GetComponents<HealthComponent>();
   const auto hp = delta.state.hp;
-  auto max_hp =
-      health[entity].has_value() ? std::max(health[entity]->max, hp) : hp;
-  health[entity] = HealthComponent(hp, max_hp);
+  health[entity] = HealthComponent(hp, hp);
 }
 
 void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                                    std::uint32_t snapshot_id) {
   const auto it = network_to_entity_.find(delta.entity_id);
-  if (it == network_to_entity_.end()) {
-    ApplyCreate(delta, snapshot_id);
-    return;
-  }
-
-  const auto entity = it->second;
+  const auto entity = it == network_to_entity_.end()
+                          ? ResolveOrCreateEntity(delta.entity_id,
+                                                  snapshot_id, delta.state.type)
+                          : it->second;
   auto& net = registry_.GetComponents<NetworkedEntityComponent>();
   auto& net_comp = net[entity];
   if (!net_comp.has_value()) {
@@ -175,7 +174,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
       hp = HealthComponent(delta.state.hp, delta.state.hp);
     } else {
       hp->current = delta.state.hp;
-      hp->max = std::max(hp->max, delta.state.hp);
+      hp->max = delta.state.hp;
     }
   }
 }

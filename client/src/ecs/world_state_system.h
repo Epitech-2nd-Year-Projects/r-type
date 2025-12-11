@@ -14,8 +14,6 @@
 
 #include <cstdint>
 #include <unordered_map>
-#include <unordered_set>
-
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
 #include "protocol/world_snapshot.h"
