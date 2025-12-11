@@ -63,14 +63,15 @@ void WaveSystem::Update(engine::ecs::Registry& registry,
                         engine::time::TimeDelta dt) {
   current_wave_time_ += dt.as_seconds();
 
+  std::uniform_real_distribution<float> dist(game_logic::kSpawnMinY,
+                                             game_logic::kSpawnMaxY);
+
   while (!pending_spawns_.empty()) {
     const auto& next_spawn = pending_spawns_.front();
     if (current_wave_time_ >= next_spawn.spawn_time) {
       engine::math::Vector2f spawn_pos = next_spawn.position;
 
       if (next_spawn.random_y) {
-        std::uniform_real_distribution<float> dist(game_logic::kSpawnMinY,
-                                                   game_logic::kSpawnMaxY);
         spawn_pos.y = dist(rng_);
       }
 
