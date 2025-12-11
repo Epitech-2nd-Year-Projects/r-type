@@ -52,9 +52,8 @@ int Application::Run() {
       static_cast<float>(runtime_config.window_config.size.y);
   std::ostringstream window_info;
   window_info << "Window " << runtime_config.window_config.size.x << 'x'
-              << runtime_config.window_config.size.y << " ("
-              << std::fixed << std::setprecision(2) << aspect_ratio
-              << ":1) raylib backend";
+              << runtime_config.window_config.size.y << " (" << std::fixed
+              << std::setprecision(2) << aspect_ratio << ":1) raylib backend";
   LogLifecycle(engine::util::LogLevel::kInfo, window_info.str());
 
   engine_ = engine::core::EngineRuntime::Create(runtime_config);
