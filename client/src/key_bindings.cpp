@@ -162,9 +162,9 @@ bool KeyBindings::LoadFromFile(const std::filesystem::path& path) {
                    "Ignoring unknown action in keybindings: " +
                        std::string(action_token));
     } else {
-      LogLifecycle(engine::util::LogLevel::kWarn,
-                   "Ignoring unknown key in keybindings: " +
-                       std::string(key_token));
+      LogLifecycle(
+          engine::util::LogLevel::kWarn,
+          "Ignoring unknown key in keybindings: " + std::string(key_token));
     }
   }
   return true;
@@ -273,7 +273,8 @@ std::string KeyDisplayName(engine::input::Key key) {
 }
 
 std::optional<engine::input::Key> ParseKeyToken(std::string_view token) {
-  const auto& table = []() -> const std::unordered_map<std::string, engine::input::Key>& {
+  const auto& table =
+      []() -> const std::unordered_map<std::string, engine::input::Key>& {
     static const std::unordered_map<std::string, engine::input::Key> map = [] {
       std::unordered_map<std::string, engine::input::Key> built;
       for (const auto& entry : kKeyNames) {

@@ -240,7 +240,8 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
 
   if (pending_rebind_) {
     if (input.IsKeyDown(engine::input::Key::kEscape)) {
-      if (rebind_status_label_) rebind_status_label_->SetText("Rebind canceled");
+      if (rebind_status_label_)
+        rebind_status_label_->SetText("Rebind canceled");
       if (auto* row = FindRow(binding_rows_, *pending_rebind_)) {
         if (row->button) {
           row->button->SetText(
@@ -268,8 +269,8 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           if (app_.key_bindings().Primary(other) == keys[i]) {
             conflict = true;
             if (rebind_status_label_) {
-              rebind_status_label_->SetText(
-                  "Key already bound to " + ActionLabel(other));
+              rebind_status_label_->SetText("Key already bound to " +
+                                            ActionLabel(other));
             }
             break;
           }
@@ -287,10 +288,10 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           }
         }
         if (rebind_status_label_) {
-          const std::string status =
-              saved ? "Bound " + ActionLabel(action) + " to " +
-                          KeyDisplayName(keys[i])
-                    : "Failed to save key bindings";
+          const std::string status = saved
+                                         ? "Bound " + ActionLabel(action) +
+                                               " to " + KeyDisplayName(keys[i])
+                                         : "Failed to save key bindings";
           rebind_status_label_->SetText(status);
         }
         pending_rebind_.reset();
