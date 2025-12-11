@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -60,7 +61,10 @@ Application::Application(ClientConfig config)
       join_flow_(config_.player_name, config_.room_code),
       world_registry_(std::make_unique<engine::ecs::Registry>()),
       world_state_system_(
-          std::make_unique<ecs::WorldStateSystem>(*world_registry_)) {}
+          std::make_unique<ecs::WorldStateSystem>(*world_registry_)) {
+  local_prediction_ =
+      std::make_unique<LocalPrediction>(*world_registry_, join_flow_);
+}
 
 int Application::Run() {
   ConfigureClientLogging(config_.log_level);
@@ -215,7 +219,14 @@ bool Application::Tick(engine::time::TimeDelta dt) {
       if (message.type == protocol::message_type::MessageType::kWorldSnapshot) {
         if (const auto snapshot =
                 std::get_if<protocol::WorldSnapshotPayload>(&message.payload)) {
+          std::optional<engine::math::Vector2f> predicted_before;
+          if (local_prediction_) {
+            predicted_before = local_prediction_->CapturePredictedPosition();
+          }
           world_state_system_->ApplySnapshot(*snapshot);
+          if (local_prediction_) {
+            local_prediction_->OnSnapshotApplied(predicted_before);
+          }
         }
       }
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
@@ -239,6 +250,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   MonitorConnection(join_state);
   join_state = join_flow_.state();
   HandleReconnectInput(join_state);
+  const bool should_predict = local_prediction_ && input_layer_ &&
+                              join_state == JoinState::kConnected &&
+                              state_ == ClientState::kInGame;
+  if (should_predict) {
+    local_prediction_->Update(dt, input_layer_->state());
+  }
   UpdateAudio(dt, join_state);
 
   auto& context = engine_->RenderContext();
@@ -515,6 +532,9 @@ void Application::StopNetworkSession() {
   }
   if (input_sender_) {
     input_sender_->Reset();
+  }
+  if (local_prediction_) {
+    local_prediction_->Reset();
   }
 }
 

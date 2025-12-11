@@ -15,6 +15,7 @@
 #include "input_sender.h"
 #include "join_flow.h"
 #include "network_transport.h"
+#include "local_prediction.h"
 #include "scene/scene.h"
 #include "world_update_receiver.h"
 
@@ -123,6 +124,7 @@ class Application {
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
+  std::unique_ptr<LocalPrediction> local_prediction_;
   std::unique_ptr<AudioManager> audio_manager_;
   WorldUpdateReceiver world_update_receiver_;
   ClientState state_{ClientState::kMainMenu};
