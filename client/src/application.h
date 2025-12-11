@@ -7,6 +7,8 @@
 
 #include "audio_manager.h"
 #include "client_config.h"
+#include "ecs/world_state_system.h"
+#include "engine/ecs/registry.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/time/time_delta.h"
 #include "input_layer.h"
@@ -82,6 +84,9 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
+  engine::ecs::Registry& World() { return *world_registry_; }
+  const engine::ecs::Registry& World() const { return *world_registry_; }
+  ecs::WorldStateSystem& WorldSync() { return *world_state_system_; }
 
  private:
   bool Tick(engine::time::TimeDelta dt);
@@ -102,6 +107,8 @@ class Application {
   JoinFlow join_flow_;
   std::unique_ptr<Scene> current_scene_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
+  std::unique_ptr<engine::ecs::Registry> world_registry_;
+  std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
