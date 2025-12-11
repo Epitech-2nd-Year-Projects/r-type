@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "engine/math/vector2.h"
+
 namespace engine::input {
 
 /**
@@ -48,11 +50,19 @@ enum class Key {
   kNum7,
   kNum8,
   kNum9,
+  kPeriod,
+  kComma,
+  kSlash,
+  kBackslash,
+  kSemicolon,
+  kEqual,
+  kMinus,
   kUp,
   kDown,
   kLeft,
   kRight,
   kSpace,
+  kBackspace,
   kEnter,
   kEscape,
   kLeftShift,
@@ -126,6 +136,16 @@ class InputManager {
   void HandleMouseButton(MouseButton button, bool pressed);
 
   /**
+   * @brief Update the current mouse position.
+   */
+  void SetMousePosition(math::Vector2f position);
+
+  /**
+   * @brief Get the current mouse position.
+   */
+  math::Vector2f GetMousePosition() const;
+
+  /**
    * @brief Query whether an action is currently active
    */
   bool IsActionActive(const std::string& action) const;
@@ -178,6 +198,7 @@ class InputManager {
   std::unordered_map<MouseButton, std::vector<std::string>, EnumClassHash>
       mouse_to_actions_;
   std::vector<ActionEvent> events_;
+  math::Vector2f mouse_position_{};
 };
 
 }  // namespace engine::input

@@ -49,6 +49,7 @@ class Window {
   virtual math::Vector2i GetSize() const = 0;
   virtual void SetSize(const math::Vector2i& size) = 0;
   virtual void SetTitle(std::string_view title) = 0;
+  virtual void ToggleFullscreen() = 0;
 
   /**
    * @brief Time elapsed since last frame in seconds.

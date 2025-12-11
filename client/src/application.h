@@ -26,6 +26,7 @@ namespace client {
  */
 enum class ClientState {
   kMainMenu,
+  kSettings,
   kConnecting,
   kInGame,
   kPaused,
@@ -61,6 +62,11 @@ class Application {
   ClientState state() const { return state_; }
 
   /**
+   * @brief Update connection configuration.
+   */
+  void SetConnectionConfig(std::string host, int port, std::string player_name);
+
+  /**
    * @brief Begin the connection handshake
    */
   bool StartConnection();
@@ -72,6 +78,7 @@ class Application {
   void OnGameOver();
   void OnDisconnect(std::string reason);
   void OnQuitToMenu();
+  void OnOpenSettings();
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }

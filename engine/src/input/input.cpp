@@ -129,6 +129,14 @@ bool InputManager::IsMouseButtonDown(MouseButton button) const {
   return it->second;
 }
 
+void InputManager::SetMousePosition(math::Vector2f position) {
+  mouse_position_ = position;
+}
+
+math::Vector2f InputManager::GetMousePosition() const {
+  return mouse_position_;
+}
+
 std::vector<ActionEvent> InputManager::ConsumeEvents() {
   std::vector<ActionEvent> output;
   output.swap(events_);
