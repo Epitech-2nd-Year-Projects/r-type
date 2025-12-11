@@ -60,6 +60,9 @@ bool InputBuffer::ApplyEvent(const GameActionEvent& event) {
   }
 
   const bool pressed = event.type == GameActionEventType::kPressed;
+  if (target == nullptr) {
+    return false;
+  }
   if (*target == pressed) {
     return false;
   }
