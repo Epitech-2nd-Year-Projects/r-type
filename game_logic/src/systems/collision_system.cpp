@@ -82,21 +82,13 @@ void CollisionSystem::ResolveCollision(engine::ecs::Registry& registry,
     apply_crash(e2, e1);
   }
 
-  auto get_damageable = [&](engine::ecs::EntityId e)
-      -> const game_logic::components::DamageableComponent* {
-    if (e < damageables.size() && damageables[e].has_value()) {
-      return &damageables[e].value();
-    }
-    return nullptr;
-  };
+  bool has_dmg1 = (e1 < damageables.size() && damageables[e1].has_value());
+  bool has_dmg2 = (e2 < damageables.size() && damageables[e2].has_value());
 
-  const auto* dmg1 = get_damageable(e1);
-  const auto* dmg2 = get_damageable(e2);
-
-  if (dmg1 && !dmg2) {
-    ResolveProjectile(registry, e1, e2, *dmg1);
-  } else if (!dmg1 && dmg2) {
-    ResolveProjectile(registry, e2, e1, *dmg2);
+  if (has_dmg1 && !has_dmg2) {
+    ResolveProjectile(registry, e1, e2, damageables[e1].value());
+  } else if (!has_dmg1 && has_dmg2) {
+    ResolveProjectile(registry, e2, e1, damageables[e2].value());
   }
 }
 
