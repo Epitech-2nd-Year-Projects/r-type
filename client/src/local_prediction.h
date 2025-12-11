@@ -60,6 +60,7 @@ class LocalPrediction {
       const ActionState& input_state);
   static void ClampPosition(engine::math::Vector2f& position);
   void ApplyReconciliation(ecs::PositionComponent& position, float dt_seconds);
+  void MarkLocalPlayer(engine::ecs::EntityId entity);
 
   engine::ecs::Registry& registry_;
   JoinFlow& join_flow_;

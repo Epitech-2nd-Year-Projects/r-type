@@ -49,6 +49,7 @@ std::optional<engine::ecs::EntityId> LocalPrediction::ResolveLocalEntity() {
       const auto& comp = net[i].value();
       if (IsPlayerMatch(comp, player_id)) {
         local_entity_ = registry_.EntityFromIndex(i);
+        MarkLocalPlayer(*local_entity_);
         return local_entity_;
       }
     }
@@ -62,6 +63,7 @@ std::optional<engine::ecs::EntityId> LocalPrediction::ResolveLocalEntity() {
     if (comp.type_code == kPlayerTypeCode ||
         HasPlayerTag(registry_, registry_.EntityFromIndex(i))) {
       local_entity_ = registry_.EntityFromIndex(i);
+      MarkLocalPlayer(*local_entity_);
       return local_entity_;
     }
   }
@@ -124,9 +126,11 @@ void LocalPrediction::OnSnapshotApplied(
     reconciliation_elapsed_ = 0.0f;
     positions[idx]->previous_position = *predicted_before;
     positions[idx]->position = *predicted_before;
+    positions[idx]->render_position = positions[idx]->position;
   } else {
     reconciliation_offset_ = {0.0f, 0.0f};
     reconciliation_elapsed_ = 0.0f;
+    positions[idx]->render_position = positions[idx]->position;
   }
 }
 
@@ -145,9 +149,18 @@ void LocalPrediction::ApplyReconciliation(ecs::PositionComponent& position,
   const float delta = new_progress - prev_progress;
   position.position += reconciliation_offset_ * delta;
   ClampPosition(position.position);
+  position.render_position = position.position;
 
   if (reconciliation_elapsed_ >= kReconciliationDuration) {
     reconciliation_offset_ = {0.0f, 0.0f};
+  }
+}
+
+void LocalPrediction::MarkLocalPlayer(engine::ecs::EntityId entity) {
+  auto& locals = registry_.GetComponents<ecs::LocalPlayerTag>();
+  const std::size_t idx = static_cast<std::size_t>(entity);
+  if (idx >= locals.size() || !locals[idx].has_value()) {
+    locals[entity] = ecs::LocalPlayerTag{};
   }
 }
 
@@ -178,6 +191,7 @@ void LocalPrediction::Update(engine::time::TimeDelta dt,
   pos.previous_position = pos.position;
   pos.position += velocity * dt.as_seconds();
   ClampPosition(pos.position);
+  pos.render_position = pos.position;
   ApplyReconciliation(pos, dt.as_seconds());
 }
 
