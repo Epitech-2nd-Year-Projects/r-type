@@ -1,14 +1,54 @@
 #include "audio_manager.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <filesystem>
+#include <string_view>
 
 #include "logging.h"
 
 namespace client {
+namespace {
+
+std::string ResolveAssetPath(std::string_view relative_path) {
+  if (const char* asset_root = std::getenv("ASSET_ROOT")) {
+    std::filesystem::path candidate =
+        std::filesystem::path(asset_root) / relative_path;
+    if (std::filesystem::exists(candidate)) {
+      return candidate.string();
+    }
+  }
+
+  std::filesystem::path cwd_candidate(relative_path);
+  if (std::filesystem::exists(cwd_candidate)) {
+    return std::filesystem::absolute(cwd_candidate).string();
+  }
+
+  std::filesystem::path cursor = std::filesystem::current_path();
+  for (int i = 0; i < 5 && !cursor.empty(); ++i) {
+    std::filesystem::path candidate = cursor / relative_path;
+    if (std::filesystem::exists(candidate)) {
+      return candidate.string();
+    }
+    cursor = cursor.parent_path();
+  }
+
+  std::filesystem::path source_root =
+      std::filesystem::absolute(__FILE__).parent_path().parent_path().parent_path();
+  std::filesystem::path source_candidate = source_root / relative_path;
+  if (std::filesystem::exists(source_candidate)) {
+    return source_candidate.string();
+  }
+
+  return std::string(relative_path);
+}
+
+}  // namespace
 
 AudioManager::AudioManager(engine::audio::AudioEngine& engine)
     : engine_(engine) {
-  music_paths_[MusicType::kBackground] = "assets/background_music.mp3";
+  music_paths_[MusicType::kBackground] =
+      ResolveAssetPath("assets/background_music.ogg");
 }
 
 void AudioManager::LoadAssets() {
