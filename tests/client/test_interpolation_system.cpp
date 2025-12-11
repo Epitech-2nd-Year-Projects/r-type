@@ -45,7 +45,7 @@ TEST(InterpolationSystemTest, ExtrapolatesWithVelocityWhenStale) {
   positions[entity]->render_position = positions[entity]->position;
 
   auto& velocities = registry.GetComponents<VelocityComponent>();
-  velocities[entity] = VelocityComponent({2.0f, 4.0f});
+  velocities[entity] = VelocityComponent(engine::math::Vector2f{2.0f, 4.0f});
 
   auto& snapshots = registry.GetComponents<SnapshotInterpolationComponent>();
   snapshots[entity] = SnapshotInterpolationComponent(200, 100);
