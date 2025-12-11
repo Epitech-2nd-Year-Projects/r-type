@@ -18,6 +18,8 @@
 
 namespace client {
 
+class KeyBindings;
+
 /**
  * @enum GameAction
  * @brief High level gameplay actions exposed to the client
@@ -73,6 +75,11 @@ class InputLayer {
   void ApplyDefaultBindings();
 
   /**
+   * @brief Install a provided keyboard control scheme
+   */
+  void ApplyBindings(const KeyBindings& bindings);
+
+  /**
    * @brief Consume engine input events and update gameplay action state
    */
   void Update();
@@ -85,7 +92,7 @@ class InputLayer {
   /**
    * @brief Retrieve and clear translated gameplay action events
    */
- std::vector<GameActionEvent> ConsumeEvents();
+  std::vector<GameActionEvent> ConsumeEvents();
 
   /**
    * @brief Retrieve and clear any reconnect request
