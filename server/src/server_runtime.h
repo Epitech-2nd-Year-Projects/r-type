@@ -351,9 +351,9 @@ class ServerRuntime {
    */
   void CleanupRoomIfEmpty(const std::string& room_code, std::uint32_t now_ms);
 
-  ServerTransport transport_;                              ///< UDP transport facade for non-blocking send/recv.
-  ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
-  std::reference_wrapper<engine::util::Logger> logger_;    ///< Logger instance for diagnostic output.
+  ServerTransport transport_;                            ///< UDP transport facade for non-blocking send/recv.
+  ServerConfig config_;                                  ///< Server configuration (port, tick rate, limits, etc.).
+  engine::util::Logger& logger_;                         ///< Logger instance for diagnostic output.
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.

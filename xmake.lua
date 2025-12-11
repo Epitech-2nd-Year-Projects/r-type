@@ -11,7 +11,7 @@ if is_plat("windows") then
 	set_toolchains("clang-cl")
 end
 
-includes("engine", "server", "client", "protocol", "game_logic", "tests")
+includes("engine", "protocol", "game_logic", "server", "client", "tests")
 
 target("r-type")
 set_kind("phony")
