@@ -20,6 +20,7 @@
 #include "scene/in_game_scene.h"
 #include "scene/main_menu_scene.h"
 #include "scene/pause_scene.h"
+#include "scene/settings_scene.h"
 
 namespace client {
 
@@ -35,6 +36,8 @@ const char* ToString(ClientState state) {
   switch (state) {
     case ClientState::kMainMenu:
       return "MainMenu";
+    case ClientState::kSettings:
+      return "Settings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -168,9 +171,13 @@ void Application::OnQuitToMenu() {
   TransitionTo(ClientState::kMainMenu);
 }
 
+void Application::OnOpenSettings() {
+  TransitionTo(ClientState::kSettings);
+}
+
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!engine_->Pump()) {
-    LogLifecycle(engine::util::LogLevel::kError,
+    LogLifecycle(engine::util::LogLevel::kInfo,
                  "Engine pump stopped the client loop");
     return false;
   }
@@ -242,11 +249,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (current_scene_) {
     current_scene_->Draw(renderer);
   }
-  if (join_state != JoinState::kConnected &&
-      join_state != JoinState::kConnecting) {
-    renderer.DrawText("Press R to reconnect", {24.0f, 148.0f}, 18.0f,
-                      engine::render::Color::FromBytes(255, 196, 128));
-  }
+  // Removed "Press R to reconnect"
 
   renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
@@ -283,6 +286,21 @@ bool Application::StartConnection() {
   join_flow_.Begin(*transport_);
   ApplyState(ClientState::kConnecting);
   return true;
+}
+
+void Application::SetConnectionConfig(std::string host, int port, std::string player_name) {
+  config_.host = std::move(host);
+  config_.port = port;
+  config_.player_name = std::move(player_name);
+  
+  // Update runtime config store as well for consistency
+  auto& runtime_config_store = engine_->Config();
+  runtime_config_store.Set("client.host", config_.host);
+  runtime_config_store.Set("client.port", std::to_string(config_.port));
+  runtime_config_store.Set("client.player_name", config_.player_name);
+  
+  // Also update join flow
+  join_flow_ = JoinFlow(config_.player_name, config_.room_code);
 }
 
 void Application::HandleServerCommand(const protocol::CommandPayload& payload) {
@@ -417,6 +435,9 @@ void Application::ApplyState(ClientState next_state, std::string reason) {
     case ClientState::kMainMenu:
       SwitchScene(std::make_unique<MainMenuScene>(*this));
       break;
+    case ClientState::kSettings:
+      SwitchScene(std::make_unique<SettingsScene>(*this));
+      break;
     case ClientState::kConnecting:
       SwitchScene(std::make_unique<ConnectingScene>(*this));
       break;
@@ -452,8 +473,11 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
   switch (state_) {
     case ClientState::kMainMenu:
       return next_state == ClientState::kConnecting ||
+             next_state == ClientState::kSettings ||
              next_state == ClientState::kMainMenu ||
              next_state == ClientState::kDisconnected;
+    case ClientState::kSettings:
+      return next_state == ClientState::kMainMenu;
     case ClientState::kConnecting:
       return next_state == ClientState::kInGame ||
              next_state == ClientState::kDisconnected ||
