@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "engine/render/renderer2d.h"
-#include "engine/util/logging.h" 
+#include "engine/util/logging.h"
 
 namespace client::ui {
 
@@ -15,22 +15,27 @@ char KeyToChar(engine::input::Key key, bool shift) {
 
   if (key >= Key::kA && key <= Key::kZ) {
     char base = shift ? 'A' : 'a';
-        char c = base + (static_cast<int>(key) - static_cast<int>(Key::kA));
-        
-        // AZERTY Swaps
-        if (key == Key::kA) c = shift ? 'Q' : 'q';
-        else if (key == Key::kQ) c = shift ? 'A' : 'a';
-        else if (key == Key::kZ) c = shift ? 'W' : 'w';
-        else if (key == Key::kW) c = shift ? 'Z' : 'z';
-        else if (key == Key::kM) return shift ? '?' : ',';
-        
-        return c;
-      }
-      
-      if (key == Key::kSemicolon) return shift ? 'M' : 'm';
-      if (key == Key::kComma) return shift ? '.' : ';';
-      if (key == Key::kPeriod) return shift ? '/' : ':';
-      if (key >= Key::kNum0 && key <= Key::kNum9) {
+    char c = base + (static_cast<int>(key) - static_cast<int>(Key::kA));
+
+    // AZERTY Swaps
+    if (key == Key::kA)
+      c = shift ? 'Q' : 'q';
+    else if (key == Key::kQ)
+      c = shift ? 'A' : 'a';
+    else if (key == Key::kZ)
+      c = shift ? 'W' : 'w';
+    else if (key == Key::kW)
+      c = shift ? 'Z' : 'z';
+    else if (key == Key::kM)
+      return shift ? '?' : ',';
+
+    return c;
+  }
+
+  if (key == Key::kSemicolon) return shift ? 'M' : 'm';
+  if (key == Key::kComma) return shift ? '.' : ';';
+  if (key == Key::kPeriod) return shift ? '/' : ':';
+  if (key >= Key::kNum0 && key <= Key::kNum9) {
     char base = '0';
     return base + (static_cast<int>(key) - static_cast<int>(Key::kNum0));
   }
