@@ -1,3 +1,4 @@
+add_requires("nlohmann_json")
 add_rules("mode.debug", "mode.release")
 
 target("game_logic")
