@@ -47,9 +47,14 @@ int Application::Run() {
   runtime_config.log_level = config_.log_level;
   runtime_config.window_backend_factory = engine::render::CreateRaylibBackend;
 
+  const float aspect_ratio =
+      static_cast<float>(runtime_config.window_config.size.x) /
+      static_cast<float>(runtime_config.window_config.size.y);
   std::ostringstream window_info;
   window_info << "Window " << runtime_config.window_config.size.x << 'x'
-              << runtime_config.window_config.size.y << " (16:9) raylib backend";
+              << runtime_config.window_config.size.y << " ("
+              << std::fixed << std::setprecision(2) << aspect_ratio
+              << ":1) raylib backend";
   LogLifecycle(engine::util::LogLevel::kInfo, window_info.str());
 
   engine_ = engine::core::EngineRuntime::Create(runtime_config);
