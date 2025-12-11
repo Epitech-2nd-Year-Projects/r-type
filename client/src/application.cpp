@@ -469,7 +469,6 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
              next_state == ClientState::kDisconnected;
     case ClientState::kGameOver:
       return next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kConnecting ||
              next_state == ClientState::kDisconnected;
     case ClientState::kDisconnected:
       return next_state == ClientState::kConnecting ||
