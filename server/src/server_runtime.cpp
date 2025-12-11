@@ -48,9 +48,9 @@ std::uint32_t NowMilliseconds() {
 }
 
 std::uint32_t ElapsedMilliseconds(std::uint32_t from, std::uint32_t to) {
-  return to >= from ? to - from
-                    : (std::numeric_limits<std::uint32_t>::max() - from) + 1u +
-                          to;
+  return to >= from
+             ? to - from
+             : (std::numeric_limits<std::uint32_t>::max() - from) + 1u + to;
 }
 
 void InstallSignalHandlers() {
@@ -184,13 +184,12 @@ void ServerRuntime::LogDecodeMetricsSummary(bool force) {
   }
   logger_.get().Info("DecodeMetrics total=", m.total_packets,
                      " rejected=", m.rejected_packets,
-                     " errors[unknown_message_type=",
-                     m.unknown_message_type, " version_mismatch=",
-                     m.version_mismatch, " unexpected_end_of_buffer=",
-                     m.unexpected_end_of_buffer, " invalid_header=",
-                     m.invalid_header, " invalid_payload=",
-                     m.invalid_payload, " invalid_snapshot_id=",
-                     m.invalid_snapshot_id, "]");
+                     " errors[unknown_message_type=", m.unknown_message_type,
+                     " version_mismatch=", m.version_mismatch,
+                     " unexpected_end_of_buffer=", m.unexpected_end_of_buffer,
+                     " invalid_header=", m.invalid_header,
+                     " invalid_payload=", m.invalid_payload,
+                     " invalid_snapshot_id=", m.invalid_snapshot_id, "]");
 }
 
 void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
