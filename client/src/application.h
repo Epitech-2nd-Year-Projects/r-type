@@ -7,6 +7,7 @@
 
 #include "audio_manager.h"
 #include "client_config.h"
+#include "ecs/interpolation_system.h"
 #include "ecs/world_state_system.h"
 #include "engine/ecs/registry.h"
 #include "engine/core/engine_runtime.h"
@@ -122,6 +123,7 @@ class Application {
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
+  std::unique_ptr<ecs::InterpolationSystem> interpolation_system_;
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<LocalPrediction> local_prediction_;

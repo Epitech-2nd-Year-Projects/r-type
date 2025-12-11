@@ -61,7 +61,9 @@ Application::Application(ClientConfig config)
       join_flow_(config_.player_name, config_.room_code),
       world_registry_(std::make_unique<engine::ecs::Registry>()),
       world_state_system_(
-          std::make_unique<ecs::WorldStateSystem>(*world_registry_)) {
+          std::make_unique<ecs::WorldStateSystem>(*world_registry_)),
+      interpolation_system_(
+          std::make_unique<ecs::InterpolationSystem>(*world_registry_)) {
   local_prediction_ =
       std::make_unique<LocalPrediction>(*world_registry_, join_flow_);
 }
@@ -223,7 +225,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
           if (local_prediction_) {
             predicted_before = local_prediction_->CapturePredictedPosition();
           }
-          world_state_system_->ApplySnapshot(*snapshot);
+          const std::uint64_t receipt_ms = engine::time::NowMilliseconds();
+          world_state_system_->ApplySnapshot(*snapshot, receipt_ms);
           if (local_prediction_) {
             local_prediction_->OnSnapshotApplied(predicted_before);
           }
@@ -255,6 +258,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
                               state_ == ClientState::kInGame;
   if (should_predict) {
     local_prediction_->Update(dt, input_layer_->state());
+  }
+  if (interpolation_system_) {
+    interpolation_system_->Update(dt);
   }
   UpdateAudio(dt, join_state);
 
