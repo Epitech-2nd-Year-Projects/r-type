@@ -50,12 +50,6 @@ class TextInput : public UIElement {
   engine::render::Color border_color_{engine::render::Color::FromBytes(128, 128, 128)};
   engine::render::Color focused_border_color_{engine::render::Color::FromBytes(100, 200, 255)};
 
-  // Store last frame key states to detect "just pressed" if InputManager doesn't give us events easily
-  // Actually InputManager has ConsumeEvents() but that is for Actions.
-  // We can use IsKeyDown but we need to know if it was pressed *this frame* to avoid spamming.
-  // Engine InputManager has HandleKey which is called by backend.
-  // Engine InputManager doesn't expose "JustPressed" for raw keys easily, only for Actions via ConsumeEvents.
-  // I might need to track my own previous state for keys I care about.
   std::vector<bool> last_key_states_;
 };
 

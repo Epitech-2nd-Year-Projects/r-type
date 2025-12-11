@@ -221,7 +221,6 @@ bool Application::Tick(engine::time::TimeDelta dt) {
           HandleServerCommand(*command);
         }
       }
-      // TODO: Dispatch world updates to gameplay systems.
       if (join_flow_.state() != JoinState::kConnected) {
         break;
       }
@@ -247,7 +246,6 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (current_scene_) {
     current_scene_->Draw(renderer);
   }
-  // Removed "Press R to reconnect"
 
   renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
                     engine::render::Color::FromBytes(200, 200, 200));
@@ -292,13 +290,11 @@ void Application::SetConnectionConfig(std::string host, int port,
   config_.port = port;
   config_.player_name = std::move(player_name);
 
-  // Update runtime config store as well for consistency
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
   runtime_config_store.Set("client.port", std::to_string(config_.port));
   runtime_config_store.Set("client.player_name", config_.player_name);
 
-  // Also update join flow
   join_flow_ = JoinFlow(config_.player_name, config_.room_code);
 }
 
