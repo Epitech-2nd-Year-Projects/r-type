@@ -64,7 +64,8 @@ class Renderer2D {
   /**
    * @brief Measure the dimensions of a text string with the current font.
    */
-  virtual math::Vector2f MeasureText(std::string_view text, float font_size) = 0;
+  virtual math::Vector2f MeasureText(std::string_view text,
+                                     float font_size) = 0;
 
   /**
    * @brief Load texture resource.

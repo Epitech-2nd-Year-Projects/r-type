@@ -203,15 +203,16 @@ class RaylibRenderer2D final : public Renderer2D {
   void DrawText(std::string_view text, const math::Vector2f& position,
                 float font_size, const Color& color) override {
     std::string text_copy(text);
-    ::Font font = current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
-    ::DrawTextEx(font, text_copy.c_str(),
-                 ToRaylibVector(position), font_size, 1.0f,
-                 ToRaylibColor(color));
+    ::Font font =
+        current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
+    ::DrawTextEx(font, text_copy.c_str(), ToRaylibVector(position), font_size,
+                 1.0f, ToRaylibColor(color));
   }
 
   math::Vector2f MeasureText(std::string_view text, float font_size) override {
     std::string text_copy(text);
-    ::Font font = current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
+    ::Font font =
+        current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
     ::Vector2 size = ::MeasureTextEx(font, text_copy.c_str(), font_size, 1.0f);
     return {size.x, size.y};
   }
@@ -226,33 +227,33 @@ class RaylibRenderer2D final : public Renderer2D {
   }
 
   void LoadFont(const std::string& name, const std::string& path) override {
-      ::Font font = ::LoadFont(path.c_str());
-      if (font.texture.id != 0) {
-          if (fonts_.count(name)) {
-              ::UnloadFont(fonts_[name]);
-          }
-          fonts_[name] = font;
+    ::Font font = ::LoadFont(path.c_str());
+    if (font.texture.id != 0) {
+      if (fonts_.count(name)) {
+        ::UnloadFont(fonts_[name]);
       }
+      fonts_[name] = font;
+    }
   }
 
   void SetFont(const std::string& name) override {
-      if (fonts_.count(name)) {
-          current_font_ = fonts_[name];
-      }
+    if (fonts_.count(name)) {
+      current_font_ = fonts_[name];
+    }
   }
 
   void Flush() override {}
 
   ~RaylibRenderer2D() override {
-      for (auto& [name, font] : fonts_) {
-          ::UnloadFont(font);
-      }
-      fonts_.clear();
+    for (auto& [name, font] : fonts_) {
+      ::UnloadFont(font);
+    }
+    fonts_.clear();
   }
 
  private:
   std::unordered_map<std::string, ::Font> fonts_;
-  ::Font current_font_ = { 0 };
+  ::Font current_font_ = {0};
 };
 
 class RaylibRenderContext final : public RenderContext {
@@ -314,8 +315,9 @@ class RaylibWindow final : public Window {
 
   void PollEvents() override {
     if (!input_manager_) {
-         engine::util::Logger::Default().Info("WARNING: Input Manager is NULL in PollEvents!");
-         return;
+      engine::util::Logger::Default().Info(
+          "WARNING: Input Manager is NULL in PollEvents!");
+      return;
     }
 
     ::Vector2 mouse_pos = ::GetMousePosition();
@@ -324,20 +326,25 @@ class RaylibWindow final : public Window {
     for (const auto& [key, native_key] : kKeyMappings) {
       if (::IsKeyPressed(native_key)) {
         input_manager_->HandleKey(key, true);
-        engine::util::Logger::Default().Info("Key Pressed: ", static_cast<int>(key));
+        engine::util::Logger::Default().Info("Key Pressed: ",
+                                             static_cast<int>(key));
       } else if (::IsKeyReleased(native_key)) {
         input_manager_->HandleKey(key, false);
-        engine::util::Logger::Default().Info("Key Released: ", static_cast<int>(key));
+        engine::util::Logger::Default().Info("Key Released: ",
+                                             static_cast<int>(key));
       }
     }
 
     for (const auto& [button, native_button] : kMouseMappings) {
       if (::IsMouseButtonPressed(native_button)) {
         input_manager_->HandleMouseButton(button, true);
-        engine::util::Logger::Default().Info("Mouse Button Pressed: ", static_cast<int>(button), " at ", mouse_pos.x, ",", mouse_pos.y);
+        engine::util::Logger::Default().Info(
+            "Mouse Button Pressed: ", static_cast<int>(button), " at ",
+            mouse_pos.x, ",", mouse_pos.y);
       } else if (::IsMouseButtonReleased(native_button)) {
         input_manager_->HandleMouseButton(button, false);
-        engine::util::Logger::Default().Info("Mouse Button Released: ", static_cast<int>(button));
+        engine::util::Logger::Default().Info("Mouse Button Released: ",
+                                             static_cast<int>(button));
       }
     }
   }
@@ -345,7 +352,7 @@ class RaylibWindow final : public Window {
   bool ShouldClose() const override {
     bool close = should_close_ || !window_alive_ || ::WindowShouldClose();
     if (close) {
-        engine::util::Logger::Default().Info("Window ShouldClose detected.");
+      engine::util::Logger::Default().Info("Window ShouldClose detected.");
     }
     return close;
   }
@@ -373,9 +380,7 @@ class RaylibWindow final : public Window {
     ::SetWindowTitle(title_copy.c_str());
   }
 
-  void ToggleFullscreen() override {
-    ::ToggleFullscreen();
-  }
+  void ToggleFullscreen() override { ::ToggleFullscreen(); }
 
   float GetFrameTime() const override { return ::GetFrameTime(); }
 
