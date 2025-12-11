@@ -91,7 +91,8 @@ void LocalPrediction::ClampPosition(engine::math::Vector2f& position) {
   position.y = std::clamp(position.y, 0.0f, kWorldHeight);
 }
 
-std::optional<engine::math::Vector2f> LocalPrediction::CapturePredictedPosition() {
+std::optional<engine::math::Vector2f>
+LocalPrediction::CapturePredictedPosition() {
   const auto entity = ResolveLocalEntity();
   if (!entity.has_value()) {
     return std::nullopt;
@@ -129,8 +130,8 @@ void LocalPrediction::OnSnapshotApplied(
   }
 }
 
-void LocalPrediction::ApplyReconciliation(
-    ecs::PositionComponent& position, float dt_seconds) {
+void LocalPrediction::ApplyReconciliation(ecs::PositionComponent& position,
+                                          float dt_seconds) {
   if (reconciliation_offset_ == engine::math::Vector2f{0.0f, 0.0f}) {
     return;
   }
