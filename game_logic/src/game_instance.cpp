@@ -6,6 +6,7 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/systems/lifetime_system.h"
 #include "game_logic/components.h"
+#include "game_logic/constants.h"
 #include "game_logic/entities/player_builder.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/animation_system.h"
@@ -127,7 +128,8 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
       static_cast<std::uint8_t>(game_state_.active_player_ids.size() - 1);
 
   engine::math::Vector2f spawn_position(
-      100.0f + 50.0f * static_cast<float>(player_slot), 300.0f);
+      kPlayerSpawnBaseX + kPlayerSpawnOffsetX * static_cast<float>(player_slot),
+      kPlayerSpawnY);
 
   engine::ecs::EntityId entity = entities::PlayerBuilder::Create(
       *registry_, player_id, room_id_, player_slot, spawn_position);
