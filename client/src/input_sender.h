@@ -7,9 +7,8 @@
 #define CLIENT_INPUT_SENDER_H_
 
 #include <cstdint>
-#include <memory>
-
 #include "engine/time/time_delta.h"
+#include "input_buffer.h"
 #include "protocol/input_state.h"
 
 namespace client {
@@ -39,19 +38,27 @@ class InputSender {
   void Reset();
 
   /**
+   * @brief Configure the desired input send cadence
+   * @param hz Target send rate in Hz clamped to a safe range
+   */
+  void SetSendRateHz(float hz);
+
+  /**
    * @brief Pump input replication at a fixed cadence when enabled
    */
   void Update(engine::time::TimeDelta dt, bool sending_enabled);
 
  private:
-  protocol::InputCommand BuildCommand();
+  protocol::InputCommand BuildCommand(const BufferedInputSample& sample);
   bool SendPayload(const protocol::InputStatePayload& payload,
                    std::uint32_t client_time_ms);
 
   InputLayer& input_layer_;
   WorldUpdateReceiver& receiver_;
+  InputBuffer input_buffer_{};
   protocol::InputHistoryWindow history_{};
   std::uint32_t next_input_sequence_{1};
+  float send_rate_hz_{60.0f};
   float send_interval_seconds_{1.0f / 60.0f};
   float accumulator_seconds_{0.0f};
 };
