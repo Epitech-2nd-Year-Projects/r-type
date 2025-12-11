@@ -233,12 +233,18 @@ class RaylibRenderer2D final : public Renderer2D {
         ::UnloadFont(fonts_[name]);
       }
       fonts_[name] = font;
+    } else {
+      engine::util::Logger::Default().Error(
+          "Failed to load font '", name, "' from path '", path, "'");
     }
   }
 
   void SetFont(const std::string& name) override {
     if (fonts_.count(name)) {
       current_font_ = fonts_[name];
+    } else {
+      engine::util::Logger::Default().Warn(
+          "SetFont: Font '", name, "' not loaded");
     }
   }
 
@@ -315,8 +321,11 @@ class RaylibWindow final : public Window {
 
   void PollEvents() override {
     if (!input_manager_) {
-      engine::util::Logger::Default().Info(
-          "WARNING: Input Manager is NULL in PollEvents!");
+      if (!input_manager_warning_logged_) {
+        engine::util::Logger::Default().Error(
+            "Input Manager is NULL in PollEvents");
+        input_manager_warning_logged_ = true;
+      }
       return;
     }
 
@@ -326,33 +335,25 @@ class RaylibWindow final : public Window {
     for (const auto& [key, native_key] : kKeyMappings) {
       if (::IsKeyPressed(native_key)) {
         input_manager_->HandleKey(key, true);
-        engine::util::Logger::Default().Info("Key Pressed: ",
-                                             static_cast<int>(key));
       } else if (::IsKeyReleased(native_key)) {
         input_manager_->HandleKey(key, false);
-        engine::util::Logger::Default().Info("Key Released: ",
-                                             static_cast<int>(key));
       }
     }
 
     for (const auto& [button, native_button] : kMouseMappings) {
       if (::IsMouseButtonPressed(native_button)) {
         input_manager_->HandleMouseButton(button, true);
-        engine::util::Logger::Default().Info(
-            "Mouse Button Pressed: ", static_cast<int>(button), " at ",
-            mouse_pos.x, ",", mouse_pos.y);
       } else if (::IsMouseButtonReleased(native_button)) {
         input_manager_->HandleMouseButton(button, false);
-        engine::util::Logger::Default().Info("Mouse Button Released: ",
-                                             static_cast<int>(button));
       }
     }
   }
 
   bool ShouldClose() const override {
     bool close = should_close_ || !window_alive_ || ::WindowShouldClose();
-    if (close) {
-      engine::util::Logger::Default().Info("Window ShouldClose detected.");
+    if (close && !close_logged_) {
+      engine::util::Logger::Default().Info("Window ShouldClose detected");
+      close_logged_ = true;
     }
     return close;
   }
@@ -389,6 +390,8 @@ class RaylibWindow final : public Window {
  private:
   WindowConfig config_;
   bool should_close_{false};
+  mutable bool close_logged_{false};
+  bool input_manager_warning_logged_{false};
   std::shared_ptr<input::InputManager> input_manager_{};
   RaylibRenderer2D renderer_;
   RaylibRenderContext context_;
