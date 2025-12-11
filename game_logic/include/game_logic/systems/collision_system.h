@@ -11,6 +11,7 @@
 #include "engine/ecs/system.h"
 #include "engine/math/rect.h"
 #include "engine/time/time_delta.h"
+#include "game_logic/components/damageable_component.h"
 
 namespace game_logic::systems {
 
@@ -76,6 +77,14 @@ class CollisionSystem : public engine::ecs::ISystem {
    */
   void InsertIntoGrid(engine::ecs::EntityId entity,
                       const engine::math::RectF& bounds);
+
+  void ResolveCollision(engine::ecs::Registry& registry,
+                        engine::ecs::EntityId e1, engine::ecs::EntityId e2);
+
+  void ResolveProjectile(
+      engine::ecs::Registry& registry, engine::ecs::EntityId proj,
+      engine::ecs::EntityId target,
+      const game_logic::components::DamageableComponent& damageable);
 };
 
 }  // namespace game_logic::systems
