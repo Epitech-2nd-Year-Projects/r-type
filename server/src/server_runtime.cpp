@@ -148,8 +148,7 @@ void ServerRuntime::RunMainLoop() {
 
   while (running_ && !g_shutdown_requested.load()) {
     const auto delta = frame_timer_.tick();
-    frame_time_accumulator_ms_ +=
-        static_cast<double>(delta.as_milliseconds());
+    frame_time_accumulator_ms_ += static_cast<double>(delta.as_milliseconds());
     ++frame_time_samples_;
     accumulator_ += delta;
     PollNetwork();
@@ -258,10 +257,9 @@ void ServerRuntime::MaybeLogServerStats() {
 
   const auto health_window_ms =
       ElapsedMilliseconds(last_tick_health_sample_ms_, now_ms);
-  const auto ticks_sampled =
-      server_tick_ >= last_tick_health_sample_tick_
-          ? server_tick_ - last_tick_health_sample_tick_
-          : 0;
+  const auto ticks_sampled = server_tick_ >= last_tick_health_sample_tick_
+                                 ? server_tick_ - last_tick_health_sample_tick_
+                                 : 0;
   const double elapsed_seconds =
       health_window_ms > 0 ? static_cast<double>(health_window_ms) / 1000.0
                            : 0.0;
@@ -271,28 +269,26 @@ void ServerRuntime::MaybeLogServerStats() {
           : 0.0;
   const double target_tick_rate =
       static_cast<double>(config_.tick_rate > 0 ? config_.tick_rate : 1);
-  const double health_ratio = target_tick_rate > 0.0
-                                  ? actual_tick_rate / target_tick_rate
-                                  : 0.0;
+  const double health_ratio =
+      target_tick_rate > 0.0 ? actual_tick_rate / target_tick_rate : 0.0;
   const bool tick_healthy = health_ratio >= kTickHealthWarningThreshold;
-  const double avg_frame_ms =
-      frame_time_samples_ > 0
-          ? frame_time_accumulator_ms_ /
-                static_cast<double>(frame_time_samples_)
-          : 0.0;
+  const double avg_frame_ms = frame_time_samples_ > 0
+                                  ? frame_time_accumulator_ms_ /
+                                        static_cast<double>(frame_time_samples_)
+                                  : 0.0;
 
   logger_.get().Info(
       "Diagnostics peers total=", peers_.size(), " joined=", joined_peers,
       " connecting=", connecting_peers, " disconnected=", disconnected_peers,
       " players=", players_.size(), " rooms=", rooms_.size(),
-      " tickrate target=", config_.tick_rate,
-      " actual=", actual_tick_rate, " avg_frame_ms=", avg_frame_ms,
+      " tickrate target=", config_.tick_rate, " actual=", actual_tick_rate,
+      " avg_frame_ms=", avg_frame_ms,
       " backlog_ms=", accumulator_.as_milliseconds(),
       " health=", tick_healthy ? "ok" : "degraded");
 
   for (const auto& [room_code, room] : rooms_) {
-    logger_.get().Info("Room ", room_code, " players ", room.PlayerCount(),
-                       "/", room.MaxPlayers());
+    logger_.get().Info("Room ", room_code, " players ", room.PlayerCount(), "/",
+                       room.MaxPlayers());
   }
 
   last_server_stats_log_ms_ = now_ms;
@@ -322,8 +318,8 @@ void ServerRuntime::DumpSessions() {
 void ServerRuntime::ReloadConfiguration() {
   const char* env_log_level = std::getenv("RTYPE_SERVER_LOG_LEVEL");
   if (env_log_level != nullptr) {
-    config_.log_level = engine::util::ParseLogLevel(
-        env_log_level, config_.log_level);
+    config_.log_level =
+        engine::util::ParseLogLevel(env_log_level, config_.log_level);
   }
   ConfigureLogging();
   logger_.get().Info("Configuration reloaded log_level=",
