@@ -57,7 +57,10 @@ const char* ToString(ClientState state) {
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(std::make_shared<NetworkTransport>()),
-      join_flow_(config_.player_name, config_.room_code) {}
+      join_flow_(config_.player_name, config_.room_code),
+      world_registry_(std::make_unique<engine::ecs::Registry>()),
+      world_state_system_(
+          std::make_unique<ecs::WorldStateSystem>(*world_registry_)) {}
 
 int Application::Run() {
   ConfigureClientLogging(config_.log_level);
@@ -209,6 +212,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (world_update_receiver_.running()) {
     WorldUpdateMessage message;
     while (world_update_receiver_.TryPop(message)) {
+      if (message.type == protocol::message_type::MessageType::kWorldSnapshot) {
+        if (const auto snapshot =
+                std::get_if<protocol::WorldSnapshotPayload>(&message.payload)) {
+          world_state_system_->ApplySnapshot(*snapshot);
+        }
+      }
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
         HandleGameOverAudio();
         if (state_ == ClientState::kInGame || state_ == ClientState::kPaused) {
@@ -500,6 +509,9 @@ void Application::StopNetworkSession() {
   world_update_receiver_.Stop();
   if (transport_) {
     transport_->Stop();
+  }
+  if (world_state_system_) {
+    world_state_system_->Reset();
   }
   if (input_sender_) {
     input_sender_->Reset();
