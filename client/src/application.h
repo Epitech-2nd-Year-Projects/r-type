@@ -1,6 +1,7 @@
 #ifndef CLIENT_APPLICATION_H_
 #define CLIENT_APPLICATION_H_
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -15,6 +16,7 @@
 #include "input_layer.h"
 #include "input_sender.h"
 #include "join_flow.h"
+#include "key_bindings.h"
 #include "network_transport.h"
 #include "local_prediction.h"
 #include "scene/scene.h"
@@ -86,6 +88,17 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
+
+  /**
+   * @brief Current key binding configuration
+   */
+  const KeyBindings& key_bindings() const { return key_bindings_; }
+
+  /**
+   * @brief Replace a single action binding and persist it
+   */
+  bool UpdateKeyBinding(GameAction action, engine::input::Key key);
+
   /**
    * @brief Access the mutable ECS world
    * @note Not thread-safe; call from the main/game thread
@@ -115,6 +128,8 @@ class Application {
   bool TransitionTo(ClientState next_state, std::string reason = {});
   bool IsTransitionAllowed(ClientState next_state) const;
   void StopNetworkSession();
+  void LoadKeyBindings();
+  bool SaveKeyBindings();
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -129,6 +144,8 @@ class Application {
   std::unique_ptr<LocalPrediction> local_prediction_;
   std::unique_ptr<AudioManager> audio_manager_;
   WorldUpdateReceiver world_update_receiver_;
+  KeyBindings key_bindings_{KeyBindings::Default()};
+  std::filesystem::path keybindings_path_{"config/keybindings.cfg"};
   ClientState state_{ClientState::kMainMenu};
   std::string disconnect_reason_;
   JoinState last_join_state_{JoinState::kIdle};

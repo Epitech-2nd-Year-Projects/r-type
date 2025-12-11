@@ -100,7 +100,7 @@ int Application::Run() {
   }
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
-  input_layer_->ApplyDefaultBindings();
+  LoadKeyBindings();
   input_sender_ =
       std::make_unique<InputSender>(*input_layer_, world_update_receiver_);
 
@@ -370,6 +370,37 @@ void Application::HandleConnectionLost(std::string_view reason) {
   StopNetworkSession();
   join_flow_.MarkDisconnected(reason);
   OnDisconnect(std::string(reason));
+}
+
+bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
+  key_bindings_.Set(action, key);
+  if (input_layer_) {
+    input_layer_->ApplyBindings(key_bindings_);
+  }
+  return SaveKeyBindings();
+}
+
+void Application::LoadKeyBindings() {
+  KeyBindings bindings = KeyBindings::Default();
+  const bool loaded = bindings.LoadFromFile(keybindings_path_);
+  if (!loaded) {
+    LogLifecycle(engine::util::LogLevel::kDebug,
+                 "Key bindings config not found, applying defaults");
+  }
+  key_bindings_ = std::move(bindings);
+  if (input_layer_) {
+    input_layer_->ApplyBindings(key_bindings_);
+  }
+}
+
+bool Application::SaveKeyBindings() {
+  if (!key_bindings_.SaveToFile(keybindings_path_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist key bindings to " +
+                     keybindings_path_.string());
+    return false;
+  }
+  return true;
 }
 
 void Application::HandleReconnectInput(JoinState join_state) {
