@@ -23,6 +23,7 @@ class Button : public UIElement {
   void SetColors(engine::render::Color normal, engine::render::Color hover, engine::render::Color pressed);
   
   const std::string& GetText() const { return text_; }
+  void SetText(const std::string& text) { text_ = text; }
 
   void SetPosition(engine::math::Vector2f pos) override { position_ = pos; }
   engine::math::Vector2f GetPosition() const override { return position_; }
