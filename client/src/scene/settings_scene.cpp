@@ -37,8 +37,8 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
   }
 }
 
-SettingsScene::BindingRow* FindRow(
-    std::vector<SettingsScene::BindingRow>& rows, GameAction action) {
+SettingsScene::BindingRow* FindRow(std::vector<SettingsScene::BindingRow>& rows,
+                                   GameAction action) {
   for (auto& row : rows) {
     if (row.action == action) {
       return &row;
@@ -259,10 +259,10 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           }
         }
         if (rebind_status_label_) {
-          const std::string status =
-              saved ? "Bound " + ActionLabel(action) + " to " +
-                          KeyDisplayName(keys[i])
-                    : "Failed to save key bindings";
+          const std::string status = saved
+                                         ? "Bound " + ActionLabel(action) +
+                                               " to " + KeyDisplayName(keys[i])
+                                         : "Failed to save key bindings";
           rebind_status_label_->SetText(status);
         }
         pending_rebind_.reset();

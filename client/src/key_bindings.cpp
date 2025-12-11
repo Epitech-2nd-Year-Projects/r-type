@@ -79,8 +79,8 @@ constexpr std::array<KeyName, 57> kKeyNames{{
 }};
 
 constexpr std::array<GameAction, 6> kActionOrder{
-    GameAction::kMoveUp,   GameAction::kMoveDown, GameAction::kMoveLeft,
-    GameAction::kMoveRight, GameAction::kShoot,   GameAction::kReconnect};
+    GameAction::kMoveUp,    GameAction::kMoveDown, GameAction::kMoveLeft,
+    GameAction::kMoveRight, GameAction::kShoot,    GameAction::kReconnect};
 
 std::string ToLower(std::string_view text) {
   std::string normalized;
@@ -148,8 +148,7 @@ bool KeyBindings::LoadFromFile(const std::filesystem::path& path) {
   std::string line;
   while (std::getline(file, line)) {
     const std::string_view trimmed = Trim(line);
-    if (trimmed.empty() ||
-        trimmed.rfind(kConfigCommentStart, 0) == 0 ||
+    if (trimmed.empty() || trimmed.rfind(kConfigCommentStart, 0) == 0 ||
         trimmed.find(kSeparator) == std::string_view::npos) {
       continue;
     }

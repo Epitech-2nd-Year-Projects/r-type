@@ -395,9 +395,9 @@ void Application::LoadKeyBindings() {
 
 bool Application::SaveKeyBindings() {
   if (!key_bindings_.SaveToFile(keybindings_path_)) {
-    LogLifecycle(engine::util::LogLevel::kWarn,
-                 "Failed to persist key bindings to " +
-                     keybindings_path_.string());
+    LogLifecycle(
+        engine::util::LogLevel::kWarn,
+        "Failed to persist key bindings to " + keybindings_path_.string());
     return false;
   }
   return true;
