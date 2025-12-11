@@ -6,15 +6,6 @@
 
 namespace client::ecs {
 
-namespace {
-
-engine::math::Vector2f Lerp(const engine::math::Vector2f& a,
-                            const engine::math::Vector2f& b, float t) {
-  return engine::math::Vector2f::Lerp(a, b, t);
-}
-
-}  // namespace
-
 InterpolationSystem::InterpolationSystem(engine::ecs::Registry& registry)
     : registry_(registry) {
   RegisterComponents();
@@ -85,11 +76,10 @@ void InterpolationSystem::UpdateAt(engine::time::TimeDelta /*dt*/,
     const float render_ms = static_cast<float>(
         render_time_ms > start_ms ? render_time_ms - start_ms : 0);
     float alpha = render_ms / interval_ms;
-    alpha = std::max(0.0f, alpha);
 
     if (alpha <= 1.0f) {
-      positions[i]->render_position =
-          Lerp(positions[i]->previous_position, positions[i]->position, alpha);
+      positions[i]->render_position = engine::math::Vector2f::Lerp(
+          positions[i]->previous_position, positions[i]->position, alpha);
       continue;
     }
 
