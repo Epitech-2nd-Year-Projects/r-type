@@ -22,14 +22,17 @@
 namespace server {
 constexpr std::uint32_t kReliableResendTimeoutMs = 250;
 constexpr std::size_t kReliableQueueMaxPending = 64;
+constexpr std::uint32_t kDecodeMetricsLogIntervalMs = 10'000;
 
 namespace {
 
 using protocol::message_type::MessageType;
 
 std::atomic_bool g_shutdown_requested{false};
+std::atomic_bool g_dump_metrics_requested{false};
 
 void SignalHandler(int) { g_shutdown_requested.store(true); }
+void MetricsSignalHandler(int) { g_dump_metrics_requested.store(true); }
 
 std::string EndpointKey(const engine::net::Endpoint& endpoint) {
   std::string key = endpoint.address();
@@ -44,9 +47,18 @@ std::uint32_t NowMilliseconds() {
   return static_cast<std::uint32_t>(duration_cast<milliseconds>(now).count());
 }
 
+std::uint32_t ElapsedMilliseconds(std::uint32_t from, std::uint32_t to) {
+  return to >= from
+             ? to - from
+             : (std::numeric_limits<std::uint32_t>::max() - from) + 1u + to;
+}
+
 void InstallSignalHandlers() {
   std::signal(SIGINT, SignalHandler);
   std::signal(SIGTERM, SignalHandler);
+#ifdef SIGUSR1
+  std::signal(SIGUSR1, MetricsSignalHandler);
+#endif
 }
 
 bool IsValidRoomCode(std::string_view room_code) {
@@ -93,6 +105,7 @@ void ServerRuntime::Run() { RunMainLoop(); }
 void ServerRuntime::RunMainLoop() {
   running_ = true;
   accumulator_ = engine::time::TimeDelta::zero();
+  last_decode_metrics_log_ms_ = NowMilliseconds();
 
   while (running_ && !g_shutdown_requested.load()) {
     const auto delta = frame_timer_.tick();
@@ -113,8 +126,10 @@ void ServerRuntime::RunMainLoop() {
       accumulator_ -= fixed_delta_;
     }
     CheckPeerTimeouts();
+    MaybeLogDecodeMetrics();
     TickRateSleep(delta);
   }
+  LogDecodeMetricsSummary(true);
   running_ = false;
   transport_.Stop();
 }
@@ -148,6 +163,33 @@ void ServerRuntime::TickRateSleep(const engine::time::TimeDelta& delta_time) {
   if (sleep_ms.count() > 0) {
     std::this_thread::sleep_for(sleep_ms);
   }
+}
+
+void ServerRuntime::MaybeLogDecodeMetrics() {
+  const auto now_ms = NowMilliseconds();
+  const bool force_dump = g_dump_metrics_requested.exchange(false);
+  const auto elapsed_ms =
+      ElapsedMilliseconds(last_decode_metrics_log_ms_, now_ms);
+  if (!force_dump && elapsed_ms < kDecodeMetricsLogIntervalMs) {
+    return;
+  }
+  last_decode_metrics_log_ms_ = now_ms;
+  LogDecodeMetricsSummary(force_dump);
+}
+
+void ServerRuntime::LogDecodeMetricsSummary(bool force) {
+  const auto& m = decode_metrics_;
+  if (!force && m.total_packets == 0) {
+    return;
+  }
+  logger_.get().Info("DecodeMetrics total=", m.total_packets,
+                     " rejected=", m.rejected_packets,
+                     " errors[unknown_message_type=", m.unknown_message_type,
+                     " version_mismatch=", m.version_mismatch,
+                     " unexpected_end_of_buffer=", m.unexpected_end_of_buffer,
+                     " invalid_header=", m.invalid_header,
+                     " invalid_payload=", m.invalid_payload,
+                     " invalid_snapshot_id=", m.invalid_snapshot_id, "]");
 }
 
 void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,

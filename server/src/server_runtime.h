@@ -101,6 +101,23 @@ class ServerRuntime {
   void TickRateSleep(const engine::time::TimeDelta& delta_time);
 
   /**
+   * @brief Periodically logs decode metrics when interval elapsed or forced.
+   * 
+   * Checks elapsed time or a force flag and emits a decode metrics summary log
+   * when appropriate to aid monitoring.
+   */
+  void MaybeLogDecodeMetrics();
+  /**
+   * @brief Logs a summary of decode metrics.
+   * @param force If true logs metrics regardless of packet count.
+   * 
+   * Emits aggregated decode statistics for diagnostics and performance
+   * monitoring.
+   */
+  void LogDecodeMetricsSummary(bool force);
+
+
+  /**
    * @brief Sends a server command message to a specific peer.
    * @param peer The destination peer connection.
    * @param command_id The command identifier.
@@ -366,6 +383,7 @@ class ServerRuntime {
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
   bool running_{false};                                    ///< Whether the server loop is currently running.
   protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
+  std::uint32_t last_decode_metrics_log_ms_{0};             ///< Last timestamp when decode metrics were logged.
 };
 
 }  // namespace server
