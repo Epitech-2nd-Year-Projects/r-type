@@ -15,6 +15,7 @@
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render/renderer2d.h"
+#include "engine/util/logging.h"
 
 namespace engine::render {
 
@@ -39,7 +40,7 @@ unsigned char ToByte(float value) {
   return ::Vector2{vec.x, vec.y};
 }
 
-constexpr std::array<std::pair<input::Key, int>, 49> kKeyMappings{{
+constexpr std::array<std::pair<input::Key, int>, 57> kKeyMappings{{
     {input::Key::kA, KEY_A},
     {input::Key::kB, KEY_B},
     {input::Key::kC, KEY_C},
@@ -76,11 +77,19 @@ constexpr std::array<std::pair<input::Key, int>, 49> kKeyMappings{{
     {input::Key::kNum7, KEY_SEVEN},
     {input::Key::kNum8, KEY_EIGHT},
     {input::Key::kNum9, KEY_NINE},
+    {input::Key::kPeriod, KEY_PERIOD},
+    {input::Key::kComma, KEY_COMMA},
+    {input::Key::kSlash, KEY_SLASH},
+    {input::Key::kBackslash, KEY_BACKSLASH},
+    {input::Key::kSemicolon, KEY_SEMICOLON},
+    {input::Key::kEqual, KEY_EQUAL},
+    {input::Key::kMinus, KEY_MINUS},
     {input::Key::kUp, KEY_UP},
     {input::Key::kDown, KEY_DOWN},
     {input::Key::kLeft, KEY_LEFT},
     {input::Key::kRight, KEY_RIGHT},
     {input::Key::kSpace, KEY_SPACE},
+    {input::Key::kBackspace, KEY_BACKSPACE},
     {input::Key::kEnter, KEY_ENTER},
     {input::Key::kEscape, KEY_ESCAPE},
     {input::Key::kLeftShift, KEY_LEFT_SHIFT},
@@ -194,9 +203,17 @@ class RaylibRenderer2D final : public Renderer2D {
   void DrawText(std::string_view text, const math::Vector2f& position,
                 float font_size, const Color& color) override {
     std::string text_copy(text);
-    ::DrawTextEx(::GetFontDefault(), text_copy.c_str(),
+    ::Font font = current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
+    ::DrawTextEx(font, text_copy.c_str(),
                  ToRaylibVector(position), font_size, 1.0f,
                  ToRaylibColor(color));
+  }
+
+  math::Vector2f MeasureText(std::string_view text, float font_size) override {
+    std::string text_copy(text);
+    ::Font font = current_font_.texture.id == 0 ? ::GetFontDefault() : current_font_;
+    ::Vector2 size = ::MeasureTextEx(font, text_copy.c_str(), font_size, 1.0f);
+    return {size.x, size.y};
   }
 
   std::shared_ptr<Texture2D> LoadTextureFromFile(
@@ -208,7 +225,34 @@ class RaylibRenderer2D final : public Renderer2D {
     return std::make_shared<RaylibTexture2D>(texture);
   }
 
+  void LoadFont(const std::string& name, const std::string& path) override {
+      ::Font font = ::LoadFont(path.c_str());
+      if (font.texture.id != 0) {
+          if (fonts_.count(name)) {
+              ::UnloadFont(fonts_[name]);
+          }
+          fonts_[name] = font;
+      }
+  }
+
+  void SetFont(const std::string& name) override {
+      if (fonts_.count(name)) {
+          current_font_ = fonts_[name];
+      }
+  }
+
   void Flush() override {}
+
+  ~RaylibRenderer2D() override {
+      for (auto& [name, font] : fonts_) {
+          ::UnloadFont(font);
+      }
+      fonts_.clear();
+  }
+
+ private:
+  std::unordered_map<std::string, ::Font> fonts_;
+  ::Font current_font_ = { 0 };
 };
 
 class RaylibRenderContext final : public RenderContext {
@@ -248,6 +292,8 @@ class RaylibWindow final : public Window {
     }
 
     ::InitWindow(config.size.x, config.size.y, config.title.c_str());
+    ::SetExitKey(0);
+
     input_manager_ = config.input_manager;
     if (input_manager_) {
       input_manager_->ClearState();
@@ -267,33 +313,41 @@ class RaylibWindow final : public Window {
   }
 
   void PollEvents() override {
-    ::PollInputEvents();
-
-    if (!input_manager_) return;
-    if (!::IsWindowFocused()) {
-      input_manager_->ClearState();
-      return;
+    if (!input_manager_) {
+         engine::util::Logger::Default().Info("WARNING: Input Manager is NULL in PollEvents!");
+         return;
     }
+
+    ::Vector2 mouse_pos = ::GetMousePosition();
+    input_manager_->SetMousePosition({mouse_pos.x, mouse_pos.y});
 
     for (const auto& [key, native_key] : kKeyMappings) {
       if (::IsKeyPressed(native_key)) {
         input_manager_->HandleKey(key, true);
+        engine::util::Logger::Default().Info("Key Pressed: ", static_cast<int>(key));
       } else if (::IsKeyReleased(native_key)) {
         input_manager_->HandleKey(key, false);
+        engine::util::Logger::Default().Info("Key Released: ", static_cast<int>(key));
       }
     }
 
     for (const auto& [button, native_button] : kMouseMappings) {
       if (::IsMouseButtonPressed(native_button)) {
         input_manager_->HandleMouseButton(button, true);
+        engine::util::Logger::Default().Info("Mouse Button Pressed: ", static_cast<int>(button), " at ", mouse_pos.x, ",", mouse_pos.y);
       } else if (::IsMouseButtonReleased(native_button)) {
         input_manager_->HandleMouseButton(button, false);
+        engine::util::Logger::Default().Info("Mouse Button Released: ", static_cast<int>(button));
       }
     }
   }
 
   bool ShouldClose() const override {
-    return should_close_ || !window_alive_ || ::WindowShouldClose();
+    bool close = should_close_ || !window_alive_ || ::WindowShouldClose();
+    if (close) {
+        engine::util::Logger::Default().Info("Window ShouldClose detected.");
+    }
+    return close;
   }
 
   void RequestClose() override { should_close_ = true; }
@@ -317,6 +371,10 @@ class RaylibWindow final : public Window {
   void SetTitle(std::string_view title) override {
     std::string title_copy(title);
     ::SetWindowTitle(title_copy.c_str());
+  }
+
+  void ToggleFullscreen() override {
+    ::ToggleFullscreen();
   }
 
   float GetFrameTime() const override { return ::GetFrameTime(); }
