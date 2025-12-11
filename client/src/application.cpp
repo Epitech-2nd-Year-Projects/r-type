@@ -31,6 +31,24 @@ const engine::math::Vector2i kBaseResolution{1600, 900};
 constexpr engine::render::Color kClearColor =
     engine::render::Color::FromBytes(12, 12, 16);
 
+const char* ToString(ClientState state) {
+  switch (state) {
+    case ClientState::kMainMenu:
+      return "MainMenu";
+    case ClientState::kConnecting:
+      return "Connecting";
+    case ClientState::kInGame:
+      return "InGame";
+    case ClientState::kPaused:
+      return "Paused";
+    case ClientState::kGameOver:
+      return "GameOver";
+    case ClientState::kDisconnected:
+      return "Disconnected";
+  }
+  return "Unknown";
+}
+
 }  // namespace
 
 Application::Application(ClientConfig config)
@@ -99,7 +117,7 @@ int Application::Run() {
 
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
-  SwitchScene(std::make_unique<MainMenuScene>(*this));
+  ApplyState(ClientState::kMainMenu);
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
@@ -119,34 +137,41 @@ void Application::SwitchScene(std::unique_ptr<Scene> scene) {
 }
 
 void Application::OnConnected() {
-  SwitchScene(std::make_unique<InGameScene>(*this));
+  TransitionTo(ClientState::kInGame);
 }
 
 void Application::OnConnectionFailed(const std::string& reason) {
-  SwitchScene(std::make_unique<DisconnectedScene>(*this, reason));
+  StopNetworkSession();
+  TransitionTo(ClientState::kDisconnected, reason);
 }
 
-void Application::OnGameStart() {}
+void Application::OnGameStart() { TransitionTo(ClientState::kInGame); }
 
 void Application::OnGamePause() {
-  SwitchScene(std::make_unique<PauseScene>(*this));
+  TransitionTo(ClientState::kPaused);
 }
 
 void Application::OnGameResume() {
-  SwitchScene(std::make_unique<InGameScene>(*this));
+  TransitionTo(ClientState::kInGame);
 }
 
 void Application::OnGameOver() {
-  SwitchScene(std::make_unique<GameOverScene>(*this));
+  if (state_ == ClientState::kGameOver) {
+    return;
+  }
+  TransitionTo(ClientState::kGameOver);
 }
 
 void Application::OnDisconnect(std::string reason) {
-  SwitchScene(
-      std::make_unique<DisconnectedScene>(*this, std::move(reason)));
+  StopNetworkSession();
+  TransitionTo(ClientState::kDisconnected, std::move(reason));
 }
 
 void Application::OnQuitToMenu() {
-  SwitchScene(std::make_unique<MainMenuScene>(*this));
+  StopNetworkSession();
+  join_flow_.Reset();
+  reconnect_requested_ = false;
+  TransitionTo(ClientState::kMainMenu);
 }
 
 bool Application::Tick(engine::time::TimeDelta dt) {
@@ -163,6 +188,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (transport_) {
     join_flow_.Update(*transport_);
   }
+  ProcessJoinState(join_flow_.state());
   if (current_scene_) {
     current_scene_->Update(dt);
   }
@@ -177,14 +203,19 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     }
   }
   if (input_sender_) {
-    const bool connected = join_state == JoinState::kConnected;
-    input_sender_->Update(dt, connected);
+    const bool accepts_input = join_state == JoinState::kConnected &&
+                               state_ == ClientState::kInGame;
+    input_sender_->Update(dt, accepts_input);
   }
   if (world_update_receiver_.running()) {
     WorldUpdateMessage message;
     while (world_update_receiver_.TryPop(message)) {
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
         HandleGameOverAudio();
+        if (state_ == ClientState::kInGame ||
+            state_ == ClientState::kPaused) {
+          OnGameOver();
+        }
       }
       if (message.type == protocol::message_type::MessageType::kServerCommand) {
         if (const auto command =
@@ -232,16 +263,17 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 }
 
 bool Application::StartConnection() {
+  if (!IsTransitionAllowed(ClientState::kConnecting)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Ignoring connection attempt in state " +
+                     std::string(ToString(state_)));
+    return false;
+  }
+
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "connecting");
 
-  world_update_receiver_.Stop();
-  if (transport_) {
-    transport_->Stop();
-  }
-  if (input_sender_) {
-    input_sender_->Reset();
-  }
+  StopNetworkSession();
 
   const auto transport_error = transport_->Start(config_.host, config_.port);
   if (transport_error) {
@@ -256,7 +288,7 @@ bool Application::StartConnection() {
 
   reconnect_requested_ = false;
   join_flow_.Begin(*transport_);
-  SwitchScene(std::make_unique<ConnectingScene>(*this));
+  ApplyState(ClientState::kConnecting);
   return true;
 }
 
@@ -297,13 +329,7 @@ void Application::HandleConnectionLost(std::string_view reason) {
     return;
   }
 
-  world_update_receiver_.Stop();
-  if (transport_) {
-    transport_->Stop();
-  }
-  if (input_sender_) {
-    input_sender_->Reset();
-  }
+  StopNetworkSession();
   join_flow_.MarkDisconnected(reason);
   OnDisconnect(std::string(reason));
 }
@@ -362,6 +388,112 @@ void Application::HandleGameOverAudio() {
   music_allowed_ = false;
   music_blocked_ = true;
   audio_manager_->FadeOutMusic(kGameOverFadeSeconds);
+}
+
+void Application::ProcessJoinState(JoinState join_state) {
+  if (state_ == ClientState::kConnecting &&
+      join_state == JoinState::kConnected) {
+    OnConnected();
+    return;
+  }
+
+  if (state_ == ClientState::kConnecting &&
+      join_state == JoinState::kRefused) {
+    OnConnectionFailed(join_flow_.status());
+  }
+}
+
+void Application::ApplyState(ClientState next_state, std::string reason) {
+  if (next_state == ClientState::kDisconnected) {
+    disconnect_reason_ =
+        reason.empty() ? "Disconnected from server" : std::move(reason);
+  } else {
+    disconnect_reason_.clear();
+  }
+
+  const bool scene_missing = !current_scene_;
+  const bool state_changed = state_ != next_state;
+  state_ = next_state;
+
+  const bool refresh_scene =
+      scene_missing || state_changed || state_ == ClientState::kDisconnected;
+  if (!refresh_scene) {
+    return;
+  }
+
+  switch (state_) {
+    case ClientState::kMainMenu:
+      SwitchScene(std::make_unique<MainMenuScene>(*this));
+      break;
+    case ClientState::kConnecting:
+      SwitchScene(std::make_unique<ConnectingScene>(*this));
+      break;
+    case ClientState::kInGame:
+      SwitchScene(std::make_unique<InGameScene>(*this));
+      break;
+    case ClientState::kPaused:
+      SwitchScene(std::make_unique<PauseScene>(*this));
+      break;
+    case ClientState::kGameOver:
+      SwitchScene(std::make_unique<GameOverScene>(*this));
+      break;
+    case ClientState::kDisconnected:
+      SwitchScene(
+          std::make_unique<DisconnectedScene>(*this, disconnect_reason_));
+      break;
+  }
+}
+
+bool Application::TransitionTo(ClientState next_state, std::string reason) {
+  if (!IsTransitionAllowed(next_state)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Rejected state transition " + std::string(ToString(state_)) +
+                     " -> " + std::string(ToString(next_state)));
+    return false;
+  }
+
+  ApplyState(next_state, std::move(reason));
+  return true;
+}
+
+bool Application::IsTransitionAllowed(ClientState next_state) const {
+  switch (state_) {
+    case ClientState::kMainMenu:
+      return next_state == ClientState::kConnecting ||
+             next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kDisconnected;
+    case ClientState::kConnecting:
+      return next_state == ClientState::kInGame ||
+             next_state == ClientState::kDisconnected ||
+             next_state == ClientState::kMainMenu;
+    case ClientState::kInGame:
+      return next_state == ClientState::kPaused ||
+             next_state == ClientState::kGameOver ||
+             next_state == ClientState::kDisconnected;
+    case ClientState::kPaused:
+      return next_state == ClientState::kInGame ||
+             next_state == ClientState::kGameOver ||
+             next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kDisconnected;
+    case ClientState::kGameOver:
+      return next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kConnecting ||
+             next_state == ClientState::kDisconnected;
+    case ClientState::kDisconnected:
+      return next_state == ClientState::kConnecting ||
+             next_state == ClientState::kMainMenu;
+  }
+  return false;
+}
+
+void Application::StopNetworkSession() {
+  world_update_receiver_.Stop();
+  if (transport_) {
+    transport_->Stop();
+  }
+  if (input_sender_) {
+    input_sender_->Reset();
+  }
 }
 
 }  // namespace client

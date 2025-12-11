@@ -19,6 +19,21 @@
 namespace client {
 
 /**
+ * @brief High level client state controlling active screen
+ *
+ * Represents the coarse grained client lifecycle and drives which scene is
+ * active at any given time.
+ */
+enum class ClientState {
+  kMainMenu,
+  kConnecting,
+  kInGame,
+  kPaused,
+  kGameOver,
+  kDisconnected
+};
+
+/**
  * @brief High-level application object driving the client runtime
  */
 class Application {
@@ -39,6 +54,11 @@ class Application {
    * @brief Switch the active scene
    */
   void SwitchScene(std::unique_ptr<Scene> scene);
+
+  /**
+   * @brief Current high level client state
+   */
+  ClientState state() const { return state_; }
 
   /**
    * @brief Begin the connection handshake
@@ -64,6 +84,11 @@ class Application {
   void MonitorConnection(JoinState join_state);
   void HandleConnectionLost(std::string_view reason);
   void HandleReconnectInput(JoinState join_state);
+  void ProcessJoinState(JoinState join_state);
+  void ApplyState(ClientState next_state, std::string reason = {});
+  bool TransitionTo(ClientState next_state, std::string reason = {});
+  bool IsTransitionAllowed(ClientState next_state) const;
+  void StopNetworkSession();
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -74,6 +99,8 @@ class Application {
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<AudioManager> audio_manager_;
   WorldUpdateReceiver world_update_receiver_;
+  ClientState state_{ClientState::kMainMenu};
+  std::string disconnect_reason_;
   JoinState last_join_state_{JoinState::kIdle};
   bool music_allowed_{false};
   bool music_blocked_{false};
