@@ -100,6 +100,9 @@ class ServerRuntime {
    */
   void TickRateSleep(const engine::time::TimeDelta& delta_time);
 
+  void MaybeLogDecodeMetrics();
+  void LogDecodeMetricsSummary(bool force);
+
   /**
    * @brief Sends a server command message to a specific peer.
    * @param peer The destination peer connection.
@@ -366,6 +369,7 @@ class ServerRuntime {
   engine::time::TimeDelta accumulator_;                    ///< Accumulates frame time for fixed-step simulation.
   bool running_{false};                                    ///< Whether the server loop is currently running.
   protocol::DecodeMetrics decode_metrics_{};               ///< Tracks packet decode statistics (success/error counts).
+  std::uint32_t last_decode_metrics_log_ms_{0};             ///< Last timestamp when decode metrics were emitted.
 };
 
 }  // namespace server
