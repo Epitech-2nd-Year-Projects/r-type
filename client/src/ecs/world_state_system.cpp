@@ -108,8 +108,8 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                                    std::uint32_t snapshot_id) {
   const auto it = network_to_entity_.find(delta.entity_id);
   const auto entity = it == network_to_entity_.end()
-                          ? ResolveOrCreateEntity(delta.entity_id,
-                                                  snapshot_id, delta.state.type)
+                          ? ResolveOrCreateEntity(delta.entity_id, snapshot_id,
+                                                  delta.state.type)
                           : it->second;
   auto& net = registry_.GetComponents<NetworkedEntityComponent>();
   auto& net_comp = net[entity];
