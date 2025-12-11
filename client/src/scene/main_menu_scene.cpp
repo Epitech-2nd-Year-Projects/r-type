@@ -1,11 +1,13 @@
 #include "main_menu_scene.h"
 
+#include <exception>
 #include <string>
 
 #include "application.h"
 #include "engine/core/engine_runtime.h"
 #include "engine/math/rect.h"
 #include "engine/render/renderer2d.h"
+#include "logging.h"
 
 namespace client {
 
@@ -17,7 +19,8 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
 
   auto white = engine::render::Color::White();
 
-  float center_x = 1600.0f / 2.0f;
+  float center_x =
+      static_cast<float>(app_.GetEngine().Window().GetSize().x) * 0.5f;
   float start_y = 200.0f;
 
   ui_elements_.push_back(std::make_shared<ui::Label>(
@@ -72,9 +75,16 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
 
         try {
           int port = std::stoi(port_str);
+          if (port < 1 || port > 65535) {
+            LogLifecycle(engine::util::LogLevel::kWarn,
+                         "Port must be between 1 and 65535");
+            return;
+          }
           app_.SetConnectionConfig(host, port, name);
           app_.StartConnection();
-        } catch (...) {
+        } catch (const std::exception& e) {
+          const std::string message = std::string("Invalid port: ") + e.what();
+          LogLifecycle(engine::util::LogLevel::kWarn, message);
         }
       });
   ui_elements_.push_back(connect_btn);
@@ -116,9 +126,6 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
     check(name_input_);
   }
   was_mouse_down_ = is_down;
-
-  if (input.IsKeyDown(engine::input::Key::kEnter)) {
-  }
 
   for (auto& elem : ui_elements_) {
     elem->Update(dt, input);
