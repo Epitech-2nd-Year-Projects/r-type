@@ -11,6 +11,10 @@
 #include "engine/math/vector2.h"
 #include "engine/render/layer.h"
 
+#if defined(DrawText)
+#undef DrawText
+#endif
+
 namespace engine::render {
 
 /**

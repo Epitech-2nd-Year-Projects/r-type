@@ -176,6 +176,17 @@ void JoinFlow::MarkDisconnected(std::string_view reason) {
   LogLifecycle(engine::util::LogLevel::kWarn, status_text_);
 }
 
+void JoinFlow::Reset() {
+  state_ = JoinState::kIdle;
+  player_id_.reset();
+  last_reject_.reset();
+  status_text_ = "Idle";
+  attempts_ = 0;
+  next_sequence_ = 1;
+  last_send_ = {};
+  sequence_tracker_.Reset();
+}
+
 void JoinFlow::Fail(std::string_view message) {
   state_ = JoinState::kRefused;
   status_text_.assign(message.begin(), message.end());
