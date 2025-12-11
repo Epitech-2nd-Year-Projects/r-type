@@ -33,16 +33,9 @@ std::string ResolveAssetPath(std::string_view relative_path) {
     cursor = cursor.parent_path();
   }
 
-  std::filesystem::path source_root = std::filesystem::absolute(__FILE__)
-                                          .parent_path()
-                                          .parent_path()
-                                          .parent_path();
-  std::filesystem::path source_candidate = source_root / relative_path;
-  if (std::filesystem::exists(source_candidate)) {
-    return source_candidate.string();
-  }
-
-  return std::string(relative_path);
+  LogLifecycle(engine::util::LogLevel::kError,
+               "Failed to resolve asset path: " + std::string(relative_path));
+  return std::string();
 }
 
 }  // namespace
@@ -65,14 +58,18 @@ void AudioManager::LoadAssets() {
 }
 
 void AudioManager::PlayMusic(MusicType type) {
-  if (music_paths_.count(type)) {
-    fading_ = false;
-    fade_remaining_ = 0.0f;
-    fade_duration_ = 0.0f;
-    current_music_ = type;
-    engine_.SetMusicVolume(default_music_volume_);
-    engine_.PlayMusic(music_paths_.at(type));
+  const auto it = music_paths_.find(type);
+  if (it == music_paths_.end() || it->second.empty()) {
+    LogLifecycle(engine::util::LogLevel::kError,
+                 "No audio path available for requested music type");
+    return;
   }
+  fading_ = false;
+  fade_remaining_ = 0.0f;
+  fade_duration_ = 0.0f;
+  current_music_ = type;
+  engine_.SetMusicVolume(default_music_volume_);
+  engine_.PlayMusic(it->second);
 }
 
 void AudioManager::StopMusic() {
