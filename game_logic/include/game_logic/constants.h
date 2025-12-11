@@ -12,6 +12,8 @@ constexpr float kGridCellSize = 100.0f;
 constexpr float kPlayerSpawnBaseX = 100.0f;
 constexpr float kPlayerSpawnOffsetX = 50.0f;
 constexpr float kPlayerSpawnY = 300.0f;
+constexpr float kSpawnMinY = 50.0f;
+constexpr float kSpawnMaxY = 700.0f;
 
 // Enemy Visuals
 constexpr std::uint8_t kEnemyTintR = 255;

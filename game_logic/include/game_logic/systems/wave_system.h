@@ -2,6 +2,7 @@
 #define GAME_LOGIC_SYSTEMS_WAVE_SYSTEM_H_
 
 #include <deque>
+#include <random>
 
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
@@ -18,6 +19,7 @@ struct WaveEntry {
   float spawn_time{0.0f};
   entities::EnemyType type{entities::EnemyType::kScout};
   engine::math::Vector2f position{0.0f, 0.0f};
+  bool random_y{false};
 };
 
 /**
@@ -44,6 +46,9 @@ class WaveSystem : public engine::ecs::ISystem {
   float current_wave_time_{0.0f};
   std::deque<WaveEntry> pending_spawns_;
   int current_level_{1};
+
+  // Random Number Generation
+  std::mt19937 rng_;
 };
 
 }  // namespace game_logic::systems
