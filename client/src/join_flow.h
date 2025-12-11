@@ -72,6 +72,11 @@ class JoinFlow {
    */
   void MarkDisconnected(std::string_view reason);
 
+  /**
+   * @brief Clear session state and return to idle ready for a new connection
+   */
+  void Reset();
+
  private:
   void SendJoinRequest(NetworkTransport& transport);
   void HandleDecodedPacket(protocol::Packet& packet);
