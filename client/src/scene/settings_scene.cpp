@@ -1,8 +1,7 @@
 #include "settings_scene.h"
 
 #include <algorithm>
-#include <iomanip>
-#include <sstream>
+#include <cmath>
 #include <string>
 
 #include "application.h"
@@ -23,10 +22,12 @@ std::string VolumeToString(float volume) {
 
 SettingsScene::SettingsScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
+  renderer.LoadFont("kenney_future", "assets/ui/kenney_future.ttf");
   renderer.SetFont("kenney_future");
 
   engine::render::Color white = engine::render::Color::White();
-  float center_x = 1600.0f / 2.0f;
+  float center_x =
+      static_cast<float>(app_.GetEngine().Window().GetSize().x) * 0.5f;
   float start_y = 200.0f;
 
   ui_elements_.push_back(std::make_shared<ui::Label>(
