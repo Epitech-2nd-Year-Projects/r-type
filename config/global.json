@@ -1,0 +1,26 @@
+{
+    "world": {
+        "grid_cell_size": 100.0,
+        "player_spawn_base_x": 100.0,
+        "player_spawn_offset_x": 50.0,
+        "player_spawn_y": 300.0,
+        "spawn_min_y": 50.0,
+        "spawn_max_y": 700.0
+    },
+    "enemy_visuals": {
+        "tint_r": 255,
+        "tint_g": 80,
+        "tint_b": 80,
+        "tint_a": 255,
+        "layer": 5
+    },
+    "collision": {
+        "crash_damage": 100
+    },
+    "behavior": {
+        "patrol_min_x": 0.0,
+        "patrol_min_y": 100.0,
+        "patrol_max_x": 800.0,
+        "patrol_max_y": 500.0
+    }
+}
