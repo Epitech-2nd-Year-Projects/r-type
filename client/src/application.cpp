@@ -175,7 +175,7 @@ void Application::OnOpenSettings() { TransitionTo(ClientState::kSettings); }
 
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!engine_->Pump()) {
-    LogLifecycle(engine::util::LogLevel::kInfo,
+    LogLifecycle(engine::util::LogLevel::kError,
                  "Engine pump stopped the client loop");
     return false;
   }
