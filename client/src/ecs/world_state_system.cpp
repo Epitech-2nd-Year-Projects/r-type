@@ -157,6 +157,8 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     } else {
       pos->previous_position = pos->position;
       pos->position = target;
+      // Keep render position at the old location so interpolation blends toward
+      // the new authoritative state instead of teleporting.
       pos->render_position = pos->previous_position;
     }
   }
