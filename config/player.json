@@ -1,0 +1,12 @@
+{
+    "default": {
+        "health": 100,
+        "lives": 3,
+        "speed": 200.0,
+        "hitbox_width": 32.0,
+        "hitbox_height": 16.0,
+        "sprite_width": 32.0,
+        "sprite_height": 16.0,
+        "texture_path": "assets/sprites/player.png"
+    }
+}
