@@ -5,6 +5,9 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unordered_map>
+
+#include "logging.h"
 
 namespace client {
 namespace {
@@ -115,24 +118,18 @@ std::optional<GameAction> ActionTokenToAction(std::string_view token) {
 KeyBindings KeyBindings::Default() {
   KeyBindings bindings;
   bindings.Set(GameAction::kMoveUp, engine::input::Key::kW);
-  bindings.bindings_[ActionIndex(GameAction::kMoveUp)].push_back(
-      engine::input::Key::kZ);
-  bindings.bindings_[ActionIndex(GameAction::kMoveUp)].push_back(
-      engine::input::Key::kUp);
+  bindings.Add(GameAction::kMoveUp, engine::input::Key::kZ);
+  bindings.Add(GameAction::kMoveUp, engine::input::Key::kUp);
 
   bindings.Set(GameAction::kMoveDown, engine::input::Key::kS);
-  bindings.bindings_[ActionIndex(GameAction::kMoveDown)].push_back(
-      engine::input::Key::kDown);
+  bindings.Add(GameAction::kMoveDown, engine::input::Key::kDown);
 
   bindings.Set(GameAction::kMoveLeft, engine::input::Key::kA);
-  bindings.bindings_[ActionIndex(GameAction::kMoveLeft)].push_back(
-      engine::input::Key::kQ);
-  bindings.bindings_[ActionIndex(GameAction::kMoveLeft)].push_back(
-      engine::input::Key::kLeft);
+  bindings.Add(GameAction::kMoveLeft, engine::input::Key::kQ);
+  bindings.Add(GameAction::kMoveLeft, engine::input::Key::kLeft);
 
   bindings.Set(GameAction::kMoveRight, engine::input::Key::kD);
-  bindings.bindings_[ActionIndex(GameAction::kMoveRight)].push_back(
-      engine::input::Key::kRight);
+  bindings.Add(GameAction::kMoveRight, engine::input::Key::kRight);
 
   bindings.Set(GameAction::kShoot, engine::input::Key::kSpace);
   bindings.Set(GameAction::kReconnect, engine::input::Key::kR);
@@ -160,6 +157,14 @@ bool KeyBindings::LoadFromFile(const std::filesystem::path& path) {
     const auto key = ParseKeyToken(key_token);
     if (action && key) {
       Set(*action, *key);
+    } else if (!action) {
+      LogLifecycle(engine::util::LogLevel::kWarn,
+                   "Ignoring unknown action in keybindings: " +
+                       std::string(action_token));
+    } else {
+      LogLifecycle(engine::util::LogLevel::kWarn,
+                   "Ignoring unknown key in keybindings: " +
+                       std::string(key_token));
     }
   }
   return true;
@@ -191,6 +196,13 @@ engine::input::Key KeyBindings::Primary(GameAction action) const {
   return engine::input::Key::kUnknown;
 }
 
+void KeyBindings::Add(GameAction action, engine::input::Key key) {
+  auto& keys = bindings_[ActionIndex(action)];
+  if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+    keys.push_back(key);
+  }
+}
+
 void KeyBindings::Set(GameAction action, engine::input::Key key) {
   auto& keys = bindings_[ActionIndex(action)];
   keys.clear();
@@ -204,24 +216,6 @@ const std::vector<engine::input::Key>& KeyBindings::KeysFor(
 
 std::vector<GameAction> KeyBindings::Actions() const {
   return {kActionOrder.begin(), kActionOrder.end()};
-}
-
-std::size_t KeyBindings::ActionIndex(GameAction action) {
-  switch (action) {
-    case GameAction::kMoveUp:
-      return 0;
-    case GameAction::kMoveDown:
-      return 1;
-    case GameAction::kMoveLeft:
-      return 2;
-    case GameAction::kMoveRight:
-      return 3;
-    case GameAction::kShoot:
-      return 4;
-    case GameAction::kReconnect:
-      return 5;
-  }
-  return 0;
 }
 
 std::string ActionLabel(GameAction action) {
@@ -279,11 +273,20 @@ std::string KeyDisplayName(engine::input::Key key) {
 }
 
 std::optional<engine::input::Key> ParseKeyToken(std::string_view token) {
+  const auto& table = []() -> const std::unordered_map<std::string, engine::input::Key>& {
+    static const std::unordered_map<std::string, engine::input::Key> map = [] {
+      std::unordered_map<std::string, engine::input::Key> built;
+      for (const auto& entry : kKeyNames) {
+        built.emplace(ToLower(entry.token), entry.key);
+      }
+      return built;
+    }();
+    return map;
+  }();
+
   const std::string normalized = ToLower(token);
-  for (const auto& entry : kKeyNames) {
-    if (ToLower(entry.token) == normalized) {
-      return entry.key;
-    }
+  if (const auto it = table.find(normalized); it != table.end()) {
+    return it->second;
   }
   return std::nullopt;
 }

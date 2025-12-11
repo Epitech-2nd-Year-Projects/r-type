@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cstddef>
 
 #include "engine/input.h"
 #include "input_layer.h"
@@ -46,6 +47,11 @@ class KeyBindings {
   engine::input::Key Primary(GameAction action) const;
 
   /**
+   * @brief Append a key binding without removing existing ones
+   */
+  void Add(GameAction action, engine::input::Key key);
+
+  /**
    * @brief Replace bindings for a specific action with a single key
    */
   void Set(GameAction action, engine::input::Key key);
@@ -61,9 +67,29 @@ class KeyBindings {
   std::vector<GameAction> Actions() const;
 
  private:
-  static std::size_t ActionIndex(GameAction action);
   std::array<std::vector<engine::input::Key>, 6> bindings_{};
 };
+
+/**
+ * @brief Stable index for an action used by binding tables
+ */
+constexpr std::size_t ActionIndex(GameAction action) {
+  switch (action) {
+    case GameAction::kMoveUp:
+      return 0;
+    case GameAction::kMoveDown:
+      return 1;
+    case GameAction::kMoveLeft:
+      return 2;
+    case GameAction::kMoveRight:
+      return 3;
+    case GameAction::kShoot:
+      return 4;
+    case GameAction::kReconnect:
+      return 5;
+  }
+  return 0;
+}
 
 /**
  * @brief Human readable label for a gameplay action
