@@ -107,10 +107,9 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   const auto hp = delta.state.hp;
   health[entity] = HealthComponent(hp, hp);
 
-  auto& snapshots =
-      registry_.GetComponents<SnapshotInterpolationComponent>();
-  snapshots[entity] =
-      SnapshotInterpolationComponent(receipt_timestamp_ms, receipt_timestamp_ms);
+  auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
+  snapshots[entity] = SnapshotInterpolationComponent(receipt_timestamp_ms,
+                                                     receipt_timestamp_ms);
 }
 
 void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
@@ -193,8 +192,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     }
   }
 
-  auto& snapshots =
-      registry_.GetComponents<SnapshotInterpolationComponent>();
+  auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
   auto& snapshot = snapshots[entity];
   if (!snapshot.has_value()) {
     snapshot = SnapshotInterpolationComponent(receipt_timestamp_ms,

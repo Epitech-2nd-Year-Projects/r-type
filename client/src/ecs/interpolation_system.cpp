@@ -97,8 +97,7 @@ void InterpolationSystem::UpdateAt(engine::time::TimeDelta /*dt*/,
         render_time_ms > end_ms ? render_time_ms - end_ms : 0;
     const std::uint64_t clamped_extra =
         std::min<std::uint64_t>(extra_ms, max_extrapolation_ms_);
-    const float extra_seconds =
-        static_cast<float>(clamped_extra) / 1000.0f;
+    const float extra_seconds = static_cast<float>(clamped_extra) / 1000.0f;
     engine::math::Vector2f velocity{0.0f, 0.0f};
     if (i < velocities.size() && velocities[i].has_value()) {
       velocity = velocities[i]->velocity;
