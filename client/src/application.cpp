@@ -136,9 +136,7 @@ void Application::SwitchScene(std::unique_ptr<Scene> scene) {
   current_scene_ = std::move(scene);
 }
 
-void Application::OnConnected() {
-  TransitionTo(ClientState::kInGame);
-}
+void Application::OnConnected() { TransitionTo(ClientState::kInGame); }
 
 void Application::OnConnectionFailed(const std::string& reason) {
   StopNetworkSession();
@@ -147,13 +145,9 @@ void Application::OnConnectionFailed(const std::string& reason) {
 
 void Application::OnGameStart() { TransitionTo(ClientState::kInGame); }
 
-void Application::OnGamePause() {
-  TransitionTo(ClientState::kPaused);
-}
+void Application::OnGamePause() { TransitionTo(ClientState::kPaused); }
 
-void Application::OnGameResume() {
-  TransitionTo(ClientState::kInGame);
-}
+void Application::OnGameResume() { TransitionTo(ClientState::kInGame); }
 
 void Application::OnGameOver() {
   if (state_ == ClientState::kGameOver) {
@@ -203,8 +197,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     }
   }
   if (input_sender_) {
-    const bool accepts_input = join_state == JoinState::kConnected &&
-                               state_ == ClientState::kInGame;
+    const bool accepts_input =
+        join_state == JoinState::kConnected && state_ == ClientState::kInGame;
     input_sender_->Update(dt, accepts_input);
   }
   if (world_update_receiver_.running()) {
@@ -212,8 +206,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     while (world_update_receiver_.TryPop(message)) {
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
         HandleGameOverAudio();
-        if (state_ == ClientState::kInGame ||
-            state_ == ClientState::kPaused) {
+        if (state_ == ClientState::kInGame || state_ == ClientState::kPaused) {
           OnGameOver();
         }
       }
@@ -397,8 +390,7 @@ void Application::ProcessJoinState(JoinState join_state) {
     return;
   }
 
-  if (state_ == ClientState::kConnecting &&
-      join_state == JoinState::kRefused) {
+  if (state_ == ClientState::kConnecting && join_state == JoinState::kRefused) {
     OnConnectionFailed(join_flow_.status());
   }
 }
