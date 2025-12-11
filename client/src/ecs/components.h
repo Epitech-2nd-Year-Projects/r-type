@@ -46,16 +46,20 @@ struct NetworkedEntityComponent {
  *
  * @details
  * Tracks the latest authoritative position and the previous position so that
- * interpolation systems can smoothly transition between snapshots.
+ * interpolation systems can smoothly transition between snapshots. The
+ * render_position field stores the blended position used for drawing and may
+ * differ slightly from the authoritative state while smoothing corrections.
  */
 struct PositionComponent {
   engine::math::Vector2f position{0.0f, 0.0f};
   engine::math::Vector2f previous_position{0.0f, 0.0f};
+  engine::math::Vector2f render_position{0.0f, 0.0f};
 
   PositionComponent() = default;
-  PositionComponent(float x, float y) : position(x, y), previous_position(x, y) {}
+  PositionComponent(float x, float y)
+      : position(x, y), previous_position(x, y), render_position(x, y) {}
   PositionComponent(const engine::math::Vector2f& pos, const engine::math::Vector2f& prev)
-      : position(pos), previous_position(prev) {}
+      : position(pos), previous_position(prev), render_position(pos) {}
 };
 
 /**
@@ -150,6 +154,25 @@ struct MissileTag {};
  * @brief Tag for the locally controlled player entity
  */
 struct LocalPlayerTag {};
+
+/**
+ * @brief Snapshot timing metadata for interpolation
+ *
+ * @details
+ * Stores the timestamps of the last two snapshots applied to an entity so
+ * interpolation systems can compute blend factors and gracefully fall back to
+ * extrapolation when new snapshots have not arrived yet.
+ */
+struct SnapshotInterpolationComponent {
+  std::uint64_t previous_snapshot_ms{0};
+  std::uint64_t last_snapshot_ms{0};
+
+  SnapshotInterpolationComponent() = default;
+  SnapshotInterpolationComponent(std::uint64_t last_snapshot_ms,
+                                 std::uint64_t previous_snapshot_ms)
+      : previous_snapshot_ms(previous_snapshot_ms),
+        last_snapshot_ms(last_snapshot_ms) {}
+};
 
 }  // namespace client::ecs
 

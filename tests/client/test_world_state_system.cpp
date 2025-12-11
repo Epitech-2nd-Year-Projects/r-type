@@ -39,6 +39,12 @@ protocol::EntityDelta MakeCreateDelta(std::uint32_t id, std::uint16_t type,
   return delta;
 }
 
+void ApplyAt(client::ecs::WorldStateSystem& system,
+             const protocol::WorldSnapshotPayload& snapshot,
+             std::uint64_t timestamp_ms) {
+  system.ApplySnapshot(snapshot, timestamp_ms);
+}
+
 }  // namespace
 
 TEST(WorldStateSystemTest, AppliesCreateSnapshot) {
@@ -50,7 +56,7 @@ TEST(WorldStateSystemTest, AppliesCreateSnapshot) {
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.deltas.push_back(MakeCreateDelta(5, 2, 10, -4, 3, -1, 7));
 
-  system.ApplySnapshot(snapshot);
+  ApplyAt(system, snapshot, 10);
 
   const auto& net = registry.GetComponents<NetworkedEntityComponent>();
   const auto index = FindEntityIndex(net, 5);
@@ -81,7 +87,7 @@ TEST(WorldStateSystemTest, AppliesUpdateAndTracksPreviousPosition) {
   create.snapshot_id = 1;
   create.base_snapshot_id = protocol::kNoBaseSnapshotId;
   create.deltas.push_back(MakeCreateDelta(1, 1, 0, 0, 0, 0, 5));
-  system.ApplySnapshot(create);
+  ApplyAt(system, create, 10);
 
   protocol::WorldSnapshotPayload update{};
   update.snapshot_id = 2;
@@ -94,7 +100,7 @@ TEST(WorldStateSystemTest, AppliesUpdateAndTracksPreviousPosition) {
   delta.state.x = 8;
   delta.state.hp = 3;
   update.deltas.push_back(delta);
-  system.ApplySnapshot(update);
+  ApplyAt(system, update, 20);
 
   const auto index = FindEntityIndex(registry.GetComponents<NetworkedEntityComponent>(), 1);
   ASSERT_LT(index, registry.GetComponents<NetworkedEntityComponent>().size());
@@ -116,7 +122,7 @@ TEST(WorldStateSystemTest, DeletesEntitiesOnDelta) {
   snapshot.snapshot_id = 1;
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.deltas.push_back(MakeCreateDelta(2, 1, 0, 0, 0, 0, 1));
-  system.ApplySnapshot(snapshot);
+  ApplyAt(system, snapshot, 10);
 
   protocol::WorldSnapshotPayload deletion{};
   deletion.snapshot_id = 2;
@@ -125,7 +131,7 @@ TEST(WorldStateSystemTest, DeletesEntitiesOnDelta) {
   delta.op = protocol::EntityDeltaOp::kDelete;
   delta.entity_id = 2;
   deletion.deltas.push_back(delta);
-  system.ApplySnapshot(deletion);
+  ApplyAt(system, deletion, 20);
 
   const auto& net = registry.GetComponents<NetworkedEntityComponent>();
   EXPECT_EQ(FindEntityIndex(net, 2), net.size());
@@ -146,7 +152,7 @@ TEST(WorldStateSystemTest, UpdateCreatesMissingEntityWithMaskedFields) {
   delta.state.x = 12;
   delta.state.hp = 6;
   update.deltas.push_back(delta);
-  system.ApplySnapshot(update);
+  ApplyAt(system, update, 10);
 
   const auto& net = registry.GetComponents<NetworkedEntityComponent>();
   const auto index = FindEntityIndex(net, 9);
@@ -173,13 +179,13 @@ TEST(WorldStateSystemTest, FullSnapshotPrunesMissingEntities) {
   initial.base_snapshot_id = protocol::kNoBaseSnapshotId;
   initial.deltas.push_back(MakeCreateDelta(10, 1, 1, 1, 0, 0, 5));
   initial.deltas.push_back(MakeCreateDelta(11, 1, 2, 2, 0, 0, 5));
-  system.ApplySnapshot(initial);
+  ApplyAt(system, initial, 10);
 
   protocol::WorldSnapshotPayload resync{};
   resync.snapshot_id = 2;
   resync.base_snapshot_id = protocol::kNoBaseSnapshotId;
   resync.deltas.push_back(MakeCreateDelta(11, 1, 5, 5, 0, 0, 4));
-  system.ApplySnapshot(resync);
+  ApplyAt(system, resync, 20);
 
   const auto& net = registry.GetComponents<NetworkedEntityComponent>();
   const auto index_missing = FindEntityIndex(net, 10);
@@ -197,13 +203,13 @@ TEST(WorldStateSystemTest, RejectsStaleSnapshots) {
   first.snapshot_id = 2;
   first.base_snapshot_id = protocol::kNoBaseSnapshotId;
   first.deltas.push_back(MakeCreateDelta(4, 1, 1, 1, 0, 0, 9));
-  system.ApplySnapshot(first);
+  ApplyAt(system, first, 20);
 
   protocol::WorldSnapshotPayload stale{};
   stale.snapshot_id = 1;
   stale.base_snapshot_id = protocol::kNoBaseSnapshotId;
   stale.deltas.push_back(MakeCreateDelta(4, 1, 5, 5, 0, 0, 1));
-  system.ApplySnapshot(stale);
+  ApplyAt(system, stale, 10);
 
   const auto& net = registry.GetComponents<NetworkedEntityComponent>();
   const auto index = FindEntityIndex(net, 4);
