@@ -113,12 +113,14 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                           : it->second;
   auto& net = registry_.GetComponents<NetworkedEntityComponent>();
   auto& net_comp = net[entity];
+  const std::uint32_t last_applied =
+      net_comp.has_value() ? net_comp->last_snapshot : 0u;
+  if (last_applied >= snapshot_id) {
+    return;
+  }
   if (!net_comp.has_value()) {
     net_comp = NetworkedEntityComponent{delta.entity_id, delta.state.type,
                                         snapshot_id};
-  }
-  if (net_comp->last_snapshot >= snapshot_id) {
-    return;
   }
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldType) {
@@ -174,7 +176,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
       hp = HealthComponent(delta.state.hp, delta.state.hp);
     } else {
       hp->current = delta.state.hp;
-      hp->max = delta.state.hp;
+      hp->max = std::max(hp->max, delta.state.hp);
     }
   }
 }
