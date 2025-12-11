@@ -1,0 +1,66 @@
+{
+    "PlayerMissile": {
+        "name": "PlayerMissile",
+        "damage": 10,
+        "speed": 400.0,
+        "lifetime": 5.0,
+        "sprite_width": 16.0,
+        "sprite_height": 8.0,
+        "hitbox_scale": 0.8,
+        "texture_path": "assets/sprites/player_missile.png",
+        "tint": [
+            100,
+            150,
+            255,
+            255
+        ]
+    },
+    "BigPlayerMissile": {
+        "name": "BigPlayerMissile",
+        "damage": 50,
+        "speed": 250.0,
+        "lifetime": 5.0,
+        "sprite_width": 32.0,
+        "sprite_height": 16.0,
+        "hitbox_scale": 0.8,
+        "texture_path": "assets/sprites/big_missile.png",
+        "tint": [
+            255,
+            50,
+            50,
+            255
+        ]
+    },
+    "EnemyMissile": {
+        "name": "EnemyMissile",
+        "damage": 50,
+        "speed": 300.0,
+        "lifetime": 5.0,
+        "sprite_width": 12.0,
+        "sprite_height": 12.0,
+        "hitbox_scale": 0.8,
+        "texture_path": "assets/sprites/enemy_missile.png",
+        "tint": [
+            255,
+            100,
+            100,
+            255
+        ]
+    },
+    "NeutralMissile": {
+        "name": "NeutralMissile",
+        "damage": 20,
+        "speed": 150.0,
+        "lifetime": 5.0,
+        "sprite_width": 14.0,
+        "sprite_height": 10.0,
+        "hitbox_scale": 0.8,
+        "texture_path": "assets/sprites/neutral_missile.png",
+        "tint": [
+            200,
+            200,
+            200,
+            255
+        ]
+    }
+}
