@@ -43,6 +43,7 @@ class LocalPrediction {
 
   /**
    * @brief Snapshot the predicted position before applying a server update
+   * @return Predicted position of the local player or std::nullopt when unknown
    */
   std::optional<engine::math::Vector2f> CapturePredictedPosition();
 
@@ -69,6 +70,7 @@ class LocalPrediction {
   static constexpr float kReconciliationDuration = 0.1f;
   static constexpr float kWorldWidth = 1920.0f;
   static constexpr float kWorldHeight = 1080.0f;
+  static constexpr std::uint16_t kPlayerTypeCode = 1u;
 };
 
 }  // namespace client

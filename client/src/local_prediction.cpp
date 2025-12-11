@@ -59,7 +59,7 @@ std::optional<engine::ecs::EntityId> LocalPrediction::ResolveLocalEntity() {
       continue;
     }
     const auto& comp = net[i].value();
-    if (comp.type_code == 1 ||
+    if (comp.type_code == kPlayerTypeCode ||
         HasPlayerTag(registry_, registry_.EntityFromIndex(i))) {
       local_entity_ = registry_.EntityFromIndex(i);
       return local_entity_;
