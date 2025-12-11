@@ -3,10 +3,12 @@
 
 #include <vector>
 #include <memory>
+#include <optional>
 
 #include "scene.h"
 #include "../ui/ui_element.h"
 #include "../ui/label.h"
+#include "../input_layer.h"
 
 namespace client {
 
@@ -25,6 +27,15 @@ class SettingsScene : public Scene {
   
   std::shared_ptr<ui::Label> music_volume_label_;
   std::shared_ptr<ui::Label> sfx_volume_label_;
+  std::vector<bool> key_state_buffer_;
+  std::optional<GameAction> pending_rebind_;
+  std::shared_ptr<ui::Label> rebind_status_label_;
+  struct BindingRow {
+    GameAction action;
+    std::shared_ptr<ui::Label> label;
+    std::shared_ptr<ui::Button> button;
+  };
+  std::vector<BindingRow> binding_rows_;
 };
 
 }  // namespace client
