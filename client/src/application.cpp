@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 
+#include "ecs/components.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
@@ -192,6 +193,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (input_layer_) {
     input_layer_->Update();
   }
+  HandleDebugOverlayToggle();
 
   if (transport_) {
     join_flow_.Update(*transport_);
@@ -267,10 +269,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   auto& context = engine_->RenderContext();
   auto& renderer = engine_->Renderer();
 
-  const float fps = dt.as_seconds() > 0.0f ? 1.0f / dt.as_seconds() : 0.0f;
-
-  std::ostringstream hud;
-  hud << std::fixed << std::setprecision(1) << "FPS: " << fps;
+  debug_overlay_.UpdateFrameTiming(dt);
+  debug_overlay_.UpdateRenderableCount(RenderableEntityCount());
+  debug_overlay_.UpdateLatency(world_update_receiver_.LatestRttMs());
 
   context.BeginFrame();
   context.Clear(kClearColor);
@@ -279,8 +280,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     current_scene_->Draw(renderer);
   }
 
-  renderer.DrawText(hud.str(), {24.0f, 24.0f}, 20.0f,
-                    engine::render::Color::FromBytes(200, 200, 200));
+  debug_overlay_.Draw(renderer, engine_->Window().GetSize());
 
   context.EndFrame();
   return true;
@@ -572,6 +572,34 @@ void Application::StopNetworkSession() {
   if (local_prediction_) {
     local_prediction_->Reset();
   }
+}
+
+void Application::HandleDebugOverlayToggle() {
+  if (!engine_) {
+    return;
+  }
+
+  auto& input = engine_->Input();
+  const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
+  if (pressed && !debug_toggle_pressed_) {
+    debug_overlay_.Toggle();
+  }
+  debug_toggle_pressed_ = pressed;
+}
+
+std::size_t Application::RenderableEntityCount() const {
+  if (!world_registry_) {
+    return 0;
+  }
+
+  const auto& sprites = world_registry_->GetComponents<ecs::SpriteComponent>();
+  std::size_t count = 0;
+  for (const auto& sprite : sprites) {
+    if (sprite.has_value() && sprite->visible) {
+      ++count;
+    }
+  }
+  return count;
 }
 
 }  // namespace client
