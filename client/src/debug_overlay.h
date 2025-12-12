@@ -15,6 +15,8 @@
 #include "engine/render/renderer2d.h"
 #include "engine/time/time_delta.h"
 
+class DebugOverlayTestPeer;
+
 namespace client {
 
 /**
@@ -61,12 +63,19 @@ class DebugOverlay {
    * @param renderer Renderer used for drawing text and backgrounds.
    * @param window_size Current window dimensions for positioning.
    */
-  void Draw(engine::render::Renderer2D& renderer,
-            const engine::math::Vector2i& window_size) const;
+ void Draw(engine::render::Renderer2D& renderer,
+           const engine::math::Vector2i& window_size) const;
 
  private:
+  friend class ::DebugOverlayTestPeer;
   float AverageFrameTimeMs() const;
 
+  /**
+   * @brief Number of recent frames to track for timing metrics.
+   *
+   * Represents a rolling window of 120 frames (about two seconds at 60 FPS).
+   * Adjust to change the duration of timing history shown in the overlay.
+   */
   static constexpr std::size_t kSampleCount = 120;
   std::array<float, kSampleCount> frame_times_ms_{};
   std::size_t samples_recorded_{0};
