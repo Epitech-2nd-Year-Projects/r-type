@@ -15,7 +15,6 @@
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/game_instance.h"
-#include "protocol/command.h"
 #include "protocol/input_state.h"
 #include "protocol/header.h"
 #include "protocol/world_snapshot.h"
@@ -83,18 +82,6 @@ class GameInstance {
   void OnPlayerInput(std::uint32_t player_id,
                      const protocol::InputStatePayload& payload,
                      const protocol::Header& header);
-
-  /**
-   * @brief Handles reliable client commands (e.g., ready/unready).
-   * @return Optional ReadyEvent describing the change.
-   */
-  struct ReadyEvent {
-    std::uint32_t player_id{0};
-    bool is_ready{false};
-    bool game_started{false};
-  };
-  std::optional<ReadyEvent> OnClientCommand(std::uint32_t player_id,
-                                            const protocol::CommandPayload& command);
 
   /**
    * @brief Advances the simulation by one tick.
@@ -196,36 +183,13 @@ class GameInstance {
     std::uint32_t last_applied_sequence{0};       ///< Highest input sequence number applied.
     std::uint32_t last_input_client_time_ms{0};   ///< Client timestamp of last processed input.
     std::uint32_t last_input_server_time_ms{0};   ///< Server timestamp when last input was processed.
-    std::uint8_t last_buttons{0};                 ///< Button bitfield of last processed input for input state tracking.
-    bool is_ready{false};                         ///< Whether the player is ready to start the game (lobby state).
+    std::uint8_t last_buttons{0};                     ///< Button bitfield of last processed input.
   };
 
   std::unordered_map<std::uint32_t, PlayerState> players_;  ///< Map of player IDs to their state.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic spawning.
   std::unique_ptr<game_logic::GameInstance> logic_;         ///< Game logic subsystem managing gameplay rules and systems.
-  engine::util::Logger& logger_;                            ///< Logger for diagnostic output and event tracking. tracking.
-
-  /**
-   * @brief Game phase enumeration.
-   * 
-   * Tracks the current state of the game instance:
-   * - kLobby: Pre-game state where players join and ready up
-   * - kPlaying: Active gameplay state with full simulation
-   */
-  enum class Phase {
-    kLobby,   ///< Lobby phase: players joining and readying.
-    kPlaying  ///< Active gameplay phase.
-  };
-  Phase phase_{Phase::kLobby};  ///< Current game phase (lobby or active play).
-
-  /**
-   * @brief Checks if conditions are met to start the game.
-   * @return True if all connected players are ready and count meets requirements.
-   * 
-   * Evaluates lobby start conditions including minimum player count
-   * and ready status of all participants.
-   */
-  bool CheckStartCondition() const;
+  engine::util::Logger& logger_;                            ///< Logger shared with the server runtime.
 };
 
 }  // namespace server

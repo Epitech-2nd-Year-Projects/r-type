@@ -18,12 +18,14 @@ bool EncodeJoinRequest(const JoinRequestPayload& payload,
   buffer.WriteUint16(payload.client_version);
   buffer.WriteUint8(static_cast<std::uint8_t>(name_len));
   if (name_len > 0) {
-    const auto name_span = std::span(payload.player_name).first(name_len);
+    const auto name_span =
+        std::span(payload.player_name).first(name_len);
     buffer.write_bytes(std::as_bytes(name_span));
   }
   buffer.WriteUint8(static_cast<std::uint8_t>(room_len));
   if (room_len > 0) {
-    const auto room_span = std::span(payload.room_code).first(room_len);
+    const auto room_span =
+        std::span(payload.room_code).first(room_len);
     buffer.write_bytes(std::as_bytes(room_span));
   }
   return true;
@@ -50,7 +52,8 @@ bool DecodeJoinRequest(engine::net::PacketBuffer& buffer,
   if (name_len > 0) {
     player_name.resize(name_len);
     auto name_span = std::span(player_name);
-    if (!buffer.read_bytes(std::as_writable_bytes(name_span.first(name_len)))) {
+    if (!buffer.read_bytes(std::as_writable_bytes(
+            name_span.first(name_len)))) {
       return false;
     }
   }
@@ -67,7 +70,8 @@ bool DecodeJoinRequest(engine::net::PacketBuffer& buffer,
   if (room_len > 0) {
     room_code.resize(room_len);
     auto room_span = std::span(room_code);
-    if (!buffer.read_bytes(std::as_writable_bytes(room_span.first(room_len)))) {
+    if (!buffer.read_bytes(
+            std::as_writable_bytes(room_span.first(room_len)))) {
       return false;
     }
   }
@@ -120,7 +124,8 @@ bool EncodeJoinReject(const JoinRejectPayload& payload,
   buffer.WriteUint8(static_cast<std::uint8_t>(payload.reason));
   buffer.WriteUint8(static_cast<std::uint8_t>(msg_len));
   if (msg_len > 0) {
-    const auto message_span = std::span(payload.message).first(msg_len);
+    const auto message_span =
+        std::span(payload.message).first(msg_len);
     buffer.write_bytes(std::as_bytes(message_span));
   }
   return true;

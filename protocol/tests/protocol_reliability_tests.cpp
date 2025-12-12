@@ -480,7 +480,8 @@ bool TestDecodeMetricsAllErrors() {
 }
 
 bool TestDecodeErrorToString() {
-  const auto str_ok = protocol::DecodeErrorToString(protocol::DecodeError::kOk);
+  const auto str_ok =
+      protocol::DecodeErrorToString(protocol::DecodeError::kOk);
   const auto str_eob = protocol::DecodeErrorToString(
       protocol::DecodeError::kUnexpectedEndOfBuffer);
   const auto str_hdr =

@@ -20,9 +20,7 @@ jobs:
       RANLIB: llvm-ranlib
 
     steps:
-      - uses: actions/checkout@v6.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/checkout@v4
 
       - name: Install system dependencies
         run: |
