@@ -13,7 +13,7 @@ jobs:
     if: github.repository != 'EpitechPGE3-2025/G-CPP-500-PAR-5-2-rtype-1' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
 
