@@ -12,13 +12,16 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <optional>
 #include <variant>
 
 #include "network_transport.h"
 #include "protocol/command.h"
 #include "protocol/input_state.h"
+#include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
+#include "protocol/ping.h"
 #include "protocol/player_died.h"
 #include "protocol/sequence_tracker.h"
 #include "protocol/world_snapshot.h"
@@ -103,9 +106,17 @@ class WorldUpdateReceiver {
    */
   bool running() const { return running_.load(std::memory_order_acquire); }
 
+  /**
+   * @brief Latest measured round-trip latency in milliseconds
+   * @return Populated when at least one ping/pong cycle completed
+   */
+  std::optional<float> LatestRttMs() const;
+
  private:
   void ReceiveLoop();
   bool Push(WorldUpdateMessage&& message);
+  bool SendPing(std::uint32_t client_time_ms);
+  void HandlePong(const protocol::PongPayload& pong, std::uint32_t now_ms);
 
   static constexpr std::size_t kMaxQueueDepth = 256;
 
@@ -119,6 +130,11 @@ class WorldUpdateReceiver {
 
   std::mutex queue_mutex_;
   std::deque<WorldUpdateMessage> queue_;
+
+  protocol::LatencyEstimator latency_estimator_{};
+  std::atomic<bool> has_latency_estimate_{false};
+  std::atomic<float> latest_rtt_ms_{0.0f};
+  std::atomic<std::uint64_t> last_pong_ms_{0};
 };
 
 }  // namespace client
