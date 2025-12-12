@@ -26,6 +26,8 @@
 #include "protocol/sequence_tracker.h"
 #include "protocol/world_snapshot.h"
 
+class WorldUpdateReceiverTestPeer;
+
 namespace client {
 
 /**
@@ -113,9 +115,20 @@ class WorldUpdateReceiver {
   std::optional<float> LatestRttMs() const;
 
  private:
+  friend class ::WorldUpdateReceiverTestPeer;
   void ReceiveLoop();
   bool Push(WorldUpdateMessage&& message);
+  /**
+   * @brief Send a ping packet stamped with the provided client time.
+   * @param client_time_ms Local timestamp to embed in the ping header.
+   * @return true when the ping was queued for send.
+   */
   bool SendPing(std::uint32_t client_time_ms);
+  /**
+   * @brief Update latency estimation based on a received pong.
+   * @param pong Payload echoed from the server.
+   * @param now_ms Local receipt time used to compute RTT.
+   */
   void HandlePong(const protocol::PongPayload& pong, std::uint32_t now_ms);
 
   static constexpr std::size_t kMaxQueueDepth = 256;
