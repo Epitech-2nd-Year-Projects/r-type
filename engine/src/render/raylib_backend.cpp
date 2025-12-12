@@ -40,7 +40,7 @@ unsigned char ToByte(float value) {
   return ::Vector2{vec.x, vec.y};
 }
 
-constexpr std::array<std::pair<input::Key, int>, 57> kKeyMappings{{
+constexpr std::array<std::pair<input::Key, int>, 61> kKeyMappings{{
     {input::Key::kA, KEY_A},
     {input::Key::kB, KEY_B},
     {input::Key::kC, KEY_C},
@@ -98,6 +98,10 @@ constexpr std::array<std::pair<input::Key, int>, 57> kKeyMappings{{
     {input::Key::kRightControl, KEY_RIGHT_CONTROL},
     {input::Key::kLeftAlt, KEY_LEFT_ALT},
     {input::Key::kRightAlt, KEY_RIGHT_ALT},
+    {input::Key::kF1, KEY_F1},
+    {input::Key::kF2, KEY_F2},
+    {input::Key::kF3, KEY_F3},
+    {input::Key::kF4, KEY_F4},
 }};
 
 // Raylib SIDE/EXTRA correspond to the typical back/forward buttons.

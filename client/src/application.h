@@ -21,6 +21,7 @@
 #include "local_prediction.h"
 #include "scene/scene.h"
 #include "world_update_receiver.h"
+#include "debug_overlay.h"
 
 namespace client {
 
@@ -130,6 +131,8 @@ class Application {
   void StopNetworkSession();
   void LoadKeyBindings();
   bool SaveKeyBindings();
+  void UpdateDebugOverlayState();
+  std::size_t RenderableEntityCount() const;
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -152,6 +155,8 @@ class Application {
   bool music_allowed_{false};
   bool music_blocked_{false};
   bool reconnect_requested_{false};
+  bool debug_toggle_pressed_{false};
+  DebugOverlay debug_overlay_{};
 };
 
 }  // namespace client

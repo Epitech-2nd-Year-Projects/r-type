@@ -70,7 +70,11 @@ enum class Key {
   kLeftControl,
   kRightControl,
   kLeftAlt,
-  kRightAlt
+  kRightAlt,
+  kF1,
+  kF2,
+  kF3,
+  kF4
 };
 
 /**
