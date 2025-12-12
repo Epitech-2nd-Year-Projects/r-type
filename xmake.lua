@@ -12,7 +12,7 @@ if is_plat("windows") then
 	add_defines("NODRAWTEXT")
 end
 
-includes("engine", "protocol", "game_logic", "server", "client", "tests")
+includes("engine", "server", "client", "protocol", "game_logic", "tests")
 
 target("r-type")
 set_kind("phony")

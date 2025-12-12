@@ -72,13 +72,6 @@ class Room {
                    const protocol::Header& header);
 
   /**
-   * @brief Routes a reliable client command (e.g., ready toggle).
-   * @return Optional ready event for broadcasting.
-   */
-  std::optional<GameInstance::ReadyEvent> HandleClientCommand(
-      std::uint32_t player_id, const protocol::CommandPayload& command);
-
-  /**
    * @brief Builds the next world snapshot for this room.
    * @return Snapshot payload ready for encoding.
    */

@@ -1,8 +1,8 @@
 #include "protocol/packet.h"
 
-#include <functional>
-#include <optional>
 #include <utility>
+#include <optional>
+#include <functional>
 
 #include "protocol/message_type.h"
 
@@ -232,7 +232,8 @@ bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet) {
 
 bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet,
                   DecodeError& out_error) {
-  return DecodePacketInternal(buffer, out_packet, std::ref(out_error));
+  return DecodePacketInternal(buffer, out_packet,
+                              std::ref(out_error));
 }
 
 }  // namespace protocol
