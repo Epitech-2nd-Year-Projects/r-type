@@ -47,8 +47,6 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
   }
 }
 
-// 1-second interval balances latency freshness and network overhead; adjust
-// only if session timing requirements change.
 constexpr std::chrono::milliseconds kPingInterval{1000};
 
 std::uint32_t NowMilliseconds32() {
