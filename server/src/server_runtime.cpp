@@ -326,6 +326,7 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
                                        : protocol::CommandType::kUnready),
         payload);
   }
+  room->get().MarkActive(NowMilliseconds());
 }
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
