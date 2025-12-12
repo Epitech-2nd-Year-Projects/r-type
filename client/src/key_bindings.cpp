@@ -4,6 +4,8 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
@@ -11,9 +13,6 @@
 
 namespace client {
 namespace {
-
-constexpr std::string_view kConfigCommentStart = "#";
-constexpr std::string_view kSeparator = "=";
 
 struct KeyName {
   engine::input::Key key;
@@ -95,14 +94,6 @@ std::string ToLower(std::string_view text) {
   return normalized;
 }
 
-std::string_view Trim(std::string_view text) {
-  constexpr std::string_view kWhitespace = " \t\r\n";
-  const auto begin = text.find_first_not_of(kWhitespace);
-  if (begin == std::string_view::npos) return {};
-  const auto end = text.find_last_not_of(kWhitespace);
-  return text.substr(begin, end - begin + 1);
-}
-
 std::optional<GameAction> ActionTokenToAction(std::string_view token) {
   const std::string normalized = ToLower(token);
   for (GameAction action : kActionOrder) {
@@ -137,37 +128,7 @@ KeyBindings KeyBindings::Default() {
 }
 
 bool KeyBindings::LoadFromFile(const std::filesystem::path& path) {
-  std::ifstream file(path);
-  if (!file.is_open()) {
-    return false;
-  }
-
-  std::string line;
-  while (std::getline(file, line)) {
-    const std::string_view trimmed = Trim(line);
-    if (trimmed.empty() || trimmed.rfind(kConfigCommentStart, 0) == 0 ||
-        trimmed.find(kSeparator) == std::string_view::npos) {
-      continue;
-    }
-
-    const auto sep = trimmed.find('=');
-    const auto action_token = Trim(trimmed.substr(0, sep));
-    const auto key_token = Trim(trimmed.substr(sep + 1));
-    const auto action = ActionTokenToAction(action_token);
-    const auto key = ParseKeyToken(key_token);
-    if (action && key) {
-      Set(*action, *key);
-    } else if (!action) {
-      LogLifecycle(engine::util::LogLevel::kWarn,
-                   "Ignoring unknown action in keybindings: " +
-                       std::string(action_token));
-    } else {
-      LogLifecycle(
-          engine::util::LogLevel::kWarn,
-          "Ignoring unknown key in keybindings: " + std::string(key_token));
-    }
-  }
-  return true;
+  return LoadFromJson(path);
 }
 
 bool KeyBindings::SaveToFile(const std::filesystem::path& path) const {
@@ -175,6 +136,18 @@ bool KeyBindings::SaveToFile(const std::filesystem::path& path) const {
   if (!parent.empty()) {
     std::error_code ec;
     std::filesystem::create_directories(parent, ec);
+  }
+
+  const std::string lowered_ext = ToLower(path.extension().string());
+  if (lowered_ext == ".json") {
+    nlohmann::json doc = nlohmann::json::object();
+    for (GameAction action : kActionOrder) {
+      doc[std::string(ActionToken(action))] = KeyToToken(Primary(action));
+    }
+    std::ofstream file(path);
+    if (!file.is_open()) return false;
+    file << doc.dump(2);
+    return true;
   }
 
   std::ofstream file(path);
@@ -301,6 +274,51 @@ std::span<const engine::input::Key> BindableKeys() {
     return arr;
   }();
   return keys;
+}
+
+bool KeyBindings::LoadFromJson(const std::filesystem::path& path) {
+  std::ifstream file(path);
+  if (!file.is_open()) return false;
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+
+  nlohmann::json doc;
+  try {
+    doc = nlohmann::json::parse(buffer.str());
+  } catch (const std::exception& e) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 std::string("Failed to parse keybindings json: ") + e.what());
+    return false;
+  }
+
+  if (!doc.is_object()) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Keybindings json root is not an object");
+    return false;
+  }
+
+  for (const auto& [name, value] : doc.items()) {
+    const auto action = ActionTokenToAction(name);
+    if (!action) {
+      LogLifecycle(engine::util::LogLevel::kWarn,
+                   "Ignoring unknown action in keybindings: " + name);
+      continue;
+    }
+    if (!value.is_string()) {
+      LogLifecycle(engine::util::LogLevel::kWarn,
+                   "Ignoring non-string key binding for action: " + name);
+      continue;
+    }
+    const auto key = ParseKeyToken(value.get<std::string>());
+    if (key) {
+      Set(*action, *key);
+    } else {
+      LogLifecycle(engine::util::LogLevel::kWarn,
+                   "Ignoring unknown key in keybindings: " + value.dump());
+    }
+  }
+  return true;
 }
 
 }  // namespace client

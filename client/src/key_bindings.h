@@ -68,6 +68,7 @@ class KeyBindings {
 
  private:
   std::array<std::vector<engine::input::Key>, 6> bindings_{};
+  bool LoadFromJson(const std::filesystem::path& path);
 };
 
 /**
