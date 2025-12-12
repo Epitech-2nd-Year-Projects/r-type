@@ -131,7 +131,7 @@ class Application {
   void StopNetworkSession();
   void LoadKeyBindings();
   bool SaveKeyBindings();
-  void HandleDebugOverlayToggle();
+  void UpdateDebugOverlayState();
   std::size_t RenderableEntityCount() const;
 
   ClientConfig config_;
