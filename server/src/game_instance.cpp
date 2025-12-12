@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <optional>
 
 namespace server {
 
@@ -12,7 +13,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
     : rng_(seed),
       logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
       logger_(logger) {
-  logic_->Start();
+  // Start is invoked once game transitions to playing; remain in lobby
+  // initially.
 }
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
@@ -22,6 +24,7 @@ void GameInstance::OnPlayerJoined(std::uint32_t player_id,
   PlayerState state{};
   state.player_id = player_id;
   state.connected = true;
+  state.is_ready = false;
   players_[player_id] = state;
   if (logic_) {
     const std::string name = player_name.empty()
@@ -37,11 +40,15 @@ void GameInstance::OnPlayerLeft(std::uint32_t player_id) {
   if (logic_) {
     logic_->OnPlayerLeave(player_id);
   }
+  if (players_.empty()) {
+    phase_ = Phase::kLobby;  // Reset phase when empty.
+  }
 }
 
 void GameInstance::OnPlayerInput(std::uint32_t player_id,
                                  const protocol::InputStatePayload& payload,
                                  const protocol::Header& header) {
+  (void)header;
   auto it = players_.find(player_id);
   if (it == players_.end()) {
     logger_.Warn("[GameInstance] Input from unknown player: ", player_id);
@@ -120,7 +127,54 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
                 " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
+std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
+    std::uint32_t player_id, const protocol::CommandPayload& command) {
+  auto it = players_.find(player_id);
+  if (it == players_.end()) {
+    logger_.Warn("[GameInstance] Command from unknown player: ", player_id);
+    return std::nullopt;
+  }
+
+  const auto cmd_type = static_cast<protocol::CommandType>(command.command_id);
+  bool target_ready = it->second.is_ready;
+
+  switch (cmd_type) {
+    case protocol::CommandType::kSetReady:
+      target_ready = true;
+      break;
+    case protocol::CommandType::kUnready:
+      target_ready = false;
+      break;
+    default:
+      return std::nullopt;
+  }
+
+  if (it->second.is_ready == target_ready) return std::nullopt;
+  it->second.is_ready = target_ready;
+
+  ReadyEvent evt{};
+  evt.player_id = player_id;
+  evt.is_ready = target_ready;
+  evt.game_started = false;
+
+  if (phase_ == Phase::kLobby && CheckStartCondition()) {
+    phase_ = Phase::kPlaying;
+    if (logic_) {
+      logic_->Start();
+    }
+    evt.game_started = true;
+    logger_.Info("[GameInstance] Lobby conditions met, starting game");
+  }
+
+  logger_.Info("[GameInstance] Player ", player_id,
+               target_ready ? " ready" : " unready");
+  return evt;
+}
+
 void GameInstance::Update(const engine::time::TimeDelta& delta) {
+  if (phase_ == Phase::kLobby) {
+    return;
+  }
   if (logic_) {
     logic_->Update(delta);
   }
@@ -225,5 +279,17 @@ const engine::ecs::Registry& GameInstance::World() const {
 game_logic::GameInstance& GameInstance::Logic() { return *logic_; }
 
 const game_logic::GameInstance& GameInstance::Logic() const { return *logic_; }
+
+bool GameInstance::CheckStartCondition() const {
+  if (players_.size() < 2) {
+    return false;
+  }
+  for (const auto& [_, state] : players_) {
+    if (!state.is_ready) {
+      return false;
+    }
+  }
+  return true;
+}
 
 }  // namespace server

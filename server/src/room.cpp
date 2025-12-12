@@ -72,6 +72,14 @@ void Room::HandleInput(std::uint32_t player_id,
   }
 }
 
+std::optional<GameInstance::ReadyEvent> Room::HandleClientCommand(
+    std::uint32_t player_id, const protocol::CommandPayload& command) {
+  if (!game_instance_) {
+    return std::nullopt;
+  }
+  return game_instance_->OnClientCommand(player_id, command);
+}
+
 protocol::WorldSnapshotPayload Room::BuildSnapshot(std::uint32_t server_tick) {
   if (!game_instance_) {
     return {};
