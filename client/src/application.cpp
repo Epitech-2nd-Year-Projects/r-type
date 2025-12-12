@@ -193,7 +193,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (input_layer_) {
     input_layer_->Update();
   }
-  HandleDebugOverlayToggle();
+  UpdateDebugOverlayState();
 
   if (transport_) {
     join_flow_.Update(*transport_);
@@ -574,7 +574,7 @@ void Application::StopNetworkSession() {
   }
 }
 
-void Application::HandleDebugOverlayToggle() {
+void Application::UpdateDebugOverlayState() {
   if (!engine_) {
     return;
   }
