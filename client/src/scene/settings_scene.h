@@ -3,14 +3,20 @@
 
 #include <vector>
 #include <memory>
+#include <optional>
 
 #include "scene.h"
 #include "../ui/ui_element.h"
 #include "../ui/label.h"
+#include "../ui/button.h"
+#include "../input_layer.h"
 
 namespace client {
 
 class Application;
+namespace ui {
+class Button;
+}
 
 class SettingsScene : public Scene {
  public:
@@ -25,6 +31,21 @@ class SettingsScene : public Scene {
   
   std::shared_ptr<ui::Label> music_volume_label_;
   std::shared_ptr<ui::Label> sfx_volume_label_;
+  std::vector<bool> key_state_buffer_;
+  std::optional<GameAction> pending_rebind_;
+  std::shared_ptr<ui::Label> rebind_status_label_;
+  struct BindingRow {
+    GameAction action;
+    std::shared_ptr<ui::Label> label;
+    std::shared_ptr<ui::Button> button;
+
+    BindingRow(GameAction action_in, std::shared_ptr<ui::Label> label_in,
+               std::shared_ptr<ui::Button> button_in)
+        : action(action_in), label(std::move(label_in)),
+          button(std::move(button_in)) {}
+  };
+  std::vector<BindingRow> binding_rows_;
+  std::optional<std::reference_wrapper<BindingRow>> FindRow(GameAction action);
 };
 
 }  // namespace client

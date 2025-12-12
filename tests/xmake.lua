@@ -1,9 +1,9 @@
-add_requires("gtest")
+add_requires("gtest", "nlohmann_json")
 
 target("client_tests")
     set_kind("binary")
     set_default(false)
-    add_packages("gtest")
+    add_packages("gtest", "nlohmann_json")
     add_files("client/*.cpp")
     add_files("../client/src/**.cpp|main.cpp")
     add_includedirs("../client/src")

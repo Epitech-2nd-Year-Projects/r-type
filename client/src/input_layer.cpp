@@ -3,6 +3,8 @@
 #include <array>
 #include <string>
 
+#include "key_bindings.h"
+
 namespace client {
 namespace {
 
@@ -55,25 +57,19 @@ InputLayer::InputLayer(engine::input::InputManager& manager)
 }
 
 void InputLayer::ApplyDefaultBindings() {
+  ApplyBindings(KeyBindings::Default());
+}
+
+void InputLayer::ApplyBindings(const KeyBindings& bindings) {
   auto& manager = manager_.get();
-
   manager.ResetBindings();
-  manager.BindKey(action_names_[kMoveUpIndex], engine::input::Key::kW);
-  manager.BindKey(action_names_[kMoveUpIndex], engine::input::Key::kZ);
-  manager.BindKey(action_names_[kMoveUpIndex], engine::input::Key::kUp);
 
-  manager.BindKey(action_names_[kMoveDownIndex], engine::input::Key::kS);
-  manager.BindKey(action_names_[kMoveDownIndex], engine::input::Key::kDown);
-
-  manager.BindKey(action_names_[kMoveLeftIndex], engine::input::Key::kQ);
-  manager.BindKey(action_names_[kMoveLeftIndex], engine::input::Key::kA);
-  manager.BindKey(action_names_[kMoveLeftIndex], engine::input::Key::kLeft);
-
-  manager.BindKey(action_names_[kMoveRightIndex], engine::input::Key::kD);
-  manager.BindKey(action_names_[kMoveRightIndex], engine::input::Key::kRight);
-
-  manager.BindKey(action_names_[kShootIndex], engine::input::Key::kSpace);
-  manager.BindKey(action_names_[kReconnectIndex], engine::input::Key::kR);
+  for (const auto& mapping : kMappings) {
+    const auto& keys = bindings.KeysFor(mapping.action);
+    for (auto key : keys) {
+      manager.BindKey(action_names_[ActionIndex(mapping.action)], key);
+    }
+  }
 }
 
 void InputLayer::Update() {
