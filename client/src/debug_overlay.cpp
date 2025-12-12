@@ -57,7 +57,7 @@ float DebugOverlay::AverageFrameTimeMs() const {
 }
 
 void DebugOverlay::Draw(engine::render::Renderer2D& renderer,
-                        const engine::math::Vector2i& /*window_size*/) const {
+                        const engine::math::Vector2i& window_size) const {
   if (!enabled_) {
     return;
   }
@@ -96,7 +96,11 @@ void DebugOverlay::Draw(engine::render::Renderer2D& renderer,
   const float box_width = max_width + kPadding * 2.0f;
   const float box_height =
       static_cast<float>(lines.size()) * line_height + kPadding * 2.0f;
-  const engine::math::RectF background{kCornerOffset, kCornerOffset, box_width,
+  const float origin_x =
+      std::max(kCornerOffset,
+               static_cast<float>(window_size.x) - box_width - kCornerOffset);
+  const float origin_y = kCornerOffset;
+  const engine::math::RectF background{origin_x, origin_y, box_width,
                                        box_height};
   renderer.DrawRect(background, kBackgroundColor);
 
