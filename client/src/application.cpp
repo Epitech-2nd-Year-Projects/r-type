@@ -382,8 +382,7 @@ bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
 
 void Application::LoadKeyBindings() {
   KeyBindings bindings = KeyBindings::Default();
-  const bool loaded = bindings.LoadFromFile(keybindings_path_);
-  if (!loaded) {
+  if (!bindings.LoadFromFile(keybindings_path_)) {
     LogLifecycle(engine::util::LogLevel::kDebug,
                  "Key bindings config not found, applying defaults");
   }

@@ -145,7 +145,7 @@ class Application {
   std::unique_ptr<AudioManager> audio_manager_;
   WorldUpdateReceiver world_update_receiver_;
   KeyBindings key_bindings_{KeyBindings::Default()};
-  std::filesystem::path keybindings_path_{"config/keybindings.cfg"};
+  std::filesystem::path keybindings_path_{"config/keybindings.json"};
   ClientState state_{ClientState::kMainMenu};
   std::string disconnect_reason_;
   JoinState last_join_state_{JoinState::kIdle};
