@@ -594,6 +594,10 @@ void Application::StopNetworkSession() {
   }
 }
 
+std::optional<float> Application::LatestLatencyMs() const {
+  return world_update_receiver_.LatestRttMs();
+}
+
 void Application::UpdateDebugOverlayState() {
   if (!engine_) {
     return;
