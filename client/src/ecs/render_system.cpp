@@ -21,6 +21,15 @@ constexpr std::uint16_t kPlayerTypeCode = 1u;
 constexpr std::uint16_t kEnemyTypeCode = 2u;
 constexpr std::uint16_t kMissileTypeCode = 3u;
 constexpr std::uint16_t kObstacleTypeCode = 4u;
+constexpr std::int32_t kBackgroundLayerMax = 2;
+constexpr std::int32_t kForegroundLayerMin = 9;
+constexpr std::int32_t kMissileRenderLayer = 8;
+constexpr std::int32_t kObstacleRenderLayer = 3;
+// Client only receives broad type codes; thresholds guide visual subtype picks.
+constexpr float kDefaultObstacleSize =
+    64.0f;  // Fallback sprite edge when size is unknown.
+constexpr float kInterceptorSpeedThreshold = 170.0f;
+constexpr float kInterceptorVerticalThreshold = 15.0f;
 
 SpriteDefinition MakeDefinition(std::string_view texture, float width,
                                 float height, std::int32_t layer, float depth,
@@ -44,12 +53,15 @@ SpriteDefinition EnemyDefinition(
 SpriteDefinition MissileDefinition(
     const game_logic::entities::MissileArchetypeData& data, bool face_left) {
   return MakeDefinition(data.texture_path, data.sprite_width,
-                        data.sprite_height, 8, 0.0f, face_left);
+                        data.sprite_height, kMissileRenderLayer, 0.0f,
+                        face_left);
 }
 
 SpriteDefinition ObstacleDefinition(
     const game_logic::entities::ObstacleArchetypeData& data) {
-  return MakeDefinition(data.texture_path, 64.0f, 64.0f, 3, 0.0f, false);
+  const float size = kDefaultObstacleSize * data.hitbox_scale;
+  return MakeDefinition(data.texture_path, size, size, kObstacleRenderLayer,
+                        0.0f, false);
 }
 
 SpriteDefinition DefaultPlayer() {
@@ -58,10 +70,10 @@ SpriteDefinition DefaultPlayer() {
 }
 
 engine::render::RenderLayer ResolveRenderLayer(std::int32_t value) {
-  if (value <= 2) {
+  if (value <= kBackgroundLayerMax) {
     return engine::render::RenderLayer::kBackground;
   }
-  if (value >= 9) {
+  if (value >= kForegroundLayerMin) {
     return engine::render::RenderLayer::kForeground;
   }
   return engine::render::RenderLayer::kMidground;
@@ -223,8 +235,9 @@ RenderSystem::SpriteDefinition RenderSystem::ResolveEnemy(
   if (hp >= game_logic::entities::kBomberData.health) {
     return EnemyDefinition(game_logic::entities::kBomberData, 0.2f);
   }
-  if (speed > 170.0f ||
-      (velocity.has_value() && std::abs(velocity->velocity.y) > 15.0f)) {
+  if (speed > kInterceptorSpeedThreshold ||
+      (velocity.has_value() &&
+       std::abs(velocity->velocity.y) > kInterceptorVerticalThreshold)) {
     return EnemyDefinition(game_logic::entities::kInterceptorData, 0.1f);
   }
 
