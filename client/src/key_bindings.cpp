@@ -81,8 +81,8 @@ constexpr std::array<KeyName, 57> kKeyNames{{
 }};
 
 constexpr std::array<GameAction, 7> kActionOrder{
-    GameAction::kMoveUp,    GameAction::kMoveDown,  GameAction::kMoveLeft,
-    GameAction::kMoveRight, GameAction::kShoot,     GameAction::kBigShoot,
+    GameAction::kMoveUp,    GameAction::kMoveDown, GameAction::kMoveLeft,
+    GameAction::kMoveRight, GameAction::kShoot,    GameAction::kBigShoot,
     GameAction::kReconnect};
 
 std::string ToLower(std::string_view text) {
