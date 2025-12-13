@@ -30,6 +30,7 @@ enum class GameAction {
   kMoveLeft,
   kMoveRight,
   kShoot,
+  kBigShoot,
   kReconnect
 };
 
@@ -56,6 +57,7 @@ struct ActionState {
   bool move_left{false};
   bool move_right{false};
   bool shoot{false};
+  bool big_shoot{false};
 };
 
 /**
@@ -103,7 +105,7 @@ class InputLayer {
   std::optional<GameAction> ResolveAction(std::string_view action_name) const;
   void RefreshState();
 
-  static constexpr std::size_t kActionCount = 6;
+  static constexpr std::size_t kActionCount = 7;
   std::reference_wrapper<engine::input::InputManager> manager_;
   std::array<std::string, kActionCount> action_names_{};
   std::unordered_map<std::string_view, GameAction> action_lookup_;
