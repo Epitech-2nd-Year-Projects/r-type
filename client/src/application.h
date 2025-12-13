@@ -20,6 +20,7 @@
 #include "network_transport.h"
 #include "local_prediction.h"
 #include "scene/scene.h"
+#include "sound_effects.h"
 #include "world_update_receiver.h"
 #include "debug_overlay.h"
 
@@ -146,6 +147,7 @@ class Application {
   std::unique_ptr<InputSender> input_sender_;
   std::unique_ptr<LocalPrediction> local_prediction_;
   std::unique_ptr<AudioManager> audio_manager_;
+  std::unique_ptr<SoundEffects> sound_effects_;
   WorldUpdateReceiver world_update_receiver_;
   KeyBindings key_bindings_{KeyBindings::Default()};
   std::filesystem::path keybindings_path_{"config/keybindings.json"};

@@ -106,8 +106,11 @@ int Application::Run() {
       std::make_unique<InputSender>(*input_layer_, world_update_receiver_);
 
   if (engine_->Audio()) {
-    audio_manager_ = std::make_unique<AudioManager>(*engine_->Audio());
+    auto& audio_engine = *engine_->Audio();
+    audio_manager_ = std::make_unique<AudioManager>(audio_engine);
     audio_manager_->LoadAssets();
+    sound_effects_ = std::make_unique<SoundEffects>(audio_engine);
+    sound_effects_->LoadAssets();
     LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
   }
 
@@ -232,9 +235,15 @@ bool Application::Tick(engine::time::TimeDelta dt) {
           if (local_prediction_) {
             local_prediction_->OnSnapshotApplied(predicted_before);
           }
+          if (sound_effects_) {
+            sound_effects_->OnSnapshotApplied(*world_registry_);
+          }
         }
       }
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
+        if (sound_effects_) {
+          sound_effects_->OnPlayerDeath();
+        }
         HandleGameOverAudio();
         if (state_ == ClientState::kInGame || state_ == ClientState::kPaused) {
           OnGameOver();
@@ -565,6 +574,9 @@ void Application::StopNetworkSession() {
   }
   if (world_state_system_) {
     world_state_system_->Reset();
+  }
+  if (sound_effects_) {
+    sound_effects_->Reset();
   }
   if (input_sender_) {
     input_sender_->Reset();
