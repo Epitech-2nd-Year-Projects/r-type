@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -90,6 +91,10 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
+  /**
+   * @brief Latest measured latency in milliseconds
+   */
+  std::optional<float> LatestLatencyMs() const;
 
   /**
    * @brief Current key binding configuration
