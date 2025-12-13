@@ -123,14 +123,13 @@ std::error_code ServerRuntime::Start() {
     return start_error;
   }
 
-  logger_.Info("Server listening on ",
-                     transport_.local_endpoint().address());
+  logger_.Info("Server listening on ", transport_.local_endpoint().address());
   const std::string room_label =
       config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
   logger_.Info("Room ", room_label, " max players ", config_.max_players,
-                     " tickrate ", config_.tick_rate, " timeout_ms ",
-                     config_.peer_timeout_ms, " room_idle_ms ",
-                     config_.room_idle_timeout_ms, " seed ", config_.seed);
+               " tickrate ", config_.tick_rate, " timeout_ms ",
+               config_.peer_timeout_ms, " room_idle_ms ",
+               config_.room_idle_timeout_ms, " seed ", config_.seed);
   return {};
 }
 
@@ -278,18 +277,18 @@ void ServerRuntime::MaybeLogServerStats() {
                                         static_cast<double>(frame_time_samples_)
                                   : 0.0;
 
-  logger_.Info(
-      "Diagnostics peers total=", peers_.size(), " joined=", joined_peers,
-      " connecting=", connecting_peers, " disconnected=", disconnected_peers,
-      " players=", players_.size(), " rooms=", rooms_.size(),
-      " tickrate target=", config_.tick_rate, " actual=", actual_tick_rate,
-      " avg_frame_ms=", avg_frame_ms,
-      " backlog_ms=", accumulator_.as_milliseconds(),
-      " health=", tick_healthy ? "ok" : "degraded");
+  logger_.Info("Diagnostics peers total=", peers_.size(),
+               " joined=", joined_peers, " connecting=", connecting_peers,
+               " disconnected=", disconnected_peers,
+               " players=", players_.size(), " rooms=", rooms_.size(),
+               " tickrate target=", config_.tick_rate,
+               " actual=", actual_tick_rate, " avg_frame_ms=", avg_frame_ms,
+               " backlog_ms=", accumulator_.as_milliseconds(),
+               " health=", tick_healthy ? "ok" : "degraded");
 
   for (const auto& [room_code, room] : rooms_) {
     logger_.Info("Room ", room_code, " players ", room.PlayerCount(), "/",
-                       room.MaxPlayers());
+                 room.MaxPlayers());
   }
 
   last_server_stats_log_ms_ = now_ms;
@@ -301,18 +300,18 @@ void ServerRuntime::MaybeLogServerStats() {
 
 void ServerRuntime::DumpSessions() {
   logger_.Info("Session dump peers=", peers_.size(),
-                     " players=", players_.size(), " rooms=", rooms_.size(),
-                     " tick=", server_tick_);
+               " players=", players_.size(), " rooms=", rooms_.size(),
+               " tick=", server_tick_);
 
   for (const auto& [room_code, room] : rooms_) {
     logger_.Info("Room ", room_code, " id=", room.Id(), " players ",
-                       room.PlayerCount(), "/", room.MaxPlayers(),
-                       " seed=", room.Seed());
+                 room.PlayerCount(), "/", room.MaxPlayers(),
+                 " seed=", room.Seed());
   }
 
   for (const auto& [endpoint, peer] : peers_) {
     logger_.Info("Peer ", endpoint, " state=", ToString(peer.state),
-                       " player_id=", peer.player_id, " room=", peer.room_code);
+                 " player_id=", peer.player_id, " room=", peer.room_code);
   }
 }
 
@@ -324,7 +323,7 @@ void ServerRuntime::ReloadConfiguration() {
   }
   ConfigureLogging();
   logger_.Info("Configuration reloaded log_level=",
-                     engine::util::ToString(config_.log_level));
+               engine::util::ToString(config_.log_level));
 }
 
 void ServerRuntime::LogDecodeMetricsSummary(bool force) {
@@ -333,13 +332,13 @@ void ServerRuntime::LogDecodeMetricsSummary(bool force) {
     return;
   }
   logger_.Info("DecodeMetrics total=", m.total_packets,
-                     " rejected=", m.rejected_packets,
-                     " errors[unknown_message_type=", m.unknown_message_type,
-                     " version_mismatch=", m.version_mismatch,
-                     " unexpected_end_of_buffer=", m.unexpected_end_of_buffer,
-                     " invalid_header=", m.invalid_header,
-                     " invalid_payload=", m.invalid_payload,
-                     " invalid_snapshot_id=", m.invalid_snapshot_id, "]");
+               " rejected=", m.rejected_packets,
+               " errors[unknown_message_type=", m.unknown_message_type,
+               " version_mismatch=", m.version_mismatch,
+               " unexpected_end_of_buffer=", m.unexpected_end_of_buffer,
+               " invalid_header=", m.invalid_header,
+               " invalid_payload=", m.invalid_payload,
+               " invalid_snapshot_id=", m.invalid_snapshot_id, "]");
 }
 
 void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
@@ -350,9 +349,9 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
   if (!protocol::DecodePacket(packet, decoded, error)) {
     protocol::UpdateDecodeMetrics(decode_metrics_, error);
     logger_.Warn("Dropped packet from ", EndpointKey(from), " (",
-                       protocol::DecodeErrorToString(error),
-                       ") total=", decode_metrics_.total_packets,
-                       " rejected=", decode_metrics_.rejected_packets);
+                 protocol::DecodeErrorToString(error),
+                 ") total=", decode_metrics_.total_packets,
+                 " rejected=", decode_metrics_.rejected_packets);
     return;
   }
   protocol::UpdateDecodeMetrics(decode_metrics_, protocol::DecodeError::kOk);
@@ -405,11 +404,11 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     }
     case MessageType::kHello:
       logger_.Debug("Hello from ", peer.endpoint_key,
-                          " ignored (connectionless)");
+                    " ignored (connectionless)");
       break;
     case MessageType::kPong:
       logger_.Debug("Ignoring connectionless packet (type ",
-                          static_cast<int>(type), ") from ", peer.endpoint_key);
+                    static_cast<int>(type), ") from ", peer.endpoint_key);
       break;
     case MessageType::kServerCommand:
     case MessageType::kWorldSnapshot:
@@ -417,15 +416,15 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
     case MessageType::kDestroyEntity:
     case MessageType::kPlayerDied:
       logger_.Warn("Unexpected server-bound packet type ",
-                         static_cast<int>(type), " from ", peer.endpoint_key);
+                   static_cast<int>(type), " from ", peer.endpoint_key);
       break;
     case MessageType::kInvalid:
-      logger_.Warn("Received unexpected packet type ",
-                         static_cast<int>(type), " from ", peer.endpoint_key);
+      logger_.Warn("Received unexpected packet type ", static_cast<int>(type),
+                   " from ", peer.endpoint_key);
       break;
     default:
-      logger_.Debug("Ignoring non-join packet (type ",
-                          static_cast<int>(type), ") from ", peer.endpoint_key);
+      logger_.Debug("Ignoring non-join packet (type ", static_cast<int>(type),
+                    ") from ", peer.endpoint_key);
       break;
   }
 }
@@ -451,20 +450,18 @@ void ServerRuntime::HandleInputState(
     PeerConnection& peer, const protocol::InputStatePayload& input_state,
     const protocol::Header& header) {
   if (peer.player_id == 0) {
-    logger_.Warn("Received input state from unjoined peer ",
-                       peer.endpoint_key);
+    logger_.Warn("Received input state from unjoined peer ", peer.endpoint_key);
     return;
   }
-  logger_.Trace(
-      "InputState from player ", peer.player_id,
-      " command_count=", static_cast<int>(input_state.command_count));
+  logger_.Trace("InputState from player ", peer.player_id,
+                " command_count=", static_cast<int>(input_state.command_count));
   for (std::uint8_t i = 0; i < input_state.command_count; ++i) {
     const auto& command = input_state.commands[i];
     logger_.Trace("  Command ", i, ": seq=", command.input_sequence,
-                        " buttons=", static_cast<int>(command.buttons),
-                        " analog_x=", command.analog_x,
-                        " analog_y=", command.analog_y,
-                        " client_time_ms=", command.client_time_ms);
+                  " buttons=", static_cast<int>(command.buttons),
+                  " analog_x=", command.analog_x,
+                  " analog_y=", command.analog_y,
+                  " client_time_ms=", command.client_time_ms);
   }
   auto room = FindRoom(peer.room_code);
   if (!room.has_value()) {
@@ -502,10 +499,9 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     return;
   }
 
-  const std::uint16_t ready_command_id =
-      static_cast<std::uint16_t>(ready_event->is_ready
-                                     ? protocol::CommandType::kSetReady
-                                     : protocol::CommandType::kUnready);
+  const std::uint16_t ready_command_id = static_cast<std::uint16_t>(
+      ready_event->is_ready ? protocol::CommandType::kSetReady
+                            : protocol::CommandType::kUnready);
   const std::string payload = std::to_string(ready_event->player_id);
 
   const auto& players = room->get().Players();
@@ -522,8 +518,8 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     SendServerCommand(target, ready_command_id, payload);
     if (ready_event->game_started) {
       SendServerCommand(
-          target,
-          static_cast<std::uint16_t>(protocol::CommandType::kStartGame), "");
+          target, static_cast<std::uint16_t>(protocol::CommandType::kStartGame),
+          "");
     }
   }
 }
@@ -533,11 +529,11 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   const std::string& endpoint_key = peer.endpoint_key;
 
   logger_.Debug("Join request from ", endpoint_key, " player ",
-                      request.player_name, " room ", request.room_code);
+                request.player_name, " room ", request.room_code);
 
   if (!IsValidRoomCode(request.room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key,
-                       " invalid room code length");
+                 " invalid room code length");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room code too long");
     return;
@@ -545,7 +541,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   if (!IsValidPlayerName(request.player_name)) {
     logger_.Warn("Rejecting join from ", endpoint_key,
-                       " invalid player name length");
+                 " invalid player name length");
     SendReject(peer, protocol::JoinRejectReason::kUnknown,
                "Player name too long");
     return;
@@ -553,7 +549,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   if (request.client_version != protocol::kProtocolVersion) {
     logger_.Warn("Rejecting join from ", endpoint_key,
-                       " due to version mismatch");
+                 " due to version mismatch");
     SendReject(peer, protocol::JoinRejectReason::kVersionMismatch,
                "Protocol version mismatch");
     return;
@@ -562,7 +558,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   if (!config_.room_code.empty() && !request.room_code.empty() &&
       request.room_code != config_.room_code) {
     logger_.Warn("Rejecting join from ", endpoint_key, " invalid room ",
-                       request.room_code);
+                 request.room_code);
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room unavailable");
     return;
@@ -575,7 +571,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
   if (!IsValidRoomCode(room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key,
-                       " resolved room code too long");
+                 " resolved room code too long");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room code too long");
     return;
@@ -583,13 +579,13 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
     if (peer.room_code == room_code) {
-      logger_.Debug("Reusing existing player id ", peer.player_id,
-                          " for ", endpoint_key, " room ", room_code);
+      logger_.Debug("Reusing existing player id ", peer.player_id, " for ",
+                    endpoint_key, " room ", room_code);
       SendAccept(peer, room_code);
       return;
     }
     logger_.Warn("Rejecting join from ", endpoint_key,
-                       " already joined in room ", peer.room_code);
+                 " already joined in room ", peer.room_code);
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Already joined");
     return;
@@ -611,7 +607,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
   logger_.Info("Accepted join from ", endpoint_key, " assigned id ",
-                     peer.player_id, " room ", room_code);
+               peer.player_id, " room ", room_code);
   SendAccept(peer, room_code);
 }
 
@@ -722,7 +718,7 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
   const auto send_result = transport_.Send(peer.endpoint, buffer);
   if (send_result.error) {
     logger_.Error("Send error to ", peer.endpoint_key, ": ",
-                        send_result.error.message());
+                  send_result.error.message());
   }
 
   if (is_reliable && peer.reliable_queue) {
@@ -753,7 +749,7 @@ void ServerRuntime::ProcessReliableResends() {
           peer.endpoint, pending.bytes.data(), pending.bytes.size());
       if (send_result.error) {
         logger_.Warn("Resend error to ", peer.endpoint_key, ": ",
-                           send_result.error.message());
+                     send_result.error.message());
         peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);
       }
     }
@@ -852,7 +848,7 @@ void ServerRuntime::DisconnectPeer(PeerConnection& peer,
                                    bool notify_client) {
   const auto now_ms = NowMilliseconds();
   logger_.Info("Disconnecting peer ", peer.endpoint_key, " player id ",
-                     peer.player_id, " reason ", reason);
+               peer.player_id, " reason ", reason);
   if (notify_client && peer.state == PeerState::kJoined) {
     SendServerCommand(
         peer,

@@ -131,8 +131,7 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
     return std::nullopt;
   }
 
-  const auto cmd_type =
-      static_cast<protocol::CommandType>(command.command_id);
+  const auto cmd_type = static_cast<protocol::CommandType>(command.command_id);
   bool target_ready = it->second.is_ready;
 
   switch (cmd_type) {
