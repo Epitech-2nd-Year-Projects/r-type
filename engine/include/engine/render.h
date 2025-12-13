@@ -2,6 +2,7 @@
 #define ENGINE_ENGINE_RENDER_H_
 
 #include "render/backend.h"
+#include "render/camera25d.h"
 #include "render/camera2d.h"
 #include "render/color.h"
 #include "render/context.h"

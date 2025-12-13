@@ -134,6 +134,7 @@ int Application::Run() {
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   ApplyState(ClientState::kMainMenu);
+  CommitSceneChange();
 
   engine::time::VariableTimestepLoop loop(
       static_cast<float>(runtime_config.window_config.target_fps));
@@ -149,7 +150,13 @@ int Application::Run() {
 }
 
 void Application::SwitchScene(std::unique_ptr<Scene> scene) {
-  current_scene_ = std::move(scene);
+  pending_scene_ = std::move(scene);
+}
+
+void Application::CommitSceneChange() {
+  if (pending_scene_) {
+    current_scene_ = std::move(pending_scene_);
+  }
 }
 
 void Application::OnConnected() { TransitionTo(ClientState::kInGame); }
@@ -292,6 +299,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   debug_overlay_.Draw(renderer, engine_->Window().GetSize());
 
   context.EndFrame();
+  CommitSceneChange();
   return true;
 }
 

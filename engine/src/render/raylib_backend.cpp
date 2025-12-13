@@ -118,7 +118,10 @@ class RaylibTexture2D final : public Texture2D {
   explicit RaylibTexture2D(::Texture2D texture) : texture_(texture) {}
   ~RaylibTexture2D() override {
     if (texture_.id != 0) {
-      ::UnloadTexture(texture_);
+      if (::IsWindowReady()) {
+        ::UnloadTexture(texture_);
+      }
+      texture_.id = 0;
     }
   }
 
@@ -254,12 +257,18 @@ class RaylibRenderer2D final : public Renderer2D {
 
   void Flush() override {}
 
-  ~RaylibRenderer2D() override {
+  void ReleaseFonts() {
+    if (!::IsWindowReady()) {
+      fonts_.clear();
+      return;
+    }
     for (auto& [name, font] : fonts_) {
       ::UnloadFont(font);
     }
     fonts_.clear();
   }
+
+  ~RaylibRenderer2D() override { ReleaseFonts(); }
 
  private:
   std::unordered_map<std::string, ::Font> fonts_;
@@ -318,6 +327,7 @@ class RaylibWindow final : public Window {
 
   ~RaylibWindow() override {
     if (window_alive_) {
+      renderer_.ReleaseFonts();
       ::CloseWindow();
       window_alive_ = false;
     }

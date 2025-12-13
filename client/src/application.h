@@ -134,11 +134,11 @@ class Application {
   bool SaveKeyBindings();
   void UpdateDebugOverlayState();
   std::size_t RenderableEntityCount() const;
+  void CommitSceneChange();
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
   JoinFlow join_flow_;
-  std::unique_ptr<Scene> current_scene_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
@@ -148,6 +148,8 @@ class Application {
   std::unique_ptr<LocalPrediction> local_prediction_;
   std::unique_ptr<AudioManager> audio_manager_;
   std::unique_ptr<SoundEffects> sound_effects_;
+  std::unique_ptr<Scene> current_scene_;
+  std::unique_ptr<Scene> pending_scene_;
   WorldUpdateReceiver world_update_receiver_;
   KeyBindings key_bindings_{KeyBindings::Default()};
   std::filesystem::path keybindings_path_{"config/keybindings.json"};
