@@ -14,8 +14,8 @@ namespace client {
 /**
  * @brief Resolve an audio asset path relative to common project roots
  *
- * Searches the ASSET_ROOT environment variable, then the working directory and
- * up to five parent directories.
+ * Searches for relative_path appended to ASSET_ROOT, the working directory,
+ * and up to five parent directories.
  */
 std::string ResolveAssetPath(std::string_view relative_path);
 
