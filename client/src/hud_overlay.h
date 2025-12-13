@@ -62,7 +62,9 @@ class HudOverlay {
    * @brief Update connection indicators
    * @param latency_ms Latest round trip time in milliseconds
    * @param connected Whether the transport is active
-   * @param status_text Human readable connection status
+   * @param status_text Human readable connection status. When empty, a default
+   *        "Connected"/"Disconnected" value is applied based on the connection
+   *        flag.
    */
   void UpdateNetwork(std::optional<float> latency_ms, bool connected,
                      std::string status_text);
