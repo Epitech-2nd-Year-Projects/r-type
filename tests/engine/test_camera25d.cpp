@@ -5,6 +5,7 @@
 namespace {
 
 constexpr float kEpsilon = 0.0001f;
+constexpr float kLooseEpsilon = 0.01f;
 
 }  // namespace
 
@@ -19,11 +20,11 @@ TEST(Camera25DTest, MapsWorldToScreenWithParallax) {
 
   const auto back = camera.WorldToScreen(
       {50.0f, 0.0f}, engine::render::RenderLayer::kBackground);
-  EXPECT_NEAR(back.x, 350.0f, 0.01f);
+  EXPECT_NEAR(back.x, 350.0f, kLooseEpsilon);
 
   const auto front = camera.WorldToScreen(
       {50.0f, 0.0f}, engine::render::RenderLayer::kForeground);
-  EXPECT_NEAR(front.x, 425.0f, 0.01f);
+  EXPECT_NEAR(front.x, 425.0f, kLooseEpsilon);
 }
 
 TEST(Camera25DTest, ComputesViewRectInWorldUnits) {
@@ -31,9 +32,9 @@ TEST(Camera25DTest, ComputesViewRectInWorldUnits) {
   camera.SetFocusX(50.0f);
 
   const auto view_rect = camera.GetViewRectWorld();
-  EXPECT_NEAR(view_rect.top_left_x_, -16.6666f, 0.01f);
+  EXPECT_NEAR(view_rect.top_left_x_, -16.6666f, kLooseEpsilon);
   EXPECT_NEAR(view_rect.top_left_y_, 0.0f, kEpsilon);
-  EXPECT_NEAR(view_rect.width_, 133.3333f, 0.01f);
+  EXPECT_NEAR(view_rect.width_, 133.3333f, kLooseEpsilon);
   EXPECT_NEAR(view_rect.height_, 100.0f, kEpsilon);
 }
 
@@ -49,4 +50,17 @@ TEST(Camera25DTest, ClampsMinimumWorldHeight) {
   engine::render::Camera25D camera({800.0f, 600.0f}, 5.0f, 5.0f);
   const auto view = camera.GetViewSizeWorld();
   EXPECT_NEAR(view.y, 1.0f, kEpsilon);
+}
+
+TEST(Camera25DTest, EnforcesMinimumVerticalRangeThroughSetter) {
+  engine::render::Camera25D camera({800.0f, 600.0f}, 0.0f, 10.0f);
+  camera.SetVerticalRange(2.0f, 2.1f);
+  EXPECT_NEAR(camera.GetVerticalMin(), 2.0f, kEpsilon);
+  EXPECT_NEAR(camera.GetVerticalMax(), 3.0f, kEpsilon);
+}
+
+TEST(Camera25DTest, ClampsViewportSizeToMinimumExtent) {
+  engine::render::Camera25D camera({0.5f, 0.25f}, 0.0f, 10.0f);
+  EXPECT_NEAR(camera.GetViewportSize().x, 1.0f, kEpsilon);
+  EXPECT_NEAR(camera.GetViewportSize().y, 1.0f, kEpsilon);
 }
