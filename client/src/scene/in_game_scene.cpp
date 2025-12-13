@@ -16,9 +16,7 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
   if (input.IsActionActive("Cancel")) {
     app_.OnGamePause();
   }
-}
 
-void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   const auto local_player = app_.GetJoinFlow().player_id();
   hud_.UpdatePlayers(app_.World(), local_player);
 
@@ -27,7 +25,9 @@ void InGameScene::Draw(engine::render::Renderer2D& renderer) {
       join_state == JoinState::kConnected && app_.GetTransport().running();
   hud_.UpdateNetwork(app_.LatestLatencyMs(), connected,
                      app_.GetJoinFlow().status());
+}
 
+void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   hud_.Draw(renderer, app_.GetEngine().Window().GetSize());
 }
 
