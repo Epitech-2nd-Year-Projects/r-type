@@ -80,9 +80,10 @@ constexpr std::array<KeyName, 57> kKeyNames{{
     {engine::input::Key::kRightAlt, "RightAlt", "Right Alt"},
 }};
 
-constexpr std::array<GameAction, 6> kActionOrder{
-    GameAction::kMoveUp,    GameAction::kMoveDown, GameAction::kMoveLeft,
-    GameAction::kMoveRight, GameAction::kShoot,    GameAction::kReconnect};
+constexpr std::array<GameAction, 7> kActionOrder{
+    GameAction::kMoveUp,    GameAction::kMoveDown,  GameAction::kMoveLeft,
+    GameAction::kMoveRight, GameAction::kShoot,     GameAction::kBigShoot,
+    GameAction::kReconnect};
 
 std::string ToLower(std::string_view text) {
   std::string normalized;
@@ -123,6 +124,7 @@ KeyBindings KeyBindings::Default() {
   bindings.Add(GameAction::kMoveRight, engine::input::Key::kRight);
 
   bindings.Set(GameAction::kShoot, engine::input::Key::kSpace);
+  bindings.Set(GameAction::kBigShoot, engine::input::Key::kLeftShift);
   bindings.Set(GameAction::kReconnect, engine::input::Key::kR);
   return bindings;
 }
@@ -203,6 +205,8 @@ std::string ActionLabel(GameAction action) {
       return "Move Right";
     case GameAction::kShoot:
       return "Shoot";
+    case GameAction::kBigShoot:
+      return "Big Shoot";
     case GameAction::kReconnect:
       return "Reconnect";
   }
@@ -221,6 +225,8 @@ std::string_view ActionToken(GameAction action) {
       return "MoveRight";
     case GameAction::kShoot:
       return "Shoot";
+    case GameAction::kBigShoot:
+      return "BigShoot";
     case GameAction::kReconnect:
       return "Reconnect";
   }
