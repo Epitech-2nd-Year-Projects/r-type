@@ -1,5 +1,6 @@
 #include "room.h"
 
+#include <optional>
 #include <utility>
 
 namespace server {
@@ -70,6 +71,14 @@ void Room::HandleInput(std::uint32_t player_id,
   if (game_instance_) {
     game_instance_->OnPlayerInput(player_id, payload, header);
   }
+}
+
+std::optional<GameInstance::ReadyEvent> Room::HandleClientCommand(
+    std::uint32_t player_id, const protocol::CommandPayload& command) {
+  if (!game_instance_) {
+    return std::nullopt;
+  }
+  return game_instance_->OnClientCommand(player_id, command);
 }
 
 protocol::WorldSnapshotPayload Room::BuildSnapshot(std::uint32_t server_tick) {
