@@ -57,6 +57,8 @@ class RenderSystem {
    */
   void Render();
 
+  void SetDebugHitboxes(bool enabled) noexcept { debug_hitboxes_ = enabled; }
+
  private:
   void RegisterComponents();
   void SyncSprite(std::size_t index, const SpriteDefinition& definition,
@@ -97,6 +99,7 @@ class RenderSystem {
   std::unordered_map<std::string, std::shared_ptr<engine::render::Texture2D>>
       textures_;
   std::vector<DrawCommand> draw_queue_;
+  bool debug_hitboxes_{false};
 };
 
 }  // namespace client::ecs
