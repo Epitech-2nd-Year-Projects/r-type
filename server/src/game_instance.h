@@ -15,6 +15,7 @@
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/game_instance.h"
+#include "protocol/command.h"
 #include "protocol/input_state.h"
 #include "protocol/header.h"
 #include "protocol/world_snapshot.h"
@@ -82,6 +83,18 @@ class GameInstance {
   void OnPlayerInput(std::uint32_t player_id,
                      const protocol::InputStatePayload& payload,
                      const protocol::Header& header);
+
+  /**
+   * @brief Handles reliable client commands (e.g., ready/unready).
+   * @return ReadyEvent if state changed / game started, std::nullopt otherwise.
+   */
+  struct ReadyEvent {
+    std::uint32_t player_id{0};
+    bool is_ready{false};
+    bool game_started{false};
+  };
+  std::optional<ReadyEvent> OnClientCommand(std::uint32_t player_id,
+                                            const protocol::CommandPayload& command);
 
   /**
    * @brief Advances the simulation by one tick.
@@ -184,12 +197,21 @@ class GameInstance {
     std::uint32_t last_input_client_time_ms{0};   ///< Client timestamp of last processed input.
     std::uint32_t last_input_server_time_ms{0};   ///< Server timestamp when last input was processed.
     std::uint8_t last_buttons{0};                     ///< Button bitfield of last processed input.
+    bool is_ready{false};                          ///< Lobby ready flag.
   };
 
   std::unordered_map<std::uint32_t, PlayerState> players_;  ///< Map of player IDs to their state.
   std::mt19937 rng_;                                        ///< Random number generator for deterministic spawning.
   std::unique_ptr<game_logic::GameInstance> logic_;         ///< Game logic subsystem managing gameplay rules and systems.
   engine::util::Logger& logger_;                            ///< Logger shared with the server runtime.
+
+  enum class Phase {
+    kLobby,
+    kPlaying
+  };
+  Phase phase_{Phase::kLobby};                              ///< Lobby vs active play.
+
+  bool CheckStartCondition() const;
 };
 
 }  // namespace server
