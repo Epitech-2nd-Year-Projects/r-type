@@ -5,7 +5,7 @@
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
 
-TEST(HudOverlayTests, BuildsPlayerRowsFromRegistry) {
+TEST(HudOverlayTest, BuildsPlayerRowsFromRegistry) {
   engine::ecs::Registry registry;
   registry.RegisterComponent<client::ecs::NetworkedEntityComponent>();
   registry.RegisterComponent<client::ecs::HealthComponent>();
@@ -36,7 +36,7 @@ TEST(HudOverlayTests, BuildsPlayerRowsFromRegistry) {
   EXPECT_FALSE(players[1].alive);
 }
 
-TEST(HudOverlayTests, TracksNetworkStateAndLatency) {
+TEST(HudOverlayTest, TracksNetworkStateAndLatency) {
   client::HudOverlay overlay;
   overlay.UpdateNetwork(42.5f, true, "Connected");
 
@@ -49,4 +49,33 @@ TEST(HudOverlayTests, TracksNetworkStateAndLatency) {
   EXPECT_FALSE(overlay.latency_ms().has_value());
   EXPECT_FALSE(overlay.connected());
   EXPECT_EQ(overlay.status_text(), "Disconnected");
+}
+
+TEST(HudOverlayTest, UpdatesWaveAndLevel) {
+  client::HudOverlay overlay;
+  overlay.UpdateWaveAndLevel(2u, std::nullopt);
+  ASSERT_TRUE(overlay.level().has_value());
+  EXPECT_EQ(*overlay.level(), 2u);
+  EXPECT_FALSE(overlay.wave().has_value());
+}
+
+TEST(HudOverlayTest, AliveFlagReflectsHealthChanges) {
+  engine::ecs::Registry registry;
+  registry.RegisterComponent<client::ecs::NetworkedEntityComponent>();
+  registry.RegisterComponent<client::ecs::HealthComponent>();
+
+  auto entity = registry.SpawnEntity();
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 42u,
+                                                                   1u, 1u);
+  registry.EmplaceComponent<client::ecs::HealthComponent>(entity, 1u, 1u);
+
+  client::HudOverlay overlay;
+  overlay.UpdatePlayers(registry, std::nullopt);
+  ASSERT_EQ(overlay.players().size(), 1u);
+  EXPECT_TRUE(overlay.players()[0].alive);
+
+  registry.GetComponents<client::ecs::HealthComponent>()[entity]->current = 0;
+  overlay.UpdatePlayers(registry, std::nullopt);
+  ASSERT_EQ(overlay.players().size(), 1u);
+  EXPECT_FALSE(overlay.players()[0].alive);
 }
