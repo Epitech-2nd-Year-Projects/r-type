@@ -12,13 +12,16 @@ float ClampExtent(float value, float minimum) noexcept {
 
 }  // namespace
 
-Camera25D::Camera25D() { UpdatePixelsPerUnit(); }
+Camera25D::Camera25D() noexcept { UpdatePixelsPerUnit(); }
 
 Camera25D::Camera25D(const math::Vector2f& viewport_size, float vertical_min,
                      float vertical_max) noexcept
     : viewport_size_(viewport_size),
       vertical_min_(vertical_min),
-      vertical_max_(vertical_max) {
+      vertical_max_(
+          std::max(vertical_max, vertical_min + kMinimumWorldHeight)) {
+  viewport_size_.x = std::max(viewport_size_.x, kMinimumViewportExtent);
+  viewport_size_.y = std::max(viewport_size_.y, kMinimumViewportExtent);
   UpdatePixelsPerUnit();
 }
 
@@ -69,7 +72,7 @@ void Camera25D::UpdatePixelsPerUnit() noexcept {
   const float world_height =
       ClampExtent(vertical_max_ - vertical_min_, kMinimumWorldHeight);
   pixels_per_unit_ = viewport_size_.y / world_height;
-  if (pixels_per_unit_ < 0.0f) {
+  if (pixels_per_unit_ <= 0.0f) {
     pixels_per_unit_ = 1.0f;
   }
 }
