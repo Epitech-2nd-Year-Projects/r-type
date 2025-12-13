@@ -17,7 +17,10 @@ namespace engine::render {
  */
 class Camera25D {
  public:
-  Camera25D();
+  /**
+   * @brief Construct a camera with a 1x1 viewport and unit world height
+   */
+  Camera25D() noexcept;
   Camera25D(const math::Vector2f& viewport_size, float vertical_min,
             float vertical_max) noexcept;
 
