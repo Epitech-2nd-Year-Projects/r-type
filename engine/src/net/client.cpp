@@ -14,7 +14,10 @@ constexpr std::size_t kMaxDatagramSize = 2048;
 
 bool IsTransientError(const std::error_code& ec) {
   return ec == asio::error::would_block || ec == asio::error::try_again ||
-         ec == asio::error::interrupted;
+         ec == asio::error::interrupted || ec == asio::error::connection_refused ||
+         ec == asio::error::connection_reset ||
+         ec == asio::error::network_unreachable ||
+         ec == asio::error::host_unreachable;
 }
 
 }  // namespace
@@ -51,9 +54,7 @@ std::error_code Client::Start(const Endpoint& server_endpoint,
     }
   }
 
-  if (auto connect_error = socket_.connect(server_endpoint); connect_error) {
-    return connect_error;
-  }
+
 
   {
     std::lock_guard<std::mutex> lock(endpoint_mutex_);
