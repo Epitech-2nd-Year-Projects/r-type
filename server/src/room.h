@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -10,6 +11,7 @@
 #include "engine/time/time_delta.h"
 #include "engine/util/logging.h"
 #include "game_instance.h"
+#include "protocol/command.h"
 #include "protocol/snapshot_history.h"
 #include "protocol/world_snapshot.h"
 #include "protocol/input_state.h"
@@ -70,6 +72,13 @@ class Room {
   void HandleInput(std::uint32_t player_id,
                    const protocol::InputStatePayload& payload,
                    const protocol::Header& header);
+
+  /**
+   * @brief Routes a reliable client command (e.g., ready toggle).
+   * @return Optional ready event for broadcasting.
+   */
+  std::optional<GameInstance::ReadyEvent> HandleClientCommand(
+      std::uint32_t player_id, const protocol::CommandPayload& command);
 
   /**
    * @brief Builds the next world snapshot for this room.
