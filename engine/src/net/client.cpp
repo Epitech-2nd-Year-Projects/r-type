@@ -14,10 +14,7 @@ constexpr std::size_t kMaxDatagramSize = 2048;
 
 bool IsTransientError(const std::error_code& ec) {
   return ec == asio::error::would_block || ec == asio::error::try_again ||
-         ec == asio::error::interrupted || ec == asio::error::connection_refused ||
-         ec == asio::error::connection_reset ||
-         ec == asio::error::network_unreachable ||
-         ec == asio::error::host_unreachable;
+         ec == asio::error::interrupted;
 }
 
 }  // namespace
