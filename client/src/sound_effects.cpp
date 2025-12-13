@@ -23,6 +23,8 @@ constexpr std::uint16_t kObstacleTypeCode = 4u;
 
 SoundEffects::SoundEffects(engine::audio::AudioEngine& engine)
     : engine_(engine) {
+  // All SFX currently point to a shared placeholder per project guidance.
+  // Replace with distinct assets once available.
   const std::string effect_path = ResolveAssetPath("assets/fah.ogg");
   effect_paths_.emplace(EffectType::kShot, effect_path);
   effect_paths_.emplace(EffectType::kExplosion, effect_path);
@@ -32,6 +34,7 @@ SoundEffects::SoundEffects(engine::audio::AudioEngine& engine)
 
 void SoundEffects::LoadAssets() {
   const float original_volume = engine_.GetSfxVolume();
+  // Temporarily mute SFX to warm caches without audible playback.
   engine_.SetSfxVolume(0.0f);
   for (const auto& [_, path] : effect_paths_) {
     if (!path.empty()) {
