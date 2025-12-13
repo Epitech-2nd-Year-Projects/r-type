@@ -5,6 +5,7 @@
 #include <string_view>
 #include <utility>
 
+#include "engine/ecs/components/bounding_box_component.h"
 #include "engine/math/vector2.h"
 #include "game_logic/constants.h"
 #include "game_logic/entities/enemy_data.h"
@@ -94,6 +95,7 @@ void RenderSystem::RegisterComponents() {
   registry_.RegisterComponent<ecs::NetworkedEntityComponent>();
   registry_.RegisterComponent<ecs::VelocityComponent>();
   registry_.RegisterComponent<ecs::HealthComponent>();
+  registry_.RegisterComponent<engine::ecs::BoundingBoxComponent>();
 }
 
 void RenderSystem::Reset() {
@@ -110,6 +112,8 @@ void RenderSystem::Render() {
   const auto& nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
   const auto& velocities = registry_.GetComponents<ecs::VelocityComponent>();
   const auto& healths = registry_.GetComponents<ecs::HealthComponent>();
+  const auto& hitboxes =
+      registry_.GetComponents<engine::ecs::BoundingBoxComponent>();
 
   const std::size_t count = positions.size();
 
@@ -162,6 +166,29 @@ void RenderSystem::Render() {
 
   for (const auto& cmd : draw_queue_) {
     renderer_.DrawTexture(*cmd.texture, cmd.params);
+  }
+
+  if (debug_hitboxes_) {
+    const engine::render::Color box_color =
+        engine::render::Color::FromBytes(255, 60, 60, 180);
+    const std::size_t hitbox_count = hitboxes.size();
+    for (std::size_t i = 0; i < hitbox_count; ++i) {
+      if (!positions[i].has_value()) {
+        continue;
+      }
+      if (i >= nets.size() || !nets[i].has_value()) {
+        continue;
+      }
+      if (i >= hitboxes.size() || !hitboxes[i].has_value()) {
+        continue;
+      }
+      const auto& pos = positions[i]->render_position;
+      const auto& bounds = hitboxes[i]->bounds;
+      const engine::math::RectF rect{pos.x + bounds.top_left_x_,
+                                     pos.y + bounds.top_left_y_, bounds.width_,
+                                     bounds.height_};
+      renderer_.DrawRect(rect, box_color);
+    }
   }
 }
 
