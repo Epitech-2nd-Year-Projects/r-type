@@ -619,6 +619,9 @@ void Application::UpdateDebugOverlayState() {
   const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
   if (pressed && !debug_toggle_pressed_) {
     debug_overlay_.Toggle();
+    if (render_system_) {
+      render_system_->SetDebugHitboxes(debug_overlay_.enabled());
+    }
   }
   debug_toggle_pressed_ = pressed;
 }
