@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ecs/render_system.h"
+#include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/registry.h"
 
 namespace {
@@ -27,7 +28,10 @@ class FakeRenderer : public engine::render::Renderer2D {
     engine::render::SpriteDrawParams params;
   };
 
-  void DrawRect(const engine::math::RectF&, const engine::render::Color&) override {}
+  void DrawRect(const engine::math::RectF& rect,
+                const engine::render::Color&) override {
+    rects.push_back(rect);
+  }
   void DrawCircle(const engine::math::Vector2f&, float,
                   const engine::render::Color&) override {}
   void DrawLine(const engine::math::Vector2f&, const engine::math::Vector2f&,
@@ -62,6 +66,7 @@ class FakeRenderer : public engine::render::Renderer2D {
 
   std::vector<std::string> loaded;
   std::vector<Call> calls;
+  std::vector<engine::math::RectF> rects;
 };
 
 }  // namespace
@@ -112,4 +117,27 @@ TEST(RenderSystemTest, OrdersByLayer) {
   EXPECT_EQ(renderer.calls[0].texture,
             "assets/sprites/obstacle_destructible.png");
   EXPECT_EQ(renderer.calls[1].texture, "assets/sprites/player.png");
+}
+
+TEST(RenderSystemTest, DrawsHitboxesWhenEnabled) {
+  engine::ecs::Registry registry;
+  FakeRenderer renderer;
+  client::ecs::RenderSystem render_system(registry, renderer);
+
+  const auto entity = registry.SpawnEntity();
+  registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f,
+                                                            3.0f);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
+      entity, 4u, 1u, 0u);
+  registry.EmplaceComponent<engine::ecs::BoundingBoxComponent>(
+      entity, 1.0f, 2.0f, 5.0f, 7.0f);
+
+  render_system.SetDebugHitboxes(true);
+  render_system.Render();
+
+  ASSERT_EQ(renderer.rects.size(), 1u);
+  EXPECT_FLOAT_EQ(renderer.rects.front().top_left_x_, 3.0f);
+  EXPECT_FLOAT_EQ(renderer.rects.front().top_left_y_, 5.0f);
+  EXPECT_FLOAT_EQ(renderer.rects.front().width_, 5.0f);
+  EXPECT_FLOAT_EQ(renderer.rects.front().height_, 7.0f);
 }
