@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "ecs/components.h"
+#include "ecs/render_system.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
@@ -99,6 +100,8 @@ int Application::Run() {
                  "Failed to initialize engine runtime");
     return 1;
   }
+  render_system_ = std::make_unique<ecs::RenderSystem>(*world_registry_,
+                                                       engine_->Renderer());
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   LoadKeyBindings();
@@ -291,6 +294,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   context.BeginFrame();
   context.Clear(kClearColor);
+
+  if (render_system_ &&
+      (state_ == ClientState::kInGame || state_ == ClientState::kPaused ||
+       state_ == ClientState::kGameOver)) {
+    render_system_->Render();
+  }
 
   if (current_scene_) {
     current_scene_->Draw(renderer);
@@ -583,6 +592,9 @@ void Application::StopNetworkSession() {
   if (world_state_system_) {
     world_state_system_->Reset();
   }
+  if (render_system_) {
+    render_system_->Reset();
+  }
   if (sound_effects_) {
     sound_effects_->Reset();
   }
@@ -607,6 +619,9 @@ void Application::UpdateDebugOverlayState() {
   const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
   if (pressed && !debug_toggle_pressed_) {
     debug_overlay_.Toggle();
+    if (render_system_) {
+      render_system_->SetDebugHitboxes(debug_overlay_.enabled());
+    }
   }
   debug_toggle_pressed_ = pressed;
 }

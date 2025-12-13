@@ -59,15 +59,15 @@ class KeyBindings {
   /**
    * @brief All keys bound to the provided action
    */
-  const std::vector<engine::input::Key>& KeysFor(GameAction action) const;
+ const std::vector<engine::input::Key>& KeysFor(GameAction action) const;
 
   /**
    * @brief Enumerate actions in display order
    */
-  std::vector<GameAction> Actions() const;
+ std::vector<GameAction> Actions() const;
 
  private:
-  std::array<std::vector<engine::input::Key>, 6> bindings_{};
+  std::array<std::vector<engine::input::Key>, 7> bindings_{};
   bool LoadFromJson(const std::filesystem::path& path);
 };
 
@@ -86,8 +86,10 @@ constexpr std::size_t ActionIndex(GameAction action) {
       return 3;
     case GameAction::kShoot:
       return 4;
-    case GameAction::kReconnect:
+    case GameAction::kBigShoot:
       return 5;
+    case GameAction::kReconnect:
+      return 6;
   }
   return 0;
 }

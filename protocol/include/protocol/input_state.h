@@ -15,6 +15,7 @@ namespace protocol {
     kInputLeft = 1u << 2,    ///< Move left
     kInputRight = 1u << 3,   ///< Move right
     kInputFire = 1u << 4,    ///< Fire weapon
+    kInputBigFire = 1u << 5  ///< Charge or fire alternate weapon
   };
 
   /**

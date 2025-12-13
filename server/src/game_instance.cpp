@@ -109,6 +109,9 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   emit_edge(protocol::InputButton::kInputFire,
             game_logic::GameInstance::InputEventType::kBasicShootPressed,
             game_logic::GameInstance::InputEventType::kBasicShootReleased);
+  emit_edge(protocol::InputButton::kInputBigFire,
+            game_logic::GameInstance::InputEventType::kBigShootPressed,
+            game_logic::GameInstance::InputEventType::kBigShootReleased);
   state.last_command = newest->get();
   state.last_buttons = newest->get().buttons;
   state.last_applied_sequence = newest->get().input_sequence;

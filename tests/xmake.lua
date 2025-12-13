@@ -7,7 +7,7 @@ target("client_tests")
     add_files("client/*.cpp")
     add_files("../client/src/**.cpp|main.cpp")
     add_includedirs("../client/src")
-    add_deps("protocol", "engine")
+    add_deps("protocol", "engine", "game_logic")
     add_tests("client_tests")
 
 target("engine_tests")

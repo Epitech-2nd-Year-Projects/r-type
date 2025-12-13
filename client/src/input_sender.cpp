@@ -26,6 +26,7 @@ std::uint8_t BuildButtonMask(const client::ActionState& state) {
   if (state.move_left) buttons |= protocol::kInputLeft;
   if (state.move_right) buttons |= protocol::kInputRight;
   if (state.shoot) buttons |= protocol::kInputFire;
+  if (state.big_shoot) buttons |= protocol::kInputBigFire;
   return buttons;
 }
 
