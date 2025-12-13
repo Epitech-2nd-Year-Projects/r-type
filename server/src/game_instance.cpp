@@ -142,8 +142,8 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
       target_ready = false;
       break;
     default:
-      logger_.Debug("[GameInstance] Unknown command from player ",
-                   player_id, ": ", command.command_id);
+      logger_.Debug("[GameInstance] Unknown command from player ", player_id,
+                    ": ", command.command_id);
       return std::nullopt;
   }
 
