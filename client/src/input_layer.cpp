@@ -13,6 +13,7 @@ constexpr std::string_view kMoveDownAction = "MoveDown";
 constexpr std::string_view kMoveLeftAction = "MoveLeft";
 constexpr std::string_view kMoveRightAction = "MoveRight";
 constexpr std::string_view kShootAction = "Shoot";
+constexpr std::string_view kBigShootAction = "BigShoot";
 constexpr std::string_view kReconnectAction = "Reconnect";
 
 enum MappingIndex : std::size_t {
@@ -21,7 +22,8 @@ enum MappingIndex : std::size_t {
   kMoveLeftIndex = 2,
   kMoveRightIndex = 3,
   kShootIndex = 4,
-  kReconnectIndex = 5
+  kBigShootIndex = 5,
+  kReconnectIndex = 6
 };
 
 struct Mapping {
@@ -29,12 +31,13 @@ struct Mapping {
   std::string_view name;
 };
 
-constexpr std::array<Mapping, 6> kMappings{
+constexpr std::array<Mapping, 7> kMappings{
     Mapping{GameAction::kMoveUp, kMoveUpAction},        // kMoveUpIndex
     Mapping{GameAction::kMoveDown, kMoveDownAction},    // kMoveDownIndex
     Mapping{GameAction::kMoveLeft, kMoveLeftAction},    // kMoveLeftIndex
     Mapping{GameAction::kMoveRight, kMoveRightAction},  // kMoveRightIndex
     Mapping{GameAction::kShoot, kShootAction},          // kShootIndex
+    Mapping{GameAction::kBigShoot, kBigShootAction},    // kBigShootIndex
     Mapping{GameAction::kReconnect, kReconnectAction}   // kReconnectIndex
 };
 
@@ -113,6 +116,7 @@ void InputLayer::RefreshState() {
   state_.move_left = manager.IsActionActive(action_names_[kMoveLeftIndex]);
   state_.move_right = manager.IsActionActive(action_names_[kMoveRightIndex]);
   state_.shoot = manager.IsActionActive(action_names_[kShootIndex]);
+  state_.big_shoot = manager.IsActionActive(action_names_[kBigShootIndex]);
 }
 
 bool InputLayer::ConsumeReconnectRequest() {
