@@ -173,7 +173,7 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
 
 void GameInstance::Update(const engine::time::TimeDelta& delta) {
   if (phase_ == Phase::kLobby) {
-    return;  // Pause simulation until game starts.
+    return;
   }
   if (logic_) {
     logic_->Update(delta);
