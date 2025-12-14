@@ -1,10 +1,12 @@
 #include <raylib.h>
 
 #include <algorithm>
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <sstream>
 
 #include "engine/audio/raylib_audio_engine.h"
 
@@ -23,6 +25,7 @@ class RaylibAudioEngine final : public AudioEngine {
   RaylibAudioEngine() {
     if (EngineInstanceCount() == 0) {
       ::InitAudioDevice();
+      ::SetTraceLogLevel(LOG_INFO);
     }
     EngineInstanceCount() += 1;
     if (::IsAudioDeviceReady()) {
@@ -70,6 +73,8 @@ class RaylibAudioEngine final : public AudioEngine {
     ::SetMusicVolume(current_music_, music_volume_);
     ::PlayMusicStream(current_music_);
     music_loaded_ = true;
+
+    ::TraceLog(LOG_INFO, "PlayMusicStream started: %s", path.c_str());
   }
 
   void StopMusic() override { StopMusicInternal(); }
