@@ -93,6 +93,7 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   auto& net_comp = net[entity].value();
   net_comp.type_code = delta.state.type;
   net_comp.last_snapshot = snapshot_id;
+  net_comp.flags = delta.state.flags;
 
   const auto position = ToVector(delta.state.x, delta.state.y);
   auto& positions = registry_.GetComponents<PositionComponent>();
@@ -135,6 +136,9 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldType) {
     net_comp->type_code = delta.state.type;
+  }
+  if (delta.field_mask & protocol::EntityFieldMask::kFieldFlags) {
+    net_comp->flags = delta.state.flags;
   }
   net_comp->last_snapshot = snapshot_id;
 

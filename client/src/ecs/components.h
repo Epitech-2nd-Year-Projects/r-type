@@ -34,11 +34,12 @@ struct NetworkedEntityComponent {
   std::uint32_t network_id{0};      ///< EntityId from the authoritative server.
   std::uint16_t type_code{0};       ///< Archetype or type classification.
   std::uint32_t last_snapshot{0};   ///< Snapshot identifier of the last update.
+  std::uint8_t flags{0};            ///< Status flags (e.g. ready state).
 
   NetworkedEntityComponent() = default;
   NetworkedEntityComponent(std::uint32_t id, std::uint16_t type,
-                           std::uint32_t snapshot)
-      : network_id(id), type_code(type), last_snapshot(snapshot) {}
+                           std::uint32_t snapshot, std::uint8_t f = 0)
+      : network_id(id), type_code(type), last_snapshot(snapshot), flags(f) {}
 };
 
 /**
