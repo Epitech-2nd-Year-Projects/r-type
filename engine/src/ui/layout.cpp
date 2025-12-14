@@ -233,9 +233,9 @@ void UIContainer::Draw(render::Renderer2D& renderer) const {
 void UIContainer::DrawContent(render::Renderer2D& /*renderer*/) const {}
 
 math::Vector2f BoxElement::ComputeContentSize(
-    const LayoutContext& /*context*/,
-    const math::Vector2f& /*available_space*/) {
-  return {0.0f, 0.0f};
+    const LayoutContext& /*context*/, const math::Vector2f& available_space) {
+  return {ClampNonNegative(available_space.x),
+          ClampNonNegative(available_space.y)};
 }
 
 void BoxElement::OnLayoutUpdated(const LayoutContext& /*context*/) {
