@@ -21,9 +21,9 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
   if (toggle && !toggle_pressed_) {
     is_ready_ = !is_ready_;
     protocol::CommandPayload payload;
-    payload.command_id = static_cast<std::uint16_t>(
-        is_ready_ ? protocol::CommandType::kSetReady
-                  : protocol::CommandType::kUnready);
+    payload.command_id =
+        static_cast<std::uint16_t>(is_ready_ ? protocol::CommandType::kSetReady
+                                             : protocol::CommandType::kUnready);
     app_.GetWorldUpdateReceiver().EnqueueCommand(payload);
   }
   toggle_pressed_ = toggle;
