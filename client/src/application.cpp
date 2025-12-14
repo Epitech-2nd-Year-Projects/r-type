@@ -121,6 +121,7 @@ int Application::Run() {
   input.BindKey("Confirm", engine::input::Key::kEnter);
   input.BindKey("Cancel", engine::input::Key::kEscape);
   input.BindKey("Quit", engine::input::Key::kQ);
+  input.BindKey("ToggleReady", engine::input::Key::kR);
 
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
