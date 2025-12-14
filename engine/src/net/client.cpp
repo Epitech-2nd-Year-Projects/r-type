@@ -51,10 +51,6 @@ std::error_code Client::Start(const Endpoint& server_endpoint,
     }
   }
 
-  if (auto connect_error = socket_.connect(server_endpoint); connect_error) {
-    return connect_error;
-  }
-
   {
     std::lock_guard<std::mutex> lock(endpoint_mutex_);
     server_endpoint_ = server_endpoint;
