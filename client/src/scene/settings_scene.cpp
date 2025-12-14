@@ -39,8 +39,8 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
 
 SettingsScene::SettingsScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont("kenney_future", "assets/ui/kenney_future.ttf");
-  renderer.SetFont("kenney_future");
+  renderer.LoadFont("times", "assets/fonts/times.ttf");
+  renderer.SetFont("times");
 
   engine::render::Color white = engine::render::Color::White();
   float center_x =
