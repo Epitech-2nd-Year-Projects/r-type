@@ -1,8 +1,12 @@
 #ifndef CLIENT_SCENE_DISCONNECTED_SCENE_H_
 #define CLIENT_SCENE_DISCONNECTED_SCENE_H_
 
+#include <memory>
 #include <string>
+
 #include "scene.h"
+#include "engine/ui/canvas.h"
+#include "engine/ui/text.h"
 
 namespace client {
 
@@ -18,6 +22,10 @@ class DisconnectedScene : public Scene {
  private:
   Application& app_;
   std::string reason_;
+  engine::ui::Canvas canvas_;
+  std::shared_ptr<engine::ui::TextElement> title_;
+  std::shared_ptr<engine::ui::TextElement> reason_text_;
+  std::shared_ptr<engine::ui::TextElement> action_text_;
 };
 
 }  // namespace client

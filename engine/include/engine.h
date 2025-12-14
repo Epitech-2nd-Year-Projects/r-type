@@ -11,6 +11,7 @@
 #include <engine/render.h>
 #include <engine/resource.h>
 #include <engine/time.h>
+#include <engine/ui.h>
 #include <engine/util.h>
 
 #endif /* !ENGINE_ENGINE_H_ */
