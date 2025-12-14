@@ -9,7 +9,7 @@
 
 namespace client {
 
-enum class MusicType { kBackground };
+enum class MusicType { kMainMenu, kBackground };
 
 /**
  * @brief Simple wrapper around the engine audio subsystem for client music
@@ -58,6 +58,13 @@ class AudioManager {
    * @return true when a music track is currently playing
    */
   bool MusicActive() const;
+
+  /**
+   * @brief Currently playing music entry if available
+   *
+   * @return MusicType identifier for the active track when present
+   */
+  std::optional<MusicType> ActiveMusic() const;
 
  private:
   static constexpr float kDefaultMusicVolume = 0.65f;
