@@ -238,7 +238,6 @@ void WorldUpdateReceiver::ReceiveLoop() {
           packet.header.ack_bits = 0;
           packet.header.timestamp_ms = message.client_time_ms;
           sequence_tracker_.FillAckFields(packet.header);
-          
           if (message.type == protocol::message_type::MessageType::kInputState) {
             packet.payload = message.input_state;
           } else if (message.type == protocol::message_type::MessageType::kClientCommand) {
