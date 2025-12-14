@@ -12,17 +12,25 @@ Pillars** of the architecture: **Engine**, **Protocol**, **Game Logic**, **Serve
 The project is built as a **multi-layer application** where a common engine supports both a headless server and a
 graphical client.
 
-```mermaid
-graph TD
-    Client[Client Application] --> Engine[Engine Framework]
-    Client --> Logic[Game Logic]
-    Client --> Protocol[Network Protocol]
-    
-    Server[Server Runtime] --> Engine
-    Server --> Logic
-    Server --> Protocol
-
-    Logic --> Engine (ECS/Math/Physics)
+```text
+       +------------------+              +------------------+
+       |   CLIENT APP     |              |   SERVER APP     |
+       |  (GUI / Input)   |              |   (Simulation)   |
+       +--------+---------+              +--------+---------+
+                |                                 |
+                v                                 v
+       +------------------+              +------------------+
+       |    GAME LOGIC    |              |     PROTOCOL     |
+       | (Rules / Entity) |              |  (Network Spec)  |
+       +--------+---------+              +--------+---------+
+                |                                 |
+                +----------------+----------------+
+                                 |
+                                 v
+                       +------------------+
+                       |      ENGINE      |
+                       | (ECS / Core Lib) |
+                       +------------------+
 ```
 
 - **Engine**: Reusable framework (ECS, Render, Network IO).

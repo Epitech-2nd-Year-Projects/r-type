@@ -65,6 +65,20 @@ read our **[Architecture Documentation](docs/Architecture.md)**.
 - **C++ Compiler**: Supporting C++23 (GCC 13+, Clang 16+, MSVC).
 - **Xmake**: The build system used for this project.
 
+#### Installing Xmake
+- **macOS** (via Homebrew):
+  ```bash
+  brew install xmake
+  ```
+- **Linux** (via Shell):
+  ```bash
+  bash <(curl -fsSL https://xmake.io/shget.text)
+  ```
+- **Windows** (via Powershell):
+  ```powershell
+  Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
+  ```
+
 ### Supported Platforms
 
 - **Linux** (GCC/Clang)
