@@ -449,6 +449,27 @@ void Application::UpdateAudio(engine::time::TimeDelta dt,
     return;
   }
 
+  const bool in_menu =
+      state_ == ClientState::kMainMenu || state_ == ClientState::kSettings;
+  const auto active_music = audio_manager_->ActiveMusic();
+  const bool menu_music_active = active_music.has_value() &&
+                                 active_music.value() == MusicType::kMainMenu;
+
+  if (in_menu) {
+    music_allowed_ = false;
+    music_blocked_ = false;
+    if (!menu_music_active) {
+      audio_manager_->PlayMusic(MusicType::kMainMenu);
+    }
+    audio_manager_->Update(dt.as_seconds());
+    last_join_state_ = join_state;
+    return;
+  }
+
+  if (menu_music_active) {
+    audio_manager_->StopMusic();
+  }
+
   const bool connected = join_state == JoinState::kConnected;
   const bool was_connected = last_join_state_ == JoinState::kConnected;
   const bool transport_running = transport_ ? transport_->running() : false;
