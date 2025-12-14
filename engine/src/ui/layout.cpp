@@ -13,6 +13,37 @@ namespace {
 float ClampNonNegative(float value) { return std::max(0.0f, value); }
 
 Alignment2D OverrideForAxis(Axis axis, const Alignment2D& alignment,
+                            const Alignment2D& override_alignment);
+
+class AlignmentScope {
+ public:
+  AlignmentScope(UIElement& element, Axis axis,
+                 const Alignment2D& override_alignment, bool enabled)
+      : element_(element), active_(enabled) {
+    if (!active_) {
+      return;
+    }
+    backup_ = element_.Layout();
+    element_.Layout().alignment =
+        OverrideForAxis(axis, element_.Layout().alignment, override_alignment);
+    element_.InvalidateMeasure();
+  }
+
+  ~AlignmentScope() {
+    if (!active_) {
+      return;
+    }
+    element_.Layout() = backup_;
+    element_.InvalidateMeasure();
+  }
+
+ private:
+  UIElement& element_;
+  LayoutProperties backup_{};
+  bool active_{false};
+};
+
+Alignment2D OverrideForAxis(Axis axis, const Alignment2D& alignment,
                             const Alignment2D& override_alignment) {
   Alignment2D result = alignment;
   if (axis == Axis::kVertical) {
@@ -102,6 +133,7 @@ float FontSize::Resolve(const math::Vector2f& viewport) const {
 
 math::Vector2f UIElement::Measure(const LayoutContext& context,
                                   const math::Vector2f& available_space) {
+  measured_ = false;
   const float available_width =
       ClampNonNegative(available_space.x - layout_.margin.Horizontal());
   const float available_height =
@@ -274,15 +306,9 @@ math::Vector2f StackContainer::ComputeContentSize(
 
   for (const auto& child : Children()) {
     if (!child) continue;
-    const Alignment2D original = child->Layout().alignment;
-    if (use_child_alignment_) {
-      child->Layout().alignment =
-          OverrideForAxis(axis_, original, child_alignment_);
-    }
+    AlignmentScope alignment_scope(*child, axis_, child_alignment_,
+                                   use_child_alignment_);
     const math::Vector2f measured = child->Measure(context, inner_space);
-    if (use_child_alignment_) {
-      child->Layout().alignment = original;
-    }
 
     const float main = axis_ == Axis::kVertical ? measured.y : measured.x;
     const float cross = axis_ == Axis::kVertical ? measured.x : measured.y;
@@ -341,19 +367,13 @@ void StackContainer::ArrangeVertical(const LayoutContext& context,
   float cursor = content_bounds.top_left_y_ + start_offset;
   for (const auto& child : Children()) {
     if (!child) continue;
-    const Alignment2D original = child->Layout().alignment;
-    if (use_child_alignment_) {
-      child->Layout().alignment =
-          OverrideForAxis(axis_, original, child_alignment_);
-    }
+    AlignmentScope alignment_scope(*child, axis_, child_alignment_,
+                                   use_child_alignment_);
 
     const float child_height = child->MeasuredSizeWithMargin().y;
     const math::RectF slot{content_bounds.top_left_x_, cursor,
                            content_bounds.width_, child_height};
     child->Arrange(context, slot);
-    if (use_child_alignment_) {
-      child->Layout().alignment = original;
-    }
     cursor += child_height + spacing_;
   }
 }
@@ -387,19 +407,13 @@ void StackContainer::ArrangeHorizontal(const LayoutContext& context,
   float cursor = content_bounds.top_left_x_ + start_offset;
   for (const auto& child : Children()) {
     if (!child) continue;
-    const Alignment2D original = child->Layout().alignment;
-    if (use_child_alignment_) {
-      child->Layout().alignment =
-          OverrideForAxis(axis_, original, child_alignment_);
-    }
+    AlignmentScope alignment_scope(*child, axis_, child_alignment_,
+                                   use_child_alignment_);
 
     const float child_width = child->MeasuredSizeWithMargin().x;
     const math::RectF slot{cursor, content_bounds.top_left_y_, child_width,
                            content_bounds.height_};
     child->Arrange(context, slot);
-    if (use_child_alignment_) {
-      child->Layout().alignment = original;
-    }
     cursor += child_width + spacing_;
   }
 }
