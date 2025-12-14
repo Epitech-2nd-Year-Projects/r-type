@@ -14,8 +14,8 @@ namespace client {
 MainMenuScene::MainMenuScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
 
-  renderer.LoadFont("kenney_future", "assets/ui/kenney_future.ttf");
-  renderer.SetFont("kenney_future");
+  renderer.LoadFont("times", "assets/fonts/times.ttf");
+  renderer.SetFont("times");
 
   const auto white = engine::render::Color::White();
 
