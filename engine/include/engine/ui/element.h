@@ -63,7 +63,15 @@ class UIElement {
   /**
    * @brief Override all layout properties in one call
    */
-  void SetLayout(const LayoutProperties& props) { layout_ = props; }
+  void SetLayout(const LayoutProperties& props) {
+    layout_ = props;
+    measured_ = false;
+  }
+
+  /**
+   * @brief Mark cached measurements as invalid
+   */
+  void InvalidateMeasure() { measured_ = false; }
 
   /**
    * @brief Last measured content size excluding margins
@@ -165,7 +173,13 @@ class BoxElement : public UIElement {
   void Draw(render::Renderer2D& renderer) const override;
 
  private:
+  /**
+   * @brief Optional background fill color
+   */
   std::optional<render::Color> background_{};
+  /**
+   * @brief Callback invoked after layout updates with the new frame
+   */
   std::function<void(const math::RectF&)> layout_callback_{};
 };
 
