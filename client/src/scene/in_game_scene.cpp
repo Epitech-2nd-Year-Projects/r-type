@@ -17,6 +17,17 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
     app_.OnGamePause();
   }
 
+  const bool toggle = input.IsActionActive("ToggleReady");
+  if (toggle && !toggle_pressed_) {
+    is_ready_ = !is_ready_;
+    protocol::CommandPayload payload;
+    payload.command_id = static_cast<std::uint16_t>(
+        is_ready_ ? protocol::CommandType::kSetReady
+                  : protocol::CommandType::kUnready);
+    app_.GetWorldUpdateReceiver().EnqueueCommand(payload);
+  }
+  toggle_pressed_ = toggle;
+
   const auto local_player = app_.GetJoinFlow().player_id();
   hud_.UpdatePlayers(app_.World(), local_player);
 
