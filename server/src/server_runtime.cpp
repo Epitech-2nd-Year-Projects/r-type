@@ -1,11 +1,14 @@
 #include "server_runtime.h"
 
+#include <asio/post.hpp>
+#include <asio/thread_pool.hpp>
 #include <atomic>
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <exception>
 #include <functional>
+#include <latch>
 #include <limits>
 #include <optional>
 #include <string>
@@ -22,10 +25,6 @@
 #include "protocol/packet.h"
 #include "protocol/reliability_policy.h"
 #include "protocol/world_snapshot.h"
-
-#include <asio/post.hpp>
-#include <asio/thread_pool.hpp>
-#include <latch>
 
 namespace server {
 constexpr std::uint32_t kReliableResendTimeoutMs = 250;
