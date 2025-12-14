@@ -62,8 +62,9 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
         }
       });
   settings_button_ = std::make_shared<ui::Button>(
-      engine::math::Vector2f{0.0f, 0.0f}, engine::math::Vector2f{400.0f, 50.0f},
-      "Settings", [this]() { app_.OnOpenSettings(); });
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{400.0f, 200.0f}, "Settings",
+      [this]() { app_.OnOpenSettings(); });
 
   ui_elements_.push_back(host_input_);
   ui_elements_.push_back(port_input_);
@@ -113,7 +114,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
     auto slot = std::make_shared<engine::ui::BoxElement>();
     slot->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kStretch;
-    slot->Layout().size.height = engine::ui::LayoutValue::Percent(0.08f);
+    slot->Layout().size.height = engine::ui::LayoutValue::Pixels(48.0f);
     slot->SetLayoutCallback([input](const engine::math::RectF& rect) {
       input->SetPosition({rect.top_left_x_, rect.top_left_y_});
       input->SetSize({rect.width_, rect.height_});
@@ -137,7 +138,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
   auto connect_slot = std::make_shared<engine::ui::BoxElement>();
   connect_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
-  connect_slot->Layout().size.height = engine::ui::LayoutValue::Percent(0.08f);
+  connect_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(56.0f);
   connect_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
     connect_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
     connect_button_->SetSize({rect.width_, rect.height_});
@@ -147,7 +148,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
   auto settings_slot = std::make_shared<engine::ui::BoxElement>();
   settings_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
-  settings_slot->Layout().size.height = engine::ui::LayoutValue::Percent(0.08f);
+  settings_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(56.0f);
   settings_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
     settings_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
     settings_button_->SetSize({rect.width_, rect.height_});
