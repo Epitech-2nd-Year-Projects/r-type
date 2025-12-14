@@ -1,6 +1,7 @@
 #ifndef SERVER_SERVER_RUNTIME_H_
 #define SERVER_SERVER_RUNTIME_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -8,8 +9,11 @@
 #include <random>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <system_error>
 #include <unordered_map>
+
+#include <asio/thread_pool.hpp>
 
 #include "engine/net/packet_buffer.h"
 #include "engine/time/frame_timer.h"
@@ -75,6 +79,15 @@ class ServerRuntime {
   void RunMainLoop();
 
  private:
+  /**
+   * @brief Updates all rooms, dispatching work across the thread pool.
+   *
+   * Each room is updated exactly once per tick. A latch ensures the main
+   * thread waits for all room updates to finish before proceeding to
+   * snapshot broadcast / network send.
+   */
+  void UpdateRoomsParallel(const engine::time::TimeDelta& delta);
+
   /**
    * @brief Configures the logging system based on server configuration.
    * 
@@ -390,6 +403,8 @@ class ServerRuntime {
   ServerConfig config_;                                    ///< Server configuration (port, tick rate, limits, etc.).
   engine::util::Logger& logger_;                           ///< Logger instance for diagnostic output.
   engine::time::FrameTimer frame_timer_;                   ///< Timer for maintaining fixed tick rate.
+  const std::size_t worker_count_{1};                      ///< Number of worker threads for room simulation.
+  asio::thread_pool worker_pool_;                          ///< Pool executing per-room updates in parallel.
   std::uint32_t next_player_id_{1};                        ///< Next available player ID for assignment.
   std::unordered_map<std::string, PeerConnection> peers_;  ///< Map of endpoint keys to peer connections.
   std::unordered_map<std::uint32_t, PlayerSession> players_; ///< Map of player IDs to player sessions.
