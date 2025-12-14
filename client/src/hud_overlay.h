@@ -32,6 +32,7 @@ struct HudPlayerRow {
   std::uint32_t lives{0};
   bool is_local{false};
   bool alive{false};
+  bool is_ready{false};
 };
 
 /**

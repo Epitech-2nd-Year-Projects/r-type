@@ -109,6 +109,10 @@ std::string FormatPlayerLine(const HudPlayerRow& row) {
          << row.lives;
   if (!row.alive) {
     stream << " (down)";
+  } else if (!row.is_ready) {
+    stream << " (not ready)";
+  } else {
+    stream << " (READY)";
   }
   return stream.str();
 }
@@ -151,6 +155,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
     if (i < health.size() && health[i].has_value()) {
       row.lives = static_cast<std::uint32_t>(health[i]->current);
       row.alive = health[i]->current > 0;
+      row.is_ready = (net[i]->flags & 2u) != 0;
     }
     players_.push_back(row);
   }
