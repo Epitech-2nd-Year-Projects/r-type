@@ -61,7 +61,6 @@ void DisconnectedScene::Draw(engine::render::Renderer2D& renderer) {
   const auto window_size = app_.GetEngine().Window().GetSize();
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
-  reason_text_->SetText(reason_);
   canvas_.LayoutAndDraw(renderer);
 }
 
