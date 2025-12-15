@@ -34,6 +34,9 @@ enum class JoinState { kIdle, kConnecting, kConnected, kRefused, kDisconnected }
 class JoinFlow {
  public:
   JoinFlow(std::string player_name, std::string room_code);
+  void SetRoomPassword(std::string room_password) {
+    room_password_ = std::move(room_password);
+  }
 
   /**
    * @brief Begin the join handshake with the configured player identity
@@ -87,6 +90,7 @@ class JoinFlow {
   JoinState state_{JoinState::kIdle};
   std::string player_name_;
   std::string room_code_;
+  std::string room_password_;
   std::optional<std::uint32_t> player_id_;
   std::optional<protocol::JoinRejectPayload> last_reject_;
   std::string status_text_;
