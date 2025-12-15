@@ -174,6 +174,7 @@ void ServerRuntime::RunMainLoop() {
       ProcessReliableResends();
       UpdateRoomsParallel(fixed_delta_);
       ++server_tick_;
+      BroadcastGameEvents();
       BroadcastWorldSnapshots();
       accumulator_ -= fixed_delta_;
     }
@@ -1017,6 +1018,41 @@ void ServerRuntime::BroadcastWorldSnapshots() {
 
   for (const auto& room_code : empty_rooms) {
     CleanupRoomIfEmpty(room_code, now_ms);
+  }
+}
+
+void ServerRuntime::BroadcastGameEvents() {
+  const std::uint32_t now_ms = NowMilliseconds();
+  for (auto& [room_code, room] : rooms_) {
+    const auto deaths = room.PollPlayerDeaths();
+    if (deaths.empty()) {
+      continue;
+    }
+
+    for (const auto& payload : deaths) {
+      for (std::uint32_t player_id : room.Players()) {
+        auto peer_ref = FindPeerByPlayerId(player_id);
+        if (!peer_ref.has_value()) {
+          continue;
+        }
+        PeerConnection& peer = peer_ref->get();
+        if (peer.state != PeerState::kJoined || peer.room_code != room_code) {
+          continue;
+        }
+
+        protocol::Packet packet{};
+        packet.header.version = protocol::kProtocolVersion;
+        packet.header.message_type =
+            static_cast<std::uint8_t>(MessageType::kPlayerDied);
+        packet.header.flags = static_cast<std::uint8_t>(
+            protocol::HeaderFlag::kHeaderFlagReliable);
+        packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+        packet.header.timestamp_ms = now_ms;
+        peer.sequence_tracker.FillAckFields(packet.header);
+        packet.payload = payload;
+        SendPacket(peer, packet);
+      }
+    }
   }
 }
 
