@@ -763,12 +763,23 @@ void ServerRuntime::HandleCreateRoomRequest(
   std::string room_code;
   std::string password;
   if (request.is_private) {
-    auto generated = GeneratePrivateCode(rng_, rooms_);
-    if (!generated.has_value()) {
-      response.message = "Unable to allocate a private code";
+    if (!request.room_password.empty()) {
+      if (!IsPrivateRoomCode(request.room_password)) {
+        response.message = "Invalid password (must be 4 digits)";
+      } else {
+        password = request.room_password;
+      }
+    } else {
+      auto generated = GeneratePrivateCode(rng_, rooms_);
+      if (!generated.has_value()) {
+        response.message = "Unable to allocate a private code";
+      } else {
+        password = *generated;
+      }
     }
-    password = *generated;
-    room_code = "priv-" + *generated;
+    if (response.message.empty()) {
+      room_code = "priv-" + password;
+    }
   } else if (room_code.empty()) {
     room_code = GeneratePublicCode(rng_, rooms_);
   }
