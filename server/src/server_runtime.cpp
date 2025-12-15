@@ -140,6 +140,19 @@ std::optional<std::string> GeneratePrivateCode(
   return std::nullopt;
 }
 
+std::string GeneratePublicCode(
+    std::mt19937& rng, const std::unordered_map<std::string, Room>& rooms) {
+  std::uniform_int_distribution<int> dist(10000, 99999);
+  for (int attempt = 0; attempt < 128; ++attempt) {
+    const int value = dist(rng);
+    std::string code = "room-" + std::to_string(value);
+    if (rooms.find(code) == rooms.end()) {
+      return code;
+    }
+  }
+  return "room-" + std::to_string(rng());
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerConfig config)
@@ -204,6 +217,7 @@ void ServerRuntime::RunMainLoop() {
       accumulator_ -= fixed_delta_;
     }
     CheckPeerTimeouts();
+    PruneOrphanedSessions();
     MaybeLogDecodeMetrics();
     MaybeLogServerStats();
     if (g_force_shutdown_requested.exchange(false)) {
@@ -645,12 +659,8 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
   std::string room_code =
       request.room_code.empty() ? config_.default_room_code : request.room_code;
-  if (room_code.empty()) {
-    room_code = "default";
-  }
-  if (!IsValidRoomCode(room_code)) {
-    logger_.Warn("Rejecting join from ", endpoint_key,
-                 " invalid room code length");
+  if (room_code.empty() || !IsValidRoomCode(room_code)) {
+    logger_.Warn("Rejecting join from ", endpoint_key, " invalid room code");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room code too long");
     return;
@@ -663,6 +673,17 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room not found");
     return;
+  }
+
+  if (room->get().IsPrivate()) {
+    if (!IsPrivateRoomCode(request.room_password) ||
+        request.room_password != room->get().Password()) {
+      logger_.Warn("Rejecting join from ", endpoint_key,
+                   " invalid password for room ", room_code);
+      SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+                 "Invalid password");
+      return;
+    }
   }
 
   if (peer.state == PeerState::kJoined && peer.player_id != 0) {
@@ -733,20 +754,23 @@ void ServerRuntime::HandleCreateRoomRequest(
   requested_capacity = std::min<std::uint16_t>(
       requested_capacity, std::numeric_limits<std::uint8_t>::max());
 
-  std::string room_code = request.room_code;
+  if (request.room_name.empty()) {
+    response.message = "Room name required";
+  } else if (request.room_name.size() > protocol::kMaxRoomNameLength) {
+    response.message = "Room name too long";
+  }
+
+  std::string room_code;
+  std::string password;
   if (request.is_private) {
-    if (room_code.empty()) {
-      auto generated = GeneratePrivateCode(rng_, rooms_);
-      if (!generated.has_value()) {
-        response.message = "Unable to allocate a private code";
-      } else {
-        room_code = std::move(*generated);
-      }
-    } else if (!IsPrivateRoomCode(room_code)) {
-      response.message = "Private rooms require a 4-digit code";
+    auto generated = GeneratePrivateCode(rng_, rooms_);
+    if (!generated.has_value()) {
+      response.message = "Unable to allocate a private code";
     }
+    password = *generated;
+    room_code = "priv-" + *generated;
   } else if (room_code.empty()) {
-    room_code = "room-" + std::to_string(next_room_id_);
+    room_code = GeneratePublicCode(rng_, rooms_);
   }
 
   if (response.message.empty() && !IsValidRoomCode(room_code)) {
@@ -757,10 +781,12 @@ void ServerRuntime::HandleCreateRoomRequest(
   }
 
   if (response.message.empty()) {
-    Room& room = CreateRoom(room_code, request.is_private, requested_capacity);
+    Room& room = CreateRoom(room_code, request.room_name, request.is_private,
+                            password, requested_capacity);
     response.success = true;
     response.message = "Room created";
     response.room = BuildRoomSummary(room);
+    response.room_password = password;
     logger_.Info("Created room ", room_code,
                  request.is_private ? " (private)" : " (public)", " capacity ",
                  requested_capacity);
@@ -961,19 +987,21 @@ void ServerRuntime::EnsureDefaultRoom() {
   }
   const std::uint16_t capacity = static_cast<std::uint16_t>(
       std::max<std::uint16_t>(1, config_.max_players));
-  Room& room =
-      CreateRoom(config_.default_room_code, /*is_private=*/false, capacity);
+  Room& room = CreateRoom(config_.default_room_code, config_.default_room_name,
+                          /*is_private=*/false, "", capacity);
   logger_.Info("Bootstrapped room ", room.Code(), " capacity ",
                room.MaxPlayers());
 }
 
-Room& ServerRuntime::CreateRoom(const std::string& room_code, bool is_private,
+Room& ServerRuntime::CreateRoom(const std::string& room_code,
+                                const std::string& room_name, bool is_private,
+                                std::string password,
                                 std::uint16_t max_players) {
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
-      room_code,
-      Room{room_code, room_id, max_players, is_private, seed, logger_});
+      room_code, Room{room_code, room_name, room_id, max_players, is_private,
+                      std::move(password), seed, logger_});
   inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
 }
@@ -981,6 +1009,7 @@ Room& ServerRuntime::CreateRoom(const std::string& room_code, bool is_private,
 protocol::RoomSummary ServerRuntime::BuildRoomSummary(const Room& room) const {
   protocol::RoomSummary summary{};
   summary.room_code = room.Code();
+  summary.room_name = room.Name();
   summary.is_private = room.IsPrivate();
   summary.max_players = static_cast<std::uint8_t>(std::min<std::uint16_t>(
       room.MaxPlayers(), std::numeric_limits<std::uint8_t>::max()));
@@ -1074,6 +1103,38 @@ void ServerRuntime::CheckPeerTimeouts() {
 
     DisconnectPeer(peer, "timeout", peer.state == PeerState::kJoined);
     it = peers_.erase(it);
+  }
+}
+
+void ServerRuntime::PruneOrphanedSessions() {
+  const std::uint32_t now_ms = NowMilliseconds();
+  std::vector<std::uint32_t> to_remove;
+  to_remove.reserve(players_.size());
+
+  for (const auto& [player_id, session] : players_) {
+    auto peer_it = peers_.find(session.endpoint_key);
+    const bool missing_peer = peer_it == peers_.end();
+    const bool invalid_peer =
+        !missing_peer && (peer_it->second.state != PeerState::kJoined ||
+                          peer_it->second.player_id != player_id);
+    if (missing_peer || invalid_peer) {
+      to_remove.push_back(player_id);
+    }
+  }
+
+  for (std::uint32_t player_id : to_remove) {
+    auto session_it = players_.find(player_id);
+    if (session_it == players_.end()) {
+      continue;
+    }
+    const std::string room_code = session_it->second.room_code;
+    players_.erase(session_it);
+    if (auto room = FindRoom(room_code)) {
+      if (room->get().RemovePlayer(player_id)) {
+        room->get().MarkActive(now_ms);
+      }
+    }
+    CleanupRoomIfEmpty(room_code, now_ms);
   }
 }
 
