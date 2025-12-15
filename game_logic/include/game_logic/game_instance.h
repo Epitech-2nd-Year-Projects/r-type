@@ -97,6 +97,14 @@ class GameInstance {
   };
 
   /**
+   * @brief Event triggered when a player dies
+   */
+  struct PlayerDeathEvent {
+    std::uint32_t player_id{0};
+    std::uint8_t remaining_lives{0};
+  };
+
+  /**
    * @brief Create game instance
    * @param room_id Unique room identifier
    * @param max_players Maximum number of players (default: 4)
@@ -214,6 +222,18 @@ class GameInstance {
    *   registered in RegisterSystems()
    */
   void OnPlayerInput(std::uint32_t player_id, InputEventType input_type);
+
+  /**
+   * @brief Trigger a player death event
+   * @param player_id Player who died
+   * @param remaining_lives Lives remaining after death
+   */
+  void OnPlayerDeath(std::uint32_t player_id, std::uint8_t remaining_lives);
+
+  /**
+   * @brief Retrieve and clear pending death events
+   */
+  std::vector<PlayerDeathEvent> ExtractPlayerDeathEvents();
 
   /**
    * @brief Get mutable access to ECS Registry
@@ -347,6 +367,9 @@ class GameInstance {
 
   /// @brief Per-frame queue of input events
   std::vector<QueuedInputEvent> pending_inputs_;
+  
+  /// @brief Queue of player death events
+  std::vector<PlayerDeathEvent> pending_deaths_;
 
   /// @brief Whether Start() has been called
   bool is_started_;

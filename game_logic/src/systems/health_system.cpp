@@ -1,5 +1,8 @@
 #include "game_logic/systems/health_system.h"
 
+#include "game_logic/game_instance.h"
+
+#include <iostream>
 #include <vector>
 
 #include "engine/ecs/components/position_component.h"
@@ -34,6 +37,12 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
 
       if (player_comp.lives > 0) {
         player_comp.lives--;
+        game_instance_.OnPlayerDeath(player_comp.player_id,
+                                     player_comp.lives);
+        std::cout << "[HealthSystem] Player " << player_comp.player_id
+                  << " died, lives remaining: "
+                  << static_cast<int>(player_comp.lives) << ". Respawning."
+                  << std::endl;
         hp->current_health = hp->max_health;
         if (static_cast<size_t>(entity) < positions.size() &&
             positions[static_cast<size_t>(entity)].has_value()) {
@@ -45,6 +54,9 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
               HealthSystem::kRespawnY};
         }
       } else {
+        game_instance_.OnPlayerDeath(player_comp.player_id, 0);
+        std::cout << "[HealthSystem] Player " << player_comp.player_id
+                  << " died permanently (Game Over)." << std::endl;
         entities_to_kill.push_back(entity);
       }
       continue;
