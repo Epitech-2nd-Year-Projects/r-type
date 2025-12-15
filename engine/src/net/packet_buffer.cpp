@@ -153,14 +153,14 @@ void PacketBuffer::WriteInt64(std::int64_t value) {
 void PacketBuffer::WriteFloat(float value) {
   static_assert(sizeof(float) == sizeof(std::uint32_t),
                 "Unexpected float size");
-  const auto bits = Endian::HostToNetwork(std::bit_cast<std::uint32_t>(value));
+  const auto bits = std::bit_cast<std::uint32_t>(value);
   WriteUint32(bits);
 }
 
 void PacketBuffer::WriteDouble(double value) {
   static_assert(sizeof(double) == sizeof(std::uint64_t),
                 "Unexpected double size");
-  const auto bits = Endian::HostToNetwork(std::bit_cast<std::uint64_t>(value));
+  const auto bits = std::bit_cast<std::uint64_t>(value);
   WriteUint64(bits);
 }
 
