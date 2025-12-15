@@ -57,6 +57,34 @@ bool EncodePayloadByType(const PacketPayload& payload, MessageType type,
       const auto& value = std::get<JoinRejectPayload>(payload);
       return EncodeJoinReject(value, buffer);
     }
+    case MessageType::kRoomListRequest: {
+      if (!std::holds_alternative<RoomListRequestPayload>(payload)) {
+        return false;
+      }
+      const auto& value = std::get<RoomListRequestPayload>(payload);
+      return EncodeRoomListRequest(value, buffer);
+    }
+    case MessageType::kRoomListResponse: {
+      if (!std::holds_alternative<RoomListResponsePayload>(payload)) {
+        return false;
+      }
+      const auto& value = std::get<RoomListResponsePayload>(payload);
+      return EncodeRoomListResponse(value, buffer);
+    }
+    case MessageType::kCreateRoomRequest: {
+      if (!std::holds_alternative<CreateRoomRequestPayload>(payload)) {
+        return false;
+      }
+      const auto& value = std::get<CreateRoomRequestPayload>(payload);
+      return EncodeCreateRoomRequest(value, buffer);
+    }
+    case MessageType::kCreateRoomResponse: {
+      if (!std::holds_alternative<CreateRoomResponsePayload>(payload)) {
+        return false;
+      }
+      const auto& value = std::get<CreateRoomResponsePayload>(payload);
+      return EncodeCreateRoomResponse(value, buffer);
+    }
     case MessageType::kPlayerDied: {
       if (!std::holds_alternative<PlayerDiedPayload>(payload)) {
         return false;
@@ -135,6 +163,38 @@ bool DecodePayloadByType(engine::net::PacketBuffer& buffer, MessageType type,
       out_payload = std::move(value);
       return true;
     }
+    case MessageType::kRoomListRequest: {
+      RoomListRequestPayload value;
+      if (!DecodeRoomListRequest(buffer, value)) {
+        return false;
+      }
+      out_payload = std::move(value);
+      return true;
+    }
+    case MessageType::kRoomListResponse: {
+      RoomListResponsePayload value;
+      if (!DecodeRoomListResponse(buffer, value)) {
+        return false;
+      }
+      out_payload = std::move(value);
+      return true;
+    }
+    case MessageType::kCreateRoomRequest: {
+      CreateRoomRequestPayload value;
+      if (!DecodeCreateRoomRequest(buffer, value)) {
+        return false;
+      }
+      out_payload = std::move(value);
+      return true;
+    }
+    case MessageType::kCreateRoomResponse: {
+      CreateRoomResponsePayload value;
+      if (!DecodeCreateRoomResponse(buffer, value)) {
+        return false;
+      }
+      out_payload = std::move(value);
+      return true;
+    }
     case MessageType::kPlayerDied: {
       PlayerDiedPayload value;
       if (!DecodePlayerDied(buffer, value)) {
@@ -199,6 +259,10 @@ bool DecodePacketInternal(
     case MessageType::kServerCommand:
     case MessageType::kPing:
     case MessageType::kPong:
+    case MessageType::kRoomListRequest:
+    case MessageType::kRoomListResponse:
+    case MessageType::kCreateRoomRequest:
+    case MessageType::kCreateRoomResponse:
       break;
     case MessageType::kInvalid:
     default:
