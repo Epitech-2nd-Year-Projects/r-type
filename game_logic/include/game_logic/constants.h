@@ -31,6 +31,16 @@ constexpr float kPatrolMaxY = 500.0f;
 // Collision
 constexpr std::uint32_t kCrashDamage = 100;
 
+// Cleanup
+constexpr float kOffscreenCleanupBoundary = -200.0f;
+constexpr float kPowerupCleanupBoundary = -100.0f;
+
+// Powerups
+constexpr float kPowerupDriftSpeed = -20.0f;
+
+// Game Logic
+constexpr float kLevelTransitionDelay = 3.0f;
+
 }  // namespace game_logic
 
 #endif  // GAME_LOGIC_CONSTANTS_H_
