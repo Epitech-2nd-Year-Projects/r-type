@@ -370,6 +370,13 @@ class ServerRuntime {
    * configured timeout period. Called periodically during the main loop.
    */
   void CheckPeerTimeouts();
+  /**
+   * @brief Removes player sessions that lost their peer connection.
+   *
+   * Safeguards against lingering player counts when a peer vanishes without
+   * sending a formal disconnect.
+   */
+  void PruneOrphanedSessions();
 
   /**
    * @brief Sends the current game state to connected players per room.
@@ -414,7 +421,9 @@ class ServerRuntime {
    * @return Reference to the created room instance.
    */
   Room& CreateRoom(const std::string& room_code,
+                   const std::string& room_name,
                    bool is_private,
+                   std::string password,
                    std::uint16_t max_players);
 
   /**
