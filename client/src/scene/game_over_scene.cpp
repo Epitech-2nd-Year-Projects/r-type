@@ -10,7 +10,7 @@ namespace client {
 namespace {
 const engine::render::Color kNormalColor = engine::render::Color::White();
 const engine::render::Color kSelectedColor =
-    engine::render::Color::FromBytes(255, 215, 0);  // Gold
+    engine::render::Color::FromBytes(255, 215, 0)
 }  // namespace
 
 GameOverScene::GameOverScene(Application& app, const Stats& stats)
@@ -22,7 +22,7 @@ GameOverScene::GameOverScene(Application& app, const Stats& stats)
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  root->SetSpacing(20.0f);  // Increased spacing
+  root->SetSpacing(20.0f);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
@@ -48,7 +48,6 @@ GameOverScene::GameOverScene(Application& app, const Stats& stats)
   root->AddChild(score_text_);
   root->AddChild(wave_level_text_);
 
-  // Spacer
   auto spacer = std::make_shared<engine::ui::BoxElement>();
   spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(40.0f);
   root->AddChild(spacer);

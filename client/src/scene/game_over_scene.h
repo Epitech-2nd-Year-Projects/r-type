@@ -34,7 +34,6 @@ class GameOverScene : public Scene {
   std::shared_ptr<engine::ui::TextElement> score_text_;
   std::shared_ptr<engine::ui::TextElement> wave_level_text_;
   
-  // Menu
   int selected_option_{0};
   std::shared_ptr<engine::ui::TextElement> menu_main_exit_;
   std::shared_ptr<engine::ui::TextElement> menu_quit_;

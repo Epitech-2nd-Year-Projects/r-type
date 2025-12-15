@@ -272,7 +272,6 @@ bool Application::Tick(engine::time::TimeDelta dt) {
               died.remaining_lives == 0) {
             if (state_ == ClientState::kInGame ||
                 state_ == ClientState::kPaused) {
-              // TODO(implement): get actual score/wave/level from somewhere
               GameOverStats stats;
               stats.score = 0;
               stats.wave = 1;
