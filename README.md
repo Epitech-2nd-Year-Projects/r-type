@@ -104,36 +104,30 @@ xmake
 
 #### Running the Server
 
-The server manages the game session. You can configure it via CLI arguments or let it run with defaults.
+Launch the dedicated server with defaults:
 
 ```bash
-xmake run server [options]
+xmake run server
 ```
 
-**Available Options:**
-
-- `--port <port>`: Set the UDP listening port (default: random or config).
-- `--max-players <n>`: Maximum number of allowed clients.
-- `--tickrate <hz>`: Simulation frequency in Hz.
-- `--room-code <code>`: Set a specific room code for joining.
-- `--seed <seed>`: Seed for random number generation.
-- `--log-level <level>`: Set logging verbosity (0-5).
+Use environment variables to tweak settings when needed (e.g.
+`RTYPE_SERVER_PORT`, `RTYPE_SERVER_MAX_PLAYERS`, `RTYPE_SERVER_TICK_RATE`,
+`RTYPE_SERVER_ROOM_CODE`, `RTYPE_SERVER_LOG_LEVEL`). The server now logs the
+room directory periodically, including whether rooms are public or private and
+their player counts.
 
 #### Running the Client
 
-The client connects to a running server instance.
+Start the client UI:
 
 ```bash
-xmake run client [options]
+xmake run client
 ```
 
-**Available Options:**
-
-- `--host <ip>`: Server IP address to connect to (default: localhost).
-- `--port <port>`: Server UDP port.
-- `--name <player>`: Your player name.
-- `--room <room>`: Room code to join.
-- `--debug`: Enable debug overlay and visualizers.
+Configure host, port, nickname, room code, and lobby actions directly from the
+main menu. You can refresh the room list, create public or private rooms
+(private rooms use a 4-digit code, auto-generated if left blank), and join any
+room without CLI flags.
 
 ## Configuration
 
