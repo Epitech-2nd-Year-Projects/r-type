@@ -523,8 +523,9 @@ void Application::UpdateAudio(engine::time::TimeDelta dt,
     return;
   }
 
-  const bool in_menu =
-      state_ == ClientState::kMainMenu || state_ == ClientState::kSettings;
+  const bool in_menu = state_ == ClientState::kMainMenu ||
+                       state_ == ClientState::kSettings ||
+                       state_ == ClientState::kLobby;
   const auto active_music = audio_manager_->ActiveMusic();
   const bool menu_music_active =
       active_music.has_value() && active_music.value() == MusicType::kMainMenu;
