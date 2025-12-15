@@ -13,12 +13,15 @@
 #include "ecs/components.h"
 #include "ecs/render_system.h"
 #include "engine/math/vector2.h"
+#include "engine/net/packet_buffer.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
 #include "engine/time/monotonic_time.h"
 #include "input_sender.h"
 #include "logging.h"
 #include "protocol/command.h"
+#include "protocol/message_type.h"
+#include "protocol/packet.h"
 #include "scene/connecting_scene.h"
 #include "scene/disconnected_scene.h"
 #include "scene/game_over_scene.h"
@@ -368,7 +371,8 @@ bool Application::StartConnection() {
 
 void Application::SetConnectionConfig(std::string host, int port,
                                       std::string player_name,
-                                      std::string room_code) {
+                                      std::string room_code,
+                                      std::string room_password) {
   config_.host = std::move(host);
   config_.port = port;
   config_.player_name = std::move(player_name);
@@ -381,6 +385,7 @@ void Application::SetConnectionConfig(std::string host, int port,
   runtime_config_store.Set("client.room_code", config_.room_code);
 
   join_flow_ = JoinFlow(config_.player_name, config_.room_code);
+  join_flow_.SetRoomPassword(std::move(room_password));
 }
 
 void Application::RefreshRoomList(std::string host, std::uint16_t port) {
@@ -394,7 +399,7 @@ void Application::RefreshRoomList(std::string host, std::uint16_t port) {
 }
 
 void Application::CreateRoom(std::string host, std::uint16_t port,
-                             const std::string& room_code, bool is_private,
+                             const std::string& room_name, bool is_private,
                              std::uint16_t max_players) {
   if (!room_directory_) {
     return;
@@ -402,7 +407,7 @@ void Application::CreateRoom(std::string host, std::uint16_t port,
   if (!room_directory_->Connect(std::move(host), port)) {
     return;
   }
-  room_directory_->RequestCreateRoom(room_code, is_private, max_players);
+  room_directory_->RequestCreateRoom(room_name, is_private, max_players);
 }
 
 const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()
@@ -689,7 +694,25 @@ void Application::StopNetworkSession() {
     protocol::CommandPayload disconnect{};
     disconnect.command_id =
         static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice);
-    (void)world_update_receiver_.EnqueueCommand(disconnect);
+    const bool queued = world_update_receiver_.EnqueueCommand(disconnect);
+    if (!queued) {
+      protocol::Packet packet{};
+      packet.header.version = protocol::kProtocolVersion;
+      packet.header.message_type = static_cast<std::uint8_t>(
+          protocol::message_type::MessageType::kClientCommand);
+      packet.header.flags = 0;
+      packet.header.sequence = 0;
+      packet.header.ack = 0;
+      packet.header.ack_bits = 0;
+      packet.header.timestamp_ms =
+          static_cast<std::uint32_t>(engine::time::NowMilliseconds());
+      packet.payload = disconnect;
+      engine::net::PacketBuffer buffer;
+      buffer.reserve(64);
+      if (protocol::EncodePacket(packet, buffer)) {
+        (void)transport_->Send(std::move(buffer));
+      }
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   world_update_receiver_.Stop();
