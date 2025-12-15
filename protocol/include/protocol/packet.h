@@ -7,6 +7,7 @@
 #include "protocol/header.h"
 #include "protocol/input_state.h"
 #include "protocol/join.h"
+#include "protocol/lobby.h"
 #include "protocol/ping.h"
 #include "protocol/player_died.h"
 #include "protocol/world_snapshot.h"
@@ -28,6 +29,10 @@ using PacketPayload = std::variant<std::monostate,
                                     JoinRequestPayload,
                                     JoinAcceptPayload,
                                     JoinRejectPayload,
+                                    RoomListRequestPayload,
+                                    RoomListResponsePayload,
+                                    CreateRoomRequestPayload,
+                                    CreateRoomResponsePayload,
                                     PlayerDiedPayload,
                                     CommandPayload,
                                     WorldSnapshotPayload>;
