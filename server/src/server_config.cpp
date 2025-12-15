@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdlib>
 #include <limits>
-#include <optional>
-#include <span>
 #include <string_view>
+#include <type_traits>
 
 #include "protocol/join.h"
 
@@ -31,15 +31,6 @@ std::string Normalize(std::string_view value) {
       value.begin(), value.end(), normalized.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return normalized;
-}
-
-ServerConfigParseResult MakeError(const ServerConfig& config,
-                                  std::string_view message) {
-  ServerConfigParseResult result;
-  result.config = config;
-  result.ok = false;
-  result.error.assign(message);
-  return result;
 }
 
 template <typename T>
@@ -76,154 +67,55 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 }  // namespace
 
-ServerConfigParseResult ParseServerConfig(
-    std::span<const std::string_view> args) {
+ServerConfig LoadServerConfig() {
   ServerConfig config;
-  auto missing_value_error = [&](std::string_view flag) {
-    return MakeError(config, "Missing value for " + std::string(flag));
+
+  const auto apply_uint = [&](const char* env_name, auto min_value,
+                              auto max_value, auto& target) {
+    const char* value = std::getenv(env_name);
+    if (!value) return;
+    typename std::remove_reference_t<decltype(target)> parsed{};
+    if (TryParseBounded(std::string_view(value), min_value, max_value,
+                        parsed)) {
+      target = parsed;
+    }
   };
-  auto next_value = [&](std::size_t index) -> std::optional<std::string_view> {
-    if (index + 1 >= args.size()) {
-      return std::nullopt;
-    }
-    return args[index + 1];
-  };
 
-  for (std::size_t i = 1; i < args.size(); ++i) {
-    std::string_view arg(args[i]);
-    if (arg == "--port") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--port");
-      }
-      std::uint16_t port = 0;
-      if (!TryParseBounded(*value, kMinPort, kMaxPort, port)) {
-        return MakeError(config,
-                         "Invalid port supplied (must be between 1 and 65535)");
-      }
-      config.port = port;
-      ++i;
-      continue;
-    }
+  apply_uint("RTYPE_SERVER_PORT", kMinPort, kMaxPort, config.port);
+  apply_uint("RTYPE_SERVER_MAX_PLAYERS", kMinPlayers, kMaxPlayers,
+             config.max_players);
+  apply_uint("RTYPE_SERVER_TICK_RATE", kMinTickRate, kMaxTickRate,
+             config.tick_rate);
+  apply_uint("RTYPE_SERVER_TIMEOUT_MS", kMinPeerTimeoutMs, kMaxPeerTimeoutMs,
+             config.peer_timeout_ms);
+  apply_uint("RTYPE_SERVER_ROOM_IDLE_TIMEOUT_MS", kMinRoomIdleTimeoutMs,
+             kMaxRoomIdleTimeoutMs, config.room_idle_timeout_ms);
 
-    if (arg == "--max-players") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--max-players");
-      }
-      std::uint16_t max_players = 0;
-      if (!TryParseBounded(*value, kMinPlayers, kMaxPlayers, max_players)) {
-        return MakeError(config,
-                         "Invalid max players (must be between 1 and 255)");
-      }
-      config.max_players = max_players;
-      ++i;
-      continue;
-    }
-
-    if (arg == "--tickrate" || arg == "--tick-rate") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error(arg);
-      }
-      std::uint16_t tick_rate = 0;
-      if (!TryParseBounded(*value, kMinTickRate, kMaxTickRate, tick_rate)) {
-        return MakeError(config,
-                         "Invalid tickrate (must be between 1 and 255)");
-      }
-      config.tick_rate = tick_rate;
-      ++i;
-      continue;
-    }
-
-    if (arg == "--timeout-ms") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--timeout-ms");
-      }
-      std::uint32_t timeout_ms = 0;
-      if (!TryParseBounded(*value, kMinPeerTimeoutMs, kMaxPeerTimeoutMs,
-                           timeout_ms)) {
-        return MakeError(
-            config, "Invalid timeout (must be between 10000 and 30000 ms)");
-      }
-      config.peer_timeout_ms = timeout_ms;
-      ++i;
-      continue;
-    }
-
-    if (arg == "--room-idle-timeout-ms") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--room-idle-timeout-ms");
-      }
-      std::uint32_t idle_ms = 0;
-      if (!TryParseBounded(*value, kMinRoomIdleTimeoutMs, kMaxRoomIdleTimeoutMs,
-                           idle_ms)) {
-        return MakeError(
-            config,
-            "Invalid room idle timeout (must be between 1000 and 600000 ms)");
-      }
-      config.room_idle_timeout_ms = idle_ms;
-      ++i;
-      continue;
-    }
-
-    if (arg == "--room" || arg == "--room-code") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error(arg);
-      }
-      std::string_view room_value(*value);
-      if (room_value.empty()) {
-        return MakeError(config, "Room code cannot be empty");
-      }
-      if (!ValidateLength(room_value, protocol::kMaxRoomCodeLength)) {
-        return MakeError(config,
-                         "Room code exceeds maximum length of " +
-                             std::to_string(protocol::kMaxRoomCodeLength) +
-                             " characters");
-      }
-      config.room_code.assign(room_value);
-      ++i;
-      continue;
-    }
-
-    if (arg == "--seed") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--seed");
-      }
-      std::uint32_t seed = 0;
-      if (!TryParseBounded(*value, std::numeric_limits<std::uint32_t>::min(),
-                           std::numeric_limits<std::uint32_t>::max(), seed)) {
-        return MakeError(config, "Invalid seed value");
-      }
+  if (const char* seed_value = std::getenv("RTYPE_SERVER_SEED")) {
+    std::uint32_t seed = 0;
+    if (TryParseBounded(std::string_view(seed_value),
+                        std::numeric_limits<std::uint32_t>::min(),
+                        std::numeric_limits<std::uint32_t>::max(), seed)) {
       config.seed = seed;
-      ++i;
-      continue;
     }
-
-    if (arg == "--log-level") {
-      const auto value = next_value(i);
-      if (!value) {
-        return missing_value_error("--log-level");
-      }
-      engine::util::LogLevel level;
-      if (!TryParseLogLevel(*value, level)) {
-        return MakeError(config,
-                         "Invalid log level (trace, debug, info, warn/warning, "
-                         "error, critical/fatal, off/none)");
-      }
-      config.log_level = level;
-      ++i;
-      continue;
-    }
-
-    return MakeError(config, "Unknown argument: " + std::string(arg));
   }
 
-  return ServerConfigParseResult{config, true, {}};
+  if (const char* room_code = std::getenv("RTYPE_SERVER_ROOM_CODE")) {
+    const std::string_view room_view(room_code);
+    if (!room_view.empty() &&
+        ValidateLength(room_view, protocol::kMaxRoomCodeLength)) {
+      config.default_room_code.assign(room_view);
+    }
+  }
+
+  if (const char* log_level = std::getenv("RTYPE_SERVER_LOG_LEVEL")) {
+    engine::util::LogLevel level;
+    if (TryParseLogLevel(log_level, level)) {
+      config.log_level = level;
+    }
+  }
+
+  return config;
 }
 
 }  // namespace server
