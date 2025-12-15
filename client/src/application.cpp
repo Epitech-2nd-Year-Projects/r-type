@@ -6,7 +6,9 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
+#include <vector>
 
 #include "ecs/components.h"
 #include "ecs/render_system.h"
@@ -21,6 +23,7 @@
 #include "scene/disconnected_scene.h"
 #include "scene/game_over_scene.h"
 #include "scene/in_game_scene.h"
+#include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
 #include "scene/pause_scene.h"
 #include "scene/settings_scene.h"
@@ -39,6 +42,8 @@ const char* ToString(ClientState state) {
   switch (state) {
     case ClientState::kMainMenu:
       return "MainMenu";
+    case ClientState::kLobby:
+      return "Lobby";
     case ClientState::kSettings:
       return "Settings";
     case ClientState::kConnecting:
@@ -60,7 +65,9 @@ const char* ToString(ClientState state) {
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
       transport_(std::make_shared<NetworkTransport>()),
+      lobby_transport_(std::make_shared<NetworkTransport>()),
       join_flow_(config_.player_name, config_.room_code),
+      room_directory_(std::make_unique<RoomDirectoryClient>(lobby_transport_)),
       world_registry_(std::make_unique<engine::ecs::Registry>()),
       world_state_system_(
           std::make_unique<ecs::WorldStateSystem>(*world_registry_)),
@@ -149,6 +156,9 @@ int Application::Run() {
   }
   world_update_receiver_.Stop();
   transport_->Stop();
+  if (room_directory_) {
+    room_directory_->Disconnect();
+  }
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
 }
@@ -164,6 +174,8 @@ void Application::CommitSceneChange() {
 }
 
 void Application::OnConnected() { TransitionTo(ClientState::kInGame); }
+
+void Application::OnPlay() { TransitionTo(ClientState::kLobby); }
 
 void Application::OnConnectionFailed(const std::string& reason) {
   StopNetworkSession();
@@ -190,12 +202,20 @@ void Application::OnDisconnect(std::string reason) {
 
 void Application::OnQuitToMenu() {
   StopNetworkSession();
+  StopNetworkSession();
   join_flow_.Reset();
   reconnect_requested_ = false;
   TransitionTo(ClientState::kMainMenu);
 }
 
 void Application::OnOpenSettings() { TransitionTo(ClientState::kSettings); }
+
+void Application::OnQuitApplication() {
+  StopNetworkSession();
+  if (engine_) {
+    engine_->Window().RequestClose();
+  }
+}
 
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!engine_->Pump()) {
@@ -208,6 +228,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     input_layer_->Update();
   }
   UpdateDebugOverlayState();
+  if (room_directory_) {
+    room_directory_->Update();
+  }
 
   if (transport_) {
     join_flow_.Update(*transport_);
@@ -344,17 +367,60 @@ bool Application::StartConnection() {
 }
 
 void Application::SetConnectionConfig(std::string host, int port,
-                                      std::string player_name) {
+                                      std::string player_name,
+                                      std::string room_code) {
   config_.host = std::move(host);
   config_.port = port;
   config_.player_name = std::move(player_name);
+  config_.room_code = std::move(room_code);
 
   auto& runtime_config_store = engine_->Config();
   runtime_config_store.Set("client.host", config_.host);
   runtime_config_store.Set("client.port", std::to_string(config_.port));
   runtime_config_store.Set("client.player_name", config_.player_name);
+  runtime_config_store.Set("client.room_code", config_.room_code);
 
   join_flow_ = JoinFlow(config_.player_name, config_.room_code);
+}
+
+void Application::RefreshRoomList(std::string host, std::uint16_t port) {
+  if (!room_directory_) {
+    return;
+  }
+  if (!room_directory_->Connect(std::move(host), port)) {
+    return;
+  }
+  room_directory_->RequestRoomList();
+}
+
+void Application::CreateRoom(std::string host, std::uint16_t port,
+                             const std::string& room_code, bool is_private,
+                             std::uint16_t max_players) {
+  if (!room_directory_) {
+    return;
+  }
+  if (!room_directory_->Connect(std::move(host), port)) {
+    return;
+  }
+  room_directory_->RequestCreateRoom(room_code, is_private, max_players);
+}
+
+const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()
+    const {
+  static const std::vector<protocol::RoomSummary> kEmpty;
+  return room_directory_ ? room_directory_->rooms() : kEmpty;
+}
+
+std::string Application::RoomDirectoryStatus() const {
+  return room_directory_ ? room_directory_->status() : "Lobby unavailable";
+}
+
+std::optional<protocol::CreateRoomResponsePayload>
+Application::ConsumeLastRoomCreation() {
+  if (!room_directory_) {
+    return std::nullopt;
+  }
+  return room_directory_->ConsumeCreateResponse();
 }
 
 void Application::HandleServerCommand(const protocol::CommandPayload& payload) {
@@ -540,6 +606,9 @@ void Application::ApplyState(ClientState next_state, std::string reason) {
     case ClientState::kMainMenu:
       SwitchScene(std::make_unique<MainMenuScene>(*this));
       break;
+    case ClientState::kLobby:
+      SwitchScene(std::make_unique<LobbyScene>(*this));
+      break;
     case ClientState::kSettings:
       SwitchScene(std::make_unique<SettingsScene>(*this));
       break;
@@ -578,15 +647,23 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
   switch (state_) {
     case ClientState::kMainMenu:
       return next_state == ClientState::kConnecting ||
+             next_state == ClientState::kLobby ||
+             next_state == ClientState::kSettings ||
+             next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kDisconnected;
+    case ClientState::kLobby:
+      return next_state == ClientState::kConnecting ||
              next_state == ClientState::kSettings ||
              next_state == ClientState::kMainMenu ||
              next_state == ClientState::kDisconnected;
     case ClientState::kSettings:
-      return next_state == ClientState::kMainMenu;
+      return next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kLobby;
     case ClientState::kConnecting:
       return next_state == ClientState::kInGame ||
              next_state == ClientState::kDisconnected ||
-             next_state == ClientState::kMainMenu;
+             next_state == ClientState::kMainMenu ||
+             next_state == ClientState::kLobby;
     case ClientState::kInGame:
       return next_state == ClientState::kPaused ||
              next_state == ClientState::kGameOver ||
@@ -607,6 +684,14 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
 }
 
 void Application::StopNetworkSession() {
+  if (transport_ && transport_->running() &&
+      join_flow_.state() == JoinState::kConnected) {
+    protocol::CommandPayload disconnect{};
+    disconnect.command_id =
+        static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice);
+    (void)world_update_receiver_.EnqueueCommand(disconnect);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
   world_update_receiver_.Stop();
   if (transport_) {
     transport_->Stop();
