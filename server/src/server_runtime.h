@@ -231,6 +231,9 @@ class ServerRuntime {
                    const protocol::JoinRequestPayload& request);
   /**
    * @brief Handles a request for the current room directory.
+   *
+   * Sends the peer a list of public rooms ordered by name, capped to the
+   * protocol limit.
    */
   void HandleRoomListRequest(PeerConnection& peer);
   /**

@@ -127,17 +127,22 @@ std::size_t ComputeWorkerCount() {
 
 std::optional<std::string> GeneratePrivateCode(
     std::mt19937& rng, const std::unordered_map<std::string, Room>& rooms) {
-  std::uniform_int_distribution<int> dist(0, 9999);
-  for (int attempt = 0; attempt < 128; ++attempt) {
-    const int value = dist(rng);
+  std::vector<std::string> available_codes;
+  available_codes.reserve(10'000);
+  for (int value = 0; value <= 9999; ++value) {
     std::ostringstream oss;
     oss << std::setw(4) << std::setfill('0') << value;
     const std::string code = oss.str();
     if (rooms.find(code) == rooms.end()) {
-      return code;
+      available_codes.push_back(code);
     }
   }
-  return std::nullopt;
+  if (available_codes.empty()) {
+    return std::nullopt;
+  }
+  std::uniform_int_distribution<std::size_t> dist(
+      0, available_codes.size() - 1);
+  return available_codes[dist(rng)];
 }
 
 std::string GeneratePublicCode(
@@ -726,13 +731,26 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
 
 void ServerRuntime::HandleRoomListRequest(PeerConnection& peer) {
   protocol::RoomListResponsePayload payload{};
-  payload.rooms.reserve(
-      std::min<std::size_t>(rooms_.size(), protocol::kMaxRoomListEntries));
+  std::vector<const Room*> public_rooms;
+  public_rooms.reserve(rooms_.size());
   for (const auto& [_, room] : rooms_) {
+    if (room.IsPrivate()) {
+      continue;
+    }
+    public_rooms.push_back(&room);
+  }
+  std::sort(public_rooms.begin(), public_rooms.end(),
+            [](const Room* lhs, const Room* rhs) {
+              return lhs->Name() < rhs->Name();
+            });
+  payload.rooms.reserve(
+      std::min<std::size_t>(public_rooms.size(),
+                            protocol::kMaxRoomListEntries));
+  for (const Room* room : public_rooms) {
     if (payload.rooms.size() >= protocol::kMaxRoomListEntries) {
       break;
     }
-    payload.rooms.push_back(BuildRoomSummary(room));
+    payload.rooms.push_back(BuildRoomSummary(*room));
   }
 
   protocol::Packet packet{};
