@@ -80,7 +80,8 @@ class Application {
   void SetConnectionConfig(std::string host,
                            int port,
                            std::string player_name,
-                           std::string room_code);
+                           std::string room_code,
+                           std::string room_password = {});
 
   /**
    * @brief Begin the connection handshake
@@ -142,7 +143,7 @@ class Application {
    */
   void CreateRoom(std::string host,
                   std::uint16_t port,
-                  const std::string& room_code,
+                  const std::string& room_name,
                   bool is_private,
                   std::uint16_t max_players);
 
