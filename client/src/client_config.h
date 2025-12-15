@@ -20,7 +20,7 @@ struct ClientConfig {
   std::string room_code{"default"};
   bool debug{false};
   std::uint32_t timeout_ms{7'000};
-  engine::util::LogLevel log_level{engine::util::LogLevel::kInfo};
+  engine::util::LogLevel log_level{engine::util::LogLevel::kDebug};
 };
 
 /**

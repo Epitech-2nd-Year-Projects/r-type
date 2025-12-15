@@ -234,8 +234,10 @@ class RaylibRenderer2D final : public Renderer2D {
   }
 
   void LoadFont(const std::string& name, const std::string& path) override {
-    ::Font font = ::LoadFont(path.c_str());
+    constexpr int kDefaultFontBaseSize = 64;
+    ::Font font = ::LoadFontEx(path.c_str(), kDefaultFontBaseSize, nullptr, 0);
     if (font.texture.id != 0) {
+      ::SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
       if (fonts_.count(name)) {
         ::UnloadFont(fonts_[name]);
       }

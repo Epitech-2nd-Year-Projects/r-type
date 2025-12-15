@@ -10,8 +10,10 @@ namespace client {
 
 AudioManager::AudioManager(engine::audio::AudioEngine& engine)
     : engine_(engine) {
+  music_paths_[MusicType::kMainMenu] =
+      ResolveAssetPath("assets/song/main_menu_theme.ogg");
   music_paths_[MusicType::kBackground] =
-      ResolveAssetPath("assets/background_music.ogg");
+      ResolveAssetPath("assets/song/background_music.ogg");
 }
 
 void AudioManager::LoadAssets() {
@@ -19,6 +21,8 @@ void AudioManager::LoadAssets() {
   const float original_music_volume = engine_.GetMusicVolume();
   engine_.SetMusicVolume(0.0f);
   for (const auto& [type, path] : music_paths_) {
+    LogLifecycle(engine::util::LogLevel::kInfo,
+                 std::string("Preloading music: ") + path);
     engine_.PlayMusic(path);
     engine_.StopMusic();
   }
@@ -76,5 +80,9 @@ void AudioManager::Update(float dt_seconds) {
 }
 
 bool AudioManager::MusicActive() const { return current_music_.has_value(); }
+
+std::optional<MusicType> AudioManager::ActiveMusic() const {
+  return current_music_;
+}
 
 }  // namespace client
