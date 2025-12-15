@@ -2,12 +2,12 @@
 
 #include <cstdint>
 #include <iomanip>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
-#include <iostream>
 
 #include "ecs/components.h"
 #include "ecs/render_system.h"
@@ -176,7 +176,7 @@ void Application::OnGameStart() { TransitionTo(ClientState::kInGame); }
 void Application::OnGamePause() { TransitionTo(ClientState::kPaused); }
 
 void Application::OnGameResume() { TransitionTo(ClientState::kInGame); }
-  
+
 void Application::OnGameOver() { OnGameOver(GameOverStats{}); }
 
 void Application::OnGameOver(const GameOverStats& stats) {
@@ -255,19 +255,23 @@ bool Application::Tick(engine::time::TimeDelta dt) {
           }
         }
       }
-        if (message.type == protocol::message_type::MessageType::kPlayerDied) {
-          std::cout << "[Client] Received PlayerDied message!" << std::endl;
+      if (message.type == protocol::message_type::MessageType::kPlayerDied) {
+        std::cout << "[Client] Received PlayerDied message!" << std::endl;
         if (sound_effects_) {
           sound_effects_->OnPlayerDeath();
         }
         HandleGameOverAudio();
-        if (std::holds_alternative<protocol::PlayerDiedPayload>(message.payload)) {
-          const auto& died = std::get<protocol::PlayerDiedPayload>(message.payload);
-          std::cout << "[Client] Player died payload: ID=" << died.player_id 
+        if (std::holds_alternative<protocol::PlayerDiedPayload>(
+                message.payload)) {
+          const auto& died =
+              std::get<protocol::PlayerDiedPayload>(message.payload);
+          std::cout << "[Client] Player died payload: ID=" << died.player_id
                     << " Lives=" << (int)died.remaining_lives << std::endl;
 
-          if (died.player_id == join_flow_.player_id() && died.remaining_lives == 0) {
-            if (state_ == ClientState::kInGame || state_ == ClientState::kPaused) {
+          if (died.player_id == join_flow_.player_id() &&
+              died.remaining_lives == 0) {
+            if (state_ == ClientState::kInGame ||
+                state_ == ClientState::kPaused) {
               // TODO(implement): get actual score/wave/level from somewhere
               GameOverStats stats;
               stats.score = 0;

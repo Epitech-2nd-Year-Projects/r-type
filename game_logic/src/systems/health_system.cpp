@@ -1,7 +1,5 @@
 #include "game_logic/systems/health_system.h"
 
-#include "game_logic/game_instance.h"
-
 #include <iostream>
 #include <vector>
 
@@ -12,6 +10,7 @@
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/score_value_component.h"
+#include "game_logic/game_instance.h"
 
 namespace game_logic::systems {
 
@@ -37,8 +36,7 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
 
       if (player_comp.lives > 0) {
         player_comp.lives--;
-        game_instance_.OnPlayerDeath(player_comp.player_id,
-                                     player_comp.lives);
+        game_instance_.OnPlayerDeath(player_comp.player_id, player_comp.lives);
         std::cout << "[HealthSystem] Player " << player_comp.player_id
                   << " died, lives remaining: "
                   << static_cast<int>(player_comp.lives) << ". Respawning."

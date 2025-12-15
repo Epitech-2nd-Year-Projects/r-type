@@ -47,7 +47,7 @@ GameOverScene::GameOverScene(Application& app, const Stats& stats)
   root->AddChild(title_);
   root->AddChild(score_text_);
   root->AddChild(wave_level_text_);
-  
+
   // Spacer
   auto spacer = std::make_shared<engine::ui::BoxElement>();
   spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(40.0f);
@@ -63,14 +63,12 @@ void GameOverScene::Update(engine::time::TimeDelta /*dt*/) {
   auto& input = app_.GetEngine().Input();
 
   if (input.IsActionActive("Confirm")) {
-    // Only one option for now, so Confirm always goes to menu
     app_.OnQuitToMenu();
   }
 }
 
 void GameOverScene::UpdateMenuVisuals() {
-    // Single option, always selected
-    menu_main_exit_->SetColor(kSelectedColor);
+  menu_main_exit_->SetColor(kSelectedColor);
 }
 
 void GameOverScene::Draw(engine::render::Renderer2D& renderer) {

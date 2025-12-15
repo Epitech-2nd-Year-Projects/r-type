@@ -367,7 +367,7 @@ class GameInstance {
 
   /// @brief Per-frame queue of input events
   std::vector<QueuedInputEvent> pending_inputs_;
-  
+
   /// @brief Queue of player death events
   std::vector<PlayerDeathEvent> pending_deaths_;
 
