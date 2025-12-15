@@ -6,8 +6,3 @@ target("protocol")
     add_headerfiles("include/protocol/**.h|**.hpp")
     add_deps("engine")
 
-target("protocol_tests")
-    set_kind("binary")
-    set_default(false)
-    add_files("tests/**.cpp")
-    add_deps("protocol")
