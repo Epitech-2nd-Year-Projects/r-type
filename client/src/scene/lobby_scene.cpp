@@ -22,7 +22,7 @@ constexpr float kFieldHeight = 52.0f;
 constexpr float kButtonHeight = 56.0f;
 constexpr float kRoomButtonHeight = 64.0f;
 constexpr float kModalWidth = 560.0f;
-constexpr float kModalHeight = 360.0f;
+constexpr float kModalHeight = 400.0f;
 constexpr auto kBannerDuration = std::chrono::seconds(6);
 
 std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
@@ -66,7 +66,7 @@ LobbyScene::LobbyScene(Application& app) : app_(app) {
 
   name_input_ = std::make_shared<ui::TextInput>(engine::math::Vector2f{},
                                                 engine::math::Vector2f{});
-  name_input_->SetPlaceholder("Crewmate name");
+  name_input_->SetPlaceholder("Player name");
   name_input_->SetText(
       app.GetEngine().Config().GetString("client.player_name", "Pilot"));
 
@@ -120,6 +120,9 @@ void LobbyScene::BuildModal() {
       "Public", [this]() {
         modal_private_ = !modal_private_;
         modal_privacy_button_->SetText(modal_private_ ? "Private" : "Public");
+        if (!modal_private_) {
+          modal_password_input_->SetText("");
+        }
       });
 
   modal_password_input_ = std::make_shared<ui::TextInput>(
@@ -143,7 +146,16 @@ void LobbyScene::BuildModal() {
           try {
             int max_players = std::stoi(max_players_str);
             max_players = std::clamp(max_players, 1, 255);
+            std::string password_input = modal_password_input_->GetText();
+            if (!password_input.empty() &&
+                !IsFourDigitPassword(password_input)) {
+              banner_text_ = "Password must be exactly 4 digits";
+              banner_expiry_ =
+                  std::chrono::steady_clock::now() + kBannerDuration;
+              return;
+            }
             app_.CreateRoom(lobby_host_, lobby_port_, name, modal_private_,
+                            std::move(password_input),
                             static_cast<std::uint16_t>(max_players));
             CloseModal();
           } catch (const std::exception& e) {
@@ -199,6 +211,9 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
       if (modal_mode_ == ModalMode::kCreate) {
         set_focus(modal_room_name_input_);
         set_focus(modal_max_players_input_);
+        if (modal_private_) {
+          set_focus(modal_password_input_);
+        }
       } else {
         set_focus(modal_password_input_);
       }
@@ -212,9 +227,12 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
     elem->Update(dt, input);
   }
   if (show_modal_) {
-    const auto& active_modal = modal_mode_ == ModalMode::kCreate
-                                   ? create_modal_elements_
-                                   : join_modal_elements_;
+    std::vector<std::shared_ptr<ui::UIElement>> active_modal =
+        modal_mode_ == ModalMode::kCreate ? create_modal_elements_
+                                          : join_modal_elements_;
+    if (modal_mode_ == ModalMode::kCreate && modal_private_) {
+      active_modal.push_back(modal_password_input_);
+    }
     for (auto& elem : active_modal) {
       elem->Update(dt, input);
     }
@@ -250,12 +268,11 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
   const auto accent = engine::render::Color::FromBytes(140, 186, 255, 255);
 
   renderer.DrawText("Ready for launch", {40.0f, 60.0f}, 42.0f, accent);
-  renderer.DrawText("Available rooms", {40.0f, 108.0f}, 24.0f,
+  renderer.DrawText("Available rooms", {40.0f, 96.0f}, 24.0f,
                     engine::render::Color::White());
-  renderer.DrawText(app_.RoomDirectoryStatus(), {40.0f, 136.0f}, 18.0f,
+  renderer.DrawText(app_.RoomDirectoryStatus(), {40.0f, 124.0f}, 18.0f,
                     engine::render::Color::FromBytes(180, 190, 210, 255));
-
-  renderer.DrawText("Crewmate", {40.0f, 174.0f}, 16.0f,
+  renderer.DrawText("Player name", {40.0f, 152.0f}, 16.0f,
                     engine::render::Color::FromBytes(200, 210, 230, 255));
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
@@ -287,14 +304,22 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
       renderer.DrawText(modal_private_ ? "Private lobby" : "Public lobby",
                         {modal_x + 240.0f, modal_y + 170.0f}, 16.0f,
                         engine::render::Color::FromBytes(200, 210, 230, 255));
+      if (modal_private_) {
+        renderer.DrawText("Password (4 digits)",
+                          {modal_x + 24.0f, modal_y + 232.0f}, 16.0f,
+                          engine::render::Color::FromBytes(200, 210, 230, 255));
+      }
     } else {
       std::string subtitle = "Join " + pending_join_room_name_;
       renderer.DrawText(subtitle, {modal_x + 24.0f, modal_y + 84.0f}, 18.0f,
                         engine::render::Color::FromBytes(200, 210, 230, 255));
     }
-    const auto& active_modal = modal_mode_ == ModalMode::kCreate
-                                   ? create_modal_elements_
-                                   : join_modal_elements_;
+    std::vector<std::shared_ptr<ui::UIElement>> active_modal =
+        modal_mode_ == ModalMode::kCreate ? create_modal_elements_
+                                          : join_modal_elements_;
+    if (modal_mode_ == ModalMode::kCreate && modal_private_) {
+      active_modal.push_back(modal_password_input_);
+    }
     for (auto& elem : active_modal) {
       elem->Draw(renderer);
     }
@@ -341,25 +366,24 @@ void LobbyScene::LayoutUi(engine::render::Renderer2D& renderer) {
   (void)renderer;
   const auto window_size = app_.GetEngine().Window().GetSize();
   const float width = static_cast<float>(window_size.x);
-  const float margin = 56.0f;
-  const float list_top = 220.0f;
+  const float margin = 32.0f;
+  const float list_top = 200.0f;
   const float list_width = width - margin * 2.0f;
 
   name_input_->SetSize({260.0f, kFieldHeight});
-  name_input_->SetPosition({margin, 190.0f});
+  name_input_->SetPosition({margin, 120.0f});
 
-  back_button_->SetPosition(
-      {width - margin - back_button_->GetSize().x, 42.0f});
+  back_button_->SetPosition({margin, 40.0f});
   refresh_button_->SetPosition(
-      {width - margin - refresh_button_->GetSize().x, 190.0f});
+      {width - margin - refresh_button_->GetSize().x, 120.0f});
   create_button_->SetPosition(
       {refresh_button_->GetPosition().x - create_button_->GetSize().x - 12.0f,
-       190.0f});
+       120.0f});
 
-  const auto room_area_width = list_width - 12.0f;
+  const auto room_area_width = list_width;
   float room_y = list_top;
   for (auto& button : room_buttons_) {
-    button->SetPosition({margin + 6.0f, room_y});
+    button->SetPosition({margin, room_y});
     button->SetSize({room_area_width, kRoomButtonHeight});
     room_y += kRoomButtonHeight + 10.0f;
   }
@@ -376,6 +400,7 @@ void LobbyScene::OpenCreateModal() {
   modal_privacy_button_->SetText("Public");
   modal_room_name_input_->SetText("");
   modal_max_players_input_->SetText("4");
+  modal_password_input_->SetPlaceholder("Private password (optional)");
   modal_password_input_->SetText("");
   show_modal_ = true;
 }
@@ -385,6 +410,7 @@ void LobbyScene::OpenJoinModal(const protocol::RoomSummary& room) {
   pending_join_room_code_ = room.room_code;
   pending_join_room_name_ = room.room_name;
   modal_primary_button_->SetText("Join");
+  modal_password_input_->SetPlaceholder("Enter 4-digit password");
   modal_password_input_->SetText("");
   show_modal_ = true;
 }
@@ -423,13 +449,17 @@ void LobbyScene::ApplyModalLayout() {
     modal_privacy_button_->SetPosition(
         {modal_x + 220.0f, modal_max_players_input_->GetPosition().y - 4.0f});
     modal_privacy_button_->SetSize({160.0f, kButtonHeight});
+    if (modal_private_) {
+      modal_password_input_->SetPosition({modal_x + 24.0f, modal_y + 252.0f});
+      modal_password_input_->SetSize({kModalWidth - 48.0f, kFieldHeight});
+    }
   }
 
-  modal_primary_button_->SetPosition({modal_x + 24.0f, modal_y + 280.0f});
+  modal_primary_button_->SetPosition({modal_x + 24.0f, modal_y + 320.0f});
   modal_primary_button_->SetSize({160.0f, kButtonHeight});
   modal_cancel_button_->SetPosition(
       {modal_x + kModalWidth - modal_cancel_button_->GetSize().x - 24.0f,
-       modal_y + 280.0f});
+       modal_y + 320.0f});
   modal_cancel_button_->SetSize({160.0f, kButtonHeight});
 
   if (modal_mode_ == ModalMode::kJoinPrivate) {
