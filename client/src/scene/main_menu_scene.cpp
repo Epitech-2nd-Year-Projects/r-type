@@ -54,16 +54,10 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
                            engine::ui::VerticalAlignment::kCenter});
 
   title_text_ = std::make_shared<engine::ui::TextElement>(
-      "R-TYPE", engine::ui::FontSize::RelativeWidth(0.12f), white);
+      "R-TYPE", engine::ui::FontSize::RelativeWidth(0.15f), white);
   title_text_->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_text_);
-
-  auto subtitle = std::make_shared<engine::ui::TextElement>(
-      "Multiplayer Arcade", engine::ui::FontSize::RelativeWidth(0.03f), white);
-  subtitle->Layout().alignment.horizontal =
-      engine::ui::HorizontalAlignment::kCenter;
-  root->AddChild(subtitle);
 
   auto button_column =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
