@@ -156,6 +156,10 @@ bool EncodeCreateRoomRequest(const CreateRoomRequestPayload& request,
   }
   buffer.WriteUint8(BoolToByte(request.is_private));
   buffer.WriteUint8(request.max_players);
+   if (!EncodeStringWithLength(request.room_password, kMaxRoomCodeLength,
+                              buffer)) {
+    return false;
+  }
   return true;
 }
 
@@ -175,6 +179,10 @@ bool DecodeCreateRoomRequest(engine::net::PacketBuffer& buffer,
   }
   request.is_private = is_private;
   request.max_players = max_players;
+  if (!DecodeStringWithLength(buffer, kMaxRoomCodeLength,
+                              request.room_password)) {
+    return false;
+  }
   out_request = std::move(request);
   return true;
 }
