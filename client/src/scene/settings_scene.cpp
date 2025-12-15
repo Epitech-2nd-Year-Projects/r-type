@@ -7,9 +7,12 @@
 
 #include "application.h"
 #include "engine/core/engine_runtime.h"
+#include "engine/math/rect.h"
+#include "engine/ui/layouts.h"
+#include "engine/ui/text.h"
+#include "engine/ui/types.h"
 #include "key_bindings.h"
 #include "ui/button.h"
-#include "ui/label.h"
 
 namespace client {
 
@@ -18,8 +21,6 @@ namespace {
 constexpr std::array<GameAction, 5> kRebindableActions{
     GameAction::kMoveUp, GameAction::kMoveDown, GameAction::kMoveLeft,
     GameAction::kMoveRight, GameAction::kShoot};
-
-constexpr float kBindingRowSpacing = 60.0f;
 
 std::string VolumeToString(float volume) {
   int percent = static_cast<int>(std::round(volume * 100.0f));
@@ -43,100 +44,133 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
   renderer.SetFont("times");
 
   engine::render::Color white = engine::render::Color::White();
-  float center_x =
-      static_cast<float>(app_.GetEngine().Window().GetSize().x) * 0.5f;
-  float start_y = 200.0f;
 
-  ui_elements_.push_back(std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 140.0f, 100.0f}, "Settings", 60.0f,
-      white));
+  auto root =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  root->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
+  root->Layout().size.height = engine::ui::LayoutValue::Percent(1.0f);
+  root->Layout().alignment.horizontal =
+      engine::ui::HorizontalAlignment::kCenter;
+  root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
+  root->SetPadding(engine::ui::Insets::Uniform(48.0f));
+  root->SetSpacing(20.0f);
+  root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                           engine::ui::VerticalAlignment::kCenter});
+
+  auto title_text = std::make_shared<engine::ui::TextElement>(
+      "Settings", engine::ui::FontSize::RelativeWidth(0.1f), white);
+  title_text->Layout().alignment.horizontal =
+      engine::ui::HorizontalAlignment::kCenter;
+  root->AddChild(title_text);
+
+  auto content =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  content->SetSpacing(15.0f);
+  content->Layout().alignment.horizontal =
+      engine::ui::HorizontalAlignment::kCenter;
 
   auto audio = app_.GetEngine().Audio();
   float current_music_vol = audio ? audio->GetMusicVolume() : 0.0f;
   float current_sfx_vol = audio ? audio->GetSfxVolume() : 0.0f;
 
-  ui_elements_.push_back(std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 350.0f, start_y + 10.0f},
-      "Music Volume", 24.0f, white));
+  auto btn_tex = renderer.LoadTextureFromFile("assets/ui/button_large.png");
+  auto small_btn_tex =
+      renderer.LoadTextureFromFile("assets/ui/button_small.png");
+  const auto hover = engine::render::Color::FromBytes(220, 220, 220);
+  const auto press = engine::render::Color::FromBytes(180, 180, 180);
 
-  ui_elements_.push_back(std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x - 80.0f, start_y},
-      engine::math::Vector2f{40.0f, 40.0f}, "-", [this]() {
-        if (auto audio = app_.GetEngine().Audio()) {
-          float v = audio->GetMusicVolume();
-          v = std::max(0.0f, v - 0.1f);
-          audio->SetMusicVolume(v);
-          if (music_volume_label_)
-            music_volume_label_->SetText(VolumeToString(v));
-        }
-      }));
+  auto make_volume_slider = [&](const std::string& label, float initial_volume,
+                                auto on_change) {
+    auto row = std::make_shared<engine::ui::StackContainer>(
+        engine::ui::Axis::kHorizontal);
+    row->SetSpacing(15.0f);
+    row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                            engine::ui::VerticalAlignment::kCenter});
 
-  music_volume_label_ = std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 10.0f, start_y + 10.0f},
-      VolumeToString(current_music_vol), 24.0f, white);
-  ui_elements_.push_back(music_volume_label_);
+    auto label_elem = std::make_shared<engine::ui::TextElement>(
+        label, engine::ui::FontSize::Pixels(24.0f), white);
+    label_elem->Layout().size.width = engine::ui::LayoutValue::Pixels(200.0f);
+    row->AddChild(label_elem);
 
-  ui_elements_.push_back(std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x + 60.0f, start_y},
-      engine::math::Vector2f{40.0f, 40.0f}, "+", [this]() {
-        if (auto audio = app_.GetEngine().Audio()) {
-          float v = audio->GetMusicVolume();
-          v = std::min(1.0f, v + 0.1f);
-          audio->SetMusicVolume(v);
-          if (music_volume_label_)
-            music_volume_label_->SetText(VolumeToString(v));
-        }
-      }));
+    auto volume_label = std::make_shared<engine::ui::TextElement>(
+        VolumeToString(initial_volume), engine::ui::FontSize::Pixels(24.0f),
+        white);
+    volume_label->Layout().size.width = engine::ui::LayoutValue::Pixels(80.0f);
+    volume_label->Layout().alignment.horizontal =
+        engine::ui::HorizontalAlignment::kCenter;
 
-  start_y += 100.0f;
+    auto add_button_slot = [&](const std::shared_ptr<ui::Button>& button) {
+      buttons_.push_back(button);
+      auto slot = std::make_shared<engine::ui::BoxElement>();
+      slot->Layout().size = {engine::ui::LayoutValue::Pixels(40.0f),
+                             engine::ui::LayoutValue::Pixels(40.0f)};
+      slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
+        button->SetPosition({rect.top_left_x_, rect.top_left_y_});
+        button->SetSize({rect.width_, rect.height_});
+      });
+      row->AddChild(slot);
+    };
 
-  ui_elements_.push_back(std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 350.0f, start_y + 10.0f}, "SFX Volume",
-      24.0f, white));
+    auto minus_btn = std::make_shared<ui::Button>(
+        engine::math::Vector2f{}, engine::math::Vector2f{40.0f, 40.0f}, "-",
+        [this, on_change, volume_label]() {
+          if (auto audio = app_.GetEngine().Audio()) {
+            float v = on_change(audio, -0.1f);
+            volume_label->SetText(VolumeToString(v));
+          }
+        });
+    minus_btn->SetTexture(small_btn_tex);
+    minus_btn->SetColors(white, hover, press);
+    add_button_slot(minus_btn);
 
-  ui_elements_.push_back(std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x - 80.0f, start_y},
-      engine::math::Vector2f{40.0f, 40.0f}, "-", [this]() {
-        if (auto audio = app_.GetEngine().Audio()) {
-          float v = audio->GetSfxVolume();
-          v = std::max(0.0f, v - 0.1f);
-          audio->SetSfxVolume(v);
-          if (sfx_volume_label_) sfx_volume_label_->SetText(VolumeToString(v));
-        }
-      }));
+    row->AddChild(volume_label);
 
-  sfx_volume_label_ = std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 10.0f, start_y + 10.0f},
-      VolumeToString(current_sfx_vol), 24.0f, white);
-  ui_elements_.push_back(sfx_volume_label_);
+    auto plus_btn = std::make_shared<ui::Button>(
+        engine::math::Vector2f{}, engine::math::Vector2f{40.0f, 40.0f}, "+",
+        [this, on_change, volume_label]() {
+          if (auto audio = app_.GetEngine().Audio()) {
+            float v = on_change(audio, 0.1f);
+            volume_label->SetText(VolumeToString(v));
+          }
+        });
+    plus_btn->SetTexture(small_btn_tex);
+    plus_btn->SetColors(white, hover, press);
+    add_button_slot(plus_btn);
 
-  ui_elements_.push_back(std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x + 60.0f, start_y},
-      engine::math::Vector2f{40.0f, 40.0f}, "+", [this]() {
-        if (auto audio = app_.GetEngine().Audio()) {
-          float v = audio->GetSfxVolume();
-          v = std::min(1.0f, v + 0.1f);
-          audio->SetSfxVolume(v);
-          if (sfx_volume_label_) sfx_volume_label_->SetText(VolumeToString(v));
-        }
-      }));
+    content->AddChild(row);
+    return volume_label;
+  };
 
-  start_y += 120.0f;
+  music_volume_label_ = make_volume_slider(
+      "Music Volume", current_music_vol, [](auto audio, float delta) {
+        float v = audio->GetMusicVolume();
+        v = std::clamp(v + delta, 0.0f, 1.0f);
+        audio->SetMusicVolume(v);
+        return v;
+      });
 
-  ui_elements_.push_back(std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 350.0f, start_y + 10.0f}, "Controls",
-      28.0f, white));
+  sfx_volume_label_ = make_volume_slider(
+      "SFX Volume", current_sfx_vol, [](auto audio, float delta) {
+        float v = audio->GetSfxVolume();
+        v = std::clamp(v + delta, 0.0f, 1.0f);
+        audio->SetSfxVolume(v);
+        return v;
+      });
 
-  rebind_status_label_ = std::make_shared<ui::Label>(
-      engine::math::Vector2f{center_x - 350.0f, start_y + 50.0f},
-      "Click a binding to remap", 18.0f,
+  auto controls_title = std::make_shared<engine::ui::TextElement>(
+      "Controls", engine::ui::FontSize::Pixels(28.0f), white);
+  controls_title->Layout().margin.top = 20.0f;
+  content->AddChild(controls_title);
+
+  rebind_status_label_ = std::make_shared<engine::ui::TextElement>(
+      "Click a binding to remap", engine::ui::FontSize::Pixels(18.0f),
       engine::render::Color::FromBytes(200, 200, 200));
-  ui_elements_.push_back(rebind_status_label_);
+  content->AddChild(rebind_status_label_);
 
   const auto keys = BindableKeys();
   key_state_buffer_.assign(keys.size(), false);
 
-  const float bindings_y = start_y + 90.0f;
   auto begin_rebind = [this](GameAction action) {
     pending_rebind_ = action;
     if (rebind_status_label_) {
@@ -151,75 +185,90 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     RefreshKeyStateBuffer(input, key_state_buffer_);
   };
 
-  for (std::size_t i = 0; i < kRebindableActions.size(); ++i) {
-    const GameAction action = kRebindableActions[i];
-    const float row_y = bindings_y + static_cast<float>(i) * kBindingRowSpacing;
+  auto bindings_column =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  bindings_column->SetSpacing(10.0f);
+  bindings_column->Layout().margin.top = 10.0f;
 
-    auto label = std::make_shared<ui::Label>(
-        engine::math::Vector2f{center_x - 350.0f, row_y + 10.0f},
-        ActionLabel(action), 22.0f, white);
+  for (const GameAction action : kRebindableActions) {
+    auto row = std::make_shared<engine::ui::StackContainer>(
+        engine::ui::Axis::kHorizontal);
+    row->SetSpacing(15.0f);
+    row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                            engine::ui::VerticalAlignment::kCenter});
+
+    auto action_label = std::make_shared<engine::ui::TextElement>(
+        ActionLabel(action), engine::ui::FontSize::Pixels(22.0f), white);
+    action_label->Layout().size.width = engine::ui::LayoutValue::Pixels(150.0f);
+    row->AddChild(action_label);
 
     auto button = std::make_shared<ui::Button>(
-        engine::math::Vector2f{center_x - 40.0f, row_y},
-        engine::math::Vector2f{280.0f, 45.0f},
+        engine::math::Vector2f{}, engine::math::Vector2f{280.0f, 45.0f},
         KeyDisplayName(app_.key_bindings().Primary(action)),
         [begin_rebind, action]() { begin_rebind(action); });
+    button->SetTexture(btn_tex);
+    button->SetColors(white, hover, press);
+    buttons_.push_back(button);
+    binding_rows_.emplace_back(action, button);
 
-    binding_rows_.emplace_back(action, label, button);
-    ui_elements_.push_back(label);
-    ui_elements_.push_back(button);
+    auto slot = std::make_shared<engine::ui::BoxElement>();
+    slot->Layout().size = {engine::ui::LayoutValue::Pixels(280.0f),
+                           engine::ui::LayoutValue::Pixels(45.0f)};
+    slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
+      button->SetPosition({rect.top_left_x_, rect.top_left_y_});
+      button->SetSize({rect.width_, rect.height_});
+    });
+    row->AddChild(slot);
+    bindings_column->AddChild(row);
   }
+  content->AddChild(bindings_column);
 
-  start_y = bindings_y +
-            static_cast<float>(kRebindableActions.size()) * kBindingRowSpacing +
-            60.0f;
+  auto fullscreen_btn = std::make_shared<ui::Button>(
+      engine::math::Vector2f{}, engine::math::Vector2f{400.0f, 50.0f},
+      "Toggle Fullscreen",
+      [this]() { app_.GetEngine().Window().ToggleFullscreen(); });
+  fullscreen_btn->SetTexture(btn_tex);
+  fullscreen_btn->SetColors(white, hover, press);
+  buttons_.push_back(fullscreen_btn);
+  auto fullscreen_slot = std::make_shared<engine::ui::BoxElement>();
+  fullscreen_slot->Layout().size = {engine::ui::LayoutValue::Pixels(400.0f),
+                                    engine::ui::LayoutValue::Pixels(50.0f)};
+  fullscreen_slot->Layout().margin.top = 20.0f;
+  fullscreen_slot->SetLayoutCallback(
+      [fullscreen_btn](const engine::math::RectF& rect) {
+        fullscreen_btn->SetPosition({rect.top_left_x_, rect.top_left_y_});
+        fullscreen_btn->SetSize({rect.width_, rect.height_});
+      });
+  content->AddChild(fullscreen_slot);
 
-  ui_elements_.push_back(std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x - 200.0f, start_y},
-      engine::math::Vector2f{400.0f, 50.0f}, "Toggle Fullscreen",
-      [this]() { app_.GetEngine().Window().ToggleFullscreen(); }));
+  root->AddChild(content);
 
   auto back_btn = std::make_shared<ui::Button>(
-      engine::math::Vector2f{center_x - 200.0f, 750.0f},
-      engine::math::Vector2f{400.0f, 50.0f}, "Back",
+      engine::math::Vector2f{}, engine::math::Vector2f{400.0f, 50.0f}, "Back",
       [this]() { app_.OnQuitToMenu(); });
-  ui_elements_.push_back(back_btn);
+  back_btn->SetTexture(btn_tex);
+  back_btn->SetColors(white, hover, press);
+  buttons_.push_back(back_btn);
+  auto back_slot = std::make_shared<engine::ui::BoxElement>();
+  back_slot->Layout().size = {engine::ui::LayoutValue::Pixels(400.0f),
+                              engine::ui::LayoutValue::Pixels(50.0f)};
+  back_slot->Layout().alignment.vertical =
+      engine::ui::VerticalAlignment::kStretch;
+  back_slot->Layout().margin.top = 20.0f;
+  back_slot->SetLayoutCallback([back_btn](const engine::math::RectF& rect) {
+    back_btn->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    back_btn->SetSize({rect.width_, rect.height_});
+  });
 
-  auto btn_tex = renderer.LoadTextureFromFile("assets/ui/button_large.png");
-  auto small_btn_tex =
-      renderer.LoadTextureFromFile("assets/ui/button_small.png");
+  // This will push the back button to the bottom if root is a V-Stack with
+  // space-between or similar. With kCenter it's tricky. Let's add a spacer.
+  auto spacer = std::make_shared<engine::ui::BoxElement>();
+  spacer->Layout().size.height = engine::ui::LayoutValue::Percent(1.0f);
+  root->AddChild(spacer);
 
-  if (btn_tex) {
-    back_btn->SetTexture(btn_tex);
-    back_btn->SetColors(white, engine::render::Color::FromBytes(220, 220, 220),
-                        engine::render::Color::FromBytes(180, 180, 180));
-  }
+  root->AddChild(back_slot);
 
-  for (auto& elem : ui_elements_) {
-    if (auto btn = std::dynamic_pointer_cast<ui::Button>(elem)) {
-      if (btn == back_btn) continue;
-
-      if (btn->GetText() == "Toggle Fullscreen") {
-        if (btn_tex) btn->SetTexture(btn_tex);
-        btn->SetColors(white, engine::render::Color::FromBytes(220, 220, 220),
-                       engine::render::Color::FromBytes(180, 180, 180));
-      } else if (btn->GetText() == "+" || btn->GetText() == "-") {
-        if (small_btn_tex)
-          btn->SetTexture(small_btn_tex);
-        else if (btn_tex)
-          btn->SetTexture(btn_tex);
-        btn->SetColors(white, engine::render::Color::FromBytes(220, 220, 220),
-                       engine::render::Color::FromBytes(180, 180, 180));
-      } else {
-        if (small_btn_tex)
-          btn->SetTexture(small_btn_tex);
-        else if (btn_tex)
-          btn->SetTexture(btn_tex);
-        btn->SetColors(white, engine::render::Color::FromBytes(220, 220, 220),
-                       engine::render::Color::FromBytes(180, 180, 180));
-      }
-    }
-  }
+  canvas_.SetRoot(root);
 }
 
 std::optional<std::reference_wrapper<SettingsScene::BindingRow>>
@@ -233,9 +282,11 @@ SettingsScene::FindRow(GameAction action) {
 }
 
 void SettingsScene::Update(engine::time::TimeDelta dt) {
+  auto& renderer = app_.GetEngine().Renderer();
+  LayoutUi(renderer);
   auto& input = app_.GetEngine().Input();
-  for (auto& elem : ui_elements_) {
-    elem->Update(dt, input);
+  for (auto& btn : buttons_) {
+    btn->Update(dt, input);
   }
 
   if (pending_rebind_) {
@@ -309,9 +360,18 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
 }
 
 void SettingsScene::Draw(engine::render::Renderer2D& renderer) {
-  for (auto& elem : ui_elements_) {
-    elem->Draw(renderer);
+  LayoutUi(renderer);
+  canvas_.Draw(renderer);
+  for (auto& btn : buttons_) {
+    btn->Draw(renderer);
   }
+}
+
+void SettingsScene::LayoutUi(engine::render::Renderer2D& renderer) {
+  const auto window_size = app_.GetEngine().Window().GetSize();
+  canvas_.SetViewportSize(
+      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+  canvas_.Layout(renderer);
 }
 
 }  // namespace client
