@@ -176,12 +176,11 @@ std::error_code ServerRuntime::Start() {
   }
 
   logger_.Info("Server listening on ", transport_.local_endpoint().address());
-  logger_.Info("Default room ", config_.default_room_code, " max players ",
-               config_.max_players, " tickrate ", config_.tick_rate,
-               " timeout_ms ", config_.peer_timeout_ms, " room_idle_ms ",
-               config_.room_idle_timeout_ms, " seed ", config_.seed);
+  logger_.Info("Max players ", config_.max_players, " tickrate ",
+               config_.tick_rate, " timeout_ms ", config_.peer_timeout_ms,
+               " room_idle_ms ", config_.room_idle_timeout_ms, " seed ",
+               config_.seed);
   logger_.Info("Worker threads ", worker_count_);
-  EnsureDefaultRoom();
   return {};
 }
 
@@ -657,8 +656,13 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
 
-  std::string room_code =
-      request.room_code.empty() ? config_.default_room_code : request.room_code;
+  std::string room_code = request.room_code;
+  if (room_code.empty()) {
+    logger_.Warn("Rejecting join from ", endpoint_key, " missing room code");
+    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+               "Room code required");
+    return;
+  }
   if (room_code.empty() || !IsValidRoomCode(room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key, " invalid room code");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
@@ -1033,9 +1037,6 @@ protocol::RoomSummary ServerRuntime::BuildRoomSummary(const Room& room) const {
 void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code,
                                        std::uint32_t now_ms) {
   if (room_code.empty()) {
-    return;
-  }
-  if (room_code == config_.default_room_code) {
     return;
   }
   auto it = rooms_.find(room_code);
