@@ -37,9 +37,11 @@ class Room {
    * @param logger Logger used for diagnostics.
    */
   Room(std::string room_code,
+       std::string room_name,
        std::uint32_t room_id,
        std::uint16_t max_players,
        bool is_private,
+       std::string password,
        std::uint32_t seed,
        engine::util::Logger& logger);
 
@@ -98,6 +100,7 @@ class Room {
    * @brief Returns the room code.
    */
   const std::string& Code() const;
+  const std::string& Name() const;
 
   /**
    * @brief Returns the numeric room identifier.
@@ -113,6 +116,7 @@ class Room {
    * @brief Whether the room is private.
    */
   bool IsPrivate() const;
+  const std::string& Password() const;
 
   /**
    * @brief Returns the deterministic seed used by the room.
@@ -141,9 +145,11 @@ class Room {
 
  private:
   std::string room_code_;
+  std::string room_name_;
   std::uint32_t room_id_;
   std::uint16_t max_players_;
   bool is_private_;
+  std::string password_;
   std::uint32_t seed_;
   std::uint32_t next_snapshot_id_{1};
   std::uint32_t room_tick_{0};
