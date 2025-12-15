@@ -50,6 +50,6 @@
         "hitbox_width": 33.0,
         "hitbox_height": 33.0,
         "texture_path": "assets/sprites/enemy_interceptor.png",
-        "detection_range": 1000.0
+        "detection_range": 2000.0
     }
 }

@@ -2,6 +2,7 @@
 
 #include "engine/ecs/component.h"
 #include "game_logic/components.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
 #include "game_logic/entities/enemy_data.h"
 #include "game_logic/entities/missile_config.h"
@@ -141,6 +142,10 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
     } catch (...) {
       std::cerr << "Unknown error loading enemy missile config." << std::endl;
     }
+  }
+
+  if (config.drops_powerup) {
+    registry.EmplaceComponent<components::DropsPowerupComponent>(enemy);
   }
 
   registry.EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");

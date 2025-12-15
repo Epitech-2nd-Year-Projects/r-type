@@ -9,18 +9,19 @@
 #include "engine/ecs/zipper.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
 #include "game_logic/game_instance.h"
 
 namespace game_logic::systems {
 
-void HealthSystem::Update(engine::ecs::Registry& registry,
+void HealthSystem::Update(engine::ecs::Registry &registry,
                           engine::time::TimeDelta) {
-  auto& healths = registry.GetComponents<components::HealthComponent>();
-  auto& players = registry.GetComponents<components::PlayerComponent>();
-  auto& scores_values =
+  auto &healths = registry.GetComponents<components::HealthComponent>();
+  auto &players = registry.GetComponents<components::PlayerComponent>();
+  auto &scores_values =
       registry.GetComponents<components::ScoreValueComponent>();
-  auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
+  auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
 
   std::vector<engine::ecs::EntityId> entities_to_kill;
 
@@ -32,7 +33,7 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
     engine::ecs::EntityId entity = registry.EntityFromIndex(entity_idx);
     if (static_cast<size_t>(entity) < players.size() &&
         players[static_cast<size_t>(entity)].has_value()) {
-      auto& player_comp = players[static_cast<size_t>(entity)].value();
+      auto &player_comp = players[static_cast<size_t>(entity)].value();
 
       if (player_comp.lives > 0) {
         player_comp.lives--;
@@ -44,7 +45,7 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
         hp->current_health = hp->max_health;
         if (static_cast<size_t>(entity) < positions.size() &&
             positions[static_cast<size_t>(entity)].has_value()) {
-          auto& pos_comp = positions[static_cast<size_t>(entity)].value();
+          auto &pos_comp = positions[static_cast<size_t>(entity)].value();
           pos_comp.position = {
               HealthSystem::kRespawnBaseX +
                   HealthSystem::kRespawnSlotOffsetX *
@@ -62,13 +63,13 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
 
     if (static_cast<size_t>(entity) < scores_values.size() &&
         scores_values[static_cast<size_t>(entity)].has_value()) {
-      auto& score_value = scores_values[static_cast<size_t>(entity)].value();
+      auto &score_value = scores_values[static_cast<size_t>(entity)].value();
 
       if (!score_value.claimed && hp->last_attacker_id.has_value()) {
         std::uint32_t attacker_id = hp->last_attacker_id.value();
         if (static_cast<size_t>(attacker_id) < players.size() &&
             players[static_cast<size_t>(attacker_id)].has_value()) {
-          auto& attacker_player =
+          auto &attacker_player =
               players[static_cast<size_t>(attacker_id)].value();
           attacker_player.score += score_value.points;
           score_value.claimed = true;
@@ -76,6 +77,22 @@ void HealthSystem::Update(engine::ecs::Registry& registry,
       }
     }
     entities_to_kill.push_back(entity);
+
+    auto &drops = registry.GetComponents<components::DropsPowerupComponent>();
+    if (static_cast<size_t>(entity) < drops.size() &&
+        drops[static_cast<size_t>(entity)].has_value()) {
+      try {
+        const auto &powerup_conf = GameConfig::Get().GetRandomPowerup();
+        if (static_cast<size_t>(entity) < positions.size() &&
+            positions[static_cast<size_t>(entity)].has_value()) {
+          auto &pos = positions[static_cast<size_t>(entity)].value();
+          entities::PowerupBuilder::Create(registry, pos.position,
+                                           powerup_conf);
+        }
+      } catch (const std::exception &e) {
+        std::cerr << "Failed to spawn powerup: " << e.what() << std::endl;
+      }
+    }
   }
   for (auto entity : entities_to_kill) {
     registry.KillEntity(entity);
