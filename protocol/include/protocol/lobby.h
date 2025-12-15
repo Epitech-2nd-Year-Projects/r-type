@@ -45,6 +45,7 @@ struct CreateRoomRequestPayload {
   std::string room_name;   ///< Display name chosen by creator.
   std::uint8_t max_players{0};  ///< Requested capacity (1..255).
   bool is_private{false};  ///< Whether the room should be private with a 4-digit code.
+  std::string room_password;  ///< Optional creator-specified password for private rooms.
 };
 
 /**
