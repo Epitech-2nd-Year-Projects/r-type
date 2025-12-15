@@ -1,8 +1,15 @@
 {
-    "id": 1,
+    "id": 2,
     "waves": [
         {
             "time": 2.0,
+            "type": "Scout",
+            "x": 1650.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 2.5,
             "type": "Scout",
             "x": 1650.0,
             "y": 0.0,
@@ -13,113 +20,71 @@
             "type": "Scout",
             "x": 1650.0,
             "y": 0.0,
-            "random_y": true,
-            "drops_powerup": true
-        },
-        {
-            "time": 4.0,
-            "type": "Scout",
-            "x": 1650.0,
-            "y": 0.0,
             "random_y": true
         },
         {
-            "time": 8.0,
+            "time": 5.0,
+            "type": "Bomber",
+            "x": 1700.0,
+            "y": 800.0,
+            "random_y": true
+        },
+        {
+            "time": 7.0,
             "type": "Bomber",
             "x": 1700.0,
             "y": 0.0,
             "random_y": true
         },
         {
-            "time": 8.5,
+            "time": 7.0,
             "type": "Bomber",
             "x": 1700.0,
             "y": 0.0,
             "random_y": true
         },
         {
-            "time": 9.0,
-            "type": "Bomber",
+            "time": 10.0,
+            "type": "Interceptor",
+            "x": 1700.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 10.2,
+            "type": "Interceptor",
+            "x": 1700.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 10.4,
+            "type": "Interceptor",
             "x": 1700.0,
             "y": 0.0,
             "random_y": true
         },
         {
             "time": 12.0,
-            "type": "Interceptor",
+            "type": "Scout",
             "x": 1700.0,
-            "y": 0.0,
+            "y": 100.0,
             "random_y": true
         },
         {
-            "time": 12.5,
+            "time": 12.0,
             "type": "Interceptor",
             "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 13.0,
-            "type": "Interceptor",
-            "x": 1700.0,
-            "y": 0.0,
+            "y": 800.0,
             "random_y": true
         },
         {
             "time": 15.0,
             "type": "Scout",
-            "x": 1700.0,
+            "x": 1650.0,
             "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 15.0,
-            "type": "Scout",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 16.0,
-            "type": "Interceptor",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 20.0,
-            "type": "Bomber",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 20.0,
-            "type": "Bomber",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 22.0,
-            "type": "Interceptor",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 22.0,
-            "type": "Interceptor",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
-        },
-        {
-            "time": 24.0,
-            "type": "Interceptor",
-            "x": 1700.0,
-            "y": 0.0,
-            "random_y": true
+            "random_y": true,
+            "drops_powerup": true
         }
     ]
 }
