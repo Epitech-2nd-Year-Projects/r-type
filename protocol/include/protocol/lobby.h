@@ -13,12 +13,14 @@ namespace protocol {
 
 inline constexpr std::size_t kMaxRoomListEntries = 64;     ///< Maximum rooms returned in a single listing.
 inline constexpr std::size_t kMaxRoomMessageLength = 63;   ///< Maximum length for lobby status messages.
+inline constexpr std::size_t kMaxRoomNameLength = 31;      ///< Maximum length for room names.
 
 /**
  * @brief Snapshot of a room exposed to clients.
  */
 struct RoomSummary {
-  std::string room_code;     ///< Unique room code used for joining.
+  std::string room_code;     ///< Unique room code used for joining (opaque to users).
+  std::string room_name;     ///< Human-readable room name.
   std::uint8_t max_players;  ///< Configured capacity.
   std::uint8_t player_count; ///< Current occupancy.
   bool is_private;           ///< Whether the room is private (code required).
@@ -40,7 +42,7 @@ struct RoomListResponsePayload {
  * @brief Request to create a new room on the server.
  */
 struct CreateRoomRequestPayload {
-  std::string room_code;   ///< Optional desired room code (empty lets server decide).
+  std::string room_name;   ///< Display name chosen by creator.
   std::uint8_t max_players{0};  ///< Requested capacity (1..255).
   bool is_private{false};  ///< Whether the room should be private with a 4-digit code.
 };
@@ -52,6 +54,7 @@ struct CreateRoomResponsePayload {
   bool success{false};
   std::string message;                          ///< Human-readable status.
   std::optional<RoomSummary> room;              ///< Created room (present on success).
+  std::string room_password;                    ///< Populated for private rooms.
 };
 
 bool EncodeRoomSummary(const RoomSummary& summary,
