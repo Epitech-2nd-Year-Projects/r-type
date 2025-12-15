@@ -5,13 +5,15 @@
 
 namespace server {
 
-Room::Room(std::string room_code, std::uint32_t room_id,
-           std::uint16_t max_players, bool is_private, std::uint32_t seed,
-           engine::util::Logger& logger)
+Room::Room(std::string room_code, std::string room_name, std::uint32_t room_id,
+           std::uint16_t max_players, bool is_private, std::string password,
+           std::uint32_t seed, engine::util::Logger& logger)
     : room_code_(std::move(room_code)),
+      room_name_(std::move(room_name)),
       room_id_(room_id),
       max_players_(max_players),
       is_private_(is_private),
+      password_(std::move(password)),
       seed_(seed),
       game_instance_(
           std::make_unique<GameInstance>(room_id, seed, max_players, logger)),
@@ -20,9 +22,11 @@ Room::Room(std::string room_code, std::uint32_t room_id,
 
 Room::Room(Room&& other) noexcept
     : room_code_(std::move(other.room_code_)),
+      room_name_(std::move(other.room_name_)),
       room_id_(other.room_id_),
       max_players_(other.max_players_),
       is_private_(other.is_private_),
+      password_(std::move(other.password_)),
       seed_(other.seed_),
       next_snapshot_id_(other.next_snapshot_id_),
       room_tick_(other.room_tick_),
@@ -98,12 +102,14 @@ void Room::MarkActive(std::uint32_t timestamp_ms) {
 }
 
 const std::string& Room::Code() const { return room_code_; }
+const std::string& Room::Name() const { return room_name_; }
 
 std::uint32_t Room::Id() const { return room_id_; }
 
 std::uint16_t Room::MaxPlayers() const { return max_players_; }
 
 bool Room::IsPrivate() const { return is_private_; }
+const std::string& Room::Password() const { return password_; }
 
 std::uint32_t Room::Seed() const { return seed_; }
 
