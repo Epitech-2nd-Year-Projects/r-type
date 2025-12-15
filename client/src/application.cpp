@@ -400,6 +400,7 @@ void Application::RefreshRoomList(std::string host, std::uint16_t port) {
 
 void Application::CreateRoom(std::string host, std::uint16_t port,
                              const std::string& room_name, bool is_private,
+                             std::string room_password,
                              std::uint16_t max_players) {
   if (!room_directory_) {
     return;
@@ -407,7 +408,8 @@ void Application::CreateRoom(std::string host, std::uint16_t port,
   if (!room_directory_->Connect(std::move(host), port)) {
     return;
   }
-  room_directory_->RequestCreateRoom(room_name, is_private, max_players);
+  room_directory_->RequestCreateRoom(room_name, is_private,
+                                     std::move(room_password), max_players);
 }
 
 const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()
