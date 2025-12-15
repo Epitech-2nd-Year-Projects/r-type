@@ -95,6 +95,24 @@ void Room::MarkActive(std::uint32_t timestamp_ms) {
   last_active_ms_ = timestamp_ms;
 }
 
+std::vector<protocol::PlayerDiedPayload> Room::PollPlayerDeaths() {
+  std::vector<protocol::PlayerDiedPayload> payloads;
+  if (!game_instance_) {
+    return payloads;
+  }
+  auto events = game_instance_->Logic().ExtractPlayerDeathEvents();
+  payloads.reserve(events.size());
+  for (const auto& evt : events) {
+    protocol::PlayerDiedPayload payload;
+    payload.player_id = evt.player_id;
+    payload.remaining_lives = evt.remaining_lives;
+    payload.killer_entity_id = 0;
+    payload.cause = protocol::DeathCause::kUnknown;
+    payloads.push_back(payload);
+  }
+  return payloads;
+}
+
 const std::string& Room::Code() const { return room_code_; }
 
 std::uint32_t Room::Id() const { return room_id_; }
