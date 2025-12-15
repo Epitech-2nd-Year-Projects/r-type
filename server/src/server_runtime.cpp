@@ -1,16 +1,20 @@
 #include "server_runtime.h"
 
+#include <algorithm>
 #include <asio/post.hpp>
 #include <asio/thread_pool.hpp>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <exception>
 #include <functional>
+#include <iomanip>
 #include <latch>
 #include <limits>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -92,6 +96,14 @@ bool IsValidRoomCode(std::string_view room_code) {
   return room_code.size() <= protocol::kMaxRoomCodeLength;
 }
 
+bool IsPrivateRoomCode(std::string_view room_code) {
+  if (room_code.size() != 4) {
+    return false;
+  }
+  return std::all_of(room_code.begin(), room_code.end(),
+                     [](unsigned char c) { return std::isdigit(c) != 0; });
+}
+
 bool IsValidPlayerName(std::string_view player_name) {
   return player_name.size() <= protocol::kMaxPlayerNameLength;
 }
@@ -111,6 +123,21 @@ const char* ToString(PeerState state) {
 std::size_t ComputeWorkerCount() {
   const auto hw = std::thread::hardware_concurrency();
   return hw == 0 ? 1u : static_cast<std::size_t>(hw);
+}
+
+std::optional<std::string> GeneratePrivateCode(
+    std::mt19937& rng, const std::unordered_map<std::string, Room>& rooms) {
+  std::uniform_int_distribution<int> dist(0, 9999);
+  for (int attempt = 0; attempt < 128; ++attempt) {
+    const int value = dist(rng);
+    std::ostringstream oss;
+    oss << std::setw(4) << std::setfill('0') << value;
+    const std::string code = oss.str();
+    if (rooms.find(code) == rooms.end()) {
+      return code;
+    }
+  }
+  return std::nullopt;
 }
 
 }  // namespace
@@ -136,13 +163,12 @@ std::error_code ServerRuntime::Start() {
   }
 
   logger_.Info("Server listening on ", transport_.local_endpoint().address());
-  const std::string room_label =
-      config_.room_code.empty() ? std::string{"<any>"} : config_.room_code;
-  logger_.Info("Room ", room_label, " max players ", config_.max_players,
-               " tickrate ", config_.tick_rate, " timeout_ms ",
-               config_.peer_timeout_ms, " room_idle_ms ",
+  logger_.Info("Default room ", config_.default_room_code, " max players ",
+               config_.max_players, " tickrate ", config_.tick_rate,
+               " timeout_ms ", config_.peer_timeout_ms, " room_idle_ms ",
                config_.room_idle_timeout_ms, " seed ", config_.seed);
   logger_.Info("Worker threads ", worker_count_);
+  EnsureDefaultRoom();
   return {};
 }
 
@@ -298,8 +324,9 @@ void ServerRuntime::MaybeLogServerStats() {
                " health=", tick_healthy ? "ok" : "degraded");
 
   for (const auto& [room_code, room] : rooms_) {
-    logger_.Info("Room ", room_code, " players ", room.PlayerCount(), "/",
-                 room.MaxPlayers());
+    logger_.Info("Room ", room_code, " [",
+                 (room.IsPrivate() ? "private" : "public"), "] players ",
+                 room.PlayerCount(), "/", room.MaxPlayers());
   }
 
   last_server_stats_log_ms_ = now_ms;
@@ -351,6 +378,7 @@ void ServerRuntime::DumpSessions() {
   for (const auto& [room_code, room] : rooms_) {
     logger_.Info("Room ", room_code, " id=", room.Id(), " players ",
                  room.PlayerCount(), "/", room.MaxPlayers(),
+                 " privacy=", (room.IsPrivate() ? "private" : "public"),
                  " seed=", room.Seed());
   }
 
@@ -416,6 +444,21 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
       }
       ProcessJoin(peer,
                   std::get<protocol::JoinRequestPayload>(decoded.payload));
+      break;
+    }
+    case MessageType::kRoomListRequest: {
+      HandleRoomListRequest(peer);
+      break;
+    }
+    case MessageType::kCreateRoomRequest: {
+      if (!std::holds_alternative<protocol::CreateRoomRequestPayload>(
+              decoded.payload)) {
+        logger_.Warn("Malformed room creation request from ",
+                     peer.endpoint_key);
+        return;
+      }
+      HandleCreateRoomRequest(
+          peer, std::get<protocol::CreateRoomRequestPayload>(decoded.payload));
       break;
     }
     case MessageType::kPing: {
@@ -533,6 +576,14 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     return;
   }
 
+  if (command.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice)) {
+    logger_.Info("Peer requested disconnect ", peer.endpoint_key);
+    DisconnectPeer(peer, "client disconnect", /*notify_client=*/false);
+    peers_.erase(peer.endpoint_key);
+    return;
+  }
+
   logger_.Trace("ClientCommand from player ", peer.player_id,
                 " command_id=", command.command_id,
                 " data_size=", command.payload.size());
@@ -576,14 +627,6 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   logger_.Debug("Join request from ", endpoint_key, " player ",
                 request.player_name, " room ", request.room_code);
 
-  if (!IsValidRoomCode(request.room_code)) {
-    logger_.Warn("Rejecting join from ", endpoint_key,
-                 " invalid room code length");
-    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
-               "Room code too long");
-    return;
-  }
-
   if (!IsValidPlayerName(request.player_name)) {
     logger_.Warn("Rejecting join from ", endpoint_key,
                  " invalid player name length");
@@ -600,25 +643,25 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
 
-  if (!config_.room_code.empty() && !request.room_code.empty() &&
-      request.room_code != config_.room_code) {
-    logger_.Warn("Rejecting join from ", endpoint_key, " invalid room ",
-                 request.room_code);
-    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
-               "Room unavailable");
-    return;
-  }
-
   std::string room_code =
-      request.room_code.empty() ? config_.room_code : request.room_code;
+      request.room_code.empty() ? config_.default_room_code : request.room_code;
   if (room_code.empty()) {
     room_code = "default";
   }
   if (!IsValidRoomCode(room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key,
-                 " resolved room code too long");
+                 " invalid room code length");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room code too long");
+    return;
+  }
+
+  auto room = FindRoom(room_code);
+  if (!room.has_value()) {
+    logger_.Warn("Rejecting join from ", endpoint_key, " unknown room ",
+                 room_code);
+    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
+               "Room not found");
     return;
   }
 
@@ -636,14 +679,14 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
     return;
   }
 
-  Room& room = GetOrCreateRoom(room_code);
+  Room& room_ref = room->get();
 
   peer.player_id = next_player_id_++;
   peer.state = PeerState::kJoined;
   peer.room_code = room_code;
-  peer.room_id = room.Id();
+  peer.room_id = room_ref.Id();
   peer.last_seen_ms = NowMilliseconds();
-  if (!JoinRoom(peer, room, request.player_name)) {
+  if (!JoinRoom(peer, room_ref, request.player_name)) {
     peer.player_id = 0;
     peer.state = PeerState::kConnecting;
     peer.room_code.clear();
@@ -654,6 +697,86 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   logger_.Info("Accepted join from ", endpoint_key, " assigned id ",
                peer.player_id, " room ", room_code);
   SendAccept(peer, room_code);
+}
+
+void ServerRuntime::HandleRoomListRequest(PeerConnection& peer) {
+  protocol::RoomListResponsePayload payload{};
+  payload.rooms.reserve(
+      std::min<std::size_t>(rooms_.size(), protocol::kMaxRoomListEntries));
+  for (const auto& [_, room] : rooms_) {
+    if (payload.rooms.size() >= protocol::kMaxRoomListEntries) {
+      break;
+    }
+    payload.rooms.push_back(BuildRoomSummary(room));
+  }
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type =
+      static_cast<std::uint8_t>(MessageType::kRoomListResponse);
+  packet.header.flags =
+      static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.timestamp_ms = NowMilliseconds();
+  peer.sequence_tracker.FillAckFields(packet.header);
+  packet.payload = std::move(payload);
+  SendPacket(peer, packet);
+}
+
+void ServerRuntime::HandleCreateRoomRequest(
+    PeerConnection& peer, const protocol::CreateRoomRequestPayload& request) {
+  protocol::CreateRoomResponsePayload response{};
+
+  std::uint16_t requested_capacity =
+      request.max_players == 0 ? config_.max_players : request.max_players;
+  requested_capacity = std::max<std::uint16_t>(1, requested_capacity);
+  requested_capacity = std::min<std::uint16_t>(
+      requested_capacity, std::numeric_limits<std::uint8_t>::max());
+
+  std::string room_code = request.room_code;
+  if (request.is_private) {
+    if (room_code.empty()) {
+      auto generated = GeneratePrivateCode(rng_, rooms_);
+      if (!generated.has_value()) {
+        response.message = "Unable to allocate a private code";
+      } else {
+        room_code = std::move(*generated);
+      }
+    } else if (!IsPrivateRoomCode(room_code)) {
+      response.message = "Private rooms require a 4-digit code";
+    }
+  } else if (room_code.empty()) {
+    room_code = "room-" + std::to_string(next_room_id_);
+  }
+
+  if (response.message.empty() && !IsValidRoomCode(room_code)) {
+    response.message = "Room code too long";
+  }
+  if (response.message.empty() && rooms_.find(room_code) != rooms_.end()) {
+    response.message = "Room already exists";
+  }
+
+  if (response.message.empty()) {
+    Room& room = CreateRoom(room_code, request.is_private, requested_capacity);
+    response.success = true;
+    response.message = "Room created";
+    response.room = BuildRoomSummary(room);
+    logger_.Info("Created room ", room_code,
+                 request.is_private ? " (private)" : " (public)", " capacity ",
+                 requested_capacity);
+  }
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type =
+      static_cast<std::uint8_t>(MessageType::kCreateRoomResponse);
+  packet.header.flags =
+      static_cast<std::uint8_t>(protocol::HeaderFlag::kHeaderFlagReliable);
+  packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
+  packet.header.timestamp_ms = NowMilliseconds();
+  peer.sequence_tracker.FillAckFields(packet.header);
+  packet.payload = std::move(response);
+  SendPacket(peer, packet);
 }
 
 void ServerRuntime::SendServerCommand(PeerConnection& peer,
@@ -829,24 +952,50 @@ std::optional<std::reference_wrapper<const Room>> ServerRuntime::FindRoomConst(
   return std::cref(it->second);
 }
 
-Room& ServerRuntime::GetOrCreateRoom(const std::string& room_code) {
-  auto it = rooms_.find(room_code);
-  if (it != rooms_.end()) {
-    return it->second;
+void ServerRuntime::EnsureDefaultRoom() {
+  if (config_.default_room_code.empty()) {
+    return;
   }
+  if (rooms_.find(config_.default_room_code) != rooms_.end()) {
+    return;
+  }
+  const std::uint16_t capacity = static_cast<std::uint16_t>(
+      std::max<std::uint16_t>(1, config_.max_players));
+  Room& room =
+      CreateRoom(config_.default_room_code, /*is_private=*/false, capacity);
+  logger_.Info("Bootstrapped room ", room.Code(), " capacity ",
+               room.MaxPlayers());
+}
+
+Room& ServerRuntime::CreateRoom(const std::string& room_code, bool is_private,
+                                std::uint16_t max_players) {
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
       room_code,
-      Room{room_code, room_id, static_cast<std::uint16_t>(config_.max_players),
-           seed, logger_});
+      Room{room_code, room_id, max_players, is_private, seed, logger_});
   inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
+}
+
+protocol::RoomSummary ServerRuntime::BuildRoomSummary(const Room& room) const {
+  protocol::RoomSummary summary{};
+  summary.room_code = room.Code();
+  summary.is_private = room.IsPrivate();
+  summary.max_players = static_cast<std::uint8_t>(std::min<std::uint16_t>(
+      room.MaxPlayers(), std::numeric_limits<std::uint8_t>::max()));
+  summary.player_count = static_cast<std::uint8_t>(std::min<std::size_t>(
+      room.PlayerCount(),
+      static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())));
+  return summary;
 }
 
 void ServerRuntime::CleanupRoomIfEmpty(const std::string& room_code,
                                        std::uint32_t now_ms) {
   if (room_code.empty()) {
+    return;
+  }
+  if (room_code == config_.default_room_code) {
     return;
   }
   auto it = rooms_.find(room_code);
