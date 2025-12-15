@@ -140,8 +140,8 @@ std::optional<std::string> GeneratePrivateCode(
   if (available_codes.empty()) {
     return std::nullopt;
   }
-  std::uniform_int_distribution<std::size_t> dist(
-      0, available_codes.size() - 1);
+  std::uniform_int_distribution<std::size_t> dist(0,
+                                                  available_codes.size() - 1);
   return available_codes[dist(rng)];
 }
 
@@ -743,9 +743,8 @@ void ServerRuntime::HandleRoomListRequest(PeerConnection& peer) {
             [](const Room* lhs, const Room* rhs) {
               return lhs->Name() < rhs->Name();
             });
-  payload.rooms.reserve(
-      std::min<std::size_t>(public_rooms.size(),
-                            protocol::kMaxRoomListEntries));
+  payload.rooms.reserve(std::min<std::size_t>(public_rooms.size(),
+                                              protocol::kMaxRoomListEntries));
   for (const Room* room : public_rooms) {
     if (payload.rooms.size() >= protocol::kMaxRoomListEntries) {
       break;

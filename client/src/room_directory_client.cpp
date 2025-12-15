@@ -5,8 +5,8 @@
 #include <system_error>
 #include <utility>
 
-#include "engine/time/monotonic_time.h"
 #include "engine/net/endpoint.h"
+#include "engine/time/monotonic_time.h"
 #include "protocol/error.h"
 
 namespace client {
@@ -33,11 +33,9 @@ bool RoomDirectoryClient::Connect(std::string host, std::uint16_t port) {
     bool same_target = false;
     if (!resolve_error && resolved.valid()) {
       same_target = endpoint.port() == resolved.port() &&
-                    endpoint.native().address() ==
-                        resolved.native().address();
+                    endpoint.native().address() == resolved.native().address();
     } else {
-      same_target =
-          endpoint.port() == port_ && endpoint.address() == host_;
+      same_target = endpoint.port() == port_ && endpoint.address() == host_;
     }
     if (same_target) {
       return true;
