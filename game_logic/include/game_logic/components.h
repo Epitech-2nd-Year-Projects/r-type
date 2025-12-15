@@ -8,6 +8,7 @@
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_component.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
 #include "game_logic/components/sprite_component.h"
 #include "game_logic/components/weapon_component.h"
