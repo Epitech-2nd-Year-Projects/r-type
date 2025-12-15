@@ -359,6 +359,11 @@ class ServerRuntime {
   void BroadcastWorldSnapshots();
 
   /**
+   * @brief Broadcasts non-snapshot game events (e.g. death)
+   */
+  void BroadcastGameEvents();
+
+  /**
    * @brief Tracks session details for a connected player.
    *
    * Associates a player identifier with the endpoint they came from and
