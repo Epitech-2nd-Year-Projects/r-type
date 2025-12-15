@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include "protocol/join.h"
+#include "protocol/lobby.h"
 
 namespace server {
 
@@ -105,6 +106,13 @@ ServerConfig LoadServerConfig() {
     if (!room_view.empty() &&
         ValidateLength(room_view, protocol::kMaxRoomCodeLength)) {
       config.default_room_code.assign(room_view);
+    }
+  }
+  if (const char* room_name = std::getenv("RTYPE_SERVER_ROOM_NAME")) {
+    const std::string_view room_view(room_name);
+    if (!room_view.empty() &&
+        ValidateLength(room_view, protocol::kMaxRoomNameLength)) {
+      config.default_room_name.assign(room_view);
     }
   }
 
