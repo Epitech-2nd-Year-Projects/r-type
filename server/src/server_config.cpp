@@ -71,7 +71,7 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 ServerConfig LoadServerConfig() {
   ServerConfig config;
-  auto logger = engine::util::Logger::Default();
+  auto& logger = engine::util::Logger::Default();
 
   const auto apply_uint = [&](const char* env_name, auto min_value,
                               auto max_value, auto& target) {
