@@ -1,9 +1,14 @@
 #include "server_runtime.h"
 
+#include <asio/post.hpp>
+#include <asio/thread_pool.hpp>
 #include <atomic>
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <exception>
+#include <functional>
+#include <latch>
 #include <limits>
 #include <optional>
 #include <string>
@@ -103,12 +108,19 @@ const char* ToString(PeerState state) {
   return "unknown";
 }
 
+std::size_t ComputeWorkerCount() {
+  const auto hw = std::thread::hardware_concurrency();
+  return hw == 0 ? 1u : static_cast<std::size_t>(hw);
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerConfig config)
     : config_(std::move(config)),
       logger_(engine::util::Logger::Default()),
       frame_timer_(static_cast<float>(config_.tick_rate)),
+      worker_count_(ComputeWorkerCount()),
+      worker_pool_(worker_count_),
       rng_(config_.seed),
       fixed_delta_(engine::time::TimeDelta::from_seconds(
           1.0f /
@@ -130,6 +142,7 @@ std::error_code ServerRuntime::Start() {
                " tickrate ", config_.tick_rate, " timeout_ms ",
                config_.peer_timeout_ms, " room_idle_ms ",
                config_.room_idle_timeout_ms, " seed ", config_.seed);
+  logger_.Info("Worker threads ", worker_count_);
   return {};
 }
 
@@ -159,9 +172,7 @@ void ServerRuntime::RunMainLoop() {
       PollNetwork();
       if (!running_) break;
       ProcessReliableResends();
-      for (auto& [_, room] : rooms_) {
-        room.Update(fixed_delta_);
-      }
+      UpdateRoomsParallel(fixed_delta_);
       ++server_tick_;
       BroadcastWorldSnapshots();
       accumulator_ -= fixed_delta_;
@@ -296,6 +307,40 @@ void ServerRuntime::MaybeLogServerStats() {
   last_tick_health_sample_tick_ = server_tick_;
   frame_time_accumulator_ms_ = 0.0;
   frame_time_samples_ = 0;
+}
+
+void ServerRuntime::UpdateRoomsParallel(const engine::time::TimeDelta& delta) {
+  if (rooms_.empty()) {
+    return;
+  }
+
+  std::vector<std::reference_wrapper<Room>> rooms_snapshot;
+  rooms_snapshot.reserve(rooms_.size());
+  for (auto& [_, room] : rooms_) {
+    rooms_snapshot.push_back(std::ref(room));
+  }
+
+  if (worker_count_ <= 1 || rooms_snapshot.size() == 1) {
+    for (auto& room_ref : rooms_snapshot) {
+      room_ref.get().Update(delta);
+    }
+    return;
+  }
+
+  std::latch latch(static_cast<std::ptrdiff_t>(rooms_snapshot.size()));
+  for (auto room_ref : rooms_snapshot) {
+    asio::post(worker_pool_, [room_ref, delta, &latch, this]() {
+      try {
+        room_ref.get().Update(delta);
+      } catch (const std::exception& ex) {
+        logger_.Error("Room update failed: ", ex.what());
+      } catch (...) {
+        logger_.Error("Room update failed with unknown error");
+      }
+      latch.count_down();
+    });
+  }
+  latch.wait();
 }
 
 void ServerRuntime::DumpSessions() {
