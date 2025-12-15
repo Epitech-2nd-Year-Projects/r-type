@@ -24,18 +24,21 @@ constexpr float kRoomButtonHeight = 64.0f;
 constexpr float kModalWidth = 560.0f;
 constexpr float kModalHeight = 500.0f;
 constexpr auto kBannerDuration = std::chrono::seconds(6);
+constexpr std::size_t kGoldenHashRatio = 0x9e3779b9;
+constexpr std::size_t kHashPrivateSalt = 0xabcddcba;
+constexpr std::size_t kHashPublicSeed = 0x12344321;
 
 std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
   std::size_t value = rooms.size();
   for (const auto& room : rooms) {
     std::size_t local = std::hash<std::string>{}(room.room_code);
-    local ^= std::hash<std::string>{}(room.room_name) + 0x9e3779b9 +
+    local ^= std::hash<std::string>{}(room.room_name) + kGoldenHashRatio +
              (local << 6) + (local >> 2);
     local ^=
         static_cast<std::size_t>(room.player_count + 31u * room.max_players);
-    local ^=
-        static_cast<std::size_t>(room.is_private ? 0xabcddcba : 0x12344321);
-    value ^= local + 0x9e3779b9 + (value << 6) + (value >> 2);
+    local ^= static_cast<std::size_t>(room.is_private ? kHashPrivateSalt
+                                                      : kHashPublicSeed);
+    value ^= local + kGoldenHashRatio + (value << 6) + (value >> 2);
   }
   return value;
 }

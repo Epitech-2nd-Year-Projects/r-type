@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <limits>
+#include <system_error>
 #include <utility>
 
+#include "engine/net/endpoint.h"
 #include "engine/time/monotonic_time.h"
 #include "protocol/error.h"
 
@@ -25,8 +27,16 @@ bool RoomDirectoryClient::Connect(std::string host, std::uint16_t port) {
 
   if (transport_->running()) {
     const auto endpoint = transport_->server_endpoint();
-    const bool same_target =
-        endpoint.port() == port_ && endpoint.address() == host_;
+    std::error_code resolve_error;
+    const auto resolved =
+        engine::net::Endpoint::Resolve(host_, port_, resolve_error);
+    bool same_target = false;
+    if (!resolve_error && resolved.valid()) {
+      same_target = endpoint.port() == resolved.port() &&
+                    endpoint.native().address() == resolved.native().address();
+    } else {
+      same_target = endpoint.port() == port_ && endpoint.address() == host_;
+    }
     if (same_target) {
       return true;
     }
