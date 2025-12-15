@@ -452,8 +452,8 @@ void Application::UpdateAudio(engine::time::TimeDelta dt,
   const bool in_menu =
       state_ == ClientState::kMainMenu || state_ == ClientState::kSettings;
   const auto active_music = audio_manager_->ActiveMusic();
-  const bool menu_music_active = active_music.has_value() &&
-                                 active_music.value() == MusicType::kMainMenu;
+  const bool menu_music_active =
+      active_music.has_value() && active_music.value() == MusicType::kMainMenu;
 
   if (in_menu) {
     music_allowed_ = false;
