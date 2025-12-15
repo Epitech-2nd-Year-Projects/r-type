@@ -36,12 +36,13 @@ void WaveSystem::LoadLevel(int level_id) {
         std::cerr << "Warning: Unknown enemy type '" << spawn.enemy_type
                   << "' in wave config. Defaulting to Scout." << std::endl;
       }
-
-      pending_spawns_.push_back({spawn.time,
-                                 type,
-                                 {spawn.x, spawn.y},
-                                 spawn.random_y,
-                                 spawn.drops_powerup});
+      WaveEntry entry;
+      entry.spawn_time = spawn.time;
+      entry.type = type;
+      entry.position = {spawn.x, spawn.y};
+      entry.random_y = spawn.random_y;
+      entry.drops_powerup = spawn.drops_powerup;
+      pending_spawns_.push_back(entry);
     }
   } catch (const std::exception &e) {
     std::cerr << "Error loading level " << level_id << ": " << e.what()
@@ -95,13 +96,17 @@ void WaveSystem::Update(engine::ecs::Registry &registry,
         level_finished_timer_ = 0.0f;
       } else {
         level_finished_timer_ += dt.as_seconds();
-        if (level_finished_timer_ >= 3.0f) {
+        if (level_finished_timer_ >= kLevelTransitionDelay) {
           int next_level = current_level_ + 1;
           try {
             GameConfig::Get().GetLevel(next_level);
             LoadLevel(next_level);
             game_instance_.State().current_level = next_level;
+          } catch (const std::exception &e) {
+            std::cerr << "Level transition error: " << e.what() << std::endl;
+            game_instance_.State().is_game_over = true;
           } catch (...) {
+            std::cerr << "Unknown error during level transition" << std::endl;
             game_instance_.State().is_game_over = true;
           }
         }

@@ -9,6 +9,7 @@
 #include "engine/ecs/registry.h"
 #include "engine/ecs/zipper.h"
 #include "game_logic/components/player_component.h"
+#include "game_logic/constants.h"
 
 namespace game_logic::systems {
 

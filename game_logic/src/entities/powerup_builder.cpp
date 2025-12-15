@@ -17,8 +17,8 @@ engine::ecs::EntityId PowerupBuilder::Create(
 
   registry.EmplaceComponent<engine::ecs::PositionComponent>(powerup, position);
 
-  registry.EmplaceComponent<engine::ecs::VelocityComponent>(powerup, -20.0f,
-                                                            0.0f);
+  registry.EmplaceComponent<engine::ecs::VelocityComponent>(
+      powerup, kPowerupDriftSpeed, 0.0f);
 
   registry.EmplaceComponent<engine::ecs::BoundingBoxComponent>(
       powerup, 0.0f, 0.0f, config.sprite_width, config.sprite_height);

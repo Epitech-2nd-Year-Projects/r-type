@@ -7,6 +7,14 @@
 
 namespace game_logic::systems {
 
+/**
+ * @class PowerupSystem
+ * @brief System responsible for updating and handling powerups.
+ *
+ * @details
+ * This system manages powerup entities, checks for collisions with players,
+ * handles powerup collection effects, and cleans up off-screen powerups.
+ */
 class PowerupSystem : public engine::ecs::ISystem {
  public:
   void Update(engine::ecs::Registry &registry,

@@ -2,7 +2,6 @@
 #define GAME_LOGIC_SYSTEMS_WAVE_SYSTEM_H_
 
 #include <deque>
-#include <functional>
 #include <random>
 
 #include "engine/ecs/registry.h"
@@ -10,10 +9,12 @@
 #include "engine/math/vector2.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/entities/enemy_builder.h"
+#include "game_logic/game_config.h"
 
 namespace game_logic {
 class GameInstance;
-}
+struct LevelConfig;
+}  // namespace game_logic
 
 namespace game_logic::systems {
 

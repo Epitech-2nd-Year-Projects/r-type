@@ -1,6 +1,7 @@
 #include "game_logic/systems/powerup_system.h"
 
 #include <iostream>
+#include <vector>
 
 #include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/components/position_component.h"
@@ -9,6 +10,7 @@
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_component.h"
+#include "game_logic/constants.h"
 
 namespace game_logic::systems {
 
@@ -32,6 +34,8 @@ void PowerupSystem::Update(engine::ecs::Registry &registry,
        engine::ecs::IndexedZipper(powerups, positions, boxes)) {
     if (!powerup->active) continue;
 
+    bool collected = false;
+
     engine::math::RectF powerup_rect = box->bounds;
     powerup_rect.top_left_x_ += pos->position.x;
     powerup_rect.top_left_y_ += pos->position.y;
@@ -53,10 +57,12 @@ void PowerupSystem::Update(engine::ecs::Registry &registry,
         engine::ecs::EntityId entity_id = registry.EntityFromIndex(entity);
         CollectPowerup(registry, player_id, entity_id);
         collected_powerups.push_back(entity_id);
+        collected = true;
         break;
       }
     }
-    if (pos->position.x < -100.0f) {
+
+    if (!collected && pos->position.x < kPowerupCleanupBoundary) {
       collected_powerups.push_back(registry.EntityFromIndex(entity));
     }
   }

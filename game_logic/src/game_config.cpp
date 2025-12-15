@@ -236,8 +236,9 @@ const PowerupConfig &GameConfig::GetRandomPowerup() const {
     throw std::runtime_error("No powerups defined in config");
   }
 
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
+  // Use thread_local to avoid race conditions if called from multiple threads
+  thread_local std::random_device rd;
+  thread_local std::mt19937 gen(rd());
 
   float total_weight = 0.0f;
   for (const auto &p : powerups_) {
@@ -255,6 +256,9 @@ const PowerupConfig &GameConfig::GetRandomPowerup() const {
     }
   }
 
+  // Fallback: should technically not be reached unless float precision issues
+  // occur Return the last element to ensure a valid reference is always
+  // returned.
   return powerups_.back();
 }
 
