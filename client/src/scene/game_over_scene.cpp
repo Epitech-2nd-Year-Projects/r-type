@@ -10,7 +10,7 @@ namespace client {
 namespace {
 const engine::render::Color kNormalColor = engine::render::Color::White();
 const engine::render::Color kSelectedColor =
-    engine::render::Color::FromBytes(255, 215, 0)
+    engine::render::Color::FromBytes(255, 215, 0);
 }  // namespace
 
 GameOverScene::GameOverScene(Application& app, const Stats& stats)
