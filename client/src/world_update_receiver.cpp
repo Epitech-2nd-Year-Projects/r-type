@@ -138,6 +138,24 @@ bool WorldUpdateReceiver::EnqueueInputState(
   return true;
 }
 
+bool WorldUpdateReceiver::EnqueueCommand(
+    const protocol::CommandPayload& payload) {
+  if (!running_.load(std::memory_order_acquire)) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(outgoing_mutex_);
+  if (outgoing_queue_.size() >= kMaxQueueDepth) {
+    return false;
+  }
+  OutgoingMessage message{};
+  message.type = protocol::message_type::MessageType::kClientCommand;
+  message.command_payload = payload;
+  message.client_time_ms = NowMilliseconds32();
+  outgoing_queue_.push_back(std::move(message));
+  outgoing_cv_.notify_one();
+  return true;
+}
+
 bool WorldUpdateReceiver::SendPing(std::uint32_t client_time_ms) {
   if (!transport_ || !transport_->running()) {
     return false;
@@ -221,7 +239,13 @@ void WorldUpdateReceiver::ReceiveLoop() {
           packet.header.ack_bits = 0;
           packet.header.timestamp_ms = message.client_time_ms;
           sequence_tracker_.FillAckFields(packet.header);
-          packet.payload = message.input_state;
+          if (message.type ==
+              protocol::message_type::MessageType::kInputState) {
+            packet.payload = message.input_state;
+          } else if (message.type ==
+                     protocol::message_type::MessageType::kClientCommand) {
+            packet.payload = message.command_payload;
+          }
 
           engine::net::PacketBuffer buffer;
           buffer.reserve(128);

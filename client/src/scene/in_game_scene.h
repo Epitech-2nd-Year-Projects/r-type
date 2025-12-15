@@ -18,6 +18,8 @@ class InGameScene : public Scene {
  private:
   Application& app_;
   HudOverlay hud_;
+  bool is_ready_{false};
+  bool toggle_pressed_{false};
 };
 
 }  // namespace client

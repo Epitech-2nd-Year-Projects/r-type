@@ -37,6 +37,7 @@ struct OutgoingMessage {
   protocol::message_type::MessageType type{
       protocol::message_type::MessageType::kInvalid};  ///< Message type to send.
   protocol::InputStatePayload input_state{};           ///< Populated for kInputState.
+  protocol::CommandPayload command_payload{};          ///< Populated for kClientCommand.
   std::uint32_t client_time_ms{0};                     ///< Client timestamp for inputs.
 };
 
@@ -101,6 +102,13 @@ class WorldUpdateReceiver {
    */
   bool EnqueueInputState(const protocol::InputStatePayload& payload,
                          std::uint32_t client_time_ms);
+
+  /**
+   * @brief Enqueue a command payload to be encoded and sent on the network thread
+   * @param payload Command payload to encode and send
+   * @return true when queued, false if the worker is not running or queue is full
+   */
+  bool EnqueueCommand(const protocol::CommandPayload& payload);
 
   /**
    * @brief Running state helper

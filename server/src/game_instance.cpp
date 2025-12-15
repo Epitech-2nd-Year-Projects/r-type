@@ -265,6 +265,12 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       state.hp = 0;
       state.flags = 0;
     }
+    if (player_opt.has_value()) {
+      auto it = players_.find(player_opt->get().player_id);
+      if (it != players_.end() && it->second.is_ready) {
+        state.flags |= 2u;
+      }
+    }
     protocol::EntityDelta delta{};
     delta.op = protocol::EntityDeltaOp::kCreate;
     delta.entity_id = state.entity_id;
@@ -285,7 +291,7 @@ game_logic::GameInstance& GameInstance::Logic() { return *logic_; }
 const game_logic::GameInstance& GameInstance::Logic() const { return *logic_; }
 
 bool GameInstance::CheckStartCondition() const {
-  if (players_.size() < 2) {
+  if (players_.size() < 1) {
     return false;
   }
   for (const auto& [_, state] : players_) {

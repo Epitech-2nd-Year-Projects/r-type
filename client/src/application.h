@@ -92,6 +92,7 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
+  WorldUpdateReceiver& GetWorldUpdateReceiver() { return world_update_receiver_; }
   /**
    * @brief Latest measured latency in milliseconds
    */
