@@ -22,7 +22,7 @@ constexpr float kFieldHeight = 52.0f;
 constexpr float kButtonHeight = 56.0f;
 constexpr float kRoomButtonHeight = 64.0f;
 constexpr float kModalWidth = 560.0f;
-constexpr float kModalHeight = 400.0f;
+constexpr float kModalHeight = 500.0f;
 constexpr auto kBannerDuration = std::chrono::seconds(6);
 
 std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
@@ -64,6 +64,16 @@ LobbyScene::LobbyScene(Application& app) : app_(app) {
     lobby_port_ = 4242;
   }
 
+  host_input_ = std::make_shared<ui::TextInput>(engine::math::Vector2f{},
+                                                engine::math::Vector2f{});
+  host_input_->SetPlaceholder("127.0.0.1");
+  host_input_->SetText(lobby_host_);
+
+  port_input_ = std::make_shared<ui::TextInput>(engine::math::Vector2f{},
+                                                engine::math::Vector2f{});
+  port_input_->SetPlaceholder("4242");
+  port_input_->SetText(std::to_string(lobby_port_));
+
   name_input_ = std::make_shared<ui::TextInput>(engine::math::Vector2f{},
                                                 engine::math::Vector2f{});
   name_input_->SetPlaceholder("Player name");
@@ -72,19 +82,35 @@ LobbyScene::LobbyScene(Application& app) : app_(app) {
 
   refresh_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{}, engine::math::Vector2f{140.0f, kButtonHeight},
-      "Refresh", [this]() { app_.RefreshRoomList(lobby_host_, lobby_port_); });
-
-  back_button_ = std::make_shared<ui::Button>(
-      engine::math::Vector2f{}, engine::math::Vector2f{120.0f, kButtonHeight},
-      "Back", [this]() { app_.OnQuitToMenu(); });
+      "Refresh", [this]() {
+        std::string host = host_input_->GetText();
+        std::string port_text = port_input_->GetText();
+        if (host.empty()) host = "127.0.0.1";
+        if (port_text.empty()) port_text = "4242";
+        try {
+          int port = std::stoi(port_text);
+          if (port < 1 || port > 65535) {
+            banner_text_ = "Port must be between 1 and 65535";
+            banner_expiry_ = std::chrono::steady_clock::now() + kBannerDuration;
+            return;
+          }
+          lobby_host_ = host;
+          lobby_port_ = static_cast<std::uint16_t>(port);
+          app_.RefreshRoomList(lobby_host_, lobby_port_);
+        } catch (const std::exception& e) {
+          banner_text_ = std::string("Invalid port: ") + e.what();
+          banner_expiry_ = std::chrono::steady_clock::now() + kBannerDuration;
+        }
+      });
 
   create_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{}, engine::math::Vector2f{56.0f, 56.0f}, "+",
       [this]() { OpenCreateModal(); });
 
+  ui_elements_.push_back(host_input_);
+  ui_elements_.push_back(port_input_);
   ui_elements_.push_back(name_input_);
   ui_elements_.push_back(refresh_button_);
-  ui_elements_.push_back(back_button_);
   ui_elements_.push_back(create_button_);
 
   const auto btn_tex =
@@ -94,10 +120,8 @@ LobbyScene::LobbyScene(Application& app) : app_(app) {
     const auto hover = engine::render::Color::FromBytes(220, 220, 220);
     const auto press = engine::render::Color::FromBytes(180, 180, 180);
     refresh_button_->SetTexture(btn_tex);
-    back_button_->SetTexture(btn_tex);
     create_button_->SetTexture(btn_tex);
     refresh_button_->SetColors(white, hover, press);
-    back_button_->SetColors(white, hover, press);
     create_button_->SetColors(white, hover, press);
   }
 
@@ -206,6 +230,8 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
       engine::math::RectF rect{field->GetPosition(), field->GetSize()};
       field->SetFocused(rect.Contains(pos));
     };
+    set_focus(host_input_);
+    set_focus(port_input_);
     set_focus(name_input_);
     if (show_modal_) {
       if (modal_mode_ == ModalMode::kCreate) {
@@ -245,6 +271,10 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
     banner_text_.clear();
   }
 
+  if (input.IsKeyDown(engine::input::Key::kEscape)) {
+    app_.OnQuitToMenu();
+  }
+
   if (auto created = app_.ConsumeLastRoomCreation()) {
     std::string message = created->message;
     if (created->success && created->room) {
@@ -266,14 +296,15 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
 
   const auto panel = engine::render::Color::FromBytes(18, 24, 40, 230);
   const auto accent = engine::render::Color::FromBytes(140, 186, 255, 255);
+  const float margin = 32.0f;
 
-  renderer.DrawText("Ready for launch", {40.0f, 60.0f}, 42.0f, accent);
-  renderer.DrawText("Available rooms", {40.0f, 96.0f}, 24.0f,
+  const float list_top = 220.0f;
+  renderer.DrawText("Available rooms", {margin, list_top - 44.0f}, 28.0f,
                     engine::render::Color::White());
-  renderer.DrawText(app_.RoomDirectoryStatus(), {40.0f, 124.0f}, 18.0f,
+  renderer.DrawText(app_.RoomDirectoryStatus(), {margin, list_top - 14.0f},
+                    18.0f,
                     engine::render::Color::FromBytes(180, 190, 210, 255));
-  renderer.DrawText("Player name", {40.0f, 152.0f}, 16.0f,
-                    engine::render::Color::FromBytes(200, 210, 230, 255));
+
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
   }
@@ -299,14 +330,14 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
     if (modal_mode_ == ModalMode::kCreate) {
       renderer.DrawText("Room name", {modal_x + 24.0f, modal_y + 84.0f}, 16.0f,
                         engine::render::Color::White());
-      renderer.DrawText("Max players", {modal_x + 24.0f, modal_y + 170.0f},
+      renderer.DrawText("Max players", {modal_x + 24.0f, modal_y + 180.0f},
                         16.0f, engine::render::Color::White());
       renderer.DrawText(modal_private_ ? "Private lobby" : "Public lobby",
-                        {modal_x + 240.0f, modal_y + 170.0f}, 16.0f,
+                        {modal_x + 240.0f, modal_y + 180.0f}, 16.0f,
                         engine::render::Color::FromBytes(200, 210, 230, 255));
       if (modal_private_) {
         renderer.DrawText("Password (4 digits)",
-                          {modal_x + 24.0f, modal_y + 232.0f}, 16.0f,
+                          {modal_x + 24.0f, modal_y + 272.0f}, 16.0f,
                           engine::render::Color::FromBytes(200, 210, 230, 255));
       }
     } else {
@@ -367,21 +398,45 @@ void LobbyScene::LayoutUi(engine::render::Renderer2D& renderer) {
   const auto window_size = app_.GetEngine().Window().GetSize();
   const float width = static_cast<float>(window_size.x);
   const float margin = 32.0f;
-  const float list_top = 200.0f;
-  const float list_width = width - margin * 2.0f;
+
+  const float controls_y = 110.0f;
+  const float field_y = controls_y + (kButtonHeight - kFieldHeight) / 2.0f;
+  renderer.DrawText("Server address", {margin, controls_y - 20.0f}, 16.0f,
+                    engine::render::Color::FromBytes(200, 210, 230, 255));
+  renderer.DrawText(
+      "Server port",
+      {host_input_->GetPosition().x + host_input_->GetSize().x + 10.0f,
+       controls_y - 20.0f},
+      16.0f, engine::render::Color::FromBytes(200, 210, 230, 255));
+  renderer.DrawText(
+      "Player name",
+      {port_input_->GetPosition().x + port_input_->GetSize().x + 20.0f,
+       controls_y - 20.0f},
+      16.0f, engine::render::Color::FromBytes(200, 210, 230, 255));
+
+  host_input_->SetSize({260.0f, kFieldHeight});
+  host_input_->SetPosition({margin, field_y});
+
+  port_input_->SetSize({100.0f, kFieldHeight});
+  port_input_->SetPosition(
+      {host_input_->GetPosition().x + host_input_->GetSize().x + 10.0f,
+       field_y});
 
   name_input_->SetSize({260.0f, kFieldHeight});
-  name_input_->SetPosition({margin, 120.0f});
+  name_input_->SetPosition(
+      {port_input_->GetPosition().x + port_input_->GetSize().x + 20.0f,
+       field_y});
 
-  back_button_->SetPosition({margin, 40.0f});
-  refresh_button_->SetPosition(
-      {width - margin - refresh_button_->GetSize().x, 120.0f});
   create_button_->SetPosition(
-      {refresh_button_->GetPosition().x - create_button_->GetSize().x - 12.0f,
-       120.0f});
+      {width - margin - create_button_->GetSize().x, controls_y});
+  refresh_button_->SetPosition(
+      {create_button_->GetPosition().x - refresh_button_->GetSize().x - 12.0f,
+       controls_y});
 
+  const float list_top = 220.0f;
+  const float list_width = width - margin * 2.0f;
   const auto room_area_width = list_width;
-  float room_y = list_top;
+  float room_y = list_top + 20.0f;
   for (auto& button : room_buttons_) {
     button->SetPosition({margin, room_y});
     button->SetSize({room_area_width, kRoomButtonHeight});
@@ -423,10 +478,33 @@ void LobbyScene::CloseModal() {
 
 void LobbyScene::JoinRoom(const protocol::RoomSummary& room,
                           const std::string& password) {
+  std::string host = host_input_->GetText();
+  std::string port_text = port_input_->GetText();
   std::string name = name_input_->GetText();
+  if (host.empty()) {
+    host = "127.0.0.1";
+  }
+  if (port_text.empty()) {
+    port_text = "4242";
+  }
+  int port = 4242;
+  try {
+    port = std::stoi(port_text);
+  } catch (...) {
+    banner_text_ = "Invalid port";
+    banner_expiry_ = std::chrono::steady_clock::now() + kBannerDuration;
+    return;
+  }
+  if (port < 1 || port > 65535) {
+    banner_text_ = "Port must be between 1 and 65535";
+    banner_expiry_ = std::chrono::steady_clock::now() + kBannerDuration;
+    return;
+  }
   if (name.empty()) {
     name = "Pilot";
   }
+  lobby_host_ = host;
+  lobby_port_ = static_cast<std::uint16_t>(port);
   app_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_), name,
                            room.room_code, password);
   app_.StartConnection();
@@ -443,29 +521,33 @@ void LobbyScene::ApplyModalLayout() {
     modal_room_name_input_->SetPosition({modal_x + 24.0f, modal_y + 102.0f});
     modal_room_name_input_->SetSize({kModalWidth - 48.0f, kFieldHeight});
 
-    modal_max_players_input_->SetPosition({modal_x + 24.0f, modal_y + 188.0f});
+    modal_max_players_input_->SetPosition({modal_x + 24.0f, modal_y + 198.0f});
     modal_max_players_input_->SetSize({180.0f, kFieldHeight});
 
     modal_privacy_button_->SetPosition(
         {modal_x + 220.0f, modal_max_players_input_->GetPosition().y - 4.0f});
     modal_privacy_button_->SetSize({160.0f, kButtonHeight});
     if (modal_private_) {
-      modal_password_input_->SetPosition({modal_x + 24.0f, modal_y + 252.0f});
+      modal_password_input_->SetPosition({modal_x + 24.0f, modal_y + 292.0f});
       modal_password_input_->SetSize({kModalWidth - 48.0f, kFieldHeight});
     }
-  }
 
-  modal_primary_button_->SetPosition({modal_x + 24.0f, modal_y + 320.0f});
-  modal_primary_button_->SetSize({160.0f, kButtonHeight});
-  modal_cancel_button_->SetPosition(
-      {modal_x + kModalWidth - modal_cancel_button_->GetSize().x - 24.0f,
-       modal_y + 320.0f});
-  modal_cancel_button_->SetSize({160.0f, kButtonHeight});
-
-  if (modal_mode_ == ModalMode::kJoinPrivate) {
+    modal_primary_button_->SetPosition({modal_x + 24.0f, modal_y + 420.0f});
+    modal_cancel_button_->SetPosition(
+        {modal_x + kModalWidth - modal_cancel_button_->GetSize().x - 24.0f,
+         modal_y + 420.0f});
+  } else if (modal_mode_ == ModalMode::kJoinPrivate) {
     modal_password_input_->SetPosition({modal_x + 24.0f, modal_y + 128.0f});
     modal_password_input_->SetSize({kModalWidth - 48.0f, kFieldHeight});
+
+    modal_primary_button_->SetPosition({modal_x + 24.0f, modal_y + 220.0f});
+    modal_cancel_button_->SetPosition(
+        {modal_x + kModalWidth - modal_cancel_button_->GetSize().x - 24.0f,
+         modal_y + 220.0f});
   }
+
+  modal_primary_button_->SetSize({160.0f, kButtonHeight});
+  modal_cancel_button_->SetSize({160.0f, kButtonHeight});
 }
 
 }  // namespace client

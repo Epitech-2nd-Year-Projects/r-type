@@ -44,9 +44,10 @@ class LobbyScene : public Scene {
   std::vector<std::shared_ptr<ui::UIElement>> create_modal_elements_;
   std::vector<std::shared_ptr<ui::UIElement>> join_modal_elements_;
 
+  std::shared_ptr<ui::TextInput> host_input_;
+  std::shared_ptr<ui::TextInput> port_input_;
   std::shared_ptr<ui::TextInput> name_input_;
   std::shared_ptr<ui::Button> refresh_button_;
-  std::shared_ptr<ui::Button> back_button_;
   std::shared_ptr<ui::Button> create_button_;
 
   std::shared_ptr<ui::TextInput> modal_room_name_input_;
