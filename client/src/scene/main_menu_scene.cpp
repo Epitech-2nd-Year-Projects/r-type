@@ -120,17 +120,6 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
 
 void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
   LayoutUi(renderer);
-  const auto window_size = app_.GetEngine().Window().GetSize();
-  const float width = static_cast<float>(window_size.x);
-  const float height = static_cast<float>(window_size.y);
-  const auto deep_space = engine::render::Color::FromBytes(6, 10, 22, 255);
-  const auto horizon = engine::render::Color::FromBytes(12, 18, 32, 255);
-  const auto spotlight = engine::render::Color::FromBytes(28, 52, 96, 220);
-  renderer.DrawRect({0.0f, 0.0f, width, height}, deep_space);
-  renderer.DrawRect({24.0f, 24.0f, width - 48.0f, height - 48.0f}, horizon);
-  renderer.DrawRect(
-      {width * 0.52f, height * 0.12f, width * 0.42f, height * 0.76f},
-      spotlight);
 
   canvas_.Draw(renderer);
   for (auto& elem : ui_elements_) {
