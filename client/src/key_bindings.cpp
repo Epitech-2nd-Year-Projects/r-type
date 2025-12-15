@@ -47,23 +47,23 @@ constexpr std::array<KeyName, 57> kKeyNames{{
     {engine::input::Key::kX, "X", "X"},
     {engine::input::Key::kY, "Y", "Y"},
     {engine::input::Key::kZ, "Z", "Z"},
-    {engine::input::Key::kNum0, "Num0", "0"},
-    {engine::input::Key::kNum1, "Num1", "1"},
-    {engine::input::Key::kNum2, "Num2", "2"},
-    {engine::input::Key::kNum3, "Num3", "3"},
-    {engine::input::Key::kNum4, "Num4", "4"},
-    {engine::input::Key::kNum5, "Num5", "5"},
-    {engine::input::Key::kNum6, "Num6", "6"},
-    {engine::input::Key::kNum7, "Num7", "7"},
-    {engine::input::Key::kNum8, "Num8", "8"},
-    {engine::input::Key::kNum9, "Num9", "9"},
-    {engine::input::Key::kPeriod, "Period", "."},
+    {engine::input::Key::kNum0, "Num0", "à"},
+    {engine::input::Key::kNum1, "Num1", "&"},
+    {engine::input::Key::kNum2, "Num2", "é"},
+    {engine::input::Key::kNum3, "Num3", "\""},
+    {engine::input::Key::kNum4, "Num4", "'"},
+    {engine::input::Key::kNum5, "Num5", "("},
+    {engine::input::Key::kNum6, "Num6", "-"},
+    {engine::input::Key::kNum7, "Num7", "è"},
+    {engine::input::Key::kNum8, "Num8", "_"},
+    {engine::input::Key::kNum9, "Num9", "ç"},
+    {engine::input::Key::kPeriod, "Period", ":"},
     {engine::input::Key::kComma, "Comma", ","},
-    {engine::input::Key::kSlash, "Slash", "/"},
-    {engine::input::Key::kBackslash, "Backslash", "\\"},
+    {engine::input::Key::kSlash, "Slash", "!"},
+    {engine::input::Key::kBackslash, "Backslash", "*"},
     {engine::input::Key::kSemicolon, "Semicolon", ";"},
     {engine::input::Key::kEqual, "Equal", "="},
-    {engine::input::Key::kMinus, "Minus", "-"},
+    {engine::input::Key::kMinus, "Minus", ")"},
     {engine::input::Key::kUp, "Up", "Up"},
     {engine::input::Key::kDown, "Down", "Down"},
     {engine::input::Key::kLeft, "Left", "Left"},
@@ -109,15 +109,13 @@ std::optional<GameAction> ActionTokenToAction(std::string_view token) {
 
 KeyBindings KeyBindings::Default() {
   KeyBindings bindings;
-  bindings.Set(GameAction::kMoveUp, engine::input::Key::kW);
-  bindings.Add(GameAction::kMoveUp, engine::input::Key::kZ);
+  bindings.Set(GameAction::kMoveUp, engine::input::Key::kZ);
   bindings.Add(GameAction::kMoveUp, engine::input::Key::kUp);
 
   bindings.Set(GameAction::kMoveDown, engine::input::Key::kS);
   bindings.Add(GameAction::kMoveDown, engine::input::Key::kDown);
 
-  bindings.Set(GameAction::kMoveLeft, engine::input::Key::kA);
-  bindings.Add(GameAction::kMoveLeft, engine::input::Key::kQ);
+  bindings.Set(GameAction::kMoveLeft, engine::input::Key::kQ);
   bindings.Add(GameAction::kMoveLeft, engine::input::Key::kLeft);
 
   bindings.Set(GameAction::kMoveRight, engine::input::Key::kD);
