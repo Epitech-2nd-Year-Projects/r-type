@@ -61,6 +61,9 @@ bool EncodeRoomSummary(const RoomSummary& summary,
   if (!EncodeStringWithLength(summary.room_code, kMaxRoomCodeLength, buffer)) {
     return false;
   }
+  if (!EncodeStringWithLength(summary.room_name, kMaxRoomNameLength, buffer)) {
+    return false;
+  }
   buffer.WriteUint8(BoolToByte(summary.is_private));
   buffer.WriteUint8(summary.player_count);
   buffer.WriteUint8(summary.max_players);
@@ -74,6 +77,12 @@ bool DecodeRoomSummary(engine::net::PacketBuffer& buffer,
     return false;
   }
   if (summary.room_code.empty()) {
+    return false;
+  }
+  if (!DecodeStringWithLength(buffer, kMaxRoomNameLength, summary.room_name)) {
+    return false;
+  }
+  if (summary.room_name.empty()) {
     return false;
   }
   bool is_private = false;
@@ -142,7 +151,7 @@ bool DecodeRoomListResponse(engine::net::PacketBuffer& buffer,
 
 bool EncodeCreateRoomRequest(const CreateRoomRequestPayload& request,
                              engine::net::PacketBuffer& buffer) {
-  if (!EncodeStringWithLength(request.room_code, kMaxRoomCodeLength, buffer)) {
+  if (!EncodeStringWithLength(request.room_name, kMaxRoomNameLength, buffer)) {
     return false;
   }
   buffer.WriteUint8(BoolToByte(request.is_private));
@@ -153,7 +162,7 @@ bool EncodeCreateRoomRequest(const CreateRoomRequestPayload& request,
 bool DecodeCreateRoomRequest(engine::net::PacketBuffer& buffer,
                              CreateRoomRequestPayload& out_request) {
   CreateRoomRequestPayload request{};
-  if (!DecodeStringWithLength(buffer, kMaxRoomCodeLength, request.room_code)) {
+  if (!DecodeStringWithLength(buffer, kMaxRoomNameLength, request.room_name)) {
     return false;
   }
   bool is_private = false;
@@ -183,6 +192,10 @@ bool EncodeCreateRoomResponse(const CreateRoomResponsePayload& response,
       return false;
     }
   }
+  if (!EncodeStringWithLength(response.room_password, kMaxRoomCodeLength,
+                              buffer)) {
+    return false;
+  }
   return true;
 }
 
@@ -207,6 +220,10 @@ bool DecodeCreateRoomResponse(engine::net::PacketBuffer& buffer,
       return false;
     }
     response.room = std::move(summary);
+  }
+  if (!DecodeStringWithLength(buffer, kMaxRoomCodeLength,
+                              response.room_password)) {
+    return false;
   }
   out_response = std::move(response);
   return true;
