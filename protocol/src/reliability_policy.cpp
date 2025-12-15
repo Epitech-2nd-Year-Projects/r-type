@@ -48,6 +48,12 @@ MessageReliabilityPolicy GetReliabilityPolicy(message_type::MessageType type) {
     case MessageType::kPing:
     case MessageType::kPong:
       return MakePolicy(false, true);
+
+    case MessageType::kRoomListRequest:
+    case MessageType::kRoomListResponse:
+    case MessageType::kCreateRoomRequest:
+    case MessageType::kCreateRoomResponse:
+      return MakePolicy(true, true);
   }
   return MakePolicy(false, true);
 }

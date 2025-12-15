@@ -2,7 +2,6 @@
 #define CLIENT_CLIENT_CONFIG_H_
 
 #include <cstdint>
-#include <span>
 #include <string>
 #include <string_view>
 
@@ -24,19 +23,18 @@ struct ClientConfig {
 };
 
 /**
- * @brief Outcome of parsing command line arguments into a ClientConfig
+ * @brief Load client configuration using environment overrides.
+ *
+ * Environment overrides:
+ *  - RTYPE_CLIENT_HOST
+ *  - RTYPE_CLIENT_PORT
+ *  - RTYPE_CLIENT_NAME
+ *  - RTYPE_CLIENT_ROOM
+ *  - RTYPE_CLIENT_DEBUG
+ *  - RTYPE_CLIENT_TIMEOUT_MS
+ *  - RTYPE_CLIENT_LOG_LEVEL
  */
-struct ClientConfigParseResult {
-  ClientConfig config{};
-  bool ok{true};
-  std::string error;
-};
-
-/**
- * @brief Parse CLI flags into a ClientConfig instance
- */
-ClientConfigParseResult ParseClientConfig(
-    std::span<const std::string_view> args);
+ClientConfig LoadClientConfig();
 
 }  // namespace client
 

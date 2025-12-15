@@ -21,6 +21,8 @@
 #include "key_bindings.h"
 #include "network_transport.h"
 #include "local_prediction.h"
+#include "room_directory_client.h"
+#include "scene/lobby_scene.h"
 #include "scene/scene.h"
 #include "sound_effects.h"
 #include "world_update_receiver.h"
@@ -36,6 +38,7 @@ namespace client {
  */
 enum class ClientState {
   kMainMenu,
+  kLobby,
   kSettings,
   kConnecting,
   kInGame,
@@ -74,13 +77,18 @@ class Application {
   /**
    * @brief Update connection configuration.
    */
-  void SetConnectionConfig(std::string host, int port, std::string player_name);
+  void SetConnectionConfig(std::string host,
+                           int port,
+                           std::string player_name,
+                           std::string room_code,
+                           std::string room_password = {});
 
   /**
    * @brief Begin the connection handshake
    */
   bool StartConnection();
   void OnConnected();
+  void OnPlay();
   void OnConnectionFailed(const std::string& reason);
   void OnGameStart();
   void OnGamePause();
@@ -88,6 +96,7 @@ class Application {
   void OnGameOver();
   void OnDisconnect(std::string reason);
   void OnQuitToMenu();
+  void OnQuitApplication();
   void OnOpenSettings();
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
@@ -124,6 +133,36 @@ class Application {
    */
   ecs::WorldStateSystem& WorldSync() { return *world_state_system_; }
 
+  /**
+   * @brief Request a fresh room list from the server.
+   */
+  void RefreshRoomList(std::string host, std::uint16_t port);
+
+  /**
+   * @brief Ask the server to create a room.
+   */
+  void CreateRoom(std::string host,
+                  std::uint16_t port,
+                  const std::string& room_name,
+                  bool is_private,
+                  std::string room_password,
+                  std::uint16_t max_players);
+
+  /**
+   * @brief Read-only access to the current room directory snapshot.
+   */
+  const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const;
+
+  /**
+   * @brief Latest lobby status message.
+   */
+  std::string RoomDirectoryStatus() const;
+
+  /**
+   * @brief Retrieve and clear the latest room creation response.
+   */
+  std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation();
+
  private:
   bool Tick(engine::time::TimeDelta dt);
   void UpdateAudio(engine::time::TimeDelta dt, JoinState join_state);
@@ -145,7 +184,9 @@ class Application {
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
+  std::shared_ptr<NetworkTransport> lobby_transport_;
   JoinFlow join_flow_;
+  std::unique_ptr<RoomDirectoryClient> room_directory_;
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;

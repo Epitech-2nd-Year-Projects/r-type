@@ -6,10 +6,16 @@
 #include <optional>
 
 #include "scene.h"
-#include "../ui/ui_element.h"
-#include "../ui/label.h"
+#include "engine/ui/canvas.h"
+#include "engine/ui/layouts.h"
+#include "engine/ui/text.h"
+#include "engine/ui/types.h"
 #include "../ui/button.h"
 #include "../input_layer.h"
+
+namespace engine::render {
+class Renderer2D;
+}
 
 namespace client {
 
@@ -26,23 +32,26 @@ class SettingsScene : public Scene {
   void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
+  void LayoutUi(engine::render::Renderer2D& renderer);
   Application& app_;
-  std::vector<std::shared_ptr<ui::UIElement>> ui_elements_;
   
-  std::shared_ptr<ui::Label> music_volume_label_;
-  std::shared_ptr<ui::Label> sfx_volume_label_;
+  engine::ui::Canvas canvas_;
+
+  std::vector<std::shared_ptr<ui::Button>> buttons_;
+  
+  std::shared_ptr<engine::ui::TextElement> music_volume_label_;
+  std::shared_ptr<engine::ui::TextElement> sfx_volume_label_;
+  std::shared_ptr<engine::ui::TextElement> rebind_status_label_;
+  
   std::vector<bool> key_state_buffer_;
   std::optional<GameAction> pending_rebind_;
-  std::shared_ptr<ui::Label> rebind_status_label_;
+  
   struct BindingRow {
     GameAction action;
-    std::shared_ptr<ui::Label> label;
     std::shared_ptr<ui::Button> button;
 
-    BindingRow(GameAction action_in, std::shared_ptr<ui::Label> label_in,
-               std::shared_ptr<ui::Button> button_in)
-        : action(action_in), label(std::move(label_in)),
-          button(std::move(button_in)) {}
+    BindingRow(GameAction action_in, std::shared_ptr<ui::Button> button_in)
+        : action(action_in), button(std::move(button_in)) {}
   };
   std::vector<BindingRow> binding_rows_;
   std::optional<std::reference_wrapper<BindingRow>> FindRow(GameAction action);

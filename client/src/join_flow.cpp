@@ -82,6 +82,9 @@ void JoinFlow::SendJoinRequest(NetworkTransport& transport) {
   payload.client_version = protocol::kProtocolVersion;
   payload.player_name = player_name_;
   payload.room_code = room_code_;
+  if (!room_password_.empty()) {
+    payload.room_password = room_password_;
+  }
 
   protocol::Packet packet{};
   packet.header.version = protocol::kProtocolVersion;

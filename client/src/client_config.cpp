@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdlib>
 #include <limits>
-#include <span>
 #include <string>
 #include <string_view>
-#include <system_error>
+#include <type_traits>
 
 #include "engine/util/logging.h"
 #include "protocol/join.h"
@@ -27,15 +27,6 @@ std::string Normalize(std::string_view value) {
       value.begin(), value.end(), normalized.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return normalized;
-}
-
-ClientConfigParseResult MakeError(const ClientConfig& config,
-                                  std::string_view message) {
-  ClientConfigParseResult result;
-  result.config = config;
-  result.ok = false;
-  result.error.assign(message);
-  return result;
 }
 
 bool TryParsePort(std::string_view value, std::uint16_t& out_port) {
@@ -84,117 +75,63 @@ bool TryParseTimeout(std::string_view value, std::uint32_t& out_timeout) {
 
 }  // namespace
 
-ClientConfigParseResult ParseClientConfig(
-    std::span<const std::string_view> args) {
+ClientConfig LoadClientConfig() {
   ClientConfig config;
 
-  for (std::size_t i = 1; i < args.size(); ++i) {
-    std::string_view arg(args[i]);
-    if (arg == "--host") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --host");
-      }
-      std::string_view host_value(args[++i]);
-      if (host_value.empty()) {
-        return MakeError(config, "Host cannot be empty");
-      }
-      config.host = host_value;
-      continue;
+  const auto apply_uint = [&](const char* env_name, auto parser, auto& target) {
+    const char* value = std::getenv(env_name);
+    if (!value) return;
+    typename std::remove_reference_t<decltype(target)> parsed{};
+    if (parser(std::string_view(value), parsed)) {
+      target = parsed;
     }
+  };
 
-    if (arg == "--port") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --port");
-      }
-      std::uint16_t port = 0;
-      if (!TryParsePort(args[i + 1], port)) {
-        return MakeError(config,
-                         "Invalid port supplied (must be between 1 and 65535)");
-      }
-      config.port = port;
-      ++i;
-      continue;
+  if (const char* host = std::getenv("RTYPE_CLIENT_HOST")) {
+    if (std::string_view(host).size() > 0) {
+      config.host = host;
     }
+  }
 
-    if (arg == "--name") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --name");
-      }
-      std::string_view name_value(args[++i]);
-      if (name_value.empty()) {
-        return MakeError(config, "Player name cannot be empty");
-      }
-      if (!ValidateLength(name_value, protocol::kMaxPlayerNameLength)) {
-        return MakeError(config,
-                         "Player name exceeds maximum length of " +
-                             std::to_string(protocol::kMaxPlayerNameLength) +
-                             " characters");
-      }
-      config.player_name.assign(name_value);
-      continue;
+  apply_uint("RTYPE_CLIENT_PORT", TryParsePort, config.port);
+
+  if (const char* name = std::getenv("RTYPE_CLIENT_NAME")) {
+    const std::string_view name_view(name);
+    if (!name_view.empty() &&
+        ValidateLength(name_view, protocol::kMaxPlayerNameLength)) {
+      config.player_name.assign(name_view);
     }
+  }
 
-    if (arg == "--room") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --room");
-      }
-      std::string_view room_value(args[++i]);
-      if (room_value.empty()) {
-        return MakeError(config, "Room code cannot be empty");
-      }
-      if (!ValidateLength(room_value, protocol::kMaxRoomCodeLength)) {
-        return MakeError(config,
-                         "Room code exceeds maximum length of " +
-                             std::to_string(protocol::kMaxRoomCodeLength) +
-                             " characters");
-      }
-      config.room_code.assign(room_value);
-      continue;
+  if (const char* room = std::getenv("RTYPE_CLIENT_ROOM")) {
+    const std::string_view room_view(room);
+    if (!room_view.empty() &&
+        ValidateLength(room_view, protocol::kMaxRoomCodeLength)) {
+      config.room_code.assign(room_view);
     }
+  }
 
-    if (arg == "--debug") {
+  apply_uint("RTYPE_CLIENT_TIMEOUT_MS", TryParseTimeout, config.timeout_ms);
+
+  if (const char* debug = std::getenv("RTYPE_CLIENT_DEBUG")) {
+    const auto normalized = Normalize(debug);
+    if (normalized == "1" || normalized == "true" || normalized == "yes") {
       config.debug = true;
-      continue;
     }
+  }
 
-    if (arg == "--timeout-ms") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --timeout-ms");
-      }
-      std::uint32_t timeout = 0;
-      if (!TryParseTimeout(args[i + 1], timeout)) {
-        return MakeError(
-            config,
-            "Invalid timeout (must be between 3000 and 30000 milliseconds)");
-      }
-      config.timeout_ms = timeout;
-      ++i;
-      continue;
-    }
-
-    if (arg == "--log-level") {
-      if (i + 1 >= args.size()) {
-        return MakeError(config, "Missing value for --log-level");
-      }
-      engine::util::LogLevel level;
-      if (!TryParseLogLevel(args[i + 1], level)) {
-        return MakeError(config,
-                         "Invalid log level (trace, debug, info, warn/warning, "
-                         "error, critical/fatal, off/none)");
-      }
+  if (const char* log_level = std::getenv("RTYPE_CLIENT_LOG_LEVEL")) {
+    engine::util::LogLevel level;
+    if (TryParseLogLevel(log_level, level)) {
       config.log_level = level;
-      ++i;
-      continue;
     }
-
-    return MakeError(config, "Unknown argument: " + std::string(arg));
   }
 
   if (config.debug && config.log_level > engine::util::LogLevel::kDebug) {
     config.log_level = engine::util::LogLevel::kDebug;
   }
 
-  return ClientConfigParseResult{config, true, {}};
+  return config;
 }
 
 }  // namespace client

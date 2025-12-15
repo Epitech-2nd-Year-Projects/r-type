@@ -33,7 +33,13 @@ enum class MessageType : std::uint8_t {
 
   // Utility.
   kPing = 12,  ///< Client → Server: ping with timestamp.
-  kPong = 13   ///< Server → Client: pong echoing data.
+  kPong = 13,  ///< Server → Client: pong echoing data.
+
+  // Lobby / room directory.
+  kRoomListRequest = 14,   ///< Client → Server: request room catalog.
+  kRoomListResponse = 15,  ///< Server → Client: response with room catalog.
+  kCreateRoomRequest = 16, ///< Client → Server: create a room with options.
+  kCreateRoomResponse = 17 ///< Server → Client: room creation result.
 };
 }
 

@@ -11,8 +11,10 @@ bool EncodeJoinRequest(const JoinRequestPayload& payload,
       std::min(payload.player_name.size(), kMaxPlayerNameLength);
   const std::size_t room_len =
       std::min(payload.room_code.size(), kMaxRoomCodeLength);
+  const std::size_t pass_len =
+      std::min(payload.room_password.size(), kMaxRoomCodeLength);
 
-  if (name_len > 255 || room_len > 255) {
+  if (name_len > 255 || room_len > 255 || pass_len > 255) {
     return false;
   }
   buffer.WriteUint16(payload.client_version);
@@ -28,6 +30,12 @@ bool EncodeJoinRequest(const JoinRequestPayload& payload,
         std::span(payload.room_code).first(room_len);
     buffer.write_bytes(std::as_bytes(room_span));
   }
+  buffer.WriteUint8(static_cast<std::uint8_t>(pass_len));
+  if (pass_len > 0) {
+    const auto pass_span =
+        std::span(payload.room_password).first(pass_len);
+    buffer.write_bytes(std::as_bytes(pass_span));
+  }
   return true;
 }
 
@@ -36,6 +44,7 @@ bool DecodeJoinRequest(engine::net::PacketBuffer& buffer,
   std::uint16_t client_version = 0;
   std::uint8_t name_len = 0;
   std::uint8_t room_len = 0;
+  std::uint8_t pass_len = 0;
 
   if (!buffer.ReadUint16(client_version)) {
     return false;
@@ -75,9 +84,25 @@ bool DecodeJoinRequest(engine::net::PacketBuffer& buffer,
       return false;
     }
   }
+  if (!buffer.ReadUint8(pass_len)) {
+    return false;
+  }
+  if (pass_len > kMaxRoomCodeLength) {
+    return false;
+  }
+  std::string password;
+  if (pass_len > 0) {
+    password.resize(pass_len);
+    auto pass_span = std::span(password);
+    if (!buffer.read_bytes(
+            std::as_writable_bytes(pass_span.first(pass_len)))) {
+      return false;
+    }
+  }
   out_payload.client_version = client_version;
   out_payload.player_name = std::move(player_name);
   out_payload.room_code = std::move(room_code);
+  out_payload.room_password = std::move(password);
   return true;
 }
 

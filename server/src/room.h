@@ -32,12 +32,16 @@ class Room {
    * @param room_code Client-facing room code.
    * @param room_id Internal numeric identifier.
    * @param max_players Maximum allowed players for the room.
+   * @param is_private Whether the room requires a private access code.
    * @param seed Seed for deterministic simulation.
    * @param logger Logger used for diagnostics.
    */
   Room(std::string room_code,
+       std::string room_name,
        std::uint32_t room_id,
        std::uint16_t max_players,
+       bool is_private,
+       std::string password,
        std::uint32_t seed,
        engine::util::Logger& logger);
 
@@ -96,6 +100,7 @@ class Room {
    * @brief Returns the room code.
    */
   const std::string& Code() const;
+  const std::string& Name() const;
 
   /**
    * @brief Returns the numeric room identifier.
@@ -106,6 +111,12 @@ class Room {
    * @brief Returns the maximum players allowed.
    */
   std::uint16_t MaxPlayers() const;
+
+  /**
+   * @brief Whether the room is private.
+   */
+  bool IsPrivate() const;
+  const std::string& Password() const;
 
   /**
    * @brief Returns the deterministic seed used by the room.
@@ -134,8 +145,11 @@ class Room {
 
  private:
   std::string room_code_;
+  std::string room_name_;
   std::uint32_t room_id_;
   std::uint16_t max_players_;
+  bool is_private_;
+  std::string password_;
   std::uint32_t seed_;
   std::uint32_t next_snapshot_id_{1};
   std::uint32_t room_tick_{0};

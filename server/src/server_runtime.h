@@ -23,6 +23,7 @@
 #include "protocol/input_state.h"
 #include "protocol/command.h"
 #include "protocol/error.h"
+#include "protocol/lobby.h"
 #include "server_config.h"
 #include "peer_connection.h"
 #include "room.h"
@@ -228,6 +229,16 @@ class ServerRuntime {
    */
   void ProcessJoin(PeerConnection& peer,
                    const protocol::JoinRequestPayload& request);
+  /**
+   * @brief Handles a request for the current room directory.
+   */
+  void HandleRoomListRequest(PeerConnection& peer);
+  /**
+   * @brief Handles creation of a new room.
+   */
+  void HandleCreateRoomRequest(
+      PeerConnection& peer,
+      const protocol::CreateRoomRequestPayload& request);
   
   /**
    * @brief Sends a join accept message to a peer.
@@ -310,6 +321,16 @@ class ServerRuntime {
                       bool notify_client);
 
   /**
+   * @brief Generates a room summary suitable for lobby responses.
+   */
+  protocol::RoomSummary BuildRoomSummary(const Room& room) const;
+
+  /**
+   * @brief Ensures a default public room exists for quick joins.
+   */
+  void EnsureDefaultRoom();
+
+  /**
    * @brief Removes a peer connection by endpoint key.
    * @param peer The peer connection to remove.
    */
@@ -349,6 +370,13 @@ class ServerRuntime {
    * configured timeout period. Called periodically during the main loop.
    */
   void CheckPeerTimeouts();
+  /**
+   * @brief Removes player sessions that lost their peer connection.
+   *
+   * Safeguards against lingering player counts when a peer vanishes without
+   * sending a formal disconnect.
+   */
+  void PruneOrphanedSessions();
 
   /**
    * @brief Sends the current game state to connected players per room.
@@ -386,11 +414,17 @@ class ServerRuntime {
       const std::string& room_code) const;
 
   /**
-   * @brief Returns an existing room or creates a new one.
+   * @brief Creates a new room with the given metadata.
    * @param room_code Room code to resolve.
-   * @return Reference to the resolved room instance.
+   * @param is_private Whether the room is private.
+   * @param max_players Capacity for the room.
+   * @return Reference to the created room instance.
    */
-  Room& GetOrCreateRoom(const std::string& room_code);
+  Room& CreateRoom(const std::string& room_code,
+                   const std::string& room_name,
+                   bool is_private,
+                   std::string password,
+                   std::uint16_t max_players);
 
   /**
    * @brief Removes a room when no peers remain.
