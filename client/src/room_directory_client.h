@@ -43,7 +43,7 @@ class RoomDirectoryClient {
   /**
    * @brief Request creation of a room.
    */
-  void RequestCreateRoom(const std::string& desired_code,
+  void RequestCreateRoom(const std::string& room_name,
                          bool is_private,
                          std::uint16_t max_players);
 
