@@ -60,12 +60,12 @@ void RoomDirectoryClient::RequestRoomList() {
   EnsureTransport();
 }
 
-void RoomDirectoryClient::RequestCreateRoom(const std::string& desired_code,
+void RoomDirectoryClient::RequestCreateRoom(const std::string& room_name,
                                             bool is_private,
                                             std::uint16_t max_players) {
   pending_list_.reset();
   protocol::CreateRoomRequestPayload request{};
-  request.room_code = desired_code;
+  request.room_name = room_name;
   request.is_private = is_private;
   request.max_players = static_cast<std::uint8_t>(std::min<std::uint16_t>(
       max_players, std::numeric_limits<std::uint8_t>::max()));
@@ -188,6 +188,10 @@ void RoomDirectoryClient::HandleCreateRoomResponse(
   last_create_response_ = payload;
   status_text_ = payload.message.empty() ? "Room creation response received"
                                          : payload.message;
+  if (payload.success && payload.room && payload.room->is_private &&
+      !payload.room_password.empty()) {
+    status_text_ = "Private room ready. Password: " + payload.room_password;
+  }
   if (payload.room) {
     const auto& created = *payload.room;
     auto it = std::find_if(rooms_.begin(), rooms_.end(),
