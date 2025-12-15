@@ -246,12 +246,8 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
   const float width = static_cast<float>(window_size.x);
   const float height = static_cast<float>(window_size.y);
 
-  const auto dark = engine::render::Color::FromBytes(8, 12, 26, 255);
   const auto panel = engine::render::Color::FromBytes(18, 24, 40, 230);
   const auto accent = engine::render::Color::FromBytes(140, 186, 255, 255);
-  renderer.DrawRect({0.0f, 0.0f, width, height}, dark);
-  renderer.DrawRect({24.0f, 24.0f, width - 48.0f, height - 48.0f},
-                    engine::render::Color::FromBytes(12, 18, 32, 255));
 
   renderer.DrawText("Ready for launch", {40.0f, 60.0f}, 42.0f, accent);
   renderer.DrawText("Available rooms", {40.0f, 108.0f}, 24.0f,
@@ -261,8 +257,6 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
 
   renderer.DrawText("Crewmate", {40.0f, 174.0f}, 16.0f,
                     engine::render::Color::FromBytes(200, 210, 230, 255));
-  renderer.DrawRect({32.0f, 192.0f, width - 64.0f, height - 224.0f}, panel);
-
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
   }
@@ -271,8 +265,6 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
   }
 
   if (!banner_text_.empty()) {
-    renderer.DrawRect({40.0f, height - 80.0f, width - 80.0f, 44.0f},
-                      engine::render::Color::FromBytes(20, 120, 200, 180));
     renderer.DrawText(banner_text_, {52.0f, height - 50.0f}, 18.0f,
                       engine::render::Color::White());
   }
