@@ -8,6 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include "engine/util/logging.h"
 #include "protocol/join.h"
 #include "protocol/lobby.h"
 
@@ -70,6 +71,7 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 ServerConfig LoadServerConfig() {
   ServerConfig config;
+  auto logger = engine::util::Logger::Default();
 
   const auto apply_uint = [&](const char* env_name, auto min_value,
                               auto max_value, auto& target) {
@@ -79,6 +81,8 @@ ServerConfig LoadServerConfig() {
     if (TryParseBounded(std::string_view(value), min_value, max_value,
                         parsed)) {
       target = parsed;
+    } else {
+      logger.Warn("Ignoring invalid value for ", env_name, ": ", value);
     }
   };
 
