@@ -30,10 +30,10 @@ TEST(ProtocolUsageTest, ClientInputToProtocol) {
     client::InputLayer input_layer(input_manager);
     input_layer.ApplyDefaultBindings();
 
-    input_manager.HandleKey(engine::input::Key::kW, true);
+    input_manager.HandleKey(engine::input::Key::kZ, true);
     input_layer.Update();
 
-    EXPECT_TRUE(input_layer.state().move_up) << "InputLayer failed to map 'W' to MoveUp";
+    EXPECT_TRUE(input_layer.state().move_up) << "InputLayer failed to map 'Z' to MoveUp";
 
     protocol::InputStatePayload payload = CreatePayloadFromState(input_layer.state(), 101);
 
