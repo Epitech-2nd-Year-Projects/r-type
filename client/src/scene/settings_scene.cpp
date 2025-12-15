@@ -260,8 +260,6 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     back_btn->SetSize({rect.width_, rect.height_});
   });
 
-  // This will push the back button to the bottom if root is a V-Stack with
-  // space-between or similar. With kCenter it's tricky. Let's add a spacer.
   auto spacer = std::make_shared<engine::ui::BoxElement>();
   spacer->Layout().size.height = engine::ui::LayoutValue::Percent(1.0f);
   root->AddChild(spacer);
