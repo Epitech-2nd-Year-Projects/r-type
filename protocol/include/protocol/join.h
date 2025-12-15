@@ -31,6 +31,7 @@ namespace protocol {
     std::uint16_t client_version = 0;  ///< Client protocol version.
     std::string player_name;           ///< UTF-8, 0..kMaxPlayerNameLength bytes.
     std::string room_code;             ///< UTF-8, 0..kMaxRoomCodeLength bytes.
+    std::string room_password;         ///< Optional private room password (4 digits).
   };
 
   /**
