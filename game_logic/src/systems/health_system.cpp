@@ -11,6 +11,8 @@
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
+#include "game_logic/entities/powerup_builder.h"
+#include "game_logic/game_config.h"
 #include "game_logic/game_instance.h"
 
 namespace game_logic::systems {
