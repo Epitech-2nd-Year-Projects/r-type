@@ -26,17 +26,19 @@ enum class EnemyType : std::uint8_t {
  * @brief Enemy entity creation configuration
  */
 struct EnemySpawnConfig {
-  EnemyType type{EnemyType::kScout};
-  engine::math::Vector2f spawn_position{0.0f, 0.0f};
-  engine::math::Vector2f initial_velocity{0.0f, 0.0f};
+  EnemyType type{EnemyType::kScout};  ///< Archetype of the enemy
+  engine::math::Vector2f spawn_position{0.0f, 0.0f};  ///< Initial position
+  engine::math::Vector2f initial_velocity{0.0f,
+                                          0.0f};  ///< Initial velocity override
 
   std::uint32_t custom_health{0};
   std::uint32_t custom_score{0};
 
-  bool use_custom_behavior{false};
+  bool use_custom_behavior{false};  ///< Enable custom AI behavior
   components::EnemyBehavior custom_behavior{
-      components::EnemyBehavior::kStraight};
-  float custom_speed{0.0f};
+      components::EnemyBehavior::kStraight};  ///< Custom AI behavior logic
+  float custom_speed{0.0f};   ///< Override speed (0.0 to use archetype default)
+  bool drops_powerup{false};  ///< If true, enemy yields a powerup drop on death
 };
 
 /**
