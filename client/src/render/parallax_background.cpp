@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstdint>
 
+#include "engine/util/logging.h"
+
 namespace client {
 
 namespace {
@@ -52,14 +54,27 @@ ParallaxBackground::ParallaxBackground(engine::render::Renderer2D& renderer)
   const auto planet =
       renderer_.LoadTextureFromFile("assets/layered/bg-planet.png");
 
+  auto& logger = engine::util::Logger::Default();
+  if (!back) {
+    logger.Warn(
+        "ParallaxBackground: failed to load assets/layered/bg-back.png");
+  }
   if (back) {
     layers_.push_back(
         MakeLayer(back, 0.25f, 0.6f, 1.0f, 1.0f, 0.0f,
                   engine::render::Color::FromBytes(240, 240, 255, 240), false));
   }
+  if (!stars) {
+    logger.Warn(
+        "ParallaxBackground: failed to load assets/layered/bg-stars.png");
+  }
   if (stars) {
     layers_.push_back(MakeLayer(stars, 0.45f, 0.75f, 1.0f, 1.0f, 0.0f,
                                 engine::render::Color::White(), false));
+  }
+  if (!planet) {
+    logger.Warn(
+        "ParallaxBackground: failed to load assets/layered/bg-planet.png");
   }
   if (planet) {
     layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.35f, 1.0f,
