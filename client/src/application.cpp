@@ -23,6 +23,7 @@
 #include "protocol/command.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
+#include "render/parallax_background.h"
 #include "scene/connecting_scene.h"
 #include "scene/disconnected_scene.h"
 #include "scene/game_over_scene.h"
@@ -113,6 +114,7 @@ int Application::Run() {
   }
   render_system_ = std::make_unique<ecs::RenderSystem>(*world_registry_,
                                                        engine_->Renderer());
+  background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
 
   input_layer_ = std::make_unique<InputLayer>(engine_->Input());
   LoadKeyBindings();
@@ -343,9 +345,18 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   context.BeginFrame();
   context.Clear(kClearColor);
 
-  if (render_system_ &&
-      (state_ == ClientState::kInGame || state_ == ClientState::kPaused ||
-       state_ == ClientState::kGameOver)) {
+  const bool render_gameplay = state_ == ClientState::kInGame ||
+                               state_ == ClientState::kPaused ||
+                               state_ == ClientState::kGameOver;
+
+  if (background_ && render_gameplay) {
+    const auto window_size = engine_->Window().GetSize();
+    background_->Update(dt, {static_cast<float>(window_size.x),
+                             static_cast<float>(window_size.y)});
+    background_->Draw();
+  }
+
+  if (render_system_ && render_gameplay) {
     render_system_->Render();
   }
 
