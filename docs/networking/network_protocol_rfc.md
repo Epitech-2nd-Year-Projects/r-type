@@ -32,7 +32,7 @@ All packets share a fixed 20-byte header followed by a message-specific payload.
 
 Field descriptions
 - Version (`u16`): Protocol version. Current value: `1`.
-- MsgType (`u8`): Message ID (see Section 6).
+- MsgType (`u8`): Message ID (see Section 7).
 - Flags (`u8` bitfield):
   - bit0 `reliable`: Packet includes at least one reliable message; sender expects acknowledgments.
   - bit1 `compressed`: Payload compressed (reserved, unused).
@@ -51,7 +51,17 @@ Field descriptions
 - Connectionless: Messages flagged connectionless may be exchanged without a joined session; sequence/ack fields are still present.
 - Loss handling: Unreliable messages (e.g., snapshots, inputs) may be dropped; higher layers tolerate loss via redundancy (inputs) or deltas (snapshots).
 
-6. Message Catalogue
+6. Constants and Enumerations
+----------------------------
+- Header flags: bit0 `reliable`, bit1 `compressed` (reserved), bit2 `connectionless`, bits3..7 reserved.
+- JoinReject reasons: 0 Unknown, 1 VersionMismatch, 2 ServerFull, 3 InvalidRoom, 4 Banned.
+- PlayerDied causes: 0 Unknown, 1 Enemy, 2 Projectile, 3 Obstacle, 4 Suicide, 5 Void.
+- WorldSnapshot ops: 0 Create, 1 Update, 2 Delete.
+- WorldSnapshot full/no-base sentinel: `NO_BASE_SNAPSHOT = 0xFFFFFFFF`.
+- Input buttons bitfield: bit0 Up, bit1 Down, bit2 Left, bit3 Right, bit4 Fire, bit5 AltFire.
+- Command IDs (well-known): 1 StartGame, 2 SetReady, 3 Unready, 4 ChatMessage, 5 DisconnectNotice.
+
+7. Message Catalogue
 --------------------
 Legend: Dir = direction, Rel = reliable, CL = connectionless. Dir values: C→S (client to server), S→C (server to client), Both (either).
 
@@ -76,32 +86,32 @@ Legend: Dir = direction, Rel = reliable, CL = connectionless. Dir values: C→S 
 | 0x10     | CreateRoomRequest  | C→S   | yes | yes | Request to create a room |
 | 0x11     | CreateRoomResponse | S→C   | yes | yes | Room creation result |
 
-7. Payload Specifications
+8. Payload Specifications
 -------------------------
 All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-terminated.
 
-7.1 Hello (0x01)
+8.1 Hello (0x01)
 - No payload (reserved/ignored).
 
-7.2 JoinRequest (0x02)
+8.2 JoinRequest (0x02)
 - `u16 client_version`
 - `u8 name_len` (0..31), `name`
 - `u8 room_len` (0..15), `room_code`
 - `u8 pass_len` (0..15), `room_password` (optional)
 
-7.3 JoinAccept (0x03)
+8.3 JoinAccept (0x03)
 - `u16 server_version`
 - `u32 player_id`
 - `u8 max_players`
 - `u8 tick_rate` (Hz)
 - `u32 seed` (random seed for deterministic systems)
 
-7.4 JoinReject (0x04)
+8.4 JoinReject (0x04)
 - `u16 server_version`
 - `u8 reason` (0 Unknown, 1 VersionMismatch, 2 ServerFull, 3 InvalidRoom, 4 Banned)
 - `u8 msg_len` (0..63), `message`
 
-7.5 InputState (0x05)
+8.5 InputState (0x05)
 - `u8 command_count` (1..4 recent commands)
 - For each command:
   - `u32 input_sequence`
@@ -110,9 +120,9 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
   - `i16 analog_y`
   - `u32 client_time_ms`
 
-7.6 WorldSnapshot (0x06)
+8.6 WorldSnapshot (0x06)
 - `u32 snapshot_id`
-- `u32 base_snapshot_id` (0xFFFFFFFF = full snapshot, no base)
+- `u32 base_snapshot_id` (`NO_BASE_SNAPSHOT = 0xFFFFFFFF` means full snapshot)
 - `u32 server_tick`
 - `u16 delta_count`
 - For each delta:
@@ -124,19 +134,19 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
     - `u8 field_mask` (bit0 type, bit1 x, bit2 y, bit3 vx, bit4 vy, bit5 hp, bit6 flags)
     - Only the fields whose bits are set are present, in the same order as Create
 
-7.7 SpawnEntity (0x07)
+8.7 SpawnEntity (0x07)
 - Reserved (no current payload defined).
 
-7.8 DestroyEntity (0x08)
+8.8 DestroyEntity (0x08)
 - Reserved (no current payload defined).
 
-7.9 PlayerDied (0x09)
+8.9 PlayerDied (0x09)
 - `u32 player_id`
 - `u32 killer_entity_id` (0 if none)
 - `u8 cause` (0 Unknown, 1 Enemy, 2 Projectile, 3 Obstacle, 4 Suicide, 5 Void)
 - `u8 remaining_lives`
 
-7.10 ClientCommand / ServerCommand (0x0A / 0x0B)
+8.10 ClientCommand / ServerCommand (0x0A / 0x0B)
 - `u16 command_id`
 - `u16 payload_len`
 - `payload` (0..65535 bytes)
@@ -147,17 +157,17 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
   - 4 ChatMessage
   - 5 DisconnectNotice
 
-7.11 Ping (0x0C)
+8.11 Ping (0x0C)
 - `u32 client_time_ms`
 
-7.12 Pong (0x0D)
+8.12 Pong (0x0D)
 - `u32 client_time_ms` (echoed)
 - `u32 server_time_ms` (timestamp when Pong was sent)
 
-7.13 RoomListRequest (0x0E)
+8.13 RoomListRequest (0x0E)
 - Empty payload.
 
-7.14 RoomListResponse (0x0F)
+8.14 RoomListResponse (0x0F)
 - `u8 count` (0..64)
 - For each room:
   - `u8 code_len` (<=15), `room_code`
@@ -166,22 +176,22 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
   - `u8 player_count`
   - `u8 max_players`
 
-7.15 CreateRoomRequest (0x10)
+8.15 CreateRoomRequest (0x10)
 - `u8 name_len` (<=31), `room_name`
 - `u8 is_private` (0/1)
 - `u8 max_players` (1..255; server clamps to config)
 - `u8 pass_len` (<=15), `room_password` (required for private when present)
 
-7.16 CreateRoomResponse (0x11)
+8.16 CreateRoomResponse (0x11)
 - `u8 success` (0/1)
 - `u8 msg_len` (0..63), `message`
 - `u8 has_room` (0/1)
 - If has_room: one RoomSummary (same layout as a RoomList entry)
-- `u8 pass_len` (<=15), `room_password` (set for private rooms)
+- `u8 pass_len` (<=15), `room_password` (always present; populated for private rooms)
 
-8. Communication Flows
+9. Communication Flows
 ----------------------
-8.1 Handshake (Join)
+9.1 Handshake (Join)
 1) Client starts UDP transport.
 2) Client sends JoinRequest (reliable, connectionless) every 500 ms until a response, up to 5 attempts.
 3) Server validates version, room existence/password, capacity.
@@ -189,29 +199,29 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
 5) On failure: JoinReject with reason/message; client may retry or abort.
 6) Hello (0x01) is ignored; no session state is created.
 
-8.2 Lobby Operations
+9.2 Lobby Operations
 - RoomListRequest/Response and CreateRoomRequest/Response are connectionless and reliable; usable before joining a game room.
 
-8.3 Gameplay Loop
+9.3 Gameplay Loop
 - Inputs: Client sends InputState at a configurable 30–120 Hz (default ~60 Hz). Each payload carries up to the 4 most recent commands for redundancy.
 - Snapshots: Server runs a fixed tick loop (default 60 Hz) and emits one WorldSnapshot per tick to each joined player. Snapshots may be full or delta (base_snapshot_id ≠ 0xFFFFFFFF).
 - Events: PlayerDied and ServerCommand are reliable and re-sent until acknowledged.
 - Commands: ClientCommand is reliable; used for ready/unready, chat, disconnect notice, etc.
 
-8.4 Liveness and Time
+9.4 Liveness and Time
 - Ping/Pong: Client sends Ping roughly every 1 s; server replies with Pong. Client estimates RTT and clock offset as:
   - RTT ≈ `now_ms - client_time_ms`
   - offset ≈ `server_time_ms - (client_time_ms + RTT/2)`
 - Timeout: Server disconnects peers after ~15 s of inactivity. A DisconnectNotice (ServerCommand) may be sent if possible.
 
-9. Loss, Ordering, and Resends
+10. Loss, Ordering, and Resends
 ------------------------------
 - Reliable messages: Retained and re-sent on 250 ms timeout until Ack/AckBits confirm receipt.
 - Unreliable messages: May be dropped. InputState mitigates loss via redundancy (last N commands). WorldSnapshot mitigates via full snapshots or by requesting latest state (application-level).
 - Ordering: Sequence numbers are per-peer. More-recent test uses half-range (2^31) to handle wrap.
 - Ack interpretation: A packet with sequence X is acknowledged if X == Ack, or if X falls within the 32-packet window behind Ack and the corresponding bit in AckBits is set.
 
-10. Timing Parameters (defaults)
+11. Timing Parameters (defaults)
 --------------------------------
 - Server tick rate: 60 Hz (configurable).
 - Client input send rate: 60 Hz default; clamped 30–120 Hz.
@@ -221,7 +231,7 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
 - Peer inactivity timeout: ~15 s.
 - Room idle reclamation (empty rooms): ~30 s.
 
-11. Notes for Implementers
+12. Notes for Implementers
 --------------------------
 - Always populate Sequence, Ack, and AckBits, even for connectionless packets; this enables RTT and loss tracking.
 - When sending reliable packets, set the reliable flag in the header; resend until acknowledged.
