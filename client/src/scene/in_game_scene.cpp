@@ -13,9 +13,12 @@ InGameScene::InGameScene(Application& app) : app_(app) {
 void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
   auto& input = app_.GetEngine().Input();
 
-  if (input.IsActionActive("Cancel")) {
+  const bool pause_pressed =
+      input.IsActionActive("Pause") || input.IsActionActive("Cancel");
+  if (pause_pressed && !pause_pressed_) {
     app_.OnGamePause();
   }
+  pause_pressed_ = pause_pressed;
 
   const bool toggle = input.IsActionActive("ToggleReady");
   if (toggle && !toggle_pressed_) {
