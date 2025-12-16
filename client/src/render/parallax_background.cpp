@@ -10,11 +10,11 @@ namespace client {
 
 namespace {
 
-constexpr float kBaseScrollSpeed = 120.0f;         // world units per second
-constexpr float kScrollWrapDistance = 100000.0f;   // avoid float drift
-constexpr float kMinimumHeightFraction = 0.05f;    // avoid zero scale
-constexpr float kMinimumSpacingMultiplier = 1.0f;  // prevent overlap
-constexpr int kTileBuffer = 2;                     // extra tiles offscreen
+constexpr float kBaseScrollSpeed = 120.0f;
+constexpr float kScrollWrapDistance = 100000.0f;
+constexpr float kMinimumHeightFraction = 0.05f;
+constexpr float kMinimumSpacingMultiplier = 1.0f;
+constexpr int kTileBuffer = 2;
 
 bool UseAlternateTile(int tile_index) {
   std::uint32_t value = static_cast<std::uint32_t>(tile_index);
