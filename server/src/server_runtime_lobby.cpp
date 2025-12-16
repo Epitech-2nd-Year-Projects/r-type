@@ -114,7 +114,7 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
                "Room code required");
     return;
   }
-  if (room_code.empty() || !IsValidRoomCode(room_code)) {
+  if (!IsValidRoomCode(room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key, " invalid room code");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
                "Room code too long");
