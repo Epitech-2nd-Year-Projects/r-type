@@ -65,7 +65,10 @@ void InputLayer::ApplyDefaultBindings() {
 
 void InputLayer::ApplyBindings(const KeyBindings& bindings) {
   auto& manager = manager_.get();
-  manager.ResetBindings();
+
+  for (const auto& mapping : kMappings) {
+    manager.UnbindAction(action_names_[ActionIndex(mapping.action)]);
+  }
 
   for (const auto& mapping : kMappings) {
     const auto& keys = bindings.KeysFor(mapping.action);
