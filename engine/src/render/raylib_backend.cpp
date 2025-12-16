@@ -40,6 +40,8 @@ unsigned char ToByte(float value) {
   return ::Vector2{vec.x, vec.y};
 }
 
+// Map physical QWERTY scancodes to AZERTY logical keys to keep gameplay and
+// text handling aligned with the AZERTY layout irrespective of OS settings.
 constexpr std::array<std::pair<input::Key, int>, 61> kKeyMappings{{
     {input::Key::kA, KEY_Q},
     {input::Key::kB, KEY_B},
