@@ -44,6 +44,7 @@ class ParallaxBackground {
     float height_fraction{1.0f};
     float spacing_multiplier{1.0f};
     float anchor{0.0f};
+    bool flip_vertical{false};
     engine::render::Color tint{engine::render::Color::White()};
   };
 
@@ -51,7 +52,8 @@ class ParallaxBackground {
       const std::shared_ptr<engine::render::Texture2D>& texture,
       float parallax, float speed_multiplier, float height_fraction,
       float spacing_multiplier, float anchor,
-      engine::render::Color tint = engine::render::Color::White());
+      engine::render::Color tint = engine::render::Color::White(),
+      bool flip_vertical = false);
   void DrawLayer(const Layer& layer, float world_height);
 
   engine::render::Renderer2D& renderer_;
