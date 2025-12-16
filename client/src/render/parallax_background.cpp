@@ -14,7 +14,10 @@ constexpr float kBaseScrollSpeed = 120.0f;         // world units per second
 constexpr float kScrollWrapDistance = 100000.0f;   // avoid float drift
 constexpr float kMinimumHeightFraction = 0.05f;    // avoid zero scale
 constexpr float kMinimumSpacingMultiplier = 1.0f;  // prevent overlap
+constexpr int kTileBuffer = 2;                     // extra tiles offscreen
 
+// Deterministic hash of tile index to decide alternate vertical placement while
+// staying stable across frames.
 bool UseAlternateTile(int tile_index) {
   std::uint32_t value = static_cast<std::uint32_t>(tile_index);
   value ^= value << 13;
@@ -94,7 +97,7 @@ void ParallaxBackground::Update(engine::time::TimeDelta dt,
 
   scroll_position_ += kBaseScrollSpeed * dt.as_seconds();
   if (scroll_position_ > kScrollWrapDistance) {
-    scroll_position_ = std::fmod(scroll_position_, kScrollWrapDistance);
+    scroll_position_ -= kScrollWrapDistance;
   }
 
   camera_.SetFocusX(scroll_position_);
@@ -133,12 +136,12 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
   const float scroll = scroll_position_ * layer.speed_multiplier;
 
   const auto view = camera_.GetViewRectWorld();
-  const int start_index = static_cast<int>(
-      std::floor((view.top_left_x_ + scroll) / spacing) - 2.0f);
-  const int end_index =
+  const int start_tile_index = static_cast<int>(
+      std::floor((view.top_left_x_ + scroll) / spacing) - kTileBuffer);
+  const int end_tile_index =
       static_cast<int>(
           std::floor((view.top_left_x_ + view.width_ + scroll) / spacing)) +
-      2;
+      kTileBuffer;
 
   const float available_vertical = std::max(world_height - tile_height, 0.0f);
 
@@ -147,7 +150,7 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
   params.layer = engine::render::RenderLayer::kBackground;
   params.tint = layer.tint;
 
-  for (int tile = start_index; tile <= end_index; ++tile) {
+  for (int tile = start_tile_index; tile <= end_tile_index; ++tile) {
     const bool use_alternate =
         layer.randomize_vertical ? UseAlternateTile(tile) : false;
     const bool flip_vertical =
