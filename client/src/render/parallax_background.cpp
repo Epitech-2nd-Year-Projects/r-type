@@ -17,7 +17,7 @@ constexpr float kMinimumSpacingMultiplier = 1.0f;  // prevent overlap
 ParallaxBackground::Layer ParallaxBackground::MakeLayer(
     const std::shared_ptr<engine::render::Texture2D>& texture, float parallax,
     float speed_multiplier, float height_fraction, float spacing_multiplier,
-    float anchor, engine::render::Color tint) {
+    float anchor, engine::render::Color tint, bool flip_vertical) {
   ParallaxBackground::Layer layer{};
   layer.texture = texture;
   layer.parallax = parallax;
@@ -25,6 +25,7 @@ ParallaxBackground::Layer ParallaxBackground::MakeLayer(
   layer.height_fraction = height_fraction;
   layer.spacing_multiplier = spacing_multiplier;
   layer.anchor = anchor;
+  layer.flip_vertical = flip_vertical;
   layer.tint = tint;
   return layer;
 }
@@ -37,19 +38,20 @@ ParallaxBackground::ParallaxBackground(engine::render::Renderer2D& renderer)
   const auto planet =
       renderer_.LoadTextureFromFile("assets/layered/bg-planet.png");
 
-  if (stars) {
-    layers_.push_back(MakeLayer(stars, 0.35f, 0.65f, 1.0f, 1.0f, 0.0f,
-                                engine::render::Color::White()));
-  }
   if (back) {
     layers_.push_back(
-        MakeLayer(back, 0.6f, 0.85f, 0.9f, 1.1f, 0.05f,
-                  engine::render::Color::FromBytes(240, 240, 255, 235)));
+        MakeLayer(back, 0.25f, 0.6f, 1.0f, 1.0f, 0.0f,
+                  engine::render::Color::FromBytes(240, 240, 255, 240), false));
+  }
+  if (stars) {
+    layers_.push_back(MakeLayer(stars, 0.45f, 0.75f, 1.0f, 1.0f, 0.0f,
+                                engine::render::Color::White(), false));
   }
   if (planet) {
-    layers_.push_back(
-        MakeLayer(planet, 0.85f, 1.1f, 0.45f, 2.5f, 0.25f,
-                  engine::render::Color::FromBytes(255, 255, 255, 245)));
+    layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.5f, 1.0f,
+                                engine::render::Color::White(), false));
+    layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.5f, 0.0f,
+                                engine::render::Color::White(), true));
   }
 }
 
@@ -103,22 +105,27 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
   const float scroll = scroll_position_ * layer.speed_multiplier;
 
   const auto view = camera_.GetViewRectWorld();
-  float start =
-      std::floor((view.top_left_x_ + scroll) / spacing) * spacing - spacing;
-  const float end = view.top_left_x_ + view.width_ + spacing + scroll;
+  const float first_tile_index =
+      std::floor((view.top_left_x_ + scroll) / spacing);
+  float start = (first_tile_index - 1.0f) * spacing;
+  const float end = view.top_left_x_ + view.width_ + scroll + spacing;
 
   const float anchor = std::clamp(layer.anchor, 0.0f, 1.0f);
   const float available_vertical = std::max(world_height - tile_height, 0.0f);
   const float y = available_vertical * anchor;
 
   engine::render::SpriteDrawParams params{};
-  params.scale = {scale, scale};
+  params.scale = {scale, layer.flip_vertical ? -scale : scale};
   params.layer = engine::render::RenderLayer::kBackground;
   params.tint = layer.tint;
 
   for (float x = start; x < end; x += spacing) {
-    const engine::math::Vector2f world_pos{x - scroll, y};
+    const float adjusted_y = layer.flip_vertical ? y + tile_height : y;
+    const engine::math::Vector2f world_pos{x - scroll, adjusted_y};
     params.position = camera_.WorldToScreen(world_pos, layer.parallax);
+    params.origin = layer.flip_vertical
+                        ? engine::math::Vector2f{0.0f, tile_height}
+                        : engine::math::Vector2f{0.0f, 0.0f};
     renderer_.DrawTexture(*layer.texture, params);
   }
 }
