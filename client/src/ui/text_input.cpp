@@ -1,39 +1,75 @@
 #include "text_input.h"
 
+#include <array>
+#include <string_view>
+
 #include "engine/render/renderer2d.h"
 
 namespace client::ui {
 
 namespace {
 
-char KeyToChar(engine::input::Key key, bool shift) {
-  using engine::input::Key;
+struct KeyCharacterMapping {
+  engine::input::Key key;
+  std::string_view normal;
+  std::string_view shifted;
+};
 
-  if (key >= Key::kA && key <= Key::kZ) {
-    char base = shift ? 'A' : 'a';
-    return base + (static_cast<int>(key) - static_cast<int>(Key::kA));
-  }
+// Keep in sync with the physical AZERTY scancode mapping in the raylib backend.
+constexpr std::array<KeyCharacterMapping, 44> kCharacterMappings{{
+    {engine::input::Key::kA, "a", "A"},
+    {engine::input::Key::kB, "b", "B"},
+    {engine::input::Key::kC, "c", "C"},
+    {engine::input::Key::kD, "d", "D"},
+    {engine::input::Key::kE, "e", "E"},
+    {engine::input::Key::kF, "f", "F"},
+    {engine::input::Key::kG, "g", "G"},
+    {engine::input::Key::kH, "h", "H"},
+    {engine::input::Key::kI, "i", "I"},
+    {engine::input::Key::kJ, "j", "J"},
+    {engine::input::Key::kK, "k", "K"},
+    {engine::input::Key::kL, "l", "L"},
+    {engine::input::Key::kM, "m", "M"},
+    {engine::input::Key::kN, "n", "N"},
+    {engine::input::Key::kO, "o", "O"},
+    {engine::input::Key::kP, "p", "P"},
+    {engine::input::Key::kQ, "q", "Q"},
+    {engine::input::Key::kR, "r", "R"},
+    {engine::input::Key::kS, "s", "S"},
+    {engine::input::Key::kT, "t", "T"},
+    {engine::input::Key::kU, "u", "U"},
+    {engine::input::Key::kV, "v", "V"},
+    {engine::input::Key::kW, "w", "W"},
+    {engine::input::Key::kX, "x", "X"},
+    {engine::input::Key::kY, "y", "Y"},
+    {engine::input::Key::kZ, "z", "Z"},
+    {engine::input::Key::kNum0, "à", "0"},
+    {engine::input::Key::kNum1, "&", "1"},
+    {engine::input::Key::kNum2, "é", "2"},
+    {engine::input::Key::kNum3, "\"", "3"},
+    {engine::input::Key::kNum4, "'", "4"},
+    {engine::input::Key::kNum5, "(", "5"},
+    {engine::input::Key::kNum6, "-", "6"},
+    {engine::input::Key::kNum7, "è", "7"},
+    {engine::input::Key::kNum8, "_", "8"},
+    {engine::input::Key::kNum9, "ç", "9"},
+    {engine::input::Key::kMinus, ")", "°"},
+    {engine::input::Key::kEqual, "=", "+"},
+    {engine::input::Key::kSpace, " ", " "},
+    {engine::input::Key::kComma, ",", "?"},
+    {engine::input::Key::kSemicolon, ";", "."},
+    {engine::input::Key::kPeriod, ":", "/"},
+    {engine::input::Key::kSlash, "!", "§"},
+    {engine::input::Key::kBackslash, "*", "µ"},
+}};
 
-  if (key >= Key::kNum0 && key <= Key::kNum9) {
-    int idx = static_cast<int>(key) - static_cast<int>(Key::kNum0);
-    if (shift) {
-      static constexpr char kShiftedNumbers[] = {')', '!', '@', '#', '$',
-                                                 '%', '^', '&', '*', '('};
-      return kShiftedNumbers[idx];
+std::string KeyToText(engine::input::Key key, bool shift) {
+  for (const auto& mapping : kCharacterMappings) {
+    if (mapping.key == key) {
+      return shift ? std::string(mapping.shifted) : std::string(mapping.normal);
     }
-    return static_cast<char>('0' + idx);
   }
-
-  if (key == Key::kSpace) return ' ';
-  if (key == Key::kMinus) return shift ? '_' : '-';
-  if (key == Key::kEqual) return shift ? '+' : '=';
-  if (key == Key::kSemicolon) return shift ? ':' : ';';
-  if (key == Key::kComma) return shift ? '<' : ',';
-  if (key == Key::kPeriod) return shift ? '>' : '.';
-  if (key == Key::kSlash) return shift ? '?' : '/';
-  if (key == Key::kBackslash) return shift ? '|' : '\\';
-
-  return 0;
+  return {};
 }
 
 }  // namespace
@@ -138,29 +174,17 @@ void TextInput::HandleTyping(engine::input::InputManager& input) {
 
     bool down = input.IsKeyDown(key);
     if (down && !last_key_states_[idx]) {
-      char c = KeyToChar(key, shift);
-      if (c != 0) {
-        text_ += c;
+      std::string text = KeyToText(key, shift);
+      if (!text.empty()) {
+        text_ += text;
       }
     }
     last_key_states_[idx] = down;
   };
 
-  for (int k = static_cast<int>(Key::kA); k <= static_cast<int>(Key::kZ); ++k) {
-    check_key(static_cast<Key>(k));
+  for (const auto& mapping : kCharacterMappings) {
+    check_key(mapping.key);
   }
-  for (int k = static_cast<int>(Key::kNum0); k <= static_cast<int>(Key::kNum9);
-       ++k) {
-    check_key(static_cast<Key>(k));
-  }
-  check_key(Key::kSpace);
-  check_key(Key::kPeriod);
-  check_key(Key::kMinus);
-  check_key(Key::kSemicolon);
-  check_key(Key::kComma);
-  check_key(Key::kSlash);
-  check_key(Key::kBackslash);
-  check_key(Key::kEqual);
 }
 
 }  // namespace client::ui
