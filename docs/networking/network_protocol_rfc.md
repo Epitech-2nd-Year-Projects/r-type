@@ -2,6 +2,9 @@
                                       REAL-TIME UDP PROTOCOL
                                                   v1.0
 
+Author: Laurent ALIU 
+Last Updated: 2025-12-16
+
 1. Introduction
 ---------------
 This document specifies the UDP-based network protocol for the R-Type game server and clients. It defines on-wire packet formats, message catalogue, reliability semantics, and communication flows. The goal is to enable interoperable implementations in any language (e.g., Python, Java) without relying on C++ types.
@@ -225,4 +228,3 @@ All strings are raw ASCII/UTF-8 bytes. “len” fields are lengths, not null-te
 - For InputState, include multiple recent commands to survive a single packet loss.
 - For WorldSnapshot, apply Update deltas relative to the referenced base snapshot; if base is missing, wait for or request a full snapshot (base_snapshot_id = 0xFFFFFFFF).
 - Length fields bound strings: truncate inputs to specified maxima before encoding.
-
