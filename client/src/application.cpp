@@ -134,7 +134,6 @@ int Application::Run() {
   input.BindKey("Confirm", engine::input::Key::kEnter);
   input.BindKey("Cancel", engine::input::Key::kEscape);
   input.BindKey("Pause", engine::input::Key::kP);
-  input.BindKey("Pause", engine::input::Key::kEscape);
   input.BindKey("ToggleReady", engine::input::Key::kR);
 
   auto& runtime_config_store = engine_->Config();

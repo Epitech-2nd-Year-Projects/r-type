@@ -32,6 +32,7 @@ PauseScene::PauseScene(Application& app) : app_(app) {
   auto& input = app_.GetEngine().Input();
   pause_toggle_pressed_ =
       input.IsActionActive("Pause") || input.IsActionActive("Cancel");
+  confirm_pressed_ = input.IsActionActive("Confirm");
 
   const auto white = engine::render::Color::White();
   const auto hover = engine::render::Color::FromBytes(220, 220, 220);
@@ -155,11 +156,11 @@ void PauseScene::Update(engine::time::TimeDelta dt) {
   }
   pause_toggle_pressed_ = pause_toggle;
 
-  if (input.IsActionActive("Confirm")) {
+  const bool confirm_pressed = input.IsActionActive("Confirm");
+  if (confirm_pressed && !confirm_pressed_) {
     app_.OnGameResume();
   }
-
-  RefreshVolumeLabels();
+  confirm_pressed_ = confirm_pressed;
 }
 
 void PauseScene::Draw(engine::render::Renderer2D& renderer) {
@@ -168,7 +169,6 @@ void PauseScene::Draw(engine::render::Renderer2D& renderer) {
                      static_cast<float>(window_size.y)},
                     engine::render::Color::FromBytes(6, 10, 22, 210));
 
-  LayoutUi(renderer);
   canvas_.Draw(renderer);
   for (auto& button : menu_buttons_) {
     button->Draw(renderer);
@@ -319,18 +319,35 @@ void PauseScene::RefreshVolumeLabels() {
   }
 
   if (auto audio = app_.GetEngine().Audio()) {
-    music_volume_label_->SetText(VolumeToString(audio->GetMusicVolume()));
-    sfx_volume_label_->SetText(VolumeToString(audio->GetSfxVolume()));
+    const float music_volume = audio->GetMusicVolume();
+    const float sfx_volume = audio->GetSfxVolume();
+    const bool music_changed =
+        std::abs(music_volume - last_music_volume_) > 0.0001f;
+    const bool sfx_changed = std::abs(sfx_volume - last_sfx_volume_) > 0.0001f;
+    if (!music_changed && !sfx_changed) {
+      return;
+    }
+    if (music_changed) {
+      music_volume_label_->SetText(VolumeToString(music_volume));
+      last_music_volume_ = music_volume;
+    }
+    if (sfx_changed) {
+      sfx_volume_label_->SetText(VolumeToString(sfx_volume));
+      last_sfx_volume_ = sfx_volume;
+    }
     return;
   }
 
   music_volume_label_->SetText("N/A");
   sfx_volume_label_->SetText("N/A");
+  last_music_volume_ = -1.0f;
+  last_sfx_volume_ = -1.0f;
 }
 
 void PauseScene::ToggleOptions() {
   options_open_ = !options_open_;
   BuildUi();
+  LayoutUi(app_.GetEngine().Renderer());
 }
 
 void PauseScene::UpdateOptionsButtonLabel() {
