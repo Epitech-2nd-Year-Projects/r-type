@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace client {
 
@@ -12,12 +13,22 @@ constexpr float kScrollWrapDistance = 100000.0f;   // avoid float drift
 constexpr float kMinimumHeightFraction = 0.05f;    // avoid zero scale
 constexpr float kMinimumSpacingMultiplier = 1.0f;  // prevent overlap
 
+bool UseAlternateTile(int tile_index) {
+  std::uint32_t value = static_cast<std::uint32_t>(tile_index);
+  value ^= value << 13;
+  value ^= value >> 17;
+  value ^= value << 5;
+  return (value & 1u) == 1u;
+}
+
 }  // namespace
 
 ParallaxBackground::Layer ParallaxBackground::MakeLayer(
     const std::shared_ptr<engine::render::Texture2D>& texture, float parallax,
     float speed_multiplier, float height_fraction, float spacing_multiplier,
-    float anchor, engine::render::Color tint, bool flip_vertical) {
+    float anchor, engine::render::Color tint, bool flip_vertical,
+    bool randomize_vertical, float alternate_anchor,
+    bool alternate_flip_vertical) {
   ParallaxBackground::Layer layer{};
   layer.texture = texture;
   layer.parallax = parallax;
@@ -25,7 +36,10 @@ ParallaxBackground::Layer ParallaxBackground::MakeLayer(
   layer.height_fraction = height_fraction;
   layer.spacing_multiplier = spacing_multiplier;
   layer.anchor = anchor;
+  layer.alternate_anchor = alternate_anchor;
   layer.flip_vertical = flip_vertical;
+  layer.alternate_flip_vertical = alternate_flip_vertical;
+  layer.randomize_vertical = randomize_vertical;
   layer.tint = tint;
   return layer;
 }
@@ -48,10 +62,9 @@ ParallaxBackground::ParallaxBackground(engine::render::Renderer2D& renderer)
                                 engine::render::Color::White(), false));
   }
   if (planet) {
-    layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.5f, 1.0f,
-                                engine::render::Color::White(), false));
-    layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.5f, 0.0f,
-                                engine::render::Color::White(), true));
+    layers_.push_back(MakeLayer(planet, 0.9f, 1.05f, 0.55f, 1.35f, 1.0f,
+                                engine::render::Color::White(), false, true,
+                                0.0f, true));
   }
 }
 
@@ -105,27 +118,42 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
   const float scroll = scroll_position_ * layer.speed_multiplier;
 
   const auto view = camera_.GetViewRectWorld();
-  const float first_tile_index =
-      std::floor((view.top_left_x_ + scroll) / spacing);
-  float start = (first_tile_index - 1.0f) * spacing;
-  const float end = view.top_left_x_ + view.width_ + scroll + spacing;
+  const int start_index = static_cast<int>(
+      std::floor((view.top_left_x_ + scroll) / spacing) - 2.0f);
+  const int end_index =
+      static_cast<int>(
+          std::floor((view.top_left_x_ + view.width_ + scroll) / spacing)) +
+      2;
 
-  const float anchor = std::clamp(layer.anchor, 0.0f, 1.0f);
   const float available_vertical = std::max(world_height - tile_height, 0.0f);
-  const float y = available_vertical * anchor;
 
   engine::render::SpriteDrawParams params{};
-  params.scale = {scale, layer.flip_vertical ? -scale : scale};
+  params.scale = {scale, scale};
   params.layer = engine::render::RenderLayer::kBackground;
   params.tint = layer.tint;
 
-  for (float x = start; x < end; x += spacing) {
-    const float adjusted_y = layer.flip_vertical ? y + tile_height : y;
-    const engine::math::Vector2f world_pos{x - scroll, adjusted_y};
-    params.position = camera_.WorldToScreen(world_pos, layer.parallax);
-    params.origin = layer.flip_vertical
-                        ? engine::math::Vector2f{0.0f, tile_height}
-                        : engine::math::Vector2f{0.0f, 0.0f};
+  for (int tile = start_index; tile <= end_index; ++tile) {
+    const bool use_alternate =
+        layer.randomize_vertical ? UseAlternateTile(tile) : false;
+    const bool flip_vertical =
+        use_alternate ? layer.alternate_flip_vertical : layer.flip_vertical;
+    const float anchor = std::clamp(
+        use_alternate ? layer.alternate_anchor : layer.anchor, 0.0f, 1.0f);
+
+    const float y = available_vertical * anchor;
+    const float adjusted_y = flip_vertical ? y + tile_height : y;
+    const float x = static_cast<float>(tile) * spacing;
+
+    const engine::math::RectF source_rect{
+        0.0f, flip_vertical ? static_cast<float>(size.y) : 0.0f,
+        static_cast<float>(size.x),
+        flip_vertical ? -static_cast<float>(size.y)
+                      : static_cast<float>(size.y)};
+
+    params.position =
+        camera_.WorldToScreen({x - scroll, adjusted_y}, layer.parallax);
+    params.origin = {0.0f, 0.0f};
+    params.source = source_rect;
     renderer_.DrawTexture(*layer.texture, params);
   }
 }
