@@ -72,7 +72,7 @@ jobs:
           tar -czvf r-type-linux.tar.gz r-type-linux
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: r-type-linux
           path: release/r-type-linux.tar.gz
@@ -125,7 +125,7 @@ jobs:
           Compress-Archive -Path release/r-type-windows -DestinationPath release/r-type-windows.zip
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: r-type-windows
           path: release/r-type-windows.zip
@@ -136,19 +136,19 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download Linux Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v7
         with:
           name: r-type-linux
           path: .
       
       - name: Download Windows Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v7
         with:
           name: r-type-windows
           path: .
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             r-type-linux.tar.gz
