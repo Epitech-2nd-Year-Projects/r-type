@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "protocol/message_type.h"
+#include "protocol/reliability_policy.h"
 #include "server_runtime.h"
 #include "server_runtime_helpers.h"
 
