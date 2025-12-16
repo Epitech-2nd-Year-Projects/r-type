@@ -16,8 +16,6 @@ constexpr float kMinimumHeightFraction = 0.05f;    // avoid zero scale
 constexpr float kMinimumSpacingMultiplier = 1.0f;  // prevent overlap
 constexpr int kTileBuffer = 2;                     // extra tiles offscreen
 
-// Deterministic hash of tile index to decide alternate vertical placement while
-// staying stable across frames.
 bool UseAlternateTile(int tile_index) {
   std::uint32_t value = static_cast<std::uint32_t>(tile_index);
   value ^= value << 13;
