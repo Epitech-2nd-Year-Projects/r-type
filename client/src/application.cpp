@@ -133,7 +133,8 @@ int Application::Run() {
   auto& input = engine_->Input();
   input.BindKey("Confirm", engine::input::Key::kEnter);
   input.BindKey("Cancel", engine::input::Key::kEscape);
-  input.BindKey("Quit", engine::input::Key::kQ);
+  input.BindKey("Pause", engine::input::Key::kP);
+  input.BindKey("Pause", engine::input::Key::kEscape);
   input.BindKey("ToggleReady", engine::input::Key::kR);
 
   auto& runtime_config_store = engine_->Config();
@@ -345,9 +346,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   context.BeginFrame();
   context.Clear(kClearColor);
 
-  const bool render_gameplay = state_ == ClientState::kInGame ||
-                               state_ == ClientState::kPaused ||
-                               state_ == ClientState::kGameOver;
+  const bool render_gameplay =
+      state_ == ClientState::kInGame || state_ == ClientState::kGameOver;
 
   if (background_ && render_gameplay) {
     const auto window_size = engine_->Window().GetSize();
