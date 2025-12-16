@@ -10,7 +10,7 @@ class Application;
 
 class InGameScene : public Scene {
  public:
- explicit InGameScene(Application& app);
+  explicit InGameScene(Application& app);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
@@ -20,6 +20,7 @@ class InGameScene : public Scene {
   HudOverlay hud_;
   bool is_ready_{false};
   bool toggle_pressed_{false};
+  bool pause_pressed_{false};
 };
 
 }  // namespace client
