@@ -11,7 +11,7 @@
 The `game_logic` module acts as the core library defining the rules, behaviors, and data structures of the R-Type game. It is designed to be **engine-agnostic** regarding rendering but strictly coupled with the custom ECS engine provided in the project.
 
 This library is used by:
-- ** The Server:** To maintain the authoritative game state, process collisions, and handle game loops.
+- **The Server:** To maintain the authoritative game state, process collisions, and handle game loops.
 - **The Client:** To perform local prediction, handle input-to-gameplay translation, and interpolate states.
 
 ### Key Architecture Concepts
@@ -35,7 +35,7 @@ game_logic/
 │   ├── game_instance.h  # High-level state manager
 │   └── game_logic.h     # Main entry point for library initialization
 └── src/                 # Implementation files
-````
+```
 
 -----
 
@@ -81,7 +81,7 @@ Systems contain the actual code. They inherit from the Engine's `System` class a
 These systems should run every frame.
 
   * **`PlayerInputSystem`**: Translates raw input commands into `VelocityComponent` changes or triggers actions (Shoot).
-  * **`AISystem`**: Iterates over entities with `AIComponent`. modifies velocity or triggers shooting based on defined patterns (e.g., `Basic`, `Sinusoidal`, `Kamikaze`).
+  * **`AISystem`**: Iterates over entities with `AIComponent`. Modifies velocity or triggers shooting based on defined patterns (e.g., `Basic`, `Sinusoidal`, `Kamikaze`).
   * **`MovementSystem`**: Applies Velocity to Position: $P_{new} = P_{old} + (V \times \Delta t)$.
   * **`WeaponSystem`**: Manages cooldowns and spawns `Missile` entities when a fire request is active.
 
