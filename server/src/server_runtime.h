@@ -68,7 +68,7 @@ class ServerRuntime {
    * 
    * @note Requires Start() to have been called successfully first.
    */
-  void Run();
+ void Run();
 
   /**
    * @brief Executes one iteration of the main server loop.
@@ -76,10 +76,16 @@ class ServerRuntime {
    * Processes network packets, updates game simulation, checks timeouts,
    * and broadcasts world snapshots. Called repeatedly by Run() at the
    * configured tick rate using a fixed timestep accumulator.
-   */
+  */
   void RunMainLoop();
 
  private:
+  static constexpr std::uint32_t kReliableResendTimeoutMs = 250;
+  static constexpr std::size_t kReliableQueueMaxPending = 64;
+  static constexpr std::uint32_t kDecodeMetricsLogIntervalMs = 10'000;
+  static constexpr std::uint32_t kServerDiagnosticsLogIntervalMs = 10'000;
+  static constexpr float kTickHealthWarningThreshold = 0.9f;
+
   /**
    * @brief Updates all rooms, dispatching work across the thread pool.
    *
