@@ -20,6 +20,8 @@ struct KeyName {
   std::string_view display;
 };
 
+// Display names mirror AZERTY keycaps to match the physical mapping used by
+// the input backend.
 constexpr std::array<KeyName, 57> kKeyNames{{
     {engine::input::Key::kA, "A", "A"},
     {engine::input::Key::kB, "B", "B"},
