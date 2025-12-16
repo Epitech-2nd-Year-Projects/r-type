@@ -29,6 +29,10 @@ PauseScene::PauseScene(Application& app) : app_(app) {
   renderer.LoadFont("times", "assets/fonts/times.ttf");
   renderer.SetFont("times");
 
+  auto& input = app_.GetEngine().Input();
+  pause_toggle_pressed_ =
+      input.IsActionActive("Pause") || input.IsActionActive("Cancel");
+
   const auto white = engine::render::Color::White();
   const auto hover = engine::render::Color::FromBytes(220, 220, 220);
   const auto press = engine::render::Color::FromBytes(180, 180, 180);
