@@ -7,8 +7,14 @@
 #include "engine/ui/layouts.h"
 
 namespace client {
+namespace {
+const engine::render::Color kNormalColor = engine::render::Color::White();
+const engine::render::Color kSelectedColor =
+    engine::render::Color::FromBytes(255, 215, 0);
+}  // namespace
 
-GameOverScene::GameOverScene(Application& app) : app_(app) {
+GameOverScene::GameOverScene(Application& app, const Stats& stats)
+    : app_(app), stats_(stats) {
   auto root =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
   root->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
@@ -16,27 +22,40 @@ GameOverScene::GameOverScene(Application& app) : app_(app) {
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  root->SetSpacing(10.0f);
+  root->SetSpacing(20.0f);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
   title_ = std::make_shared<engine::ui::TextElement>(
-      "Game Over", engine::ui::FontSize::RelativeWidth(0.06f),
-      engine::render::Color::FromBytes(255, 0, 0));
-  title_->Layout().alignment.horizontal =
-      engine::ui::HorizontalAlignment::kCenter;
+      "GAME OVER", engine::ui::FontSize::RelativeWidth(0.08f),
+      engine::render::Color::FromBytes(255, 50, 50));
 
-  prompt_ = std::make_shared<engine::ui::TextElement>(
-      "Press ENTER to Main Menu", engine::ui::FontSize::RelativeWidth(0.03f),
-      engine::render::Color::White());
-  prompt_->Layout().alignment.horizontal =
-      engine::ui::HorizontalAlignment::kCenter;
+  score_text_ = std::make_shared<engine::ui::TextElement>(
+      "Final Score: " + std::to_string(stats_.score),
+      engine::ui::FontSize::RelativeWidth(0.04f), kNormalColor);
+
+  wave_level_text_ = std::make_shared<engine::ui::TextElement>(
+      "Level " + std::to_string(stats_.level) + " - Wave " +
+          std::to_string(stats_.wave),
+      engine::ui::FontSize::RelativeWidth(0.03f), kNormalColor);
+
+  menu_main_exit_ = std::make_shared<engine::ui::TextElement>(
+      "Return to Main Menu", engine::ui::FontSize::RelativeWidth(0.03f),
+      kSelectedColor);
 
   root->AddChild(title_);
-  root->AddChild(prompt_);
+  root->AddChild(score_text_);
+  root->AddChild(wave_level_text_);
+
+  auto spacer = std::make_shared<engine::ui::BoxElement>();
+  spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(40.0f);
+  root->AddChild(spacer);
+
+  root->AddChild(menu_main_exit_);
 
   canvas_.SetRoot(root);
+  UpdateMenuVisuals();
 }
 
 void GameOverScene::Update(engine::time::TimeDelta /*dt*/) {
@@ -45,6 +64,10 @@ void GameOverScene::Update(engine::time::TimeDelta /*dt*/) {
   if (input.IsActionActive("Confirm")) {
     app_.OnQuitToMenu();
   }
+}
+
+void GameOverScene::UpdateMenuVisuals() {
+  menu_main_exit_->SetColor(kSelectedColor);
 }
 
 void GameOverScene::Draw(engine::render::Renderer2D& renderer) {

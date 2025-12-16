@@ -93,6 +93,13 @@ class Application {
   void OnGameStart();
   void OnGamePause();
   void OnGameResume();
+  struct GameOverStats {
+    std::uint32_t score{0};
+    std::uint32_t wave{1};
+    std::uint32_t level{1};
+  };
+
+  void OnGameOver(const GameOverStats& stats);
   void OnGameOver();
   void OnDisconnect(std::string reason);
   void OnQuitToMenu();
@@ -204,6 +211,7 @@ class Application {
   std::filesystem::path keybindings_path_{"config/keybindings.json"};
   ClientState state_{ClientState::kMainMenu};
   std::string disconnect_reason_;
+  GameOverStats last_game_stats_;
   JoinState last_join_state_{JoinState::kIdle};
   bool music_allowed_{false};
   bool music_blocked_{false};

@@ -1,6 +1,10 @@
 #ifndef GAME_LOGIC_SYSTEMS_HEALTH_SYSTEM_H_
 #define GAME_LOGIC_SYSTEMS_HEALTH_SYSTEM_H_
 
+namespace game_logic {
+class GameInstance;
+}
+
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
 #include "engine/time/time_delta.h"
@@ -24,7 +28,8 @@ class HealthSystem : public engine::ecs::ISystem {
   static constexpr float kRespawnSlotOffsetX = 50.0f;
   static constexpr float kRespawnY = 300.0f;
 
-  HealthSystem() = default;
+  explicit HealthSystem(GameInstance& game_instance)
+      : game_instance_(game_instance) {}
   ~HealthSystem() override = default;
 
   /**
@@ -35,6 +40,9 @@ class HealthSystem : public engine::ecs::ISystem {
    */
   void Update(engine::ecs::Registry& registry,
               engine::time::TimeDelta dt) override;
+
+ private:
+  GameInstance& game_instance_;
 };
 
 }  // namespace game_logic::systems

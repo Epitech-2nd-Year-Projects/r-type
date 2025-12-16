@@ -180,6 +180,18 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   pending_inputs_.push_back(evt);
 }
 
+void GameInstance::OnPlayerDeath(std::uint32_t player_id,
+                                 std::uint8_t remaining_lives) {
+  pending_deaths_.push_back({player_id, remaining_lives});
+}
+
+std::vector<GameInstance::PlayerDeathEvent>
+GameInstance::ExtractPlayerDeathEvents() {
+  std::vector<PlayerDeathEvent> events;
+  events.swap(pending_deaths_);
+  return events;
+}
+
 engine::ecs::Registry &GameInstance::World() { return *registry_; }
 
 const engine::ecs::Registry &GameInstance::World() const { return *registry_; }
@@ -250,7 +262,7 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(),
+  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(*this),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 

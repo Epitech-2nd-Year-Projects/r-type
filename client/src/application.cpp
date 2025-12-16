@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <iomanip>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -191,10 +192,13 @@ void Application::OnGamePause() { TransitionTo(ClientState::kPaused); }
 
 void Application::OnGameResume() { TransitionTo(ClientState::kInGame); }
 
-void Application::OnGameOver() {
+void Application::OnGameOver() { OnGameOver(GameOverStats{}); }
+
+void Application::OnGameOver(const GameOverStats& stats) {
   if (state_ == ClientState::kGameOver) {
     return;
   }
+  last_game_stats_ = stats;
   TransitionTo(ClientState::kGameOver);
 }
 
@@ -278,12 +282,29 @@ bool Application::Tick(engine::time::TimeDelta dt) {
         }
       }
       if (message.type == protocol::message_type::MessageType::kPlayerDied) {
+        std::cout << "[Client] Received PlayerDied message!" << std::endl;
         if (sound_effects_) {
           sound_effects_->OnPlayerDeath();
         }
         HandleGameOverAudio();
-        if (state_ == ClientState::kInGame || state_ == ClientState::kPaused) {
-          OnGameOver();
+        if (std::holds_alternative<protocol::PlayerDiedPayload>(
+                message.payload)) {
+          const auto& died =
+              std::get<protocol::PlayerDiedPayload>(message.payload);
+          std::cout << "[Client] Player died payload: ID=" << died.player_id
+                    << " Lives=" << (int)died.remaining_lives << std::endl;
+
+          if (died.player_id == join_flow_.player_id() &&
+              died.remaining_lives == 0) {
+            if (state_ == ClientState::kInGame ||
+                state_ == ClientState::kPaused) {
+              GameOverStats stats;
+              stats.score = 0;
+              stats.wave = 1;
+              stats.level = 1;
+              OnGameOver(stats);
+            }
+          }
         }
       }
       if (message.type == protocol::message_type::MessageType::kServerCommand) {
@@ -629,9 +650,14 @@ void Application::ApplyState(ClientState next_state, std::string reason) {
     case ClientState::kPaused:
       SwitchScene(std::make_unique<PauseScene>(*this));
       break;
-    case ClientState::kGameOver:
-      SwitchScene(std::make_unique<GameOverScene>(*this));
+    case ClientState::kGameOver: {
+      GameOverScene::Stats scene_stats;
+      scene_stats.score = last_game_stats_.score;
+      scene_stats.wave = last_game_stats_.wave;
+      scene_stats.level = last_game_stats_.level;
+      SwitchScene(std::make_unique<GameOverScene>(*this, scene_stats));
       break;
+    }
     case ClientState::kDisconnected:
       SwitchScene(
           std::make_unique<DisconnectedScene>(*this, disconnect_reason_));

@@ -16,6 +16,7 @@
 #include "protocol/world_snapshot.h"
 #include "protocol/input_state.h"
 #include "protocol/header.h"
+#include "protocol/player_died.h"
 
 namespace server {
 
@@ -95,6 +96,11 @@ class Room {
    * @param timestamp_ms Timestamp to record.
    */
   void MarkActive(std::uint32_t timestamp_ms);
+
+  /**
+   * @brief Poll any player death events that occurred since last poll
+   */
+  std::vector<protocol::PlayerDiedPayload> PollPlayerDeaths();
 
   /**
    * @brief Returns the room code.
