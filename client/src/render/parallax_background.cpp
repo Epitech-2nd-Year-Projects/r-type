@@ -141,7 +141,6 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
         use_alternate ? layer.alternate_anchor : layer.anchor, 0.0f, 1.0f);
 
     const float y = available_vertical * anchor;
-    const float adjusted_y = flip_vertical ? y + tile_height : y;
     const float x = static_cast<float>(tile) * spacing;
 
     const engine::math::RectF source_rect{
@@ -150,8 +149,7 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
         flip_vertical ? -static_cast<float>(size.y)
                       : static_cast<float>(size.y)};
 
-    params.position =
-        camera_.WorldToScreen({x - scroll, adjusted_y}, layer.parallax);
+    params.position = camera_.WorldToScreen({x - scroll, y}, layer.parallax);
     params.origin = {0.0f, 0.0f};
     params.source = source_rect;
     renderer_.DrawTexture(*layer.texture, params);
