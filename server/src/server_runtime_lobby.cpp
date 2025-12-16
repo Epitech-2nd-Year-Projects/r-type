@@ -1,5 +1,3 @@
-#include "server_runtime.h"
-
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
@@ -15,6 +13,7 @@
 #include "protocol/join.h"
 #include "protocol/lobby.h"
 #include "protocol/message_type.h"
+#include "server_runtime.h"
 #include "server_runtime_helpers.h"
 
 namespace server {
