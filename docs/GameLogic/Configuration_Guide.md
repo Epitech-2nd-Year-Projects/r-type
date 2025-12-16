@@ -30,7 +30,7 @@ config/
 └── levels/            # Level design sequences
     ├── level_1.json
     └── level_2.json
-````
+```
 
 -----
 
