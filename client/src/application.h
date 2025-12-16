@@ -21,6 +21,7 @@
 #include "key_bindings.h"
 #include "network_transport.h"
 #include "local_prediction.h"
+#include "render/parallax_background.h"
 #include "room_directory_client.h"
 #include "scene/lobby_scene.h"
 #include "scene/scene.h"
@@ -201,6 +202,7 @@ class Application {
   std::unique_ptr<ecs::RenderSystem> render_system_;
   std::unique_ptr<InputLayer> input_layer_;
   std::unique_ptr<InputSender> input_sender_;
+  std::unique_ptr<ParallaxBackground> background_;
   std::unique_ptr<LocalPrediction> local_prediction_;
   std::unique_ptr<AudioManager> audio_manager_;
   std::unique_ptr<SoundEffects> sound_effects_;
