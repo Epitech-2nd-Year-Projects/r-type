@@ -5,8 +5,8 @@ Request for Comments: 0002                          December 16, 2025
 
 Status of This Memo
 
-   This memo is the official specification of the R-Type Real-Time UDP
-   Protocol as implemented by the referenced R-Type server and client.
+   This memo describes the R-Type Real-Time UDP Protocol. It is published
+   for informational purposes and to guide interoperable implementations.
 
 Table of Contents
 
@@ -70,7 +70,7 @@ Table of Contents
 
 5. Reliability Model
 
-   - Sequencing: “More recent” comparison uses half-range arithmetic
+   - Sequencing: "More recent" comparison uses half-range arithmetic
      (2^31) to handle wrap-around.
    - Acknowledgment window: AckBits provides selective acks for the 32
      packets immediately prior to Ack.
@@ -126,7 +126,7 @@ Table of Contents
 
 8. Payload Specifications
 
-   Strings are raw ASCII/UTF-8. “len” fields are lengths, not
+   Strings are raw ASCII/UTF-8. "len" fields are lengths, not
    null-terminated.
 
    8.1 Hello (0x01)
