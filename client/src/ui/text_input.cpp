@@ -15,6 +15,7 @@ struct KeyCharacterMapping {
   std::string_view shifted;
 };
 
+// Keep in sync with the physical AZERTY scancode mapping in the raylib backend.
 constexpr std::array<KeyCharacterMapping, 44> kCharacterMappings{{
     {engine::input::Key::kA, "a", "A"},
     {engine::input::Key::kB, "b", "B"},
