@@ -85,6 +85,84 @@
             "y": 0.0,
             "random_y": true,
             "drops_powerup": true
+        },
+        {
+            "time": 18.0,
+            "type": "Scout",
+            "x": 1700.0,
+            "y": 100.0,
+            "random_y": true
+        },
+        {
+            "time": 18.0,
+            "type": "Bomber",
+            "x": 1700.0,
+            "y": 700.0,
+            "random_y": true
+        },
+        {
+            "time": 22.0,
+            "type": "Interceptor",
+            "x": 1700.0,
+            "y": 400.0,
+            "random_y": true
+        },
+        {
+            "time": 22.2,
+            "type": "Scout",
+            "x": 1700.0,
+            "y": 200.0,
+            "random_y": true
+        },
+        {
+            "time": 22.2,
+            "type": "Scout",
+            "x": 1700.0,
+            "y": 600.0,
+            "random_y": true
+        },
+        {
+            "time": 26.0,
+            "type": "Scout",
+            "x": 1650.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 26.0,
+            "type": "Bomber",
+            "x": 1700.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 26.0,
+            "type": "Interceptor",
+            "x": 1750.0,
+            "y": 0.0,
+            "random_y": true
+        },
+        {
+            "time": 30.0,
+            "type": "Bomber",
+            "x": 1700.0,
+            "y": 100.0,
+            "random_y": true,
+            "drops_powerup": true
+        },
+        {
+            "time": 30.0,
+            "type": "Bomber",
+            "x": 1700.0,
+            "y": 700.0,
+            "random_y": true
+        },
+        {
+            "time": 30.5,
+            "type": "Interceptor",
+            "x": 1700.0,
+            "y": 400.0,
+            "random_y": true
         }
     ]
 }
