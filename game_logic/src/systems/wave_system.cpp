@@ -101,7 +101,7 @@ void WaveSystem::Update(engine::ecs::Registry &registry,
           try {
             GameConfig::Get().GetLevel(next_level);
           } catch (...) {
-            std::cout << "Max level reached (" << current_level_
+            std::cerr << "Max level reached (" << current_level_
                       << "), looping back to level 1" << std::endl;
             next_level = 1;
           }
