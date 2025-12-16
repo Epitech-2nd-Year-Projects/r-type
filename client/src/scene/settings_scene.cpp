@@ -245,7 +245,7 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
 
   auto back_btn = std::make_shared<ui::Button>(
       engine::math::Vector2f{}, engine::math::Vector2f{400.0f, 50.0f}, "Back",
-      [this]() { app_.OnQuitToMenu(); });
+      [this]() { app_.OnCloseSettings(); });
   back_btn->SetTexture(btn_tex);
   back_btn->SetColors(white, hover, press);
   buttons_.push_back(back_btn);
@@ -352,7 +352,7 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
   } else {
     RefreshKeyStateBuffer(input, key_state_buffer_);
     if (input.IsActionActive("Cancel")) {
-      app_.OnQuitToMenu();
+      app_.OnCloseSettings();
     }
   }
 }
