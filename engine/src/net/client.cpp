@@ -51,6 +51,10 @@ std::error_code Client::Start(const Endpoint& server_endpoint,
     }
   }
 
+  if (auto connect_error = socket_.connect(server_endpoint); connect_error) {
+    return connect_error;
+  }
+
   {
     std::lock_guard<std::mutex> lock(endpoint_mutex_);
     server_endpoint_ = server_endpoint;
@@ -116,24 +120,19 @@ void Client::WorkerLoop() {
 
   while (running_.load(std::memory_order_acquire)) {
     bool did_work = false;
-    Endpoint endpoint_copy;
-    {
-      std::lock_guard<std::mutex> lock(endpoint_mutex_);
-      endpoint_copy = server_endpoint_;
-    }
 
     PacketBuffer::Storage outgoing_bytes;
     if (DequeueOutgoing(outgoing_bytes)) {
       did_work = true;
-      const auto send_result = socket_.send_to(
-          std::span<const std::uint8_t>(outgoing_bytes), endpoint_copy);
+      const auto send_result =
+          socket_.send(std::span<const std::uint8_t>(outgoing_bytes));
       if (send_result.error && !IsTransientError(send_result.error)) {
         running_.store(false, std::memory_order_release);
         break;
       }
     }
 
-    const auto recv_result = socket_.receive_from(std::span(recv_buffer));
+    const auto recv_result = socket_.receive(std::span(recv_buffer));
     if (!recv_result.error && recv_result.bytes_transferred > 0) {
       did_work = true;
       const auto packet_view =
