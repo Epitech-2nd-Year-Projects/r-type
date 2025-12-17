@@ -50,7 +50,7 @@ SpriteDefinition MakeDefinition(
 SpriteDefinition EnemyDefinition(
     const game_logic::entities::EnemyArchetypeData &data, float depth) {
   return MakeDefinition(data.texture_path, 29.0f, 29.0f,
-                        game_logic::kEnemyLayer, depth, false);
+                        game_logic::kEnemyLayer, depth, true);
 }
 
 SpriteDefinition MissileDefinition(
@@ -406,12 +406,12 @@ bool RenderSystem::ComputeFlipX(
   if (velocity.has_value()) {
     const float vx = velocity->velocity.x;
     if (std::abs(vx) > 1.0f) {
-      flip = vx < 0.0f;
+      flip = (vx < 0.0f) != default_left;
     }
   }
 
   if (type_code == kEnemyTypeCode && !velocity.has_value()) {
-    flip = true;
+    flip = !default_left;
   }
 
   return flip;
