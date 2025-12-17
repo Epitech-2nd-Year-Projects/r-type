@@ -20,13 +20,17 @@
 - Metrics recorded: packets/s, mean and p99 latency on loopback, CPU usage on the server side.
 - Environment used for the baseline run: Linux 6.x, clang Release, Ryzen 7-class laptop CPU; numbers below are relative, not absolute, and should be re-run on target hardware before delivery.
 
-## Results (relative to raw OS sockets baseline)
-| Library       | Throughput           | p99 latency       | CPU usage         | Notes                                   |
-|---------------|----------------------|-------------------|-------------------|-----------------------------------------|
-| Raw sockets   | 1.00x (baseline)     | baseline          | 1 core saturated  | Epoll/kqueue (Linux/Unix) or IOCP (Win) |
-| Asio          | 0.97-1.00x           | +3-5% vs baseline | ~1 core           | Header-only; no extra allocations after warmup |
-| Boost.Asio    | 0.90-0.94x           | +10-15%           | +5-8% CPU         | Same model as Asio but bigger dependency surface |
-| libuv         | 0.78-0.85x           | +20-30%           | +10-15% CPU       | Extra event-loop translation; C API     |
+## Results (local run, loopback, payload 512B, 30s, 1 worker)
+Environment: Linux, `xmake -m release`, Ryzen-class laptop CPU.
+
+| Library       | Packets/s (received) | Sent/Received        | Relative to raw | Notes                                    |
+|---------------|----------------------|----------------------|-----------------|------------------------------------------|
+| Raw sockets   | 81,665               | 2,449,952 / 2,449,952| 1.00x           | UDP echo server/client (port 4243)       |
+| Asio          | 14,020               | 420,614 / 420,614    | ~0.17x          | Standalone Asio echo (port 4242)         |
+| Boost.Asio    | 14,116               | 423,486 / 423,486    | ~0.17x          | Boost.Asio echo (port 4243)              |
+| libuv         | 0                    | 9,590,952 / 0        | 0.00x           | Client sent but no server response (setup issue) |
+
+If you need comparable ratios, re-run all variants with the same port and worker count, ensuring the matching server is running for each client. Update the table with p50/p99 latency and CPU usage if required by the subject.
 
 ## Decision: Asio
 - Performance is effectively at parity with raw sockets while keeping code portable across Linux and Windows.
