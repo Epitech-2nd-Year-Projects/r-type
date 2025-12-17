@@ -25,6 +25,9 @@ struct EntityNetState {
   std::int16_t vy = 0;          ///< Quantized velocity Y.
   std::uint8_t hp = 0;          ///< Hit points (0 = dead).
   std::uint8_t flags = 0;       ///< Status flags (alive, invincible, shield, etc.).
+  std::uint32_t score = 0;      ///< Player score (player entities only).
+  std::uint8_t lives = 0;       ///< Remaining lives (player entities only).
+  std::uint32_t player_id = 0;  ///< Logical player identifier (player entities).
 };
 
 /**
@@ -41,7 +44,7 @@ enum class EntityDeltaOp : std::uint8_t {
  * 
  * The mask applies to EntityNetState fields for the entity.
  */
-enum EntityFieldMask : std::uint8_t {
+enum EntityFieldMask : std::uint16_t {
   kFieldType = 1u << 0,   ///< Entity type field mask.
   kFieldX = 1u << 1,      ///< Position X field mask.
   kFieldY = 1u << 2,      ///< Position Y field mask.
@@ -49,6 +52,9 @@ enum EntityFieldMask : std::uint8_t {
   kFieldVy = 1u << 4,     ///< Velocity Y field mask.
   kFieldHp = 1u << 5,     ///< Hit points field mask.
   kFieldFlags = 1u << 6,  ///< Flags field mask.
+  kFieldScore = 1u << 7,  ///< Player score field mask.
+  kFieldLives = 1u << 8,  ///< Remaining lives field mask.
+  kFieldPlayerId = 1u << 9,  ///< Logical player id field mask.
 };
 
 /**
@@ -69,7 +75,7 @@ enum EntityFieldMask : std::uint8_t {
 struct EntityDelta {
   EntityDeltaOp op = EntityDeltaOp::kCreate;  ///< Operation type (create/update/delete).
   std::uint32_t entity_id = 0;                ///< Entity identifier.
-  std::uint8_t field_mask = 0;                ///< Bitmask of fields present in update.
+  std::uint16_t field_mask = 0;               ///< Bitmask of fields present in update.
   EntityNetState state{};                     ///< Entity state data.
 };
 
@@ -96,12 +102,15 @@ struct EntityDelta {
  *     - int16  vy
  *     - uint8  hp
  *     - uint8  flags
+ *     - uint32 score
+ *     - uint8  lives
+ *     - uint32 player_id
  * 
  *   if op == kDelete:
  *     - (no additional data)
  * 
  *   if op == kUpdate:
- *     - uint8  field_mask
+ *     - uint16 field_mask
  *     - [if field_mask & kFieldType]  uint16 type
  *     - [if field_mask & kFieldX]     int16  x
  *     - [if field_mask & kFieldY]     int16  y
@@ -109,11 +118,15 @@ struct EntityDelta {
  *     - [if field_mask & kFieldVy]    int16  vy
  *     - [if field_mask & kFieldHp]    uint8  hp
  *     - [if field_mask & kFieldFlags] uint8  flags
+ *     - [if field_mask & kFieldScore] uint32 score
+ *     - [if field_mask & kFieldLives] uint8  lives
+ *     - [if field_mask & kFieldPlayerId] uint32 player_id
  */
 struct WorldSnapshotPayload {
   std::uint32_t snapshot_id = 0;                         ///< Current snapshot identifier.
   std::uint32_t base_snapshot_id = kNoBaseSnapshotId;   ///< Base snapshot for delta (or kNoBaseSnapshotId).
   std::uint32_t server_tick = 0;                         ///< Server simulation tick.
+  std::uint32_t current_wave = 0;                        ///< Current wave number (0 if unknown).
   std::vector<EntityDelta> deltas;                       ///< Entity deltas in this snapshot.
 };
 
