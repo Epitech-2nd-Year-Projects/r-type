@@ -7,7 +7,6 @@
 namespace client {
 
 InGameScene::InGameScene(Application& app) : app_(app) {
-  hud_.UpdateWaveAndLevel(1u, 1u);
   auto& input = app_.GetEngine().Input();
   pause_pressed_ =
       input.IsActionActive("Pause") || input.IsActionActive("Cancel");
@@ -36,6 +35,7 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
 
   const auto local_player = app_.GetJoinFlow().player_id();
   hud_.UpdatePlayers(app_.World(), local_player);
+  hud_.UpdateWave(app_.CurrentWave());
 
   const auto join_state = app_.GetJoinFlow().state();
   const bool connected =
