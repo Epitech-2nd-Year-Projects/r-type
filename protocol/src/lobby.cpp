@@ -67,6 +67,7 @@ bool EncodeRoomSummary(const RoomSummary& summary,
   buffer.WriteUint8(BoolToByte(summary.is_private));
   buffer.WriteUint8(summary.player_count);
   buffer.WriteUint8(summary.max_players);
+  buffer.WriteUint8(BoolToByte(summary.started));
   return true;
 }
 
@@ -91,12 +92,15 @@ bool DecodeRoomSummary(engine::net::PacketBuffer& buffer,
   }
   std::uint8_t player_count = 0;
   std::uint8_t max_players = 0;
-  if (!buffer.ReadUint8(player_count) || !buffer.ReadUint8(max_players)) {
+  bool started = false;
+  if (!buffer.ReadUint8(player_count) || !buffer.ReadUint8(max_players) ||
+      !TryReadBool(buffer, started)) {
     return false;
   }
   summary.is_private = is_private;
   summary.player_count = player_count;
   summary.max_players = max_players;
+  summary.started = started;
   out_summary = std::move(summary);
   return true;
 }

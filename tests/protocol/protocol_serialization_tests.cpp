@@ -182,6 +182,7 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
   original.snapshot_id = 10u;
   original.base_snapshot_id = protocol::kNoBaseSnapshotId;
   original.server_tick = 1234u;
+   original.current_wave = 5u;
 
   {
     protocol::EntityDelta d{};
@@ -196,6 +197,9 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
     d.state.vy = -3;
     d.state.hp = 10;
     d.state.flags = 0;
+    d.state.score = 77u;
+    d.state.lives = 4u;
+    d.state.player_id = 9u;
     original.deltas.push_back(d);
   }
 
@@ -226,6 +230,7 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
   EXPECT_EQ(decoded.snapshot_id, original.snapshot_id);
   EXPECT_EQ(decoded.base_snapshot_id, original.base_snapshot_id);
   EXPECT_EQ(decoded.server_tick, original.server_tick);
+  EXPECT_EQ(decoded.current_wave, original.current_wave);
   EXPECT_EQ(decoded.deltas.size(), original.deltas.size());
 
   ASSERT_EQ(decoded.deltas.size(), 3u);
@@ -245,6 +250,9 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
     EXPECT_EQ(dst.state.vy, src.state.vy);
     EXPECT_EQ(dst.state.hp, src.state.hp);
     EXPECT_EQ(dst.state.flags, src.state.flags);
+    EXPECT_EQ(dst.state.score, src.state.score);
+    EXPECT_EQ(dst.state.lives, src.state.lives);
+    EXPECT_EQ(dst.state.player_id, src.state.player_id);
 
     EXPECT_EQ(dst.field_mask, 0u);
   }
@@ -269,6 +277,9 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
     EXPECT_EQ(dst.state.vx, 0);
     EXPECT_EQ(dst.state.vy, 0);
     EXPECT_EQ(dst.state.flags, 0);
+    EXPECT_EQ(dst.state.score, 0u);
+    EXPECT_EQ(dst.state.lives, 0u);
+    EXPECT_EQ(dst.state.player_id, 0u);
   }
 
   {
@@ -288,6 +299,9 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
     EXPECT_EQ(dst.state.vy, 0);
     EXPECT_EQ(dst.state.hp, 0);
     EXPECT_EQ(dst.state.flags, 0);
+    EXPECT_EQ(dst.state.score, 0u);
+    EXPECT_EQ(dst.state.lives, 0u);
+    EXPECT_EQ(dst.state.player_id, 0u);
   }
 }
 

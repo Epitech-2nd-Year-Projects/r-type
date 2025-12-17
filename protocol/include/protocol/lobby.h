@@ -24,6 +24,7 @@ struct RoomSummary {
   std::uint8_t max_players;  ///< Configured capacity.
   std::uint8_t player_count; ///< Current occupancy.
   bool is_private;           ///< Whether the room is private (code required).
+  bool started{false};       ///< Whether gameplay has begun (joins locked).
 };
 
 /**

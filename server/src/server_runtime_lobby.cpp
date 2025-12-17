@@ -129,6 +129,13 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
                "Room not found");
     return;
   }
+  if (room->get().HasStarted()) {
+    logger_.Warn("Rejecting join from ", endpoint_key, " room already started ",
+                 room_code);
+    SendReject(peer, protocol::JoinRejectReason::kServerFull,
+               "Game already started");
+    return;
+  }
 
   if (room->get().IsPrivate()) {
     if (!IsPrivateRoomCode(request.room_password) ||
@@ -344,6 +351,7 @@ protocol::RoomSummary ServerRuntime::BuildRoomSummary(const Room& room) const {
   summary.player_count = static_cast<std::uint8_t>(std::min<std::size_t>(
       room.PlayerCount(),
       static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())));
+  summary.started = room.HasStarted();
   return summary;
 }
 
@@ -377,6 +385,9 @@ Room& ServerRuntime::CreateRoom(const std::string& room_code,
 
 bool ServerRuntime::JoinRoom(PeerConnection& peer, Room& room,
                              std::string_view player_name) {
+  if (room.HasStarted()) {
+    return false;
+  }
   if (room.PlayerCount() >= room.MaxPlayers()) {
     return false;
   }

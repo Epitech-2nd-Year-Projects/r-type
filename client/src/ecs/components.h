@@ -137,6 +137,19 @@ struct HealthComponent {
 };
 
 /**
+ * @brief Player statistics received from the server
+ */
+struct PlayerStateComponent {
+  std::uint32_t player_id{0};
+  std::uint32_t score{0};
+  std::uint8_t lives{0};
+
+  PlayerStateComponent() = default;
+  PlayerStateComponent(std::uint32_t id, std::uint32_t s, std::uint8_t l)
+      : player_id(id), score(s), lives(l) {}
+};
+
+/**
  * @brief Tag marking a player entity from the server
  */
 struct PlayerTag {};

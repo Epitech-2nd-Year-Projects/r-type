@@ -38,6 +38,7 @@ std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
         static_cast<std::size_t>(room.player_count + 31u * room.max_players);
     local ^= static_cast<std::size_t>(room.is_private ? kHashPrivateSalt
                                                       : kHashPublicSeed);
+    local ^= static_cast<std::size_t>(room.started ? 0xfeedbabe : 0x0);
     value ^= local + kGoldenHashRatio + (value << 6) + (value >> 2);
   }
   return value;
@@ -375,10 +376,13 @@ void LobbyScene::RefreshRoomButtons() {
   const auto press = engine::render::Color::FromBytes(180, 180, 180);
 
   for (const auto& room : rooms) {
-    const std::string label = room.room_name + "   [" +
-                              (room.is_private ? "Private" : "Public") + "]  " +
-                              std::to_string(room.player_count) + "/" +
-                              std::to_string(room.max_players);
+    std::string label =
+        room.room_name + "   [" + (room.is_private ? "Private" : "Public");
+    if (room.started) {
+      label += " | Started";
+    }
+    label += "]  " + std::to_string(room.player_count) + "/" +
+             std::to_string(room.max_players);
     auto button = std::make_shared<ui::Button>(
         engine::math::Vector2f{},
         engine::math::Vector2f{0.0f, kRoomButtonHeight}, label, [this, room]() {

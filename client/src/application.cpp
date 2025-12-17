@@ -149,7 +149,6 @@ int Application::Run() {
                            std::to_string(config_.timeout_ms));
 
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
-  LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   ApplyState(ClientState::kMainMenu);
   CommitSceneChange();
 
@@ -201,7 +200,60 @@ void Application::OnGameOver(const GameOverStats& stats) {
     return;
   }
   last_game_stats_ = stats;
+  if (join_flow_.player_id().has_value()) {
+    const auto local_id = join_flow_.player_id().value();
+    const auto& net =
+        world_registry_
+            ? world_registry_->GetComponents<ecs::NetworkedEntityComponent>()
+            : engine::ecs::SparseArray<ecs::NetworkedEntityComponent>();
+    const auto& player_states =
+        world_registry_
+            ? world_registry_->GetComponents<ecs::PlayerStateComponent>()
+            : engine::ecs::SparseArray<ecs::PlayerStateComponent>();
+    bool found_score = false;
+    for (std::size_t i = 0; i < net.size(); ++i) {
+      if (!net[i].has_value()) {
+        continue;
+      }
+      if (i < player_states.size() && player_states[i].has_value() &&
+          player_states[i]->player_id == local_id) {
+        last_game_stats_.score = player_states[i]->score;
+        found_score = true;
+        break;
+      }
+    }
+    if (!found_score && cached_local_score_.has_value()) {
+      last_game_stats_.score = *cached_local_score_;
+    }
+  }
+  if (last_wave_.has_value()) {
+    last_game_stats_.wave = *last_wave_;
+  }
   TransitionTo(ClientState::kGameOver);
+}
+
+void Application::UpdateLocalPlayerCache() {
+  if (!world_registry_ || !join_flow_.player_id().has_value()) {
+    return;
+  }
+  const auto local_id = join_flow_.player_id().value();
+  const auto& net =
+      world_registry_->GetComponents<ecs::NetworkedEntityComponent>();
+  const auto& player_states =
+      world_registry_->GetComponents<ecs::PlayerStateComponent>();
+  for (std::size_t i = 0; i < net.size(); ++i) {
+    if (!net[i].has_value()) {
+      continue;
+    }
+    if (i >= player_states.size() || !player_states[i].has_value()) {
+      continue;
+    }
+    if (player_states[i]->player_id != local_id) {
+      continue;
+    }
+    cached_local_score_ = player_states[i]->score;
+    return;
+  }
 }
 
 void Application::OnDisconnect(std::string reason) {
@@ -291,6 +343,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
             predicted_before = local_prediction_->CapturePredictedPosition();
           }
           const std::uint64_t receipt_ms = engine::time::NowMilliseconds();
+          if (snapshot->current_wave != 0) {
+            last_wave_ = snapshot->current_wave;
+          }
           world_state_system_->ApplySnapshot(*snapshot, receipt_ms);
           if (local_prediction_) {
             local_prediction_->OnSnapshotApplied(predicted_before);
@@ -350,6 +405,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (interpolation_system_) {
     interpolation_system_->Update(dt);
   }
+  UpdateLocalPlayerCache();
   UpdateAudio(dt, join_state);
 
   auto& context = engine_->RenderContext();

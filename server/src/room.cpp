@@ -15,6 +15,7 @@ Room::Room(std::string room_code, std::string room_name, std::uint32_t room_id,
       is_private_(is_private),
       password_(std::move(password)),
       seed_(seed),
+      started_(false),
       game_instance_(
           std::make_unique<GameInstance>(room_id, seed, max_players, logger)),
       snapshot_history_(32),
@@ -31,6 +32,7 @@ Room::Room(Room&& other) noexcept
       next_snapshot_id_(other.next_snapshot_id_),
       room_tick_(other.room_tick_),
       last_active_ms_(other.last_active_ms_),
+      started_(other.started_),
       players_(std::move(other.players_)),
       game_instance_(std::move(other.game_instance_)),
       snapshot_history_(std::move(other.snapshot_history_)),
@@ -39,6 +41,9 @@ Room::Room(Room&& other) noexcept
 void Room::Update(const engine::time::TimeDelta& delta) {
   if (game_instance_) {
     game_instance_->Update(delta);
+    if (game_instance_->Logic().IsRunning()) {
+      started_ = true;
+    }
   }
   ++room_tick_;
 }
@@ -140,5 +145,7 @@ const std::unordered_set<std::uint32_t>& Room::Players() const {
 std::uint32_t Room::LastActiveMs() const { return last_active_ms_; }
 
 bool Room::IsEmpty() const { return players_.empty(); }
+
+bool Room::HasStarted() const { return started_; }
 
 }  // namespace server

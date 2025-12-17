@@ -67,6 +67,7 @@ jobs:
           cp build/linux/x86_64/release/client release/r-type-linux/r-type-client
           cp build/linux/x86_64/release/server release/r-type-linux/r-type-server
           cp -r assets release/r-type-linux/
+          cp -r config release/r-type-linux/
           
           cd release
           tar -czvf r-type-linux.tar.gz r-type-linux
@@ -121,6 +122,7 @@ jobs:
           Copy-Item build/windows/x64/release/client.exe -Destination release/r-type-windows/r-type-client.exe
           Copy-Item build/windows/x64/release/server.exe -Destination release/r-type-windows/r-type-server.exe
           Copy-Item -Recurse -Path assets -Destination release/r-type-windows/assets
+          Copy-Item -Recurse -Path config -Destination release/r-type-windows/config
           
           Compress-Archive -Path release/r-type-windows -DestinationPath release/r-type-windows.zip
 
