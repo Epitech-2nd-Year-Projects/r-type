@@ -49,9 +49,8 @@ SpriteDefinition MakeDefinition(
 
 SpriteDefinition EnemyDefinition(
     const game_logic::entities::EnemyArchetypeData &data, float depth) {
-  return MakeDefinition(data.texture_path, data.sprite_width,
-                        data.sprite_height, game_logic::kEnemyLayer, depth,
-                        true);
+  return MakeDefinition(data.texture_path, 29.0f, 29.0f,
+                        game_logic::kEnemyLayer, depth, false);
 }
 
 SpriteDefinition MissileDefinition(
@@ -69,7 +68,7 @@ SpriteDefinition ObstacleDefinition(
 }
 
 SpriteDefinition DefaultPlayer() {
-  return MakeDefinition("assets/sprites/player.png", 32.0f, 16.0f, 10, 0.0f,
+  return MakeDefinition("assets/sprites/player.png", 26.0f, 21.0f, 10, 0.0f,
                         false);
 }
 
@@ -215,9 +214,7 @@ void RenderSystem::SyncSprite(std::size_t index,
         sprite->source_rect.height_ == 0.0f) {
       sprite->source_rect = definition.source_rect;
     }
-    if (!sprite->flip_x && definition.face_left) {
-      sprite->flip_x = true;
-    }
+    sprite->flip_x = definition.face_left;
   }
   sprite->visible = true;
 
