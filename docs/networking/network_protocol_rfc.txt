@@ -1,0 +1,291 @@
+Network Working Group                                         Laurent ALIU
+Request for Comments: 0002                          December 16, 2025
+
+                    R-TYPE REAL-TIME UDP PROTOCOL
+
+Status of This Memo
+
+   This memo describes the R-Type Real-Time UDP Protocol. It is published
+   for informational purposes and to guide interoperable implementations.
+
+Table of Contents
+
+   1. Introduction
+   2. Document Conventions
+   3. Protocol Overview
+   4. Packet Header
+   5. Reliability Model
+   6. Constants and Enumerations
+   7. Message Catalogue
+   8. Payload Specifications
+   9. Communication Flows
+   10. Loss, Ordering, and Resends
+   11. Timing Parameters (defaults)
+   12. Notes for Implementers
+
+1. Introduction
+
+   The R-Type protocol defines a binary UDP-based wire format for the
+   game server and clients. It specifies packet formats, message types,
+   reliability semantics, and communication flows to enable
+   interoperable implementations in any language (e.g., Python, Java).
+
+2. Document Conventions
+
+   - Transport: UDP datagrams.
+   - Endianness: Little-endian for all multi-byte numeric fields.
+   - Primitive types: u8, u16, u32, i16, f32.
+   - Text: ASCII/UTF-8. Variable-length strings are length-prefixed with
+     a preceding length (u8 unless otherwise noted).
+   - Diagrams: Offsets are byte offsets from the start of the header or
+     payload.
+
+3. Protocol Overview
+
+   Each packet consists of a fixed 20-byte header followed by a message
+   payload. The header carries sequencing, acknowledgments, flags
+   (reliable, connectionless, compressed/reserved), and a timestamp.
+   Reliability uses sequence numbers plus Ack and AckBits. Some messages
+   are connectionless (usable before session join). Compression is
+   reserved and currently unused.
+
+4. Packet Header (20 bytes)
+
+      0                   7 8                  15 16                 23 24                 31
+      +0  u16 Version     +4  u32 Sequence     +12 u32 AckBits       +16 u32 TimestampMs
+      +2  u8  MsgType     +8  u32 Ack
+      +3  u8  Flags
+
+   Field descriptions
+     - Version (u16): Protocol version. Current: 1.
+     - MsgType (u8): Message ID (see Section 7).
+     - Flags (u8 bitfield):
+         bit0 reliable, bit1 compressed (reserved), bit2 connectionless,
+         bits3..7 reserved.
+     - Sequence (u32): Sender packet sequence (wraps modulo 2^32).
+     - Ack (u32): Highest sequence received from peer.
+     - AckBits (u32): Bitmap for 32 packets before Ack; bit0 = Ack-1,
+       bit31 = Ack-32.
+     - TimestampMs (u32): Sender timestamp in milliseconds.
+
+5. Reliability Model
+
+   - Sequencing: "More recent" comparison uses half-range arithmetic
+     (2^31) to handle wrap-around.
+   - Acknowledgment window: AckBits provides selective acks for the 32
+     packets immediately prior to Ack.
+   - Reliable delivery: Messages marked reliable are re-sent until
+     acknowledged. Default resend timeout: 250 ms. Up to 64 pending
+     reliable packets per peer.
+   - Connectionless: Allowed without an established session; sequence/
+     ack fields still populated.
+   - Loss handling: Unreliable messages (snapshots, inputs) may be
+     dropped; mitigations include redundancy (inputs) or deltas
+     (snapshots).
+
+6. Constants and Enumerations
+
+   - Header flags: bit0 reliable; bit1 compressed (reserved); bit2
+     connectionless; bits3..7 reserved.
+   - JoinReject reasons: 0 Unknown, 1 VersionMismatch, 2 ServerFull,
+     3 InvalidRoom, 4 Banned.
+   - PlayerDied causes: 0 Unknown, 1 Enemy, 2 Projectile, 3 Obstacle,
+     4 Suicide, 5 Void.
+   - WorldSnapshot ops: 0 Create, 1 Update, 2 Delete.
+   - WorldSnapshot sentinel: NO_BASE_SNAPSHOT = 0xFFFFFFFF (full
+     snapshot).
+   - Input buttons bitfield: bit0 Up, bit1 Down, bit2 Left, bit3 Right,
+     bit4 Fire, bit5 AltFire.
+   - Command IDs (well-known): 1 StartGame, 2 SetReady, 3 Unready,
+     4 ChatMessage, 5 DisconnectNotice.
+
+7. Message Catalogue
+
+   Legend: Dir = direction (C→S, S→C, Both), Rel = reliable,
+   CL = connectionless.
+
+     ID    Name                Dir   Rel  CL   Purpose
+     0x00  Invalid             –     no   yes  Reserved
+     0x01  Hello               C→S   no   yes  Optional probe (ignored)
+     0x02  JoinRequest         C→S   yes  yes  Request to join a room
+     0x03  JoinAccept          S→C   yes  yes  Join success and params
+     0x04  JoinReject          S→C   yes  yes  Join refusal with reason
+     0x05  InputState          C→S   no   no   Player input (redundant)
+     0x06  WorldSnapshot       S→C   no   no   World state full/delta
+     0x07  SpawnEntity         S→C   yes  no   Reserved spawn
+     0x08  DestroyEntity       S→C   yes  no   Reserved destroy
+     0x09  PlayerDied          S→C   yes  no   Player death notice
+     0x0A  ClientCommand       C→S   yes  no   Generic client command
+     0x0B  ServerCommand       S→C   yes  no   Generic server command
+     0x0C  Ping                C→S   no   yes  Latency probe
+     0x0D  Pong                S→C   no   yes  Latency response
+     0x0E  RoomListRequest     C→S   yes  yes  Request room directory
+     0x0F  RoomListResponse    S→C   yes  yes  Room directory snapshot
+     0x10  CreateRoomRequest   C→S   yes  yes  Create a room
+     0x11  CreateRoomResponse  S→C   yes  yes  Room creation result
+
+8. Payload Specifications
+
+   Strings are raw ASCII/UTF-8. "len" fields are lengths, not
+   null-terminated.
+
+   8.1 Hello (0x01)
+       - No payload (reserved/ignored).
+
+   8.2 JoinRequest (0x02)
+       - u16 client_version
+       - u8 name_len (0..31), name
+       - u8 room_len (0..15), room_code
+       - u8 pass_len (0..15), room_password (optional)
+
+   8.3 JoinAccept (0x03)
+       - u16 server_version
+       - u32 player_id
+       - u8 max_players
+       - u8 tick_rate (Hz)
+       - u32 seed
+
+   8.4 JoinReject (0x04)
+       - u16 server_version
+       - u8 reason (see Section 6)
+       - u8 msg_len (0..63), message
+
+   8.5 InputState (0x05)
+       - u8 command_count (1..4)
+       - For each command:
+         - u32 input_sequence
+         - u8 buttons (input bitfield)
+         - i16 analog_x
+         - i16 analog_y
+         - u32 client_time_ms
+
+   8.6 WorldSnapshot (0x06)
+       - u32 snapshot_id
+       - u32 base_snapshot_id (NO_BASE_SNAPSHOT = 0xFFFFFFFF means full)
+       - u32 server_tick
+       - u16 delta_count
+       - For each delta:
+         - u8 op (Section 6)
+         - u32 entity_id
+         - If Create: u16 type, i16 x, i16 y, i16 vx, i16 vy, u8 hp, u8 flags
+         - If Delete: no further fields
+         - If Update:
+           - u8 field_mask (bit0 type, bit1 x, bit2 y, bit3 vx,
+             bit4 vy, bit5 hp, bit6 flags)
+           - Only fields whose bits are set appear, in the Create order
+
+   8.7 SpawnEntity (0x07)
+       - Reserved (no current payload).
+
+   8.8 DestroyEntity (0x08)
+       - Reserved (no current payload).
+
+   8.9 PlayerDied (0x09)
+       - u32 player_id
+       - u32 killer_entity_id (0 if none)
+       - u8 cause (Section 6)
+       - u8 remaining_lives
+
+   8.10 ClientCommand / ServerCommand (0x0A / 0x0B)
+       - u16 command_id
+       - u16 payload_len
+       - payload (0..65535 bytes)
+       - Well-known command_id: Section 6
+
+   8.11 Ping (0x0C)
+       - u32 client_time_ms
+
+   8.12 Pong (0x0D)
+       - u32 client_time_ms (echoed)
+       - u32 server_time_ms
+
+   8.13 RoomListRequest (0x0E)
+       - Empty payload.
+
+   8.14 RoomListResponse (0x0F)
+       - u8 count (0..64)
+       - For each room:
+         - u8 code_len (<=15), room_code
+         - u8 name_len (<=31), room_name
+         - u8 is_private (0/1)
+         - u8 player_count
+         - u8 max_players
+
+   8.15 CreateRoomRequest (0x10)
+       - u8 name_len (<=31), room_name
+       - u8 is_private (0/1)
+       - u8 max_players (1..255; clamped)
+       - u8 pass_len (<=15), room_password (optional)
+
+   8.16 CreateRoomResponse (0x11)
+       - u8 success (0/1)
+       - u8 msg_len (0..63), message
+       - u8 has_room (0/1)
+       - If has_room: RoomSummary (same layout as in RoomList)
+       - u8 pass_len (<=15), room_password (always present; populated for private rooms)
+
+9. Communication Flows
+
+   9.1 Handshake (Join)
+       1) Client starts UDP transport.
+       2) Client sends JoinRequest (reliable, connectionless) every
+          500 ms until response, up to 5 attempts.
+       3) Server validates version, room existence/password, capacity.
+       4) On success: JoinAccept returns player_id, tick_rate, seed,
+          max_players; client enters joined state.
+       5) On failure: JoinReject with reason/message.
+       6) Hello is ignored (no state created).
+
+   9.2 Lobby Operations
+       - RoomListRequest/Response and CreateRoomRequest/Response are
+         connectionless and reliable; usable before joining a room.
+
+   9.3 Gameplay Loop
+       - Inputs: Client sends InputState at 30–120 Hz (default ~60 Hz)
+         with the most recent 1..4 commands for redundancy.
+       - Snapshots: Server ticks (default 60 Hz) and sends one
+         WorldSnapshot per tick; may be full or delta.
+       - Events: PlayerDied and ServerCommand are reliable and re-sent
+         until acknowledged.
+       - Commands: ClientCommand is reliable (ready/unready/chat/
+         disconnect).
+
+   9.4 Liveness and Time
+       - Ping/Pong: Client sends Ping ~1 s interval; server replies with
+         Pong. Client estimates RTT ≈ now_ms - client_time_ms and
+         offset ≈ server_time_ms - (client_time_ms + RTT/2).
+       - Timeout: Server drops peers after ~15 s inactivity; may send
+         DisconnectNotice via ServerCommand.
+
+10. Loss, Ordering, and Resends
+
+   - Reliable messages: Re-sent on 250 ms timeout until acked (Ack/
+     AckBits).
+   - Unreliable messages: May be dropped; inputs rely on redundancy;
+     snapshots rely on full/delta recovery.
+   - Ordering: Sequence numbers are per-peer; recency uses half-range
+     arithmetic.
+   - Ack interpretation: Sequence X is acked if X == Ack or if within
+     the 32-packet window behind Ack with its bit set in AckBits.
+
+11. Timing Parameters (defaults)
+
+   - Server tick rate: 60 Hz (configurable).
+   - Client input send rate: 60 Hz default; 30–120 Hz clamp.
+   - Ping interval: ~1000 ms.
+   - Reliable resend timeout: 250 ms.
+   - Reliable queue capacity: 64 pending packets.
+   - Peer inactivity timeout: ~15 s.
+   - Room idle reclamation (empty rooms): ~30 s.
+
+12. Notes for Implementers
+
+   - Always populate Sequence, Ack, and AckBits, even for
+     connectionless packets, to retain RTT/loss visibility.
+   - Set the reliable flag when sending reliable packets; resend until
+     acknowledged.
+   - InputState: include multiple recent commands to survive loss.
+   - WorldSnapshot: apply Update deltas relative to base; if base is
+     missing, wait for or request a full snapshot (base_snapshot_id =
+     NO_BASE_SNAPSHOT).
+   - Enforce string length bounds before encoding.
