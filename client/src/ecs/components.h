@@ -15,9 +15,11 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
+#include "engine/render/color.h"
 
 namespace client::ecs {
 
@@ -31,10 +33,10 @@ namespace client::ecs {
  * updates.
  */
 struct NetworkedEntityComponent {
-  std::uint32_t network_id{0};      ///< EntityId from the authoritative server.
-  std::uint16_t type_code{0};       ///< Archetype or type classification.
-  std::uint32_t last_snapshot{0};   ///< Snapshot identifier of the last update.
-  std::uint8_t flags{0};            ///< Status flags (e.g. ready state).
+  std::uint32_t network_id{0};     ///< EntityId from the authoritative server.
+  std::uint16_t type_code{0};      ///< Archetype or type classification.
+  std::uint32_t last_snapshot{0};  ///< Snapshot identifier of the last update.
+  std::uint8_t flags{0};           ///< Status flags (e.g. ready state).
 
   NetworkedEntityComponent() = default;
   NetworkedEntityComponent(std::uint32_t id, std::uint16_t type,
@@ -59,7 +61,8 @@ struct PositionComponent {
   PositionComponent() = default;
   PositionComponent(float x, float y)
       : position(x, y), previous_position(x, y), render_position(x, y) {}
-  PositionComponent(const engine::math::Vector2f& pos, const engine::math::Vector2f& prev)
+  PositionComponent(const engine::math::Vector2f& pos,
+                    const engine::math::Vector2f& prev)
       : position(pos), previous_position(prev), render_position(pos) {}
 };
 
@@ -75,7 +78,8 @@ struct VelocityComponent {
 
   VelocityComponent() = default;
   VelocityComponent(float vx, float vy) : velocity(vx, vy) {}
-  explicit VelocityComponent(const engine::math::Vector2f& vel) : velocity(vel) {}
+  explicit VelocityComponent(const engine::math::Vector2f& vel)
+      : velocity(vel) {}
 };
 
 /**
@@ -86,16 +90,34 @@ struct VelocityComponent {
  * states required by the client renderer.
  */
 struct SpriteComponent {
-  std::string texture_id;                        ///< Texture asset identifier or path.
-  engine::math::RectF source_rect{0.0f, 0.0f, 32.0f, 32.0f};  ///< Source rectangle.
-  bool visible{true};                            ///< Whether to draw the sprite.
-  bool flip_x{false};                            ///< Flip horizontally.
-  bool flip_y{false};                            ///< Flip vertically.
+  std::string texture_id;  ///< Texture asset identifier or path.
+  engine::math::RectF source_rect{0.0f, 0.0f, 32.0f,
+                                  32.0f};  ///< Source rectangle.
+  bool visible{true};                      ///< Whether to draw the sprite.
+  bool flip_x{false};                      ///< Flip horizontally.
+  bool flip_y{false};                      ///< Flip vertically.
+  engine::render::Color tint{engine::render::Color::White()};  ///< Color tint.
 
   SpriteComponent() = default;
   explicit SpriteComponent(std::string id) : texture_id(std::move(id)) {}
   SpriteComponent(std::string id, const engine::math::RectF& rect)
       : texture_id(std::move(id)), source_rect(rect) {}
+};
+
+/**
+ * @brief Frame-based sprite animation
+ */
+struct AnimationComponent {
+  std::vector<engine::math::RectF> frames;
+  float frame_duration{0.1f};
+  float timer{0.0f};
+  std::size_t current_frame{0};
+  bool loop{true};
+  bool playing{true};
+
+  AnimationComponent() = default;
+  AnimationComponent(std::vector<engine::math::RectF> f, float duration)
+      : frames(std::move(f)), frame_duration(duration) {}
 };
 
 /**

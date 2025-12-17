@@ -33,11 +33,11 @@ inline constexpr MissileArchetypeData kPlayerMissileData = {
     10,
     2.0f,
     5.0f,
-    16.0f,
-    8.0f,
+    19.0f,
+    6.0f,
     0.8f,
     "assets/sprites/player_missile.png",
-    engine::render::Color::FromBytes(100, 150, 255, 255),
+    engine::render::Color::FromBytes(255, 255, 255, 255),
     300.0f};
 
 /**
@@ -48,11 +48,11 @@ inline constexpr MissileArchetypeData kBigPlayerMissileData = {
     50,
     0.5f,
     5.0f,
-    32.0f,
-    16.0f,
+    19.0f,
+    6.0f,
     0.8f,
     "assets/sprites/big_missile.png",
-    engine::render::Color::FromBytes(255, 50, 50, 255),
+    engine::render::Color::FromBytes(255, 255, 255, 255),
     250.0f};
 
 /**
@@ -63,11 +63,11 @@ inline constexpr MissileArchetypeData kEnemyMissileData = {
     50,
     1.0f,
     5.0f,
-    12.0f,
-    12.0f,
+    19.0f,
+    6.0f,
     0.8f,
     "assets/sprites/enemy_missile.png",
-    engine::render::Color::FromBytes(255, 100, 100, 255),
+    engine::render::Color::FromBytes(255, 255, 255, 255),
     300.0f};
 
 /**
@@ -78,11 +78,11 @@ inline constexpr MissileArchetypeData kNeutralMissileData = {
     20,
     1.0f,
     5.0f,
-    14.0f,
-    10.0f,
+    19.0f,
+    6.0f,
     0.8f,
     "assets/sprites/neutral_missile.png",
-    engine::render::Color::FromBytes(200, 200, 200, 255),
+    engine::render::Color::FromBytes(255, 255, 255, 255),
     150.0f};
 
 }  // namespace game_logic::entities

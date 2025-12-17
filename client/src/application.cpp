@@ -76,6 +76,8 @@ Application::Application(ClientConfig config)
       world_registry_(std::make_unique<engine::ecs::Registry>()),
       world_state_system_(
           std::make_unique<ecs::WorldStateSystem>(*world_registry_)),
+      animation_system_(
+          std::make_unique<ecs::AnimationSystem>(*world_registry_)),
       interpolation_system_(
           std::make_unique<ecs::InterpolationSystem>(*world_registry_)) {
   local_prediction_ =
@@ -339,17 +341,17 @@ bool Application::Tick(engine::time::TimeDelta dt) {
         if (const auto snapshot =
                 std::get_if<protocol::WorldSnapshotPayload>(&message.payload)) {
           std::optional<engine::math::Vector2f> predicted_before;
-          if (local_prediction_) {
-            predicted_before = local_prediction_->CapturePredictedPosition();
-          }
+          // if (local_prediction_) {
+          //   predicted_before = local_prediction_->CapturePredictedPosition();
+          // }
           const std::uint64_t receipt_ms = engine::time::NowMilliseconds();
           if (snapshot->current_wave != 0) {
             last_wave_ = snapshot->current_wave;
           }
           world_state_system_->ApplySnapshot(*snapshot, receipt_ms);
-          if (local_prediction_) {
-            local_prediction_->OnSnapshotApplied(predicted_before);
-          }
+          // if (local_prediction_) {
+          //   local_prediction_->OnSnapshotApplied(predicted_before);
+          // }
           if (sound_effects_) {
             sound_effects_->OnSnapshotApplied(*world_registry_);
           }
@@ -404,6 +406,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   }
   if (interpolation_system_) {
     interpolation_system_->Update(dt);
+  }
+  if (animation_system_) {
+    animation_system_->Update(dt);
   }
   UpdateLocalPlayerCache();
   UpdateAudio(dt, join_state);
