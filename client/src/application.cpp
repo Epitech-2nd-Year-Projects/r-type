@@ -133,7 +133,7 @@ int Application::Run() {
   auto& input = engine_->Input();
   input.BindKey("Confirm", engine::input::Key::kEnter);
   input.BindKey("Cancel", engine::input::Key::kEscape);
-  input.BindKey("Quit", engine::input::Key::kQ);
+  input.BindKey("Pause", engine::input::Key::kP);
   input.BindKey("ToggleReady", engine::input::Key::kR);
 
   auto& runtime_config_store = engine_->Config();
@@ -217,7 +217,24 @@ void Application::OnQuitToMenu() {
   TransitionTo(ClientState::kMainMenu);
 }
 
-void Application::OnOpenSettings() { TransitionTo(ClientState::kSettings); }
+void Application::OnOpenSettings() {
+  if (state_ == ClientState::kSettings) {
+    return;
+  }
+  settings_return_state_ = state_;
+  TransitionTo(ClientState::kSettings);
+}
+
+void Application::OnCloseSettings() {
+  const ClientState target =
+      settings_return_state_.value_or(ClientState::kMainMenu);
+  settings_return_state_.reset();
+  if (IsTransitionAllowed(target)) {
+    TransitionTo(target);
+    return;
+  }
+  TransitionTo(ClientState::kMainMenu);
+}
 
 void Application::OnQuitApplication() {
   StopNetworkSession();
@@ -345,9 +362,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   context.BeginFrame();
   context.Clear(kClearColor);
 
-  const bool render_gameplay = state_ == ClientState::kInGame ||
-                               state_ == ClientState::kPaused ||
-                               state_ == ClientState::kGameOver;
+  const bool render_gameplay =
+      state_ == ClientState::kInGame || state_ == ClientState::kGameOver;
 
   if (background_ && render_gameplay) {
     const auto window_size = engine_->Window().GetSize();
@@ -555,9 +571,14 @@ void Application::UpdateAudio(engine::time::TimeDelta dt,
     return;
   }
 
-  const bool in_menu = state_ == ClientState::kMainMenu ||
-                       state_ == ClientState::kSettings ||
-                       state_ == ClientState::kLobby;
+  const bool settings_from_gameplay =
+      state_ == ClientState::kSettings && settings_return_state_.has_value() &&
+      (*settings_return_state_ == ClientState::kInGame ||
+       *settings_return_state_ == ClientState::kPaused);
+
+  const bool in_menu =
+      state_ == ClientState::kMainMenu || state_ == ClientState::kLobby ||
+      (state_ == ClientState::kSettings && !settings_from_gameplay);
   const auto active_music = audio_manager_->ActiveMusic();
   const bool menu_music_active =
       active_music.has_value() && active_music.value() == MusicType::kMainMenu;
@@ -702,8 +723,17 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
              next_state == ClientState::kMainMenu ||
              next_state == ClientState::kDisconnected;
     case ClientState::kSettings:
+      if (settings_return_state_) {
+        return next_state == *settings_return_state_ ||
+               next_state == ClientState::kMainMenu ||
+               next_state == ClientState::kLobby ||
+               next_state == ClientState::kPaused ||
+               next_state == ClientState::kInGame;
+      }
       return next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kLobby;
+             next_state == ClientState::kLobby ||
+             next_state == ClientState::kPaused ||
+             next_state == ClientState::kInGame;
     case ClientState::kConnecting:
       return next_state == ClientState::kInGame ||
              next_state == ClientState::kDisconnected ||
@@ -715,6 +745,7 @@ bool Application::IsTransitionAllowed(ClientState next_state) const {
              next_state == ClientState::kDisconnected;
     case ClientState::kPaused:
       return next_state == ClientState::kInGame ||
+             next_state == ClientState::kSettings ||
              next_state == ClientState::kGameOver ||
              next_state == ClientState::kMainMenu ||
              next_state == ClientState::kDisconnected;

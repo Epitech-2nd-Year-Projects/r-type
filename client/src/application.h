@@ -106,6 +106,10 @@ class Application {
   void OnQuitToMenu();
   void OnQuitApplication();
   void OnOpenSettings();
+  /**
+   * @brief Return from settings to the previously saved state
+   */
+  void OnCloseSettings();
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
@@ -212,6 +216,7 @@ class Application {
   KeyBindings key_bindings_{KeyBindings::Default()};
   std::filesystem::path keybindings_path_{"config/keybindings.json"};
   ClientState state_{ClientState::kMainMenu};
+  std::optional<ClientState> settings_return_state_;
   std::string disconnect_reason_;
   GameOverStats last_game_stats_;
   JoinState last_join_state_{JoinState::kIdle};

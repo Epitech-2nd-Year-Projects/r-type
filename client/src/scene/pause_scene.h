@@ -2,10 +2,13 @@
 #define CLIENT_SCENE_PAUSE_SCENE_H_
 
 #include <memory>
+#include <vector>
 
 #include "scene.h"
 #include "engine/ui/canvas.h"
+#include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
+#include "ui/button.h"
 
 namespace client {
 
@@ -16,14 +19,27 @@ class PauseScene : public Scene {
   explicit PauseScene(Application& app);
 
   void Update(engine::time::TimeDelta dt) override;
- void Draw(engine::render::Renderer2D& renderer) override;
+  void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
+  /**
+   * @brief Build the pause menu widget tree
+   */
+  void BuildUi();
+  /**
+   * @brief Apply layout so widgets match the current window size
+   */
+  void LayoutUi(engine::render::Renderer2D& renderer);
+
   Application& app_;
   engine::ui::Canvas canvas_;
   std::shared_ptr<engine::ui::TextElement> title_;
-  std::shared_ptr<engine::ui::TextElement> resume_;
-  std::shared_ptr<engine::ui::TextElement> quit_;
+  std::shared_ptr<ui::Button> resume_button_;
+  std::shared_ptr<ui::Button> options_button_;
+  std::shared_ptr<ui::Button> quit_button_;
+  std::vector<std::shared_ptr<ui::Button>> menu_buttons_;
+  bool pause_toggle_pressed_{false};
+  bool confirm_pressed_{false};
 };
 
 }  // namespace client
