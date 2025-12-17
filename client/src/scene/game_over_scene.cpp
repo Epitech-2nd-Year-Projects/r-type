@@ -36,8 +36,7 @@ GameOverScene::GameOverScene(Application& app, const Stats& stats)
       engine::ui::FontSize::RelativeWidth(0.04f), kNormalColor);
 
   wave_level_text_ = std::make_shared<engine::ui::TextElement>(
-      "Level " + std::to_string(stats_.level) + " - Wave " +
-          std::to_string(stats_.wave),
+      "Wave " + std::to_string(stats_.wave),
       engine::ui::FontSize::RelativeWidth(0.03f), kNormalColor);
 
   menu_main_exit_ = std::make_shared<engine::ui::TextElement>(
