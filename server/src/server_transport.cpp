@@ -10,7 +10,8 @@ namespace {
 
 bool IsTransientError(const std::error_code& ec) {
   return ec == asio::error::would_block || ec == asio::error::try_again ||
-         ec == asio::error::interrupted;
+         ec == asio::error::interrupted ||
+         ec == asio::error::connection_reset;
 }
 
 }  // namespace
