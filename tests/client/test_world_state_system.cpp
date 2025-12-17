@@ -79,6 +79,42 @@ TEST(WorldStateSystemTest, AppliesCreateSnapshot) {
   EXPECT_EQ(hp->max, 7u);
 }
 
+TEST(WorldStateSystemTest, TracksPlayerStatsForPlayers) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  protocol::WorldSnapshotPayload snapshot{};
+  snapshot.snapshot_id = 1;
+  snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
+
+  protocol::EntityDelta delta{};
+  delta.op = protocol::EntityDeltaOp::kCreate;
+  delta.entity_id = 3;
+  delta.state.entity_id = 3;
+  delta.state.type = 1;
+  delta.state.x = 0;
+  delta.state.y = 0;
+  delta.state.vx = 0;
+  delta.state.vy = 0;
+  delta.state.hp = 5;
+  delta.state.player_id = 42;
+  delta.state.score = 250;
+  delta.state.lives = 2;
+  snapshot.deltas.push_back(delta);
+
+  ApplyAt(system, snapshot, 10);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 3);
+  ASSERT_LT(index, net.size());
+  const auto& player_states =
+      registry.GetComponents<client::ecs::PlayerStateComponent>()[index];
+  ASSERT_TRUE(player_states.has_value());
+  EXPECT_EQ(player_states->player_id, 42u);
+  EXPECT_EQ(player_states->score, 250u);
+  EXPECT_EQ(player_states->lives, 2u);
+}
+
 TEST(WorldStateSystemTest, AppliesUpdateAndTracksPreviousPosition) {
   engine::ecs::Registry registry;
   client::ecs::WorldStateSystem system(registry);
