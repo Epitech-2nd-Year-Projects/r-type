@@ -28,8 +28,10 @@ namespace client {
  */
 struct HudPlayerRow {
   std::uint32_t player_id{0};
-  std::uint32_t score{0};
-  std::uint32_t lives{0};
+  std::optional<std::uint32_t> score;
+  std::optional<std::uint32_t> lives;
+  std::optional<std::uint32_t> hp;
+  std::optional<std::uint32_t> max_hp;
   bool is_local{false};
   bool alive{false};
   bool is_ready{false};
@@ -52,12 +54,10 @@ class HudOverlay {
                      std::optional<std::uint32_t> local_player_id);
 
   /**
-   * @brief Update wave and level information for display
-   * @param level Current level number
+   * @brief Update wave information for display
    * @param wave Current wave number
    */
-  void UpdateWaveAndLevel(std::optional<std::uint32_t> level,
-                          std::optional<std::uint32_t> wave);
+  void UpdateWave(std::optional<std::uint32_t> wave);
 
   /**
    * @brief Update connection indicators
@@ -86,11 +86,6 @@ class HudOverlay {
   /**
    * @brief Current level when available
    */
-  std::optional<std::uint32_t> level() const { return current_level_; }
-
-  /**
-   * @brief Current wave when available
-   */
   std::optional<std::uint32_t> wave() const { return current_wave_; }
 
   /**
@@ -110,7 +105,6 @@ class HudOverlay {
 
  private:
   std::vector<HudPlayerRow> players_;
-  std::optional<std::uint32_t> current_level_{1u};
   std::optional<std::uint32_t> current_wave_{1u};
   std::optional<float> latency_ms_{};
   bool connected_{false};
