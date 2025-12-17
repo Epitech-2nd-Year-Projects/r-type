@@ -207,6 +207,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
   snapshot.snapshot_id = snapshot_id;
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.server_tick = server_tick;
+  snapshot.current_wave = logic_ ? logic_->State().current_wave : 0;
 
   auto& registry = World();
   auto& position = registry.GetComponents<engine::ecs::PositionComponent>();
@@ -270,6 +271,10 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       if (it != players_.end() && it->second.is_ready) {
         state.flags |= 2u;
       }
+      state.score = player_opt->get().score;
+      state.lives = static_cast<std::uint8_t>(
+          std::min<std::uint32_t>(player_opt->get().lives, 255u));
+      state.player_id = player_opt->get().player_id;
     }
     protocol::EntityDelta delta{};
     delta.op = protocol::EntityDeltaOp::kCreate;
