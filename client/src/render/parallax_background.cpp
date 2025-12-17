@@ -134,11 +134,12 @@ void ParallaxBackground::DrawLayer(const Layer& layer, float world_height) {
   const float scroll = scroll_position_ * layer.speed_multiplier;
 
   const auto view = camera_.GetViewRectWorld();
+  const float view_left = view.top_left_x_ * layer.parallax;
   const int start_tile_index = static_cast<int>(
-      std::floor((view.top_left_x_ + scroll) / spacing) - kTileBuffer);
+      std::floor((view_left + scroll) / spacing) - kTileBuffer);
   const int end_tile_index =
       static_cast<int>(
-          std::floor((view.top_left_x_ + view.width_ + scroll) / spacing)) +
+          std::floor((view_left + view.width_ + scroll) / spacing)) +
       kTileBuffer;
 
   const float available_vertical = std::max(world_height - tile_height, 0.0f);
