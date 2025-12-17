@@ -108,7 +108,13 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
 
   auto& health = registry_.GetComponents<HealthComponent>();
   const auto hp = delta.state.hp;
-  health[entity] = HealthComponent(hp, hp);
+  auto& target_hp = health[entity];
+  if (!target_hp.has_value()) {
+    target_hp = HealthComponent(hp, hp);
+  } else {
+    target_hp->max = std::max(target_hp->max, hp);
+    target_hp->current = hp;
+  }
 
   auto& player_states = registry_.GetComponents<PlayerStateComponent>();
   if (delta.state.type == kPlayerTypeCode) {

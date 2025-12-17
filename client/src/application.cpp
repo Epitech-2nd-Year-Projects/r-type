@@ -587,6 +587,7 @@ bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
 void Application::LoadKeyBindings() {
   KeyBindings bindings = KeyBindings::Default();
   if (!bindings.LoadFromFile(keybindings_path_)) {
+    LogLifecycle(engine::util::LogLevel::kDebug,
                  "Key bindings config not found, applying defaults");
   }
   key_bindings_ = std::move(bindings);
