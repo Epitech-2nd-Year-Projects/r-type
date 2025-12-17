@@ -87,8 +87,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
         (state.last_buttons & static_cast<std::uint8_t>(flag)) != 0;
     const bool is_set =
         (newest->get().buttons & static_cast<std::uint8_t>(flag)) != 0;
-    if (!logic_)
-      return;
+    if (!logic_) return;
     if (!was_pressed && is_set) {
       logic_->OnPlayerInput(player_id, event_type);
     } else if (was_pressed && !is_set) {
@@ -127,9 +126,8 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
                 " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
-std::optional<GameInstance::ReadyEvent>
-GameInstance::OnClientCommand(std::uint32_t player_id,
-                              const protocol::CommandPayload &command) {
+std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
+    std::uint32_t player_id, const protocol::CommandPayload &command) {
   auto it = players_.find(player_id);
   if (it == players_.end()) {
     logger_.Warn("[GameInstance] Command from unknown player: ", player_id);
@@ -140,16 +138,16 @@ GameInstance::OnClientCommand(std::uint32_t player_id,
   bool target_ready = it->second.is_ready;
 
   switch (cmd_type) {
-  case protocol::CommandType::kSetReady:
-    target_ready = true;
-    break;
-  case protocol::CommandType::kUnready:
-    target_ready = false;
-    break;
-  default:
-    logger_.Debug("[GameInstance] Unknown command from player ", player_id,
-                  ": ", command.command_id);
-    return std::nullopt;
+    case protocol::CommandType::kSetReady:
+      target_ready = true;
+      break;
+    case protocol::CommandType::kUnready:
+      target_ready = false;
+      break;
+    default:
+      logger_.Debug("[GameInstance] Unknown command from player ", player_id,
+                    ": ", command.command_id);
+      return std::nullopt;
   }
 
   if (it->second.is_ready == target_ready) {
@@ -197,20 +195,15 @@ std::uint16_t GameInstance::ResolveEntityType(
   if (!tag.has_value()) {
     return 0;
   }
-  if (tag->get().tag == "Enemy")
-    return 2;
-  if (tag->get().tag == "Missile")
-    return 3;
-  if (tag->get().tag == "Obstacle")
-    return 4;
-  if (tag->get().tag == "Powerup")
-    return 5;
+  if (tag->get().tag == "Enemy") return 2;
+  if (tag->get().tag == "Missile") return 3;
+  if (tag->get().tag == "Obstacle") return 4;
+  if (tag->get().tag == "Powerup") return 5;
   return 0;
 }
 
-protocol::WorldSnapshotPayload
-GameInstance::BuildWorldSnapshot(std::uint32_t snapshot_id,
-                                 std::uint32_t server_tick) {
+protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
+    std::uint32_t snapshot_id, std::uint32_t server_tick) {
   protocol::WorldSnapshotPayload snapshot{};
   snapshot.snapshot_id = snapshot_id;
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
@@ -315,4 +308,4 @@ bool GameInstance::CheckStartCondition() const {
   return true;
 }
 
-} // namespace server
+}  // namespace server
