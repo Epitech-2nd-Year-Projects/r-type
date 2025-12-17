@@ -19,6 +19,7 @@
 
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
+#include "engine/render/color.h"
 
 namespace client::ecs {
 
@@ -95,6 +96,7 @@ struct SpriteComponent {
   bool visible{true};                      ///< Whether to draw the sprite.
   bool flip_x{false};                      ///< Flip horizontally.
   bool flip_y{false};                      ///< Flip vertically.
+  engine::render::Color tint{engine::render::Color::White()};  ///< Color tint.
 
   SpriteComponent() = default;
   explicit SpriteComponent(std::string id) : texture_id(std::move(id)) {}

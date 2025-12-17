@@ -67,9 +67,41 @@ SpriteDefinition ObstacleDefinition(
                         0.0f, false);
 }
 
-SpriteDefinition DefaultPlayer() {
+SpriteDefinition DefaultPlayer(std::uint32_t player_id) {
+  if (player_id < 4) {
+    std::uint8_t r = 255, g = 255, b = 255;
+    switch (player_id) {
+      case 0:
+        r = 0;
+        g = 255;
+        b = 255;
+        break;
+      case 1:
+        r = 255;
+        g = 60;
+        b = 60;
+        break;
+      case 2:
+        r = 60;
+        g = 255;
+        b = 60;
+        break;
+      case 3:
+        r = 255;
+        g = 255;
+        b = 0;
+        break;
+    }
+    return MakeDefinition("assets/sprites/player.png", 26.0f, 21.0f, 10, 0.0f,
+                          false, engine::render::Color::FromBytes(r, g, b));
+  }
+
+  std::uint32_t hash = player_id * 2654435761u;
+  std::uint8_t r = 128 + ((hash >> 0) & 0x7F);
+  std::uint8_t g = 128 + ((hash >> 8) & 0x7F);
+  std::uint8_t b = 128 + ((hash >> 16) & 0x7F);
   return MakeDefinition("assets/sprites/player.png", 26.0f, 21.0f, 10, 0.0f,
-                        false);
+                        false, engine::render::Color::FromBytes(r, g, b));
 }
 
 engine::render::RenderLayer ResolveRenderLayer(std::int32_t value) {
@@ -206,6 +238,7 @@ void RenderSystem::SyncSprite(std::size_t index,
     sprite =
         ecs::SpriteComponent(definition.texture_id, definition.source_rect);
     sprite->flip_x = definition.face_left;
+    sprite->tint = definition.tint;
   } else {
     if (sprite->texture_id.empty()) {
       sprite->texture_id = definition.texture_id;
@@ -215,6 +248,10 @@ void RenderSystem::SyncSprite(std::size_t index,
       sprite->source_rect = definition.source_rect;
     }
     sprite->flip_x = definition.face_left;
+    // We only update tint if it's white (default), to allow persistent colors
+    // if needed, or we can force update it. Since DefaultPlayer() is
+    // deterministic, force update is safe.
+    sprite->tint = definition.tint;
   }
   sprite->visible = true;
 
@@ -236,7 +273,7 @@ std::optional<RenderSystem::SpriteDefinition> RenderSystem::ResolveDefinition(
     std::size_t entity_index) const {
   switch (net.type_code) {
     case kPlayerTypeCode:
-      return DefaultPlayer();
+      return DefaultPlayer(net.network_id);
     case kEnemyTypeCode:
       return ResolveEnemy(health, velocity, entity_index);
     case kMissileTypeCode:
@@ -329,7 +366,8 @@ engine::render::SpriteDrawParams RenderSystem::BuildParams(
   params.source = source;
   params.scale = ComputeScale(*texture, source);
   params.rotation = 0.0f;
-  params.tint = engine::render::Color::White();
+  params.rotation = 0.0f;
+  params.tint = sprite.tint;
   return params;
 }
 
