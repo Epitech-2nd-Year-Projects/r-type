@@ -27,7 +27,7 @@ namespace client::ecs {
  * demand, and submits draw commands sorted by layer and depth.
  */
 class RenderSystem {
-public:
+ public:
   struct SpriteDefinition {
     std::string texture_id;
     engine::math::RectF source_rect;
@@ -60,32 +60,32 @@ public:
 
   void SetDebugHitboxes(bool enabled) noexcept { debug_hitboxes_ = enabled; }
 
-private:
+ private:
   void RegisterComponents();
   void SyncSprite(std::size_t index, const SpriteDefinition &definition,
                   const std::optional<ecs::HealthComponent> &health,
                   const std::optional<ecs::VelocityComponent> &velocity);
-  std::optional<SpriteDefinition>
-  ResolveDefinition(const ecs::NetworkedEntityComponent &net,
-                    const std::optional<ecs::HealthComponent> &health,
-                    const std::optional<ecs::VelocityComponent> &velocity,
-                    std::size_t entity_index) const;
-  SpriteDefinition
-  ResolveEnemy(const std::optional<ecs::HealthComponent> &health,
-               const std::optional<ecs::VelocityComponent> &velocity,
-               std::size_t entity_index) const;
-  SpriteDefinition
-  ResolveMissile(const std::optional<ecs::VelocityComponent> &velocity) const;
-  SpriteDefinition
-  ResolveObstacle(const std::optional<ecs::HealthComponent> &health) const;
+  std::optional<SpriteDefinition> ResolveDefinition(
+      const ecs::NetworkedEntityComponent &net,
+      const std::optional<ecs::HealthComponent> &health,
+      const std::optional<ecs::VelocityComponent> &velocity,
+      std::size_t entity_index) const;
+  SpriteDefinition ResolveEnemy(
+      const std::optional<ecs::HealthComponent> &health,
+      const std::optional<ecs::VelocityComponent> &velocity,
+      std::size_t entity_index) const;
+  SpriteDefinition ResolveMissile(
+      const std::optional<ecs::VelocityComponent> &velocity) const;
+  SpriteDefinition ResolveObstacle(
+      const std::optional<ecs::HealthComponent> &health) const;
   SpriteDefinition ResolvePowerup() const;
-  engine::render::SpriteDrawParams
-  BuildParams(const ecs::PositionComponent &position,
-              const ecs::SpriteComponent &sprite,
-              const ecs::RenderLayerComponent &layer,
-              const std::optional<ecs::VelocityComponent> &velocity,
-              std::uint16_t type_code, bool default_face_left,
-              const std::shared_ptr<engine::render::Texture2D> &texture) const;
+  engine::render::SpriteDrawParams BuildParams(
+      const ecs::PositionComponent &position,
+      const ecs::SpriteComponent &sprite,
+      const ecs::RenderLayerComponent &layer,
+      const std::optional<ecs::VelocityComponent> &velocity,
+      std::uint16_t type_code, bool default_face_left,
+      const std::shared_ptr<engine::render::Texture2D> &texture) const;
   engine::math::RectF ApplyFlip(const engine::math::RectF &base, bool flip_x,
                                 bool flip_y) const;
   engine::math::Vector2f ComputeScale(const engine::render::Texture2D &texture,
@@ -103,6 +103,6 @@ private:
   bool debug_hitboxes_{false};
 };
 
-} // namespace client::ecs
+}  // namespace client::ecs
 
-#endif // CLIENT_ECS_RENDER_SYSTEM_H_
+#endif  // CLIENT_ECS_RENDER_SYSTEM_H_
