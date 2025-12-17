@@ -81,6 +81,7 @@ TEST(HudOverlayTest, AliveFlagReflectsHealthChanges) {
   registry.RegisterComponent<client::ecs::NetworkedEntityComponent>();
   registry.RegisterComponent<client::ecs::HealthComponent>();
 
+  registry.RegisterComponent<client::ecs::PlayerStateComponent>();
   auto entity = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 42u,
                                                                    1u, 1u);
