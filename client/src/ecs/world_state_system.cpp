@@ -9,6 +9,7 @@ namespace client::ecs {
 namespace {
 
 constexpr float kQuantizationScale = 1.0f;
+constexpr std::uint16_t kPlayerTypeCode = 1u;
 
 }  // namespace
 
@@ -24,6 +25,7 @@ void WorldStateSystem::RegisterComponents() {
   registry_.RegisterComponent<SpriteComponent>();
   registry_.RegisterComponent<RenderLayerComponent>();
   registry_.RegisterComponent<HealthComponent>();
+  registry_.RegisterComponent<PlayerStateComponent>();
   registry_.RegisterComponent<PlayerTag>();
   registry_.RegisterComponent<EnemyTag>();
   registry_.RegisterComponent<MissileTag>();
@@ -108,6 +110,12 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   const auto hp = delta.state.hp;
   health[entity] = HealthComponent(hp, hp);
 
+  auto& player_states = registry_.GetComponents<PlayerStateComponent>();
+  if (delta.state.type == kPlayerTypeCode) {
+    player_states[entity] = PlayerStateComponent(
+        delta.state.player_id, delta.state.score, delta.state.lives);
+  }
+
   auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
   snapshots[entity] = SnapshotInterpolationComponent(receipt_timestamp_ms,
                                                      receipt_timestamp_ms);
@@ -124,6 +132,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                           : it->second;
   auto& net = registry_.GetComponents<NetworkedEntityComponent>();
   auto& net_comp = net[entity];
+  auto& player_states = registry_.GetComponents<PlayerStateComponent>();
   const std::uint32_t last_applied =
       net_comp.has_value() ? net_comp->last_snapshot : 0u;
   if (!created && last_applied >= snapshot_id) {
@@ -141,6 +150,11 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     net_comp->flags = delta.state.flags;
   }
   net_comp->last_snapshot = snapshot_id;
+
+  const bool is_player_type =
+      (delta.field_mask & protocol::EntityFieldMask::kFieldType)
+          ? delta.state.type == kPlayerTypeCode
+          : net_comp->type_code == kPlayerTypeCode;
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldX ||
       delta.field_mask & protocol::EntityFieldMask::kFieldY) {
@@ -196,6 +210,26 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
       hp->current = delta.state.hp;
       hp->max = std::max(hp->max, delta.state.hp);
     }
+  }
+
+  if (is_player_type) {
+    auto& player_state = player_states[entity];
+    if (!player_state.has_value()) {
+      player_state = PlayerStateComponent(delta.state.player_id,
+                                          delta.state.score, delta.state.lives);
+    }
+    if (delta.field_mask & protocol::EntityFieldMask::kFieldScore) {
+      player_state->score = delta.state.score;
+    }
+    if (delta.field_mask & protocol::EntityFieldMask::kFieldLives) {
+      player_state->lives = delta.state.lives;
+    }
+    if (delta.field_mask & protocol::EntityFieldMask::kFieldPlayerId) {
+      player_state->player_id = delta.state.player_id;
+    }
+  } else if (entity < player_states.size() &&
+             player_states[entity].has_value()) {
+    player_states[entity].reset();
   }
 
   auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
