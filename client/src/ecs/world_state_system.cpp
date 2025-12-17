@@ -132,11 +132,21 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
     }
   }
 
-  if (delta.state.type == 2u) {  // kEnemyTypeCode
+  if (delta.state.type == 2u) {
     std::vector<engine::math::RectF> frames;
     for (int i = 0; i < 5; ++i) {
       frames.emplace_back(0.0f, static_cast<float>(i * 29), 29.0f, 29.0f);
     }
+    auto& anims = registry_.GetComponents<AnimationComponent>();
+    if (!anims[entity].has_value()) {
+      anims[entity] = AnimationComponent(std::move(frames), 0.1f);
+    }
+  }
+
+  if (delta.state.type == 3u) {
+    std::vector<engine::math::RectF> frames;
+    frames.emplace_back(0.0f, 0.0f, 19.0f, 6.0f);
+    frames.emplace_back(0.0f, 6.0f, 19.0f, 6.0f);
     auto& anims = registry_.GetComponents<AnimationComponent>();
     if (!anims[entity].has_value()) {
       anims[entity] = AnimationComponent(std::move(frames), 0.1f);
