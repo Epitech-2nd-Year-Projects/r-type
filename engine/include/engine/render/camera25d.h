@@ -1,5 +1,5 @@
-#ifndef ENGINE_RENDER_CAMERA25D_H_
-#define ENGINE_RENDER_CAMERA25D_H_
+#ifndef ENGINE_RENDER_PARALLAX_CAMERA_H_
+#define ENGINE_RENDER_PARALLAX_CAMERA_H_
 
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
@@ -8,21 +8,22 @@
 namespace engine::render {
 
 /**
- * @class Camera25D
- * @brief Side-scrolling camera mapping world space to screen pixels
+ * @class ParallaxCamera
+ * @brief Side-scrolling camera mapping world space to screen pixels with
+ * parallax
  *
  * @details
  * Maintains a fixed vertical range and converts world positions into screen
  * space using the active viewport size and per-layer parallax factors
  */
-class Camera25D {
+class ParallaxCamera {
  public:
   /**
    * @brief Construct a camera with a 1x1 viewport and unit world height
    */
-  Camera25D() noexcept;
-  Camera25D(const math::Vector2f& viewport_size, float vertical_min,
-            float vertical_max) noexcept;
+  ParallaxCamera() noexcept;
+  ParallaxCamera(const math::Vector2f& viewport_size, float vertical_min,
+                 float vertical_max) noexcept;
 
   /**
    * @brief Set viewport size in pixels used for projections
@@ -88,4 +89,4 @@ class Camera25D {
 
 }  // namespace engine::render
 
-#endif  // ENGINE_RENDER_CAMERA25D_H_
+#endif  // ENGINE_RENDER_PARALLAX_CAMERA_H_
