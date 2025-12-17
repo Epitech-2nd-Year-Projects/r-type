@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "engine/math/vector2.h"
-#include "engine/render/camera25d.h"
+#include "engine/render/parallax_camera.h"
 #include "engine/render/color.h"
 #include "engine/render/renderer2d.h"
 #include "engine/time/time_delta.h"

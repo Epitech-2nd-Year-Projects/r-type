@@ -1,4 +1,4 @@
-#include "engine/render/camera25d.h"
+#include "engine/render/parallax_camera.h"
 
 #include <algorithm>
 
