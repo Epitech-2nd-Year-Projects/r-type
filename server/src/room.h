@@ -125,6 +125,11 @@ class Room {
   const std::string& Password() const;
 
   /**
+   * @brief Whether the room has already started gameplay.
+   */
+  bool HasStarted() const;
+
+  /**
    * @brief Returns the deterministic seed used by the room.
    */
   std::uint32_t Seed() const;
@@ -160,6 +165,7 @@ class Room {
   std::uint32_t next_snapshot_id_{1};
   std::uint32_t room_tick_{0};
   std::uint32_t last_active_ms_{0};
+  bool started_{false};
   std::unordered_set<std::uint32_t> players_;
   std::unique_ptr<GameInstance> game_instance_;
   protocol::SnapshotHistory snapshot_history_;
