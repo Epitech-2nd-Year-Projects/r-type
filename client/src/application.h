@@ -9,25 +9,26 @@
 
 #include "audio_manager.h"
 #include "client_config.h"
+#include "debug_overlay.h"
+#include "ecs/animation_system.h"
 #include "ecs/interpolation_system.h"
 #include "ecs/render_system.h"
 #include "ecs/world_state_system.h"
-#include "engine/ecs/registry.h"
 #include "engine/core/engine_runtime.h"
+#include "engine/ecs/registry.h"
 #include "engine/time/time_delta.h"
 #include "input_layer.h"
 #include "input_sender.h"
 #include "join_flow.h"
 #include "key_bindings.h"
-#include "network_transport.h"
 #include "local_prediction.h"
+#include "network_transport.h"
 #include "render/parallax_background.h"
 #include "room_directory_client.h"
 #include "scene/lobby_scene.h"
 #include "scene/scene.h"
 #include "sound_effects.h"
 #include "world_update_receiver.h"
-#include "debug_overlay.h"
 
 namespace client {
 
@@ -78,9 +79,7 @@ class Application {
   /**
    * @brief Update connection configuration.
    */
-  void SetConnectionConfig(std::string host,
-                           int port,
-                           std::string player_name,
+  void SetConnectionConfig(std::string host, int port, std::string player_name,
                            std::string room_code,
                            std::string room_password = {});
 
@@ -113,7 +112,9 @@ class Application {
 
   JoinFlow& GetJoinFlow() { return join_flow_; }
   NetworkTransport& GetTransport() { return *transport_; }
-  WorldUpdateReceiver& GetWorldUpdateReceiver() { return world_update_receiver_; }
+  WorldUpdateReceiver& GetWorldUpdateReceiver() {
+    return world_update_receiver_;
+  }
   /**
    * @brief Latest measured latency in milliseconds
    */
@@ -158,12 +159,9 @@ class Application {
   /**
    * @brief Ask the server to create a room.
    */
-  void CreateRoom(std::string host,
-                  std::uint16_t port,
-                  const std::string& room_name,
-                  bool is_private,
-                  std::string room_password,
-                  std::uint16_t max_players);
+  void CreateRoom(std::string host, std::uint16_t port,
+                  const std::string& room_name, bool is_private,
+                  std::string room_password, std::uint16_t max_players);
 
   /**
    * @brief Read-only access to the current room directory snapshot.
@@ -208,6 +206,7 @@ class Application {
   std::unique_ptr<engine::core::EngineRuntime> engine_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
+  std::unique_ptr<ecs::AnimationSystem> animation_system_;
   std::unique_ptr<ecs::InterpolationSystem> interpolation_system_;
   std::unique_ptr<ecs::RenderSystem> render_system_;
   std::unique_ptr<InputLayer> input_layer_;
