@@ -10,6 +10,19 @@ R-Type is a modern, multiplayer implementation of the classic horizontal shoot-'
 
 - **C++ Compiler**: C++23 compliant (GCC 13+, Clang 16+, MSVC).
 - **Xmake**: Build system.
+  <details>
+  <summary>Click to see installation instructions</summary>
+
+  #### Linux / macOS
+  ```bash
+  curl -fsSL https://xmake.io/shget.text | bash
+  ```
+  
+  #### Windows (Powershell)
+  ```powershell
+  Invoke-Expression (Invoke-WebRequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
+  ```
+  </details>
 
 **Note:** If Xmake fails to compile, try deleting the `xmake-requires.lock` file to update repository hashes.
 
