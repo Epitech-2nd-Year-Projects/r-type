@@ -614,6 +614,11 @@ bool Application::SaveKeyBindings() {
 void Application::HandleReconnectInput(JoinState join_state) {
   const bool request =
       input_layer_ ? input_layer_->ConsumeReconnectRequest() : false;
+
+  if (current_scene_ && current_scene_->IsInputCaptured()) {
+    return;
+  }
+
   if (request) {
     reconnect_requested_ = true;
   }
