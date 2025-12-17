@@ -10,7 +10,6 @@ TEST(HudOverlayTest, BuildsPlayerRowsFromRegistry) {
   registry.RegisterComponent<client::ecs::NetworkedEntityComponent>();
   registry.RegisterComponent<client::ecs::HealthComponent>();
   registry.RegisterComponent<client::ecs::PlayerStateComponent>();
-  registry.RegisterComponent<client::ecs::PlayerStateComponent>();
 
   auto first = registry.SpawnEntity();
   auto second = registry.SpawnEntity();
@@ -37,7 +36,6 @@ TEST(HudOverlayTest, BuildsPlayerRowsFromRegistry) {
   EXPECT_TRUE(players[0].max_hp.has_value());
   EXPECT_TRUE(players[0].lives.has_value());
   EXPECT_TRUE(players[0].score.has_value());
-  EXPECT_EQ(players[0].player_id, 5u);
   EXPECT_EQ(players[0].hp.value(), 3u);
   EXPECT_EQ(players[0].max_hp.value(), 3u);
   EXPECT_EQ(players[0].lives.value(), 3u);

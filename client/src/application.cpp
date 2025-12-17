@@ -149,7 +149,6 @@ int Application::Run() {
                            std::to_string(config_.timeout_ms));
 
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
-  LogLifecycle(engine::util::LogLevel::kDebug, "Entering main loop");
   ApplyState(ClientState::kMainMenu);
   CommitSceneChange();
 
@@ -211,6 +210,7 @@ void Application::OnGameOver(const GameOverStats& stats) {
         world_registry_
             ? world_registry_->GetComponents<ecs::PlayerStateComponent>()
             : engine::ecs::SparseArray<ecs::PlayerStateComponent>();
+    bool found_score = false;
     for (std::size_t i = 0; i < net.size(); ++i) {
       if (!net[i].has_value()) {
         continue;
@@ -218,10 +218,11 @@ void Application::OnGameOver(const GameOverStats& stats) {
       if (i < player_states.size() && player_states[i].has_value() &&
           player_states[i]->player_id == local_id) {
         last_game_stats_.score = player_states[i]->score;
+        found_score = true;
         break;
       }
     }
-    if (cached_local_score_.has_value()) {
+    if (!found_score && cached_local_score_.has_value()) {
       last_game_stats_.score = *cached_local_score_;
     }
   }
@@ -251,16 +252,8 @@ void Application::UpdateLocalPlayerCache() {
       continue;
     }
     cached_local_score_ = player_states[i]->score;
-    std::ostringstream msg;
-    msg << "[HUD] Cached local player " << local_id
-        << " score=" << cached_local_score_.value();
-    LogLifecycle(engine::util::LogLevel::kDebug, msg.str());
     return;
   }
-  std::ostringstream msg;
-  msg << "[HUD] Local player " << local_id
-      << " not found in registry for cache";
-  LogLifecycle(engine::util::LogLevel::kDebug, msg.str());
 }
 
 void Application::OnDisconnect(std::string reason) {
@@ -594,7 +587,6 @@ bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
 void Application::LoadKeyBindings() {
   KeyBindings bindings = KeyBindings::Default();
   if (!bindings.LoadFromFile(keybindings_path_)) {
-    LogLifecycle(engine::util::LogLevel::kDebug,
                  "Key bindings config not found, applying defaults");
   }
   key_bindings_ = std::move(bindings);
