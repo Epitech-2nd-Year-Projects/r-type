@@ -6,6 +6,6 @@
         "drop_probability": 1.0,
         "sprite_width": 16,
         "sprite_height": 16,
-        "texture_path": "assets/powerup_health.png"
+        "texture_path": "assets/sprites/powerup_green.png"
     }
 }

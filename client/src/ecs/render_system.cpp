@@ -22,6 +22,7 @@ constexpr std::uint16_t kPlayerTypeCode = 1u;
 constexpr std::uint16_t kEnemyTypeCode = 2u;
 constexpr std::uint16_t kMissileTypeCode = 3u;
 constexpr std::uint16_t kObstacleTypeCode = 4u;
+constexpr std::uint16_t kPowerupTypeCode = 5u;
 constexpr std::int32_t kBackgroundLayerMax = 2;
 constexpr std::int32_t kForegroundLayerMin = 9;
 constexpr std::int32_t kMissileRenderLayer = 8;
@@ -32,34 +33,36 @@ constexpr float kDefaultObstacleSize =
 constexpr float kInterceptorSpeedThreshold = 170.0f;
 constexpr float kInterceptorVerticalThreshold = 15.0f;
 
-SpriteDefinition MakeDefinition(std::string_view texture, float width,
-                                float height, std::int32_t layer, float depth,
-                                bool face_left) {
+SpriteDefinition MakeDefinition(
+    std::string_view texture, float width, float height, std::int32_t layer,
+    float depth, bool face_left,
+    engine::render::Color tint = engine::render::Color::White()) {
   SpriteDefinition def{};
   def.texture_id = texture;
   def.source_rect = engine::math::RectF(0.0f, 0.0f, width, height);
   def.layer = layer;
   def.depth = depth;
   def.face_left = face_left;
+  def.tint = tint;
   return def;
 }
 
 SpriteDefinition EnemyDefinition(
-    const game_logic::entities::EnemyArchetypeData& data, float depth) {
+    const game_logic::entities::EnemyArchetypeData &data, float depth) {
   return MakeDefinition(data.texture_path, data.sprite_width,
                         data.sprite_height, game_logic::kEnemyLayer, depth,
                         true);
 }
 
 SpriteDefinition MissileDefinition(
-    const game_logic::entities::MissileArchetypeData& data, bool face_left) {
+    const game_logic::entities::MissileArchetypeData &data, bool face_left) {
   return MakeDefinition(data.texture_path, data.sprite_width,
                         data.sprite_height, kMissileRenderLayer, 0.0f,
                         face_left);
 }
 
 SpriteDefinition ObstacleDefinition(
-    const game_logic::entities::ObstacleArchetypeData& data) {
+    const game_logic::entities::ObstacleArchetypeData &data) {
   const float size = kDefaultObstacleSize * data.hitbox_scale;
   return MakeDefinition(data.texture_path, size, size, kObstacleRenderLayer,
                         0.0f, false);
@@ -82,8 +85,8 @@ engine::render::RenderLayer ResolveRenderLayer(std::int32_t value) {
 
 }  // namespace
 
-RenderSystem::RenderSystem(engine::ecs::Registry& registry,
-                           engine::render::Renderer2D& renderer)
+RenderSystem::RenderSystem(engine::ecs::Registry &registry,
+                           engine::render::Renderer2D &renderer)
     : registry_(registry), renderer_(renderer) {
   RegisterComponents();
 }
@@ -106,13 +109,13 @@ void RenderSystem::Reset() {
 void RenderSystem::Render() {
   draw_queue_.clear();
 
-  auto& sprites = registry_.GetComponents<ecs::SpriteComponent>();
-  auto& layers = registry_.GetComponents<ecs::RenderLayerComponent>();
-  const auto& positions = registry_.GetComponents<ecs::PositionComponent>();
-  const auto& nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
-  const auto& velocities = registry_.GetComponents<ecs::VelocityComponent>();
-  const auto& healths = registry_.GetComponents<ecs::HealthComponent>();
-  const auto& hitboxes =
+  auto &sprites = registry_.GetComponents<ecs::SpriteComponent>();
+  auto &layers = registry_.GetComponents<ecs::RenderLayerComponent>();
+  const auto &positions = registry_.GetComponents<ecs::PositionComponent>();
+  const auto &nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
+  const auto &velocities = registry_.GetComponents<ecs::VelocityComponent>();
+  const auto &healths = registry_.GetComponents<ecs::HealthComponent>();
+  const auto &hitboxes =
       registry_.GetComponents<engine::ecs::BoundingBoxComponent>();
 
   const std::size_t count = positions.size();
@@ -158,13 +161,13 @@ void RenderSystem::Render() {
   }
 
   std::sort(draw_queue_.begin(), draw_queue_.end(),
-            [](const DrawCommand& a, const DrawCommand& b) {
+            [](const DrawCommand &a, const DrawCommand &b) {
               if (a.layer != b.layer) return a.layer < b.layer;
               if (a.depth != b.depth) return a.depth < b.depth;
               return a.entity_index < b.entity_index;
             });
 
-  for (const auto& cmd : draw_queue_) {
+  for (const auto &cmd : draw_queue_) {
     renderer_.DrawTexture(*cmd.texture, cmd.params);
   }
 
@@ -182,8 +185,8 @@ void RenderSystem::Render() {
       if (i >= hitboxes.size() || !hitboxes[i].has_value()) {
         continue;
       }
-      const auto& pos = positions[i]->render_position;
-      const auto& bounds = hitboxes[i]->bounds;
+      const auto &pos = positions[i]->render_position;
+      const auto &bounds = hitboxes[i]->bounds;
       const engine::math::RectF rect{pos.x + bounds.top_left_x_,
                                      pos.y + bounds.top_left_y_, bounds.width_,
                                      bounds.height_};
@@ -192,14 +195,14 @@ void RenderSystem::Render() {
   }
 }
 
-void RenderSystem::SyncSprite(
-    std::size_t index, const SpriteDefinition& definition,
-    const std::optional<ecs::HealthComponent>& /*health*/,
-    const std::optional<ecs::VelocityComponent>& /*velocity*/) {
-  auto& sprites = registry_.GetComponents<ecs::SpriteComponent>();
-  auto& layers = registry_.GetComponents<ecs::RenderLayerComponent>();
+void RenderSystem::SyncSprite(std::size_t index,
+                              const SpriteDefinition &definition,
+                              const std::optional<ecs::HealthComponent> &,
+                              const std::optional<ecs::VelocityComponent> &) {
+  auto &sprites = registry_.GetComponents<ecs::SpriteComponent>();
+  auto &layers = registry_.GetComponents<ecs::RenderLayerComponent>();
 
-  auto& sprite = sprites[index];
+  auto &sprite = sprites[index];
   if (!sprite.has_value()) {
     sprite =
         ecs::SpriteComponent(definition.texture_id, definition.source_rect);
@@ -218,7 +221,7 @@ void RenderSystem::SyncSprite(
   }
   sprite->visible = true;
 
-  auto& layer = layers[index];
+  auto &layer = layers[index];
   if (!layer.has_value()) {
     layer = ecs::RenderLayerComponent(definition.layer, definition.depth);
   } else {
@@ -230,9 +233,9 @@ void RenderSystem::SyncSprite(
 }
 
 std::optional<RenderSystem::SpriteDefinition> RenderSystem::ResolveDefinition(
-    const ecs::NetworkedEntityComponent& net,
-    const std::optional<ecs::HealthComponent>& health,
-    const std::optional<ecs::VelocityComponent>& velocity,
+    const ecs::NetworkedEntityComponent &net,
+    const std::optional<ecs::HealthComponent> &health,
+    const std::optional<ecs::VelocityComponent> &velocity,
     std::size_t entity_index) const {
   switch (net.type_code) {
     case kPlayerTypeCode:
@@ -243,14 +246,16 @@ std::optional<RenderSystem::SpriteDefinition> RenderSystem::ResolveDefinition(
       return ResolveMissile(velocity);
     case kObstacleTypeCode:
       return ResolveObstacle(health);
+    case kPowerupTypeCode:
+      return ResolvePowerup();
     default:
       return std::nullopt;
   }
 }
 
 RenderSystem::SpriteDefinition RenderSystem::ResolveEnemy(
-    const std::optional<ecs::HealthComponent>& health,
-    const std::optional<ecs::VelocityComponent>& velocity,
+    const std::optional<ecs::HealthComponent> &health,
+    const std::optional<ecs::VelocityComponent> &velocity,
     std::size_t entity_index) const {
   const auto hp =
       health.has_value() ? static_cast<std::uint32_t>(health->max) : 0u;
@@ -275,7 +280,7 @@ RenderSystem::SpriteDefinition RenderSystem::ResolveEnemy(
 }
 
 RenderSystem::SpriteDefinition RenderSystem::ResolveMissile(
-    const std::optional<ecs::VelocityComponent>& velocity) const {
+    const std::optional<ecs::VelocityComponent> &velocity) const {
   const float vx = velocity.has_value() ? velocity->velocity.x : 1.0f;
   const float speed = velocity.has_value() ? velocity->velocity.Length() : 0.0f;
 
@@ -293,19 +298,28 @@ RenderSystem::SpriteDefinition RenderSystem::ResolveMissile(
 }
 
 RenderSystem::SpriteDefinition RenderSystem::ResolveObstacle(
-    const std::optional<ecs::HealthComponent>& health) const {
+    const std::optional<ecs::HealthComponent> &health) const {
   if (health.has_value() && health->max == 0u) {
     return ObstacleDefinition(game_logic::entities::kWallData);
   }
   return ObstacleDefinition(game_logic::entities::kDestructibleBarrierData);
 }
 
+#include "game_logic/entities/powerup_data.h"
+
+RenderSystem::SpriteDefinition RenderSystem::ResolvePowerup() const {
+  return MakeDefinition(game_logic::entities::kHealthPotionData.texture_path,
+                        game_logic::entities::kHealthPotionData.sprite_width,
+                        game_logic::entities::kHealthPotionData.sprite_height,
+                        ::game_logic::kEnemyLayer, 0.5f, false);
+}
+
 engine::render::SpriteDrawParams RenderSystem::BuildParams(
-    const ecs::PositionComponent& position, const ecs::SpriteComponent& sprite,
-    const ecs::RenderLayerComponent& layer,
-    const std::optional<ecs::VelocityComponent>& velocity,
+    const ecs::PositionComponent &position, const ecs::SpriteComponent &sprite,
+    const ecs::RenderLayerComponent &layer,
+    const std::optional<ecs::VelocityComponent> &velocity,
     std::uint16_t type_code, bool default_face_left,
-    const std::shared_ptr<engine::render::Texture2D>& texture) const {
+    const std::shared_ptr<engine::render::Texture2D> &texture) const {
   engine::render::SpriteDrawParams params{};
   params.position = position.render_position;
   params.layer = ResolveRenderLayer(layer.layer);
@@ -322,7 +336,7 @@ engine::render::SpriteDrawParams RenderSystem::BuildParams(
   return params;
 }
 
-engine::math::RectF RenderSystem::ApplyFlip(const engine::math::RectF& base,
+engine::math::RectF RenderSystem::ApplyFlip(const engine::math::RectF &base,
                                             bool flip_x, bool flip_y) const {
   engine::math::RectF rect = base;
   if (flip_x) {
@@ -337,8 +351,8 @@ engine::math::RectF RenderSystem::ApplyFlip(const engine::math::RectF& base,
 }
 
 engine::math::Vector2f RenderSystem::ComputeScale(
-    const engine::render::Texture2D& texture,
-    const engine::math::RectF& source) const {
+    const engine::render::Texture2D &texture,
+    const engine::math::RectF &source) const {
   const engine::math::Vector2i size = texture.GetSize();
   const float width = std::abs(source.width_);
   const float height = std::abs(source.height_);
@@ -351,7 +365,7 @@ engine::math::Vector2f RenderSystem::ComputeScale(
 
 bool RenderSystem::ComputeFlipX(
     std::uint16_t type_code, bool default_left,
-    const std::optional<ecs::VelocityComponent>& velocity,
+    const std::optional<ecs::VelocityComponent> &velocity,
     bool sprite_flip) const {
   bool flip = sprite_flip || default_left;
   if (velocity.has_value()) {
@@ -369,7 +383,7 @@ bool RenderSystem::ComputeFlipX(
 }
 
 std::shared_ptr<engine::render::Texture2D> RenderSystem::LoadTexture(
-    const std::string& id) {
+    const std::string &id) {
   if (id.empty()) {
     return nullptr;
   }

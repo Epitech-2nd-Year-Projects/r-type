@@ -34,6 +34,7 @@ class RenderSystem {
     std::int32_t layer{0};
     float depth{0.0f};
     bool face_left{false};
+    engine::render::Color tint{engine::render::Color::White()};
   };
 
   struct DrawCommand {
@@ -44,8 +45,8 @@ class RenderSystem {
     std::size_t entity_index{0};
   };
 
-  RenderSystem(engine::ecs::Registry& registry,
-               engine::render::Renderer2D& renderer);
+  RenderSystem(engine::ecs::Registry &registry,
+               engine::render::Renderer2D &renderer);
 
   /**
    * @brief Clear cached textures and draw queue
@@ -61,41 +62,41 @@ class RenderSystem {
 
  private:
   void RegisterComponents();
-  void SyncSprite(std::size_t index, const SpriteDefinition& definition,
-                  const std::optional<ecs::HealthComponent>& health,
-                  const std::optional<ecs::VelocityComponent>& velocity);
+  void SyncSprite(std::size_t index, const SpriteDefinition &definition,
+                  const std::optional<ecs::HealthComponent> &health,
+                  const std::optional<ecs::VelocityComponent> &velocity);
   std::optional<SpriteDefinition> ResolveDefinition(
-      const ecs::NetworkedEntityComponent& net,
-      const std::optional<ecs::HealthComponent>& health,
-      const std::optional<ecs::VelocityComponent>& velocity,
+      const ecs::NetworkedEntityComponent &net,
+      const std::optional<ecs::HealthComponent> &health,
+      const std::optional<ecs::VelocityComponent> &velocity,
       std::size_t entity_index) const;
   SpriteDefinition ResolveEnemy(
-      const std::optional<ecs::HealthComponent>& health,
-      const std::optional<ecs::VelocityComponent>& velocity,
+      const std::optional<ecs::HealthComponent> &health,
+      const std::optional<ecs::VelocityComponent> &velocity,
       std::size_t entity_index) const;
   SpriteDefinition ResolveMissile(
-      const std::optional<ecs::VelocityComponent>& velocity) const;
+      const std::optional<ecs::VelocityComponent> &velocity) const;
   SpriteDefinition ResolveObstacle(
-      const std::optional<ecs::HealthComponent>& health) const;
+      const std::optional<ecs::HealthComponent> &health) const;
+  SpriteDefinition ResolvePowerup() const;
   engine::render::SpriteDrawParams BuildParams(
-      const ecs::PositionComponent& position, const ecs::SpriteComponent& sprite,
-      const ecs::RenderLayerComponent& layer,
-      const std::optional<ecs::VelocityComponent>& velocity,
+      const ecs::PositionComponent &position,
+      const ecs::SpriteComponent &sprite,
+      const ecs::RenderLayerComponent &layer,
+      const std::optional<ecs::VelocityComponent> &velocity,
       std::uint16_t type_code, bool default_face_left,
-      const std::shared_ptr<engine::render::Texture2D>& texture) const;
-  engine::math::RectF ApplyFlip(const engine::math::RectF& base, bool flip_x,
+      const std::shared_ptr<engine::render::Texture2D> &texture) const;
+  engine::math::RectF ApplyFlip(const engine::math::RectF &base, bool flip_x,
                                 bool flip_y) const;
-  engine::math::Vector2f ComputeScale(
-      const engine::render::Texture2D& texture,
-      const engine::math::RectF& source) const;
+  engine::math::Vector2f ComputeScale(const engine::render::Texture2D &texture,
+                                      const engine::math::RectF &source) const;
   bool ComputeFlipX(std::uint16_t type_code, bool default_left,
-                    const std::optional<ecs::VelocityComponent>& velocity,
+                    const std::optional<ecs::VelocityComponent> &velocity,
                     bool sprite_flip) const;
-  std::shared_ptr<engine::render::Texture2D> LoadTexture(
-      const std::string& id);
+  std::shared_ptr<engine::render::Texture2D> LoadTexture(const std::string &id);
 
-  engine::ecs::Registry& registry_;
-  engine::render::Renderer2D& renderer_;
+  engine::ecs::Registry &registry_;
+  engine::render::Renderer2D &renderer_;
   std::unordered_map<std::string, std::shared_ptr<engine::render::Texture2D>>
       textures_;
   std::vector<DrawCommand> draw_queue_;

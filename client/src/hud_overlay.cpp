@@ -71,16 +71,16 @@ engine::render::Color ConnectionColor(std::optional<float> latency_ms,
   return kProblemColor;
 }
 
-float MaxTextWidth(const std::vector<TextLine>& lines,
-                   engine::render::Renderer2D& renderer) {
+float MaxTextWidth(const std::vector<TextLine> &lines,
+                   engine::render::Renderer2D &renderer) {
   float width = 0.0f;
-  for (const auto& line : lines) {
+  for (const auto &line : lines) {
     width = std::max(width, renderer.MeasureText(line.text, line.font_size).x);
   }
   return width;
 }
 
-float PanelHeight(const std::vector<TextLine>& lines) {
+float PanelHeight(const std::vector<TextLine> &lines) {
   float height = kPanelPadding * 2.0f;
   for (std::size_t i = 0; i < lines.size(); ++i) {
     height += lines[i].font_size;
@@ -98,7 +98,7 @@ std::string FormatNumber(std::optional<std::uint32_t> value) {
   return std::to_string(*value);
 }
 
-std::string FormatHealth(const HudPlayerRow& row) {
+std::string FormatHealth(const HudPlayerRow &row) {
   if (!row.hp.has_value() || !row.max_hp.has_value()) {
     return "HP --/--";
   }
@@ -107,7 +107,7 @@ std::string FormatHealth(const HudPlayerRow& row) {
   return stream.str();
 }
 
-std::string FormatPlayerLine(const HudPlayerRow& row) {
+std::string FormatPlayerLine(const HudPlayerRow &row) {
   std::ostringstream stream;
   if (row.is_local) {
     stream << "> ";
@@ -141,13 +141,13 @@ std::string FormatPing(std::optional<float> latency_ms, bool connected) {
 
 }  // namespace
 
-void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
+void HudOverlay::UpdatePlayers(const engine::ecs::Registry &registry,
                                std::optional<std::uint32_t> local_player_id) {
   players_.clear();
 
-  const auto& net = registry.GetComponents<ecs::NetworkedEntityComponent>();
-  const auto& health = registry.GetComponents<ecs::HealthComponent>();
-  const auto& player_state =
+  const auto &net = registry.GetComponents<ecs::NetworkedEntityComponent>();
+  const auto &health = registry.GetComponents<ecs::HealthComponent>();
+  const auto &player_state =
       registry.GetComponents<ecs::PlayerStateComponent>();
   players_.reserve(net.size());
 
@@ -155,7 +155,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
     if (!net[i].has_value()) {
       continue;
     }
-    const auto& comp = net[i].value();
+    const auto &comp = net[i].value();
     if (comp.type_code != kPlayerTypeCode) {
       continue;
     }
@@ -191,7 +191,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
   }
 
   std::sort(players_.begin(), players_.end(),
-            [](const auto& lhs, const auto& rhs) {
+            [](const auto &lhs, const auto &rhs) {
               return lhs.player_id < rhs.player_id;
             });
 }
@@ -210,18 +210,18 @@ void HudOverlay::UpdateNetwork(std::optional<float> latency_ms, bool connected,
   }
 }
 
-void HudOverlay::Draw(engine::render::Renderer2D& renderer,
-                      const engine::math::Vector2i& window_size) const {
+void HudOverlay::Draw(engine::render::Renderer2D &renderer,
+                      const engine::math::Vector2i &window_size) const {
   const engine::math::Vector2f player_origin{kPanelMargin, kPanelMargin};
 
   std::vector<TextLine> player_lines;
   player_lines.push_back(
-      {"Wave " + FormatNumber(current_wave_), kHeaderFontSize, kHeaderColor});
+      {"Level " + FormatNumber(current_wave_), kHeaderFontSize, kHeaderColor});
 
   if (players_.empty()) {
     player_lines.push_back({"Waiting for players", kBodyFontSize, kMutedColor});
   } else {
-    for (const auto& row : players_) {
+    for (const auto &row : players_) {
       const engine::render::Color line_color =
           row.alive ? (row.is_local ? kLocalColor : kBodyColor) : kMutedColor;
       player_lines.push_back(
@@ -238,7 +238,7 @@ void HudOverlay::Draw(engine::render::Renderer2D& renderer,
 
   float y = player_origin.y + kPanelPadding;
   const float text_x = player_origin.x + kPanelPadding;
-  for (const auto& line : player_lines) {
+  for (const auto &line : player_lines) {
     renderer.DrawText(line.text, {text_x, y}, line.font_size, line.color);
     y += line.font_size + kLineSpacing;
   }
@@ -274,7 +274,7 @@ void HudOverlay::Draw(engine::render::Renderer2D& renderer,
 
   float network_y = network_origin.y + kPanelPadding;
   const float network_text_x = network_origin.x + kPanelPadding + text_indent;
-  for (const auto& line : network_lines) {
+  for (const auto &line : network_lines) {
     renderer.DrawText(line.text, {network_text_x, network_y}, line.font_size,
                       line.color);
     network_y += line.font_size + kLineSpacing;
