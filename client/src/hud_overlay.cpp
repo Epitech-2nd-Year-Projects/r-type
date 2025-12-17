@@ -98,6 +98,15 @@ std::string FormatNumber(std::optional<std::uint32_t> value) {
   return std::to_string(*value);
 }
 
+std::string FormatHealth(const HudPlayerRow& row) {
+  if (!row.hp.has_value() || !row.max_hp.has_value()) {
+    return "HP --/--";
+  }
+  std::ostringstream stream;
+  stream << "HP " << row.hp.value() << "/" << row.max_hp.value();
+  return stream.str();
+}
+
 std::string FormatPlayerLine(const HudPlayerRow& row) {
   std::ostringstream stream;
   if (row.is_local) {
@@ -105,8 +114,8 @@ std::string FormatPlayerLine(const HudPlayerRow& row) {
   } else {
     stream << "  ";
   }
-  stream << "P" << row.player_id << "  Score " << row.score << "  Lives "
-         << row.lives;
+  stream << "P" << row.player_id << "  " << FormatHealth(row) << "  Lives "
+         << FormatNumber(row.lives) << "  Score " << FormatNumber(row.score);
   if (!row.alive) {
     stream << " (down)";
   } else if (!row.is_ready) {
@@ -138,6 +147,8 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
 
   const auto& net = registry.GetComponents<ecs::NetworkedEntityComponent>();
   const auto& health = registry.GetComponents<ecs::HealthComponent>();
+  const auto& player_state =
+      registry.GetComponents<ecs::PlayerStateComponent>();
   players_.reserve(net.size());
 
   for (std::size_t i = 0; i < net.size(); ++i) {
@@ -150,12 +161,24 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
     }
     HudPlayerRow row;
     row.player_id = comp.network_id;
+    row.is_ready = (net[i]->flags & 2u) != 0;
+    if (i < player_state.size() && player_state[i].has_value()) {
+      if (player_state[i]->player_id != 0u) {
+        row.player_id = player_state[i]->player_id;
+      }
+      row.score = player_state[i]->score;
+      row.lives = static_cast<std::uint32_t>(player_state[i]->lives);
+    }
     row.is_local =
-        local_player_id.has_value() && comp.network_id == *local_player_id;
-    if (i < health.size() && health[i].has_value()) {
-      row.lives = static_cast<std::uint32_t>(health[i]->current);
+        local_player_id.has_value() && row.player_id == *local_player_id;
+    const bool has_health = i < health.size() && health[i].has_value();
+    if (has_health) {
+      row.hp = static_cast<std::uint32_t>(health[i]->current);
+      row.max_hp = static_cast<std::uint32_t>(health[i]->max);
       row.alive = health[i]->current > 0;
-      row.is_ready = (net[i]->flags & 2u) != 0;
+    }
+    if (!has_health && row.lives.has_value()) {
+      row.alive = *row.lives > 0;
     }
     players_.push_back(row);
   }
@@ -173,9 +196,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry& registry,
             });
 }
 
-void HudOverlay::UpdateWaveAndLevel(std::optional<std::uint32_t> level,
-                                    std::optional<std::uint32_t> wave) {
-  current_level_ = level;
+void HudOverlay::UpdateWave(std::optional<std::uint32_t> wave) {
   current_wave_ = wave;
 }
 
@@ -194,9 +215,8 @@ void HudOverlay::Draw(engine::render::Renderer2D& renderer,
   const engine::math::Vector2f player_origin{kPanelMargin, kPanelMargin};
 
   std::vector<TextLine> player_lines;
-  player_lines.push_back({"Level " + FormatNumber(current_level_) + "  Wave " +
-                              FormatNumber(current_wave_),
-                          kHeaderFontSize, kHeaderColor});
+  player_lines.push_back(
+      {"Wave " + FormatNumber(current_wave_), kHeaderFontSize, kHeaderColor});
 
   if (players_.empty()) {
     player_lines.push_back({"Waiting for players", kBodyFontSize, kMutedColor});
