@@ -15,7 +15,7 @@ namespace client {
 /**
  * @brief Animated parallax background composed of layered textures.
  *
- * Uses Camera25D to transform world-aligned quads into screen space with
+ * Uses ParallaxCamera to transform world-aligned quads into screen space with
  * per-layer parallax factors. Layers scroll horizontally based on engine time
  * to keep motion frame-rate independent.
  */
@@ -61,7 +61,7 @@ class ParallaxBackground {
   void DrawLayer(const Layer& layer, float world_height);
 
   engine::render::Renderer2D& renderer_;
-  engine::render::Camera25D camera_{};
+  engine::render::ParallaxCamera camera_{};
   std::vector<Layer> layers_;
   float scroll_position_{0.0f};
 };
