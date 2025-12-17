@@ -22,7 +22,7 @@ void WaveSystem::LoadLevel(int level_id) {
   waiting_for_next_level_ = false;
   level_finished_timer_ = 0.0f;
   game_instance_.State().current_level = static_cast<std::uint32_t>(level_id);
-  game_instance_.State().current_wave = 1u;
+  game_instance_.State().current_wave = static_cast<std::uint32_t>(level_id);
 
   try {
     const LevelConfig &level = GameConfig::Get().GetLevel(level_id);
