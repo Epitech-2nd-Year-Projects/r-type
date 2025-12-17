@@ -15,6 +15,9 @@ bool EncodeFullEntityState(const EntityNetState& state,
   buffer.WriteInt16(state.vy);
   buffer.WriteUint8(state.hp);
   buffer.WriteUint8(state.flags);
+  buffer.WriteUint32(state.score);
+  buffer.WriteUint8(state.lives);
+  buffer.WriteUint32(state.player_id);
   return true;
 }
 
@@ -27,10 +30,15 @@ bool DecodeFullEntityState(engine::net::PacketBuffer& buffer,
   std::int16_t vy = 0;
   std::uint8_t hp = 0;
   std::uint8_t flags = 0;
+  std::uint32_t score = 0;
+  std::uint8_t lives = 0;
+  std::uint32_t player_id = 0;
 
   if (!buffer.ReadUint16(type) || !buffer.ReadInt16(x) ||
       !buffer.ReadInt16(y) || !buffer.ReadInt16(vx) || !buffer.ReadInt16(vy) ||
-      !buffer.ReadUint8(hp) || !buffer.ReadUint8(flags)) {
+      !buffer.ReadUint8(hp) || !buffer.ReadUint8(flags) ||
+      !buffer.ReadUint32(score) || !buffer.ReadUint8(lives) ||
+      !buffer.ReadUint32(player_id)) {
     return false;
   }
   out_state.type = type;
@@ -40,6 +48,9 @@ bool DecodeFullEntityState(engine::net::PacketBuffer& buffer,
   out_state.vy = vy;
   out_state.hp = hp;
   out_state.flags = flags;
+  out_state.score = score;
+  out_state.lives = lives;
+  out_state.player_id = player_id;
   return true;
 }
 
@@ -55,6 +66,7 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
   buffer.WriteUint32(payload.snapshot_id);
   buffer.WriteUint32(payload.base_snapshot_id);
   buffer.WriteUint32(payload.server_tick);
+  buffer.WriteUint32(payload.current_wave);
 
   const std::uint16_t count = static_cast<std::uint16_t>(payload.deltas.size());
   buffer.WriteUint16(count);
@@ -74,8 +86,8 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
       }
 
       case EntityDeltaOp::kUpdate: {
-        const std::uint8_t mask = delta.field_mask;
-        buffer.WriteUint8(mask);
+        const std::uint16_t mask = delta.field_mask;
+        buffer.WriteUint16(mask);
 
         if (mask & kFieldType) {
           buffer.WriteUint16(delta.state.type);
@@ -98,6 +110,15 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
         if (mask & kFieldFlags) {
           buffer.WriteUint8(delta.state.flags);
         }
+        if (mask & kFieldScore) {
+          buffer.WriteUint32(delta.state.score);
+        }
+        if (mask & kFieldLives) {
+          buffer.WriteUint8(delta.state.lives);
+        }
+        if (mask & kFieldPlayerId) {
+          buffer.WriteUint32(delta.state.player_id);
+        }
         break;
       }
     }
@@ -113,16 +134,19 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
   std::uint32_t snapshot_id = 0;
   std::uint32_t base_snapshot_id = 0;
   std::uint32_t server_tick = 0;
+  std::uint32_t current_wave = 0;
   std::uint16_t count = 0;
 
   if (!buffer.ReadUint32(snapshot_id) || !buffer.ReadUint32(base_snapshot_id) ||
-      !buffer.ReadUint32(server_tick) || !buffer.ReadUint16(count)) {
+      !buffer.ReadUint32(server_tick) || !buffer.ReadUint32(current_wave) ||
+      !buffer.ReadUint16(count)) {
     return false;
   }
 
   result.snapshot_id = snapshot_id;
   result.base_snapshot_id = base_snapshot_id;
   result.server_tick = server_tick;
+  result.current_wave = current_wave;
   result.deltas.clear();
   result.deltas.reserve(count);
 
@@ -155,8 +179,8 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
       }
 
       case EntityDeltaOp::kUpdate: {
-        std::uint8_t mask = 0;
-        if (!buffer.ReadUint8(mask)) {
+        std::uint16_t mask = 0;
+        if (!buffer.ReadUint16(mask)) {
           return false;
         }
         delta.field_mask = mask;
@@ -209,6 +233,27 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
             return false;
           }
           state.flags = flags;
+        }
+        if (mask & kFieldScore) {
+          std::uint32_t score = 0;
+          if (!buffer.ReadUint32(score)) {
+            return false;
+          }
+          state.score = score;
+        }
+        if (mask & kFieldLives) {
+          std::uint8_t lives = 0;
+          if (!buffer.ReadUint8(lives)) {
+            return false;
+          }
+          state.lives = lives;
+        }
+        if (mask & kFieldPlayerId) {
+          std::uint32_t player_id = 0;
+          if (!buffer.ReadUint32(player_id)) {
+            return false;
+          }
+          state.player_id = player_id;
         }
         break;
       }
