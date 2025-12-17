@@ -8,7 +8,7 @@ namespace server {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
                            std::uint32_t max_players,
-                           engine::util::Logger& logger)
+                           engine::util::Logger &logger)
     : rng_(seed),
       logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
       logger_(logger) {}
@@ -42,8 +42,8 @@ void GameInstance::OnPlayerLeft(std::uint32_t player_id) {
 }
 
 void GameInstance::OnPlayerInput(std::uint32_t player_id,
-                                 const protocol::InputStatePayload& payload,
-                                 const protocol::Header& header) {
+                                 const protocol::InputStatePayload &payload,
+                                 const protocol::Header &header) {
   (void)header;
   auto it = players_.find(player_id);
   if (it == players_.end()) {
@@ -51,7 +51,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     return;
   }
 
-  PlayerState& state = it->second;
+  PlayerState &state = it->second;
 
   if (payload.command_count == 0 ||
       payload.command_count > protocol::kMaxInputSequenceHistory) {
@@ -64,7 +64,7 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   std::optional<std::reference_wrapper<const protocol::InputCommand>> newest;
 
   for (std::uint8_t i = 0; i < payload.command_count; ++i) {
-    const protocol::InputCommand& cmd = payload.commands[i];
+    const protocol::InputCommand &cmd = payload.commands[i];
 
     if (cmd.input_sequence <= state.last_applied_sequence) {
       continue;
@@ -87,7 +87,8 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
         (state.last_buttons & static_cast<std::uint8_t>(flag)) != 0;
     const bool is_set =
         (newest->get().buttons & static_cast<std::uint8_t>(flag)) != 0;
-    if (!logic_) return;
+    if (!logic_)
+      return;
     if (!was_pressed && is_set) {
       logic_->OnPlayerInput(player_id, event_type);
     } else if (was_pressed && !is_set) {
@@ -126,8 +127,9 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
                 " ax=", newest->get().analog_x, " ay=", newest->get().analog_y);
 }
 
-std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
-    std::uint32_t player_id, const protocol::CommandPayload& command) {
+std::optional<GameInstance::ReadyEvent>
+GameInstance::OnClientCommand(std::uint32_t player_id,
+                              const protocol::CommandPayload &command) {
   auto it = players_.find(player_id);
   if (it == players_.end()) {
     logger_.Warn("[GameInstance] Command from unknown player: ", player_id);
@@ -138,16 +140,16 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
   bool target_ready = it->second.is_ready;
 
   switch (cmd_type) {
-    case protocol::CommandType::kSetReady:
-      target_ready = true;
-      break;
-    case protocol::CommandType::kUnready:
-      target_ready = false;
-      break;
-    default:
-      logger_.Debug("[GameInstance] Unknown command from player ", player_id,
-                    ": ", command.command_id);
-      return std::nullopt;
+  case protocol::CommandType::kSetReady:
+    target_ready = true;
+    break;
+  case protocol::CommandType::kUnready:
+    target_ready = false;
+    break;
+  default:
+    logger_.Debug("[GameInstance] Unknown command from player ", player_id,
+                  ": ", command.command_id);
+    return std::nullopt;
   }
 
   if (it->second.is_ready == target_ready) {
@@ -175,7 +177,7 @@ std::optional<GameInstance::ReadyEvent> GameInstance::OnClientCommand(
   return evt;
 }
 
-void GameInstance::Update(const engine::time::TimeDelta& delta) {
+void GameInstance::Update(const engine::time::TimeDelta &delta) {
   if (phase_ == Phase::kLobby) {
     return;
   }
@@ -195,27 +197,33 @@ std::uint16_t GameInstance::ResolveEntityType(
   if (!tag.has_value()) {
     return 0;
   }
-  if (tag->get().tag == "Enemy") return 2;
-  if (tag->get().tag == "Missile") return 3;
-  if (tag->get().tag == "Obstacle") return 4;
+  if (tag->get().tag == "Enemy")
+    return 2;
+  if (tag->get().tag == "Missile")
+    return 3;
+  if (tag->get().tag == "Obstacle")
+    return 4;
+  if (tag->get().tag == "Powerup")
+    return 5;
   return 0;
 }
 
-protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
-    std::uint32_t snapshot_id, std::uint32_t server_tick) {
+protocol::WorldSnapshotPayload
+GameInstance::BuildWorldSnapshot(std::uint32_t snapshot_id,
+                                 std::uint32_t server_tick) {
   protocol::WorldSnapshotPayload snapshot{};
   snapshot.snapshot_id = snapshot_id;
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.server_tick = server_tick;
   snapshot.current_wave = logic_ ? logic_->State().current_wave : 0;
 
-  auto& registry = World();
-  auto& position = registry.GetComponents<engine::ecs::PositionComponent>();
-  auto& velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
-  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
-  auto& players =
+  auto &registry = World();
+  auto &position = registry.GetComponents<engine::ecs::PositionComponent>();
+  auto &velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
+  auto &tags = registry.GetComponents<engine::ecs::TagComponent>();
+  auto &players =
       registry.GetComponents<game_logic::components::PlayerComponent>();
-  auto& healths =
+  auto &healths =
       registry.GetComponents<game_logic::components::HealthComponent>();
 
   const std::size_t count = position.size();
@@ -225,7 +233,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
     if (!position[i].has_value()) {
       continue;
     }
-    const auto& pos = position[i].value().position;
+    const auto &pos = position[i].value().position;
     const auto vel_opt =
         (i < velocities.size() && velocities[i].has_value())
             ? std::optional<engine::math::Vector2f>(velocities[i]->velocity)
@@ -285,21 +293,21 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
   return snapshot;
 }
 
-engine::ecs::Registry& GameInstance::World() { return logic_->World(); }
+engine::ecs::Registry &GameInstance::World() { return logic_->World(); }
 
-const engine::ecs::Registry& GameInstance::World() const {
+const engine::ecs::Registry &GameInstance::World() const {
   return logic_->World();
 }
 
-game_logic::GameInstance& GameInstance::Logic() { return *logic_; }
+game_logic::GameInstance &GameInstance::Logic() { return *logic_; }
 
-const game_logic::GameInstance& GameInstance::Logic() const { return *logic_; }
+const game_logic::GameInstance &GameInstance::Logic() const { return *logic_; }
 
 bool GameInstance::CheckStartCondition() const {
   if (players_.size() < 1) {
     return false;
   }
-  for (const auto& [_, state] : players_) {
+  for (const auto &[_, state] : players_) {
     if (!state.is_ready) {
       return false;
     }
@@ -307,4 +315,4 @@ bool GameInstance::CheckStartCondition() const {
   return true;
 }
 
-}  // namespace server
+} // namespace server
