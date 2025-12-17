@@ -400,7 +400,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
                               join_state == JoinState::kConnected &&
                               state_ == ClientState::kInGame;
   if (should_predict) {
-    local_prediction_->Update(dt, input_layer_->state());
+    // local_prediction_->Update(dt, input_layer_->state());
   }
   if (interpolation_system_) {
     interpolation_system_->Update(dt);
