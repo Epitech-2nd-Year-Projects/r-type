@@ -130,6 +130,11 @@ class Application {
   bool UpdateKeyBinding(GameAction action, engine::input::Key key);
 
   /**
+   * @brief Latest wave number as reported by the server
+   */
+  std::optional<std::uint32_t> CurrentWave() const { return last_wave_; }
+
+  /**
    * @brief Access the mutable ECS world
    * @note Not thread-safe; call from the main/game thread
    */
@@ -193,6 +198,7 @@ class Application {
   void UpdateDebugOverlayState();
   std::size_t RenderableEntityCount() const;
   void CommitSceneChange();
+  void UpdateLocalPlayerCache();
 
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
@@ -225,6 +231,8 @@ class Application {
   bool reconnect_requested_{false};
   bool debug_toggle_pressed_{false};
   DebugOverlay debug_overlay_{};
+  std::optional<std::uint32_t> cached_local_score_{};
+  std::optional<std::uint32_t> last_wave_{1u};
 };
 
 }  // namespace client
