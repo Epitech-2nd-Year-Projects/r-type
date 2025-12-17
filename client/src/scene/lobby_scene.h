@@ -7,11 +7,11 @@
 #include <string>
 #include <vector>
 
-#include "scene.h"
 #include "../ui/button.h"
 #include "../ui/text_input.h"
 #include "../ui/ui_element.h"
 #include "protocol/lobby.h"
+#include "scene.h"
 
 namespace client {
 
@@ -23,6 +23,7 @@ class LobbyScene : public Scene {
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
+  bool IsInputCaptured() const override;
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
@@ -32,8 +33,7 @@ class LobbyScene : public Scene {
   void BuildModal();
   void ApplyModalLayout();
   void OpenJoinModal(const protocol::RoomSummary& room);
-  void JoinRoom(const protocol::RoomSummary& room,
-                const std::string& password);
+  void JoinRoom(const protocol::RoomSummary& room, const std::string& password);
 
   enum class ModalMode { kCreate, kJoinPrivate };
 

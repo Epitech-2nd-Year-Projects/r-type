@@ -28,6 +28,13 @@ class Scene {
    * @param renderer The 2D renderer to use
    */
   virtual void Draw(engine::render::Renderer2D& renderer) = 0;
+
+  /**
+   * @brief Check if the scene is currently capturing text input
+   * @return true if text input is active (e.g. typing in a field), preventing
+   * global hotkeys
+   */
+  virtual bool IsInputCaptured() const { return false; }
 };
 
 }  // namespace client

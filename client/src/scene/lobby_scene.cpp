@@ -557,4 +557,20 @@ void LobbyScene::ApplyModalLayout() {
   modal_cancel_button_->SetSize({160.0f, kButtonHeight});
 }
 
+bool LobbyScene::IsInputCaptured() const {
+  if (host_input_ && host_input_->IsFocused()) return true;
+  if (port_input_ && port_input_->IsFocused()) return true;
+  if (name_input_ && name_input_->IsFocused()) return true;
+
+  if (show_modal_) {
+    if (modal_room_name_input_ && modal_room_name_input_->IsFocused())
+      return true;
+    if (modal_max_players_input_ && modal_max_players_input_->IsFocused())
+      return true;
+    if (modal_password_input_ && modal_password_input_->IsFocused())
+      return true;
+  }
+  return false;
+}
+
 }  // namespace client
