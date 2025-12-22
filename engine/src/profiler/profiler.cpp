@@ -5,22 +5,32 @@
 namespace engine::profiler {
 
 void MetricHistory::Add(float value) {
-  values.push_back(value);
-  if (values.size() > max_samples) {
-    values.pop_front();
-  }
+  float popped_value = 0.0f;
+  bool popped = false;
 
-  if (values.empty()) {
-    min_value = 0.0f;
-    max_value = 0.0f;
+  if (values.size() >= max_samples) {
+    popped_value = values.front();
+    values.pop_front();
+    popped = true;
+  }
+  values.push_back(value);
+
+  if (values.size() == 1) {
+    min_value = value;
+    max_value = value;
     return;
   }
 
-  min_value = values.front();
-  max_value = values.front();
-  for (float v : values) {
-    min_value = std::min(min_value, v);
-    max_value = std::max(max_value, v);
+  if (!popped || (popped_value != min_value && popped_value != max_value)) {
+    min_value = std::min(min_value, value);
+    max_value = std::max(max_value, value);
+  } else {
+    min_value = values.front();
+    max_value = values.front();
+    for (float v : values) {
+      min_value = std::min(min_value, v);
+      max_value = std::max(max_value, v);
+    }
   }
 }
 
