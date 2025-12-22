@@ -87,9 +87,12 @@ void ProfilerOverlay::Draw(render::Renderer2D& renderer,
   }
 
   for (const auto& name : graph_names) {
-    y += kPadding;
-    DrawGraph(renderer, name, histories[name], x, y, max_width);
-    y += kGraphHeight;
+    auto it = histories.find(name);
+    if (it != histories.end()) {
+      y += kPadding;
+      DrawGraph(renderer, name, it->second, x, y, max_width);
+      y += kGraphHeight;
+    }
   }
 }
 
