@@ -11,7 +11,7 @@
 using namespace engine::data_structures;
 using namespace engine::math;
 
-TEST(SpatialGridTest, InsertAndRetrieveCollision) {
+TEST(SpatialGridTest, SpatialGrid_InsertsAndRetrievesCollision) {
   SpatialGrid<int> grid(100.0f);
 
   grid.Insert(1, RectF(0.0f, 0.0f, 50.0f, 50.0f));
@@ -29,7 +29,7 @@ TEST(SpatialGridTest, InsertAndRetrieveCollision) {
   EXPECT_EQ(collisions[0].second, 2);
 }
 
-TEST(SpatialGridTest, MultiCellOccupation) {
+TEST(SpatialGridTest, SpatialGrid_HandlesMultiCellOccupation) {
   SpatialGrid<int> grid(10.0f);
 
   grid.Insert(1, RectF(0.0f, 0.0f, 20.0f, 20.0f));
@@ -46,7 +46,7 @@ TEST(SpatialGridTest, MultiCellOccupation) {
   EXPECT_EQ(collisions[0].second, 2);
 }
 
-TEST(SpatialGridTest, Clear) {
+TEST(SpatialGridTest, SpatialGrid_ClearsAllEntries) {
   SpatialGrid<int> grid(100.0f);
   grid.Insert(1, RectF(0, 0, 10, 10));
   grid.Insert(2, RectF(0, 0, 10, 10));
@@ -56,4 +56,36 @@ TEST(SpatialGridTest, Clear) {
   int count = 0;
   grid.ForEachPotentialCollision([&](int, int) { count++; });
   EXPECT_EQ(count, 0);
+}
+
+TEST(SpatialGridTest, SpatialGrid_HandlesNegativeCoordinates) {
+  SpatialGrid<int> grid(100.0f);
+  
+  grid.Insert(1, RectF(-150.0f, -150.0f, 50.0f, 50.0f));
+  grid.Insert(2, RectF(-140.0f, -140.0f, 50.0f, 50.0f));
+  
+  int count = 0;
+  grid.ForEachPotentialCollision([&](int a, int b) { count++; });
+  EXPECT_EQ(count, 1);
+}
+
+TEST(SpatialGridTest, SpatialGrid_HandlesEmptyGrid) {
+  SpatialGrid<int> grid(100.0f);
+  int count = 0;
+  grid.ForEachPotentialCollision([&](int, int) { count++; });
+  EXPECT_EQ(count, 0);
+}
+
+TEST(SpatialGridTest, SpatialGrid_HandlesSingleEntity) {
+  SpatialGrid<int> grid(100.0f);
+  grid.Insert(1, RectF(0.0f, 0.0f, 50.0f, 50.0f));
+  
+  int count = 0;
+  grid.ForEachPotentialCollision([&](int, int) { count++; });
+  EXPECT_EQ(count, 0);
+}
+
+TEST(SpatialGridTest, SpatialGrid_ThrowsOnInvalidCellSize) {
+  EXPECT_THROW(SpatialGrid<int>(0.0f), std::invalid_argument);
+  EXPECT_THROW(SpatialGrid<int>(-10.0f), std::invalid_argument);
 }
