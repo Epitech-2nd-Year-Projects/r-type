@@ -12,7 +12,7 @@ TEST(ProfilerTest, SetAndGetMetrics) {
   profiler.SetMetric("test_float", 3.14f);
   profiler.SetMetric("test_string", std::string("hello"));
 
-  auto& metrics = profiler.GetMetrics();
+  auto metrics = profiler.GetMetrics();
 
   ASSERT_TRUE(metrics.count("test_int"));
   ASSERT_TRUE(std::holds_alternative<int>(metrics.at("test_int")));
@@ -34,7 +34,7 @@ TEST(ProfilerTest, RecordSampleAddsToHistory) {
   profiler.RecordSample(metric_name, 10.0f);
   profiler.RecordSample(metric_name, 20.0f);
 
-  auto& histories = profiler.GetHistories();
+  auto histories = profiler.GetHistories();
   ASSERT_TRUE(histories.count(metric_name));
 
   const auto& history = histories.at(metric_name);
@@ -73,7 +73,7 @@ TEST(ProfilerTest, ScopedTimerRecordsDuration) {
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
-  auto& histories = profiler.GetHistories();
+  auto histories = profiler.GetHistories();
   ASSERT_TRUE(histories.count(timer_name));
   EXPECT_FALSE(histories.at(timer_name).values.empty());
   EXPECT_GT(histories.at(timer_name).values.back(), 0.0f);

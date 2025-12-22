@@ -33,8 +33,8 @@ class Profiler {
   void SetMetric(const std::string& name, MetricValue value);
   void RecordSample(const std::string& name, float value);
 
-  std::unordered_map<std::string, MetricValue>& GetMetrics();
-  std::unordered_map<std::string, MetricHistory>& GetHistories();
+  std::unordered_map<std::string, MetricValue> GetMetrics();
+  std::unordered_map<std::string, MetricHistory> GetHistories();
 
  private:
   Profiler() = default;

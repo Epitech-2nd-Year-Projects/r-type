@@ -31,8 +31,8 @@ void ProfilerOverlay::Draw(render::Renderer2D& renderer,
   }
 
   auto& profiler = Profiler::Get();
-  auto& metrics = profiler.GetMetrics();
-  auto& histories = profiler.GetHistories();
+  auto metrics = profiler.GetMetrics();
+  auto histories = profiler.GetHistories();
 
   std::vector<std::string> lines;
   std::vector<std::string> graph_names;

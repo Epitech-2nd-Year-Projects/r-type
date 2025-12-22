@@ -40,11 +40,13 @@ void Profiler::RecordSample(const std::string& name, float value) {
   metrics_[name] = value;
 }
 
-std::unordered_map<std::string, MetricValue>& Profiler::GetMetrics() {
+std::unordered_map<std::string, MetricValue> Profiler::GetMetrics() {
+  std::lock_guard<std::mutex> lock(mutex_);
   return metrics_;
 }
 
-std::unordered_map<std::string, MetricHistory>& Profiler::GetHistories() {
+std::unordered_map<std::string, MetricHistory> Profiler::GetHistories() {
+  std::lock_guard<std::mutex> lock(mutex_);
   return histories_;
 }
 
