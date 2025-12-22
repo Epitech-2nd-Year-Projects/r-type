@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -28,9 +29,14 @@ class SpatialGrid {
  public:
   /**
    * @brief Construct a new Spatial Grid
-   * @param cell_size Dimensions of each grid cell (width/height).
+   * @param cell_size Dimensions of each grid cell (width/height). Must be > 0.
+   * @throws std::invalid_argument of cell_size is <= 0.
    */
-  explicit SpatialGrid(float cell_size = 100.0f) : cell_size_(cell_size) {}
+  explicit SpatialGrid(float cell_size = 100.0f) : cell_size_(cell_size) {
+    if (cell_size_ <= 0.0f) {
+      throw std::invalid_argument("SpatialGrid cell_size must be positive");
+    }
+  }
 
   /**
    * @brief Clear all entries from the grid.
@@ -97,6 +103,9 @@ class SpatialGrid {
   }
 
  private:
+  /**
+   * @brief Key representing 2D integer coordinates of a grid cell.
+   */
   struct GridKey {
     int x;
     int y;
@@ -106,6 +115,9 @@ class SpatialGrid {
     }
   };
 
+  /**
+   * @brief Hash functor for GridKey for use in std::unordered_map.
+   */
   struct GridKeyHash {
     std::size_t operator()(const GridKey& k) const {
       return std::hash<int>()(k.x) ^
