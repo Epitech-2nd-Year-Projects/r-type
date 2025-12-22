@@ -5,6 +5,7 @@
 #include <deque>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -46,11 +47,11 @@ class Profiler {
 
 class ScopedTimer {
  public:
-  ScopedTimer(const std::string& name);
+  ScopedTimer(std::string_view name);
   ~ScopedTimer();
 
  private:
-  std::string name_;
+  std::string_view name_;
   std::chrono::steady_clock::time_point start_time_;
 };
 

@@ -48,13 +48,13 @@ std::unordered_map<std::string, MetricHistory>& Profiler::GetHistories() {
   return histories_;
 }
 
-ScopedTimer::ScopedTimer(const std::string& name)
+ScopedTimer::ScopedTimer(std::string_view name)
     : name_(name), start_time_(std::chrono::steady_clock::now()) {}
 
 ScopedTimer::~ScopedTimer() {
   auto end_time = std::chrono::steady_clock::now();
   std::chrono::duration<float, std::milli> duration = end_time - start_time_;
-  Profiler::Get().RecordSample(name_, duration.count());
+  Profiler::Get().RecordSample(std::string(name_), duration.count());
 }
 
 }  // namespace engine::profiler
