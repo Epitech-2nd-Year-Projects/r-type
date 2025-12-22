@@ -1,5 +1,5 @@
-#ifndef ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
-#define ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
+#ifndef ENGINE_APP_ENGINE_RUNTIME_H_
+#define ENGINE_APP_ENGINE_RUNTIME_H_
 
 #include <functional>
 #include <memory>
@@ -15,7 +15,7 @@ class Renderer2D;
 class WindowBackend;
 }  // namespace engine::render
 
-namespace engine::core {
+namespace engine::app {
 
 /**
  * @brief Parameters used to bootstrap engine subsystems
@@ -100,6 +100,6 @@ class EngineRuntime {
   std::shared_ptr<audio::AudioEngine> audio_;
 };
 
-}  // namespace engine::core
+}  // namespace engine::app
 
-#endif  // ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
+#endif  // ENGINE_APP_ENGINE_RUNTIME_H_

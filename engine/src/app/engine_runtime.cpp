@@ -1,4 +1,4 @@
-#include "engine/core/engine_runtime.h"
+#include "engine/app/engine_runtime.h"
 
 #include <memory>
 #include <stdexcept>
@@ -8,7 +8,7 @@
 #include "engine/render.h"
 #include "engine/render/raylib_backend.h"
 
-namespace engine::core {
+namespace engine::app {
 
 namespace {
 
@@ -102,4 +102,4 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
 
-}  // namespace engine::core
+}  // namespace engine::app
