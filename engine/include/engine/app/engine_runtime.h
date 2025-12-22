@@ -15,6 +15,11 @@ class Renderer2D;
 class WindowBackend;
 }  // namespace engine::render
 
+namespace engine::profiler {
+class Profiler;
+class ProfilerOverlay;
+}  // namespace engine::profiler
+
 namespace engine::app {
 
 /**
@@ -82,6 +87,16 @@ class EngineRuntime {
   [[nodiscard]] std::shared_ptr<audio::AudioEngine> Audio();
 
   /**
+   * @brief Access the profiler instance
+   */
+  [[nodiscard]] profiler::Profiler& Profiler();
+
+  /**
+   * @brief Access the profiler overlay
+   */
+  [[nodiscard]] profiler::ProfilerOverlay& ProfilerOverlay();
+
+  /**
    * @brief Pump OS events and update streaming subsystems
    * @return false when shutdown is requested
    */
@@ -98,6 +113,7 @@ class EngineRuntime {
   std::unique_ptr<render::WindowBackend> window_backend_;
   std::unique_ptr<render::Window> window_;
   std::shared_ptr<audio::AudioEngine> audio_;
+  std::unique_ptr<profiler::ProfilerOverlay> profiler_overlay_;
 };
 
 }  // namespace engine::app

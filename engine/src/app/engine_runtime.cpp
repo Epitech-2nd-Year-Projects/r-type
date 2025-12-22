@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "engine/audio/raylib_audio_engine.h"
+#include "engine/profiler/profiler.h"
+#include "engine/profiler/profiler_overlay.h"
 #include "engine/render.h"
 #include "engine/render/raylib_backend.h"
 
@@ -54,7 +56,16 @@ render::Renderer2D& EngineRuntime::Renderer() {
 
 std::shared_ptr<audio::AudioEngine> EngineRuntime::Audio() { return audio_; }
 
+profiler::Profiler& EngineRuntime::Profiler() {
+  return profiler::Profiler::Get();
+}
+
+profiler::ProfilerOverlay& EngineRuntime::ProfilerOverlay() {
+  return *profiler_overlay_;
+}
+
 bool EngineRuntime::Pump() {
+  engine::profiler::ScopedTimer frame_timer("Engine::Pump");
   if (window_) {
     window_->PollEvents();
     if (window_->ShouldClose()) {
@@ -98,6 +109,8 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
   if (config.enable_audio) {
     audio_ = audio::CreateRaylibAudioEngine();
   }
+
+  profiler_overlay_ = std::make_unique<profiler::ProfilerOverlay>();
 
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
