@@ -425,7 +425,9 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   auto& renderer = engine_->Renderer();
 
   auto& profiler = engine_->Profiler();
-  profiler.RecordSample("FPS", 1.0f / dt.as_seconds());
+  if (dt.as_seconds() > 0.0001f) {
+    profiler.RecordSample("FPS", 1.0f / dt.as_seconds());
+  }
   profiler.SetMetric("Entity Count", static_cast<int>(RenderableEntityCount()));
   if (const auto latency = world_update_receiver_.LatestRttMs()) {
     profiler.RecordSample("Latency (ms)", *latency);
