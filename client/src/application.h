@@ -9,7 +9,6 @@
 
 #include "audio_manager.h"
 #include "client_config.h"
-#include "debug_overlay.h"
 #include "ecs/animation_system.h"
 #include "ecs/interpolation_system.h"
 #include "ecs/render_system.h"
@@ -193,7 +192,6 @@ class Application {
   void StopNetworkSession();
   void LoadKeyBindings();
   bool SaveKeyBindings();
-  void UpdateDebugOverlayState();
   std::size_t RenderableEntityCount() const;
   void CommitSceneChange();
   void UpdateLocalPlayerCache();
@@ -229,7 +227,6 @@ class Application {
   bool music_blocked_{false};
   bool reconnect_requested_{false};
   bool debug_toggle_pressed_{false};
-  DebugOverlay debug_overlay_{};
   std::optional<std::uint32_t> cached_local_score_{};
   std::optional<std::uint32_t> last_wave_{1u};
 };

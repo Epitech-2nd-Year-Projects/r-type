@@ -15,6 +15,8 @@
 #include "ecs/render_system.h"
 #include "engine/math/vector2.h"
 #include "engine/net/packet_buffer.h"
+#include "engine/profiler/profiler.h"
+#include "engine/profiler/profiler_overlay.h"
 #include "engine/render.h"
 #include "engine/time/game_loop.h"
 #include "engine/time/monotonic_time.h"
@@ -307,7 +309,13 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   if (input_layer_) {
     input_layer_->Update();
   }
-  UpdateDebugOverlayState();
+
+  const bool f3_down = engine_->Input().IsKeyDown(engine::input::Key::kF3);
+  if (f3_down && !debug_toggle_pressed_) {
+    engine_->ProfilerOverlay().Toggle();
+  }
+  debug_toggle_pressed_ = f3_down;
+
   if (room_directory_) {
     room_directory_->Update();
   }
@@ -416,9 +424,12 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   auto& context = engine_->RenderContext();
   auto& renderer = engine_->Renderer();
 
-  debug_overlay_.UpdateFrameTiming(dt);
-  debug_overlay_.UpdateRenderableCount(RenderableEntityCount());
-  debug_overlay_.UpdateLatency(world_update_receiver_.LatestRttMs());
+  auto& profiler = engine_->Profiler();
+  profiler.RecordSample("FPS", 1.0f / dt.as_seconds());
+  profiler.SetMetric("Entity Count", static_cast<int>(RenderableEntityCount()));
+  if (const auto latency = world_update_receiver_.LatestRttMs()) {
+    profiler.RecordSample("Latency (ms)", *latency);
+  }
 
   context.BeginFrame();
   context.Clear(kClearColor);
@@ -441,7 +452,7 @@ bool Application::Tick(engine::time::TimeDelta dt) {
     current_scene_->Draw(renderer);
   }
 
-  debug_overlay_.Draw(renderer, engine_->Window().GetSize());
+  engine_->ProfilerOverlay().Draw(renderer, engine_->Window().GetSize());
 
   context.EndFrame();
   CommitSceneChange();
@@ -875,22 +886,6 @@ void Application::StopNetworkSession() {
 
 std::optional<float> Application::LatestLatencyMs() const {
   return world_update_receiver_.LatestRttMs();
-}
-
-void Application::UpdateDebugOverlayState() {
-  if (!engine_) {
-    return;
-  }
-
-  auto& input = engine_->Input();
-  const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
-  if (pressed && !debug_toggle_pressed_) {
-    debug_overlay_.Toggle();
-    if (render_system_) {
-      render_system_->SetDebugHitboxes(debug_overlay_.enabled());
-    }
-  }
-  debug_toggle_pressed_ = pressed;
 }
 
 std::size_t Application::RenderableEntityCount() const {
