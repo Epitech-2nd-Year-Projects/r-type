@@ -29,7 +29,7 @@ engine_module("net", {"engine_event", "engine_util", "engine_core"}, "asio")
 engine_module("audio", {"engine_resource"}, "raylib")
 engine_module("render", {"engine_math", "engine_resource"}, "raylib")
 engine_module("ui", {"engine_render", "engine_input"})
-engine_module("profiler", {"engine_core", "engine_time", "engine_render", "engine_input"})
+engine_module("profiler", {"engine_core", "engine_time", "engine_render"})
 engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui", "engine_profiler"})
 
 target("engine")
