@@ -20,7 +20,8 @@ class Rect {
   Rect(T x, T y, T w, T h)
       : top_left_x_(x), top_left_y_(y), width_(w), height_(h) {}
 
-  Rect(const Vector2<T>& pos, const Vector2<T>& size)
+  Rect(const ::engine::math::Vector2<T>& pos,
+       const ::engine::math::Vector2<T>& size)
       : top_left_x_(pos.x),
         top_left_y_(pos.y),
         width_(size.x),
@@ -29,40 +30,44 @@ class Rect {
   /**
    * @brief Get top-left corner.
    */
-  Vector2<T> TopLeft() const { return Vector2<T>(top_left_x_, top_left_y_); }
+  ::engine::math::Vector2<T> TopLeft() const {
+    return ::engine::math::Vector2<T>(top_left_x_, top_left_y_);
+  }
 
   /**
    * @brief Get top-right corner.
    */
-  Vector2<T> TopRight() const {
-    return Vector2<T>(top_left_x_ + width_, top_left_y_);
+  ::engine::math::Vector2<T> TopRight() const {
+    return ::engine::math::Vector2<T>(top_left_x_ + width_, top_left_y_);
   }
 
   /**
    * @brief Get bottom-left corner.
    */
-  Vector2<T> BottomLeft() const {
-    return Vector2<T>(top_left_x_, top_left_y_ + height_);
+  ::engine::math::Vector2<T> BottomLeft() const {
+    return ::engine::math::Vector2<T>(top_left_x_, top_left_y_ + height_);
   }
 
   /**
    * @brief Get bottom-right corner.
    */
-  Vector2<T> BottomRight() const {
-    return Vector2<T>(top_left_x_ + width_, top_left_y_ + height_);
+  ::engine::math::Vector2<T> BottomRight() const {
+    return ::engine::math::Vector2<T>(top_left_x_ + width_,
+                                      top_left_y_ + height_);
   }
 
   /**
    * @brief Get center point.
    */
-  Vector2<T> Center() const {
-    return Vector2<T>(top_left_x_ + width_ / 2, top_left_y_ + height_ / 2);
+  ::engine::math::Vector2<T> Center() const {
+    return ::engine::math::Vector2<T>(top_left_x_ + width_ / 2,
+                                      top_left_y_ + height_ / 2);
   }
 
   /**
    * @brief Test if point is inside rectangle.
    */
-  bool Contains(const Vector2<T>& point) const {
+  bool Contains(const ::engine::math::Vector2<T>& point) const {
     return point.x >= top_left_x_ && point.x < top_left_x_ + width_ &&
            point.y >= top_left_y_ && point.y < top_left_y_ + height_;
   }
@@ -106,7 +111,7 @@ class Rect {
   /**
    * @brief Translate rectangle.
    */
-  void Translate(const Vector2<T>& offset) {
+  void Translate(const ::engine::math::Vector2<T>& offset) {
     top_left_x_ += offset.x;
     top_left_y_ += offset.y;
   }
@@ -115,7 +120,7 @@ class Rect {
    * @brief Scale rectangle from center.
    */
   void Scale(T factor) {
-    Vector2<T> c = Center();
+    ::engine::math::Vector2<T> c = Center();
     width_ *= factor;
     height_ *= factor;
     top_left_x_ = c.x - width_ / 2;
