@@ -14,7 +14,7 @@
 #include "ecs/interpolation_system.h"
 #include "ecs/render_system.h"
 #include "ecs/world_state_system.h"
-#include "engine/core/engine_runtime.h"
+#include "engine/app/engine_runtime.h"
 #include "engine/ecs/registry.h"
 #include "engine/time/time_delta.h"
 #include "input_layer.h"
@@ -64,7 +64,7 @@ class Application {
   /**
    * @brief Access the engine runtime
    */
-  engine::core::EngineRuntime& GetEngine() { return *engine_; }
+  engine::app::EngineRuntime& GetEngine() { return *engine_; }
 
   /**
    * @brief Switch the active scene
@@ -203,7 +203,7 @@ class Application {
   std::shared_ptr<NetworkTransport> lobby_transport_;
   JoinFlow join_flow_;
   std::unique_ptr<RoomDirectoryClient> room_directory_;
-  std::unique_ptr<engine::core::EngineRuntime> engine_;
+  std::unique_ptr<engine::app::EngineRuntime> engine_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
   std::unique_ptr<ecs::AnimationSystem> animation_system_;
