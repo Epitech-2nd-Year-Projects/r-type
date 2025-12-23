@@ -7,7 +7,7 @@
 
 namespace engine::scripting {
 
-ScriptEngine::ScriptEngine() : lua_(std::make_unique<sol::state>()) {}
+ScriptEngine::ScriptEngine() = default;
 
 ScriptEngine::~ScriptEngine() = default;
 
@@ -20,14 +20,13 @@ void ScriptEngine::Initialize() {
   }
 
   lua_->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math,
-                       sol::lib::string, sol::lib::table, sol::lib::io,
-                       sol::lib::os);
+                       sol::lib::string, sol::lib::table);
 
-  lua_->set_function("log_info", [](const std::string& msg) {
+  lua_->set_function("log_info", [](std::string msg) {
     ENGINE_LOG_INFO("Lua: {}", msg);
   });
 
-  lua_->set_function("log_error", [](const std::string& msg) {
+  lua_->set_function("log_error", [](std::string msg) {
     ENGINE_LOG_ERROR("Lua: {}", msg);
   });
 
