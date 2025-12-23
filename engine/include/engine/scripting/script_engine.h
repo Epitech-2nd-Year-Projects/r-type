@@ -13,7 +13,11 @@ namespace engine::scripting {
 
 /**
  * @class ScriptEngine
- * @brief Manages the Lua scripting environment
+ * @brief Manages the Lua scripting environment.
+ *
+ * @note This class is NOT thread-safe for write operations.
+ * @note Lua 5.4 is used as the scripting language.
+ * @note Standard libraries 'io' and 'os' are disabled for security.
  */
 class ScriptEngine {
  public:
@@ -26,12 +30,17 @@ class ScriptEngine {
   ScriptEngine& operator=(ScriptEngine&&) noexcept;
 
   /**
-   * @brief Initialize the Lua state and open standard libraries
+   * @brief Initialize the Lua state and open standard libraries.
+   *
+   * @note Must be called before accessing LuaState().
    */
   void Initialize();
 
   /**
-   * @brief Access the underlying Lua state
+   * @brief Access the underlying Lua state.
+   *
+   * @warning Exposes raw mutable state. Use with caution.
+   *          Modifying the state (e.g. closing libraries) may break engine assumptions.
    */
   sol::state& LuaState();
 
