@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 
-add_requires("asio", "raylib")
+add_requires("asio", "raylib", "lua", "sol2")
 
 function engine_module(name, deps, packages)
     target("engine_" .. name)
@@ -29,9 +29,10 @@ engine_module("net", {"engine_event", "engine_util", "engine_core"}, "asio")
 engine_module("audio", {"engine_resource"}, "raylib")
 engine_module("render", {"engine_math", "engine_resource"}, "raylib")
 engine_module("ui", {"engine_render", "engine_input"})
-engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui"})
+engine_module("scripting", {"engine_core", "engine_util"}, {"lua", "sol2"})
+engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui", "engine_scripting"})
 
 target("engine")
     set_kind("phony")
-    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_app")
+    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_scripting", "engine_app")
     add_headerfiles("include/engine/*.h")

@@ -15,6 +15,10 @@ class Renderer2D;
 class WindowBackend;
 }  // namespace engine::render
 
+namespace engine::scripting {
+class ScriptEngine;
+}
+
 namespace engine::app {
 
 /**
@@ -82,6 +86,11 @@ class EngineRuntime {
   [[nodiscard]] std::shared_ptr<audio::AudioEngine> Audio();
 
   /**
+   * @brief Access the scripting engine
+   */
+  [[nodiscard]] scripting::ScriptEngine& ScriptEngine();
+
+  /**
    * @brief Pump OS events and update streaming subsystems
    * @return false when shutdown is requested
    */
@@ -98,6 +107,7 @@ class EngineRuntime {
   std::unique_ptr<render::WindowBackend> window_backend_;
   std::unique_ptr<render::Window> window_;
   std::shared_ptr<audio::AudioEngine> audio_;
+  std::unique_ptr<scripting::ScriptEngine> script_engine_;
 };
 
 }  // namespace engine::app
