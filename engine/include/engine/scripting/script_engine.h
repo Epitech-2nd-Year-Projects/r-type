@@ -9,6 +9,10 @@ namespace sol {
 class state;
 }
 
+namespace engine::ecs {
+class Registry;
+}
+
 namespace engine::scripting {
 
 /**
@@ -35,6 +39,16 @@ class ScriptEngine {
    * @note Must be called before accessing LuaState().
    */
   void Initialize();
+
+  /**
+   * @brief Bind the global registry instance.
+   * @param registry Reference to the registry.
+   *
+   * @note The registry reference must remain valid for the lifetime of
+   * the ScriptEngine or until unbound. The ScriptEngine does not take
+   * ownership of the registry.
+   */
+  void SetRegistry(engine::ecs::Registry& registry);
 
   /**
    * @brief Access the underlying Lua state.
