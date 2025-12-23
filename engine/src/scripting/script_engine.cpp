@@ -3,6 +3,7 @@
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
+#include "engine/scripting/bindings.h"
 #include "engine/util/logging.h"
 
 namespace engine::scripting {
@@ -28,7 +29,15 @@ void ScriptEngine::Initialize() {
   lua_->set_function("log_error",
                      [](std::string msg) { ENGINE_LOG_ERROR("Lua: {}", msg); });
 
+  BindTypes(*lua_);
+
   ENGINE_LOG_INFO("ScriptEngine initialized with Lua 5.4");
+}
+
+void ScriptEngine::SetRegistry(engine::ecs::Registry& registry) {
+  if (lua_) {
+    BindRegistry(*lua_, registry);
+  }
 }
 
 sol::state& ScriptEngine::LuaState() { return *lua_; }
