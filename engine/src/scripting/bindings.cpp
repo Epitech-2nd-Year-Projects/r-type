@@ -24,13 +24,29 @@ void BindTypes(sol::state& lua) {
       "Rect",
       sol::constructors<math::RectF(),
                         math::RectF(float, float, float, float)>(),
-      "x", &math::RectF::top_left_x_, "y", &math::RectF::top_left_y_, "w",
-      &math::RectF::width_, "h", &math::RectF::height_);
+      "x",
+      sol::property([](math::RectF& r) { return r.top_left_x_; },
+                    [](math::RectF& r, float v) { r.top_left_x_ = v; }),
+      "y",
+      sol::property([](math::RectF& r) { return r.top_left_y_; },
+                    [](math::RectF& r, float v) { r.top_left_y_ = v; }),
+      "w",
+      sol::property([](math::RectF& r) { return r.width_; },
+                    [](math::RectF& r, float v) { r.width_ = v; }),
+      "h",
+      sol::property([](math::RectF& r) { return r.height_; },
+                    [](math::RectF& r, float v) { r.height_ = v; }));
 
   lua.new_usertype<render::Color>(
       "Color",
-      sol::constructors<render::Color(),
-                        render::Color(uint8_t, uint8_t, uint8_t, uint8_t)>(),
+      sol::factories(
+          [](uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+            return render::Color::FromBytes(r, g, b, a);
+          },
+          [](uint8_t r, uint8_t g, uint8_t b) {
+            return render::Color::FromBytes(r, g, b);
+          },
+          []() { return render::Color(); }),
       "r", &render::Color::r, "g", &render::Color::g, "b", &render::Color::b,
       "a", &render::Color::a);
 
@@ -62,26 +78,34 @@ void BindTypes(sol::state& lua) {
       },
 
       "get_position",
-      [](ecs::Registry& r, ecs::EntityId e) -> ecs::PositionComponent* {
+      [](ecs::Registry& r,
+         ecs::EntityId e) -> std::optional<ecs::PositionComponent> {
         try {
           auto& sparse = r.GetComponents<ecs::PositionComponent>();
           if (e < sparse.size() && sparse[e].has_value()) {
-            return &sparse[e].value();
+            return sparse[e].value();
           }
+        } catch (const std::exception& ex) {
+          ENGINE_LOG_ERROR("Lua get_position error: {}", ex.what());
         } catch (...) {
+          ENGINE_LOG_ERROR("Lua get_position error: Unknown exception");
         }
-        return nullptr;
+        return std::nullopt;
       },
       "get_velocity",
-      [](ecs::Registry& r, ecs::EntityId e) -> ecs::VelocityComponent* {
+      [](ecs::Registry& r,
+         ecs::EntityId e) -> std::optional<ecs::VelocityComponent> {
         try {
           auto& sparse = r.GetComponents<ecs::VelocityComponent>();
           if (e < sparse.size() && sparse[e].has_value()) {
-            return &sparse[e].value();
+            return sparse[e].value();
           }
+        } catch (const std::exception& ex) {
+          ENGINE_LOG_ERROR("Lua get_velocity error: {}", ex.what());
         } catch (...) {
+          ENGINE_LOG_ERROR("Lua get_velocity error: Unknown exception");
         }
-        return nullptr;
+        return std::nullopt;
       });
 
   ENGINE_LOG_INFO("Lua bindings types initialized (Math + ECS)");
