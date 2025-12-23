@@ -8,7 +8,7 @@
 #include "engine/ecs/registry.h"
 #include "engine/scripting/script_engine.h"
 
-TEST(ScriptingTest, BindingsWork) {
+TEST(ScriptingTest, BindingsCreateAndModifyEntities) {
   engine::ecs::Registry registry;
   registry.RegisterComponent<engine::ecs::PositionComponent>();
   registry.RegisterComponent<engine::ecs::VelocityComponent>();
@@ -51,11 +51,12 @@ TEST(ScriptingTest, BindingsWork) {
     local p = registry:get_position(last_entity)
     if p then
       p.position.x = 50.0
+      registry:add_position(last_entity, p.position.x, p.position.y)
     end
   )";
 
   auto modify_result = lua.script(modify_script);
   EXPECT_TRUE(modify_result.valid());
 
-  EXPECT_FLOAT_EQ(pos.position.x, 50.0f);
+  EXPECT_FLOAT_EQ(positions[entity].value().position.x, 50.0f);
 }
