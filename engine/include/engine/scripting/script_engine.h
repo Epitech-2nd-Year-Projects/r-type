@@ -40,7 +40,8 @@ class ScriptEngine {
    * @brief Access the underlying Lua state.
    *
    * @warning Exposes raw mutable state. Use with caution.
-   *          Modifying the state (e.g. closing libraries) may break engine assumptions.
+   *          Modifying the state (e.g. closing libraries) may break engine
+   * assumptions.
    */
   sol::state& LuaState();
 

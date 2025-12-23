@@ -22,13 +22,11 @@ void ScriptEngine::Initialize() {
   lua_->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math,
                        sol::lib::string, sol::lib::table);
 
-  lua_->set_function("log_info", [](std::string msg) {
-    ENGINE_LOG_INFO("Lua: {}", msg);
-  });
+  lua_->set_function("log_info",
+                     [](std::string msg) { ENGINE_LOG_INFO("Lua: {}", msg); });
 
-  lua_->set_function("log_error", [](std::string msg) {
-    ENGINE_LOG_ERROR("Lua: {}", msg);
-  });
+  lua_->set_function("log_error",
+                     [](std::string msg) { ENGINE_LOG_ERROR("Lua: {}", msg); });
 
   ENGINE_LOG_INFO("ScriptEngine initialized with Lua 5.4");
 }
