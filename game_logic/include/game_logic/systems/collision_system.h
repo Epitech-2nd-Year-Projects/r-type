@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "engine/data_structures/spatial_grid.h"
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/system.h"
 #include "engine/math/rect.h"
@@ -42,40 +43,13 @@ class CollisionSystem : public engine::ecs::ISystem {
               engine::time::TimeDelta dt) override;
 
  private:
-  struct GridKey {
-    int x;
-    int y;
-
-    bool operator==(const GridKey& other) const {
-      return x == other.x && y == other.y;
-    }
-  };
-
-  struct GridKeyHash {
-    std::size_t operator()(const GridKey& k) const {
-      return std::hash<int>()(k.x) ^
-             (std::hash<int>()(k.y) + 0x9e3779b9 +
-              (std::hash<int>()(k.x) << 6) + (std::hash<int>()(k.x) >> 2));
-    }
-  };
-
-  using EntityList = std::vector<engine::ecs::EntityId>;
-  using SpatialGrid = std::unordered_map<GridKey, EntityList, GridKeyHash>;
-
-  float cell_size_;
-  SpatialGrid grid_;
+  engine::data_structures::SpatialGrid<engine::ecs::EntityId> grid_;
 
   /**
    * @brief Helper to resolve simple AABB interaction
    */
   bool CheckOneWayCollision(const engine::math::RectF& a,
                             const engine::math::RectF& b);
-
-  /**
-   * @brief Insert entity into all relevant grid cells
-   */
-  void InsertIntoGrid(engine::ecs::EntityId entity,
-                      const engine::math::RectF& bounds);
 
   /**
    * @brief Resolves collision between two generic entities.
