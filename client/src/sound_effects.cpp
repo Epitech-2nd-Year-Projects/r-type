@@ -23,7 +23,8 @@ constexpr std::uint16_t kObstacleTypeCode = 4u;
 
 SoundEffects::SoundEffects(engine::audio::AudioEngine& engine)
     : engine_(engine) {
-  const std::string effect_path = ResolveAssetPath("assets/song/effects/fah.ogg");
+  const std::string effect_path =
+      ResolveAssetPath("assets/song/effects/fah.ogg");
   effect_paths_.emplace(EffectType::kShot, effect_path);
   effect_paths_.emplace(EffectType::kExplosion, effect_path);
   effect_paths_.emplace(EffectType::kDamage, effect_path);

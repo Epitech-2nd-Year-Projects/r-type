@@ -45,8 +45,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
 
   hover_sfx_path_ =
       ResolveAssetPath("assets/song/effects/change_selection.mp3");
-  click_sfx_path_ =
-      ResolveAssetPath("assets/song/effects/button_confirm.mp3");
+  click_sfx_path_ = ResolveAssetPath("assets/song/effects/button_confirm.mp3");
 
   for (int i = 0; i <= 10; ++i) {
     std::ostringstream path;
@@ -70,8 +69,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
       });
   settings_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Options",
-      [this]() {
+      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Options", [this]() {
         PlayUiSound(app_, click_sfx_path_);
         app_.OnOpenSettings();
       });
@@ -105,11 +103,10 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
   title_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(300.0f);
   title_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
-  title_slot->SetLayoutCallback(
-      [this](const engine::math::RectF& rect) {
-        title_rect_ = {rect.top_left_x_, rect.top_left_y_ - 12.0f, rect.width_,
-                       rect.height_};
-      });
+  title_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    title_rect_ = {rect.top_left_x_, rect.top_left_y_ - 12.0f, rect.width_,
+                   rect.height_};
+  });
   root->AddChild(title_slot);
 
   auto button_column =
@@ -170,8 +167,9 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
     if (!button) continue;
     auto& state = pointer_states_[i];
     state.was_hovered = state.hovered;
-    state.hovered = engine::math::RectF{button->GetPosition(),
-                                        button->GetSize()}.Contains(mouse_pos);
+    state.hovered =
+        engine::math::RectF{button->GetPosition(), button->GetSize()}.Contains(
+            mouse_pos);
     if (state.hovered && !state.was_hovered) {
       state.elapsed = 0.0f;
       state.animating = true;
@@ -237,15 +235,13 @@ void MainMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
     const auto tex_size = texture->GetSize();
     if (tex_size.y == 0) continue;
 
-    const float scale =
-        (kButtonHeight * 0.85f * kPointerScaleFactor) /
-        static_cast<float>(tex_size.y);
+    const float scale = (kButtonHeight * 0.85f * kPointerScaleFactor) /
+                        static_cast<float>(tex_size.y);
     const float scaled_width = static_cast<float>(tex_size.x) * scale;
     const float scaled_height = static_cast<float>(tex_size.y) * scale;
     const auto pos = button->GetPosition();
     const auto size = button->GetSize();
-    const float y =
-        pos.y + (size.y - scaled_height) * 0.5f;
+    const float y = pos.y + (size.y - scaled_height) * 0.5f;
     const float left_x = pos.x - scaled_width - kPointerSpacing;
     const float right_x = pos.x + size.x + kPointerSpacing;
 
@@ -258,8 +254,8 @@ void MainMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
     right_params.position = {right_x, y};
     right_params.scale = {scale, scale};
     right_params.source = engine::math::RectF{
-        static_cast<float>(tex_size.x), 0.0f,
-        -static_cast<float>(tex_size.x), static_cast<float>(tex_size.y)};
+        static_cast<float>(tex_size.x), 0.0f, -static_cast<float>(tex_size.x),
+        static_cast<float>(tex_size.y)};
     renderer.DrawTexture(*texture, right_params);
   }
 }
@@ -272,9 +268,9 @@ void MainMenuScene::DrawTitle(engine::render::Renderer2D& renderer) {
   if (tex_size.y == 0) {
     return;
   }
-  const float scale = std::min(
-      title_rect_.width_ / static_cast<float>(tex_size.x),
-      title_rect_.height_ / static_cast<float>(tex_size.y));
+  const float scale =
+      std::min(title_rect_.width_ / static_cast<float>(tex_size.x),
+               title_rect_.height_ / static_cast<float>(tex_size.y));
   if (scale <= 0.0f) {
     return;
   }

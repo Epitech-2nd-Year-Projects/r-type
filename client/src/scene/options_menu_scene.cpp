@@ -44,8 +44,7 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
 
   hover_sfx_path_ =
       ResolveAssetPath("assets/song/effects/change_selection.mp3");
-  click_sfx_path_ =
-      ResolveAssetPath("assets/song/effects/button_confirm.mp3");
+  click_sfx_path_ = ResolveAssetPath("assets/song/effects/button_confirm.mp3");
 
   for (int i = 0; i < kPointerFrameCount; ++i) {
     std::ostringstream path;
@@ -86,9 +85,9 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
                            engine::ui::VerticalAlignment::kCenter});
 
   auto title_text = std::make_shared<engine::ui::TextElement>(
-      "Options", engine::ui::FontSize::Pixels(kButtonHeight *
-                                              kButtonTextScale *
-                                              kTitleScaleFactor),
+      "Options",
+      engine::ui::FontSize::Pixels(kButtonHeight * kButtonTextScale *
+                                   kTitleScaleFactor),
       white);
   title_text->SetFont(kTitleFont);
   title_text->Layout().alignment.horizontal =
@@ -141,8 +140,7 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
       [this]() { PlayUiSound(app_, click_sfx_path_); });
   auto back_button = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Back",
-      [this]() {
+      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Back", [this]() {
         PlayUiSound(app_, click_sfx_path_);
         app_.OnCloseSettings();
       });
@@ -184,8 +182,7 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
 
   if (!warning_frames_.empty() && warning_animating_) {
     const float max_elapsed =
-        static_cast<float>(warning_frames_.size() - 1) *
-        kWarningFrameDuration;
+        static_cast<float>(warning_frames_.size() - 1) * kWarningFrameDuration;
     warning_elapsed_ += dt.as_seconds();
     if (warning_elapsed_ >= max_elapsed) {
       warning_elapsed_ = max_elapsed;
@@ -207,9 +204,9 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
     }
     auto& state = pointer_states_[i];
     state.was_hovered = state.hovered;
-    state.hovered = engine::math::RectF{button->GetPosition(),
-                                        button->GetSize()}
-                        .Contains(mouse_pos);
+    state.hovered =
+        engine::math::RectF{button->GetPosition(), button->GetSize()}.Contains(
+            mouse_pos);
     if (state.hovered && !state.was_hovered) {
       state.elapsed = 0.0f;
       state.animating = true;
@@ -277,9 +274,8 @@ void OptionsMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
       continue;
     }
 
-    const float scale =
-        (kButtonHeight * 0.85f * kPointerScaleFactor) /
-        static_cast<float>(tex_size.y);
+    const float scale = (kButtonHeight * 0.85f * kPointerScaleFactor) /
+                        static_cast<float>(tex_size.y);
     const float scaled_width = static_cast<float>(tex_size.x) * scale;
     const float scaled_height = static_cast<float>(tex_size.y) * scale;
     const auto pos = button->GetPosition();
@@ -297,8 +293,8 @@ void OptionsMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
     right_params.position = {right_x, y};
     right_params.scale = {scale, scale};
     right_params.source = engine::math::RectF{
-        static_cast<float>(tex_size.x), 0.0f,
-        -static_cast<float>(tex_size.x), static_cast<float>(tex_size.y)};
+        static_cast<float>(tex_size.x), 0.0f, -static_cast<float>(tex_size.x),
+        static_cast<float>(tex_size.y)};
     renderer.DrawTexture(*texture, right_params);
   }
 }
@@ -319,9 +315,9 @@ void OptionsMenuScene::DrawWarning(engine::render::Renderer2D& renderer) {
   if (tex_size.y == 0) {
     return;
   }
-  const float scale = std::min(
-      warning_rect_.width_ / static_cast<float>(tex_size.x),
-      warning_rect_.height_ / static_cast<float>(tex_size.y));
+  const float scale =
+      std::min(warning_rect_.width_ / static_cast<float>(tex_size.x),
+               warning_rect_.height_ / static_cast<float>(tex_size.y));
   if (scale <= 0.0f) {
     return;
   }
