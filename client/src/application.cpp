@@ -30,8 +30,8 @@
 #include "scene/in_game_scene.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
+#include "scene/options_menu_scene.h"
 #include "scene/pause_scene.h"
-#include "scene/settings_scene.h"
 
 namespace client {
 
@@ -737,7 +737,7 @@ void Application::ApplyState(ClientState next_state, std::string reason) {
       SwitchScene(std::make_unique<LobbyScene>(*this));
       break;
     case ClientState::kSettings:
-      SwitchScene(std::make_unique<SettingsScene>(*this));
+      SwitchScene(std::make_unique<OptionsMenuScene>(*this));
       break;
     case ClientState::kConnecting:
       SwitchScene(std::make_unique<ConnectingScene>(*this));
