@@ -1,4 +1,4 @@
-#include "game_logic/systems/movement_system.h"
+#include "game_logic/systems/boundary_system.h"
 
 #include <algorithm>
 #include <vector>
@@ -13,25 +13,15 @@
 
 namespace game_logic::systems {
 
-MovementSystem::MovementSystem(float screen_width, float screen_height)
+BoundarySystem::BoundarySystem(float screen_width, float screen_height)
     : screen_width_(screen_width), screen_height_(screen_height) {}
 
-void MovementSystem::Update(engine::ecs::Registry &registry,
-                            engine::time::TimeDelta dt) {
+void BoundarySystem::Update(engine::ecs::Registry &registry,
+                            engine::time::TimeDelta) {
   auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
   auto &velocities = registry.GetComponents<engine::ecs::VelocityComponent>();
   auto &players =
       registry.GetComponents<game_logic::components::PlayerComponent>();
-
-  float delta_seconds = dt.as_seconds();
-
-  for (auto [pos, vel] : engine::ecs::Zipper(positions, velocities)) {
-    auto &p = pos->position;
-    const auto &v = vel->velocity;
-
-    p.x += v.x * delta_seconds;
-    p.y += v.y * delta_seconds;
-  }
 
   for (auto [pos, vel, player] :
        engine::ecs::Zipper(positions, velocities, players)) {

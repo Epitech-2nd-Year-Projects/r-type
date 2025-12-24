@@ -1,7 +1,7 @@
 #include "pause_scene.h"
 
 #include "application.h"
-#include "engine/core/engine_runtime.h"
+#include "engine/app/engine_runtime.h"
 #include "engine/input.h"
 #include "engine/math/rect.h"
 #include "engine/render/color.h"

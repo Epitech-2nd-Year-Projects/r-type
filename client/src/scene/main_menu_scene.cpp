@@ -8,7 +8,7 @@
 
 #include "application.h"
 #include "audio_paths.h"
-#include "engine/core/engine_runtime.h"
+#include "engine/app/engine_runtime.h"
 #include "engine/math/rect.h"
 #include "engine/render/renderer2d.h"
 #include "logging.h"

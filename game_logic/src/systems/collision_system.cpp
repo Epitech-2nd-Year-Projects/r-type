@@ -15,31 +15,7 @@
 
 namespace game_logic::systems {
 
-namespace {
-inline std::uint64_t PairHash(engine::ecs::EntityId a,
-                              engine::ecs::EntityId b) {
-  if (a > b) std::swap(a, b);
-  return (static_cast<std::uint64_t>(a) << 32) | static_cast<std::uint64_t>(b);
-}
-}  // namespace
-
-CollisionSystem::CollisionSystem(float cell_size) : cell_size_(cell_size) {}
-
-void CollisionSystem::InsertIntoGrid(engine::ecs::EntityId entity,
-                                     const engine::math::RectF& bounds) {
-  int min_x = static_cast<int>(std::floor(bounds.top_left_x_ / cell_size_));
-  int max_x = static_cast<int>(
-      std::floor((bounds.top_left_x_ + bounds.width_) / cell_size_));
-  int min_y = static_cast<int>(std::floor(bounds.top_left_y_ / cell_size_));
-  int max_y = static_cast<int>(
-      std::floor((bounds.top_left_y_ + bounds.height_) / cell_size_));
-
-  for (int x = min_x; x <= max_x; ++x) {
-    for (int y = min_y; y <= max_y; ++y) {
-      grid_[{x, y}].push_back(entity);
-    }
-  }
-}
+CollisionSystem::CollisionSystem(float cell_size) : grid_(cell_size) {}
 
 bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
                                            const engine::math::RectF& b) {
@@ -124,7 +100,7 @@ void CollisionSystem::ResolveProjectile(
 
 void CollisionSystem::Update(engine::ecs::Registry& registry,
                              engine::time::TimeDelta) {
-  grid_.clear();
+  grid_.Clear();
 
   auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
   auto& boxes = registry.GetComponents<engine::ecs::BoundingBoxComponent>();
@@ -138,26 +114,14 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
     world_bounds.top_left_x_ += pos->position.x;
     world_bounds.top_left_y_ += pos->position.y;
 
-    InsertIntoGrid(entity, world_bounds);
+    grid_.Insert(entity, world_bounds);
   }
 
-  std::unordered_set<std::uint64_t> checked_pairs;
-
-  for (auto& [key, entities] : grid_) {
-    if (entities.size() < 2) continue;
-
-    for (size_t i = 0; i < entities.size(); ++i) {
-      for (size_t j = i + 1; j < entities.size(); ++j) {
-        engine::ecs::EntityId e1 = entities[i];
-        engine::ecs::EntityId e2 = entities[j];
-
-        std::uint64_t pair_hash = PairHash(e1, e2);
-        if (checked_pairs.count(pair_hash)) continue;
-        checked_pairs.insert(pair_hash);
-
+  grid_.ForEachPotentialCollision(
+      [&](engine::ecs::EntityId e1, engine::ecs::EntityId e2) {
         if (e1 >= positions.size() || e2 >= positions.size() ||
             e1 >= boxes.size() || e2 >= boxes.size()) {
-          continue;
+          return;
         }
 
         auto& pos1 = positions[e1];
@@ -167,7 +131,7 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
 
         if (!pos1.has_value() || !pos2.has_value() || !box1.has_value() ||
             !box2.has_value())
-          continue;
+          return;
 
         engine::math::RectF rect1 = box1->bounds;
         rect1.top_left_x_ += pos1->position.x;
@@ -180,9 +144,7 @@ void CollisionSystem::Update(engine::ecs::Registry& registry,
         if (CheckOneWayCollision(rect1, rect2)) {
           ResolveCollision(registry, e1, e2);
         }
-      }
-    }
-  }
+      });
 }
 
 }  // namespace game_logic::systems

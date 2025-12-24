@@ -5,6 +5,7 @@
 #include "engine/ecs/component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/systems/lifetime_system.h"
+#include "engine/ecs/systems/movement_system.h"
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
@@ -12,10 +13,10 @@
 #include "game_logic/game_config.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/animation_system.h"
+#include "game_logic/systems/boundary_system.h"
 #include "game_logic/systems/collision_system.h"
 #include "game_logic/systems/game_state_system.h"
 #include "game_logic/systems/health_system.h"
-#include "game_logic/systems/movement_system.h"
 #include "game_logic/systems/player_input_system.h"
 #include "game_logic/systems/powerup_system.h"
 #include "game_logic/systems/wave_system.h"
@@ -246,7 +247,12 @@ void GameInstance::RegisterSystems() {
           systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::MovementSystem>(),
+  registry_->AddSystem<engine::ecs::PositionComponent,
+                       engine::ecs::VelocityComponent>(
+      engine::ecs::MovementSystem::Update, engine::ecs::SystemType::Fixed,
+      engine::ecs::kDefaultPriority);
+
+  registry_->AddSystemClass(std::make_shared<systems::BoundarySystem>(),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 

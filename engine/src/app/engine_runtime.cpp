@@ -1,4 +1,4 @@
-#include "engine/core/engine_runtime.h"
+#include "engine/app/engine_runtime.h"
 
 #include <memory>
 #include <stdexcept>
@@ -7,8 +7,9 @@
 #include "engine/audio/raylib_audio_engine.h"
 #include "engine/render.h"
 #include "engine/render/raylib_backend.h"
+#include "engine/scripting/script_engine.h"
 
-namespace engine::core {
+namespace engine::app {
 
 namespace {
 
@@ -53,6 +54,10 @@ render::Renderer2D& EngineRuntime::Renderer() {
 }
 
 std::shared_ptr<audio::AudioEngine> EngineRuntime::Audio() { return audio_; }
+
+scripting::ScriptEngine& EngineRuntime::ScriptEngine() {
+  return *script_engine_;
+}
 
 bool EngineRuntime::Pump() {
   if (window_) {
@@ -99,7 +104,10 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
     audio_ = audio::CreateRaylibAudioEngine();
   }
 
+  script_engine_ = std::make_unique<scripting::ScriptEngine>();
+  script_engine_->Initialize();
+
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
 
-}  // namespace engine::core
+}  // namespace engine::app

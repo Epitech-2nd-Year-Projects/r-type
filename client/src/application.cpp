@@ -90,7 +90,7 @@ int Application::Run() {
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "target configured");
 
-  engine::core::EngineRuntimeConfig runtime_config;
+  engine::app::EngineRuntimeConfig runtime_config;
   runtime_config.window_config.title = "R-Type Client";
   runtime_config.window_config.size = kBaseResolution;
   runtime_config.window_config.resizable = false;
@@ -108,7 +108,7 @@ int Application::Run() {
               << std::setprecision(2) << aspect_ratio << ":1) raylib backend";
   LogLifecycle(engine::util::LogLevel::kInfo, window_info.str());
 
-  engine_ = engine::core::EngineRuntime::Create(runtime_config);
+  engine_ = engine::app::EngineRuntime::Create(runtime_config);
   if (!engine_) {
     LogLifecycle(engine::util::LogLevel::kCritical,
                  "Failed to initialize engine runtime");
