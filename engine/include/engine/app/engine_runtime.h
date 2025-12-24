@@ -1,5 +1,5 @@
-#ifndef ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
-#define ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
+#ifndef ENGINE_APP_ENGINE_RUNTIME_H_
+#define ENGINE_APP_ENGINE_RUNTIME_H_
 
 #include <functional>
 #include <memory>
@@ -15,7 +15,11 @@ class Renderer2D;
 class WindowBackend;
 }  // namespace engine::render
 
-namespace engine::core {
+namespace engine::scripting {
+class ScriptEngine;
+}
+
+namespace engine::app {
 
 /**
  * @brief Parameters used to bootstrap engine subsystems
@@ -82,6 +86,11 @@ class EngineRuntime {
   [[nodiscard]] std::shared_ptr<audio::AudioEngine> Audio();
 
   /**
+   * @brief Access the scripting engine
+   */
+  [[nodiscard]] scripting::ScriptEngine& ScriptEngine();
+
+  /**
    * @brief Pump OS events and update streaming subsystems
    * @return false when shutdown is requested
    */
@@ -98,8 +107,9 @@ class EngineRuntime {
   std::unique_ptr<render::WindowBackend> window_backend_;
   std::unique_ptr<render::Window> window_;
   std::shared_ptr<audio::AudioEngine> audio_;
+  std::unique_ptr<scripting::ScriptEngine> script_engine_;
 };
 
-}  // namespace engine::core
+}  // namespace engine::app
 
-#endif  // ENGINE_ENGINE_CORE_ENGINE_RUNTIME_H_
+#endif  // ENGINE_APP_ENGINE_RUNTIME_H_
