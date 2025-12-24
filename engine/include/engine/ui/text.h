@@ -41,7 +41,9 @@ class TextElement : public UIElement {
   void SetFont(std::string font_name);
 
   /**
-   * @brief Set the font restored after drawing when a custom font is used
+   * @brief Set the font restored after measuring and drawing when a custom font
+   * is used
+   * @details If empty the renderer keeps the custom font after measure and draw
    */
   void SetFontFallback(std::string font_name);
 

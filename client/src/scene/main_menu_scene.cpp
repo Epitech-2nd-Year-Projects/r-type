@@ -18,12 +18,14 @@ namespace client {
 namespace {
 constexpr float kButtonHeight = 72.0f;
 constexpr float kButtonWidth = 170.0f;
+constexpr float kButtonTextScale = 0.46f;
 constexpr const char* kTitleFont = "title_font";
 constexpr const char* kBodyFont = "body_font";
 constexpr float kPointerFrameDuration = 0.06f;
 constexpr float kPointerSpacing = 28.0f;
 constexpr float kPointerScaleFactor = 0.6f;
 constexpr float kTitleScaleFactor = 1.3f;
+constexpr int kPointerFrameCount = 11;
 constexpr char kTitleTexturePath[] = "assets/ui/main_menu_title.png";
 
 void PlayUiSound(Application& app, const std::string& path) {
@@ -47,7 +49,7 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
       ResolveAssetPath("assets/song/effects/change_selection.mp3");
   click_sfx_path_ = ResolveAssetPath("assets/song/effects/button_confirm.mp3");
 
-  for (int i = 0; i <= 10; ++i) {
+  for (int i = 0; i < kPointerFrameCount; ++i) {
     std::ostringstream path;
     path << "assets/ui/main_menu_pointer_anim" << std::setw(4)
          << std::setfill('0') << i << ".png";
@@ -144,9 +146,9 @@ MainMenuScene::MainMenuScene(Application& app) : app_(app) {
   play_button_->SetTextColor(white);
   settings_button_->SetTextColor(white);
   quit_button_->SetTextColor(white);
-  play_button_->SetTextScale(0.46f);
-  settings_button_->SetTextScale(0.46f);
-  quit_button_->SetTextScale(0.46f);
+  play_button_->SetTextScale(kButtonTextScale);
+  settings_button_->SetTextScale(kButtonTextScale);
+  quit_button_->SetTextScale(kButtonTextScale);
 }
 
 void MainMenuScene::Update(engine::time::TimeDelta dt) {
@@ -194,7 +196,6 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
 }
 
 void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
-  renderer.SetFont(kBodyFont);
   LayoutUi(renderer);
 
   canvas_.Draw(renderer);
