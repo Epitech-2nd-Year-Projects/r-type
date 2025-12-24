@@ -46,7 +46,7 @@ void Button::Draw(engine::render::Renderer2D& renderer) {
   }
 
   if (!text_.empty()) {
-    float font_size = size_.y * 0.4f;
+    float font_size = size_.y * text_scale_;
     auto text_size = renderer.MeasureText(text_, font_size);
     float text_x = position_.x + (size_.x - text_size.x) * 0.5f;
     float text_y = position_.y + (size_.y - text_size.y) * 0.5f;
