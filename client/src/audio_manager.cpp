@@ -11,7 +11,7 @@ namespace client {
 AudioManager::AudioManager(engine::audio::AudioEngine& engine)
     : engine_(engine) {
   music_paths_[MusicType::kMainMenu] =
-      ResolveAssetPath("assets/song/main_menu_theme.ogg");
+      ResolveAssetPath("assets/song/themes/main_menu_theme.ogg");
   music_paths_[MusicType::kBackground] =
       ResolveAssetPath("assets/song/background_music.ogg");
 }
