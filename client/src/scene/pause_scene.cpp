@@ -11,12 +11,15 @@ namespace {
 
 constexpr float kButtonWidth = 360.0f;
 constexpr float kButtonHeight = 64.0f;
+constexpr const char* kTitleFont = "title_font";
+constexpr const char* kBodyFont = "body_font";
 }  // namespace
 
 PauseScene::PauseScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont("times", "assets/fonts/times.ttf");
-  renderer.SetFont("times");
+  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
+  renderer.LoadFont(kBodyFont, "assets/fonts/Perpetua-Regular.otf");
+  renderer.SetFont(kBodyFont);
 
   auto& input = app_.GetEngine().Input();
   pause_toggle_pressed_ =
@@ -56,6 +59,8 @@ PauseScene::PauseScene(Application& app) : app_(app) {
   title_ = std::make_shared<engine::ui::TextElement>(
       "Paused", engine::ui::FontSize::RelativeWidth(0.06f),
       engine::render::Color::White());
+  title_->SetFont(kTitleFont);
+  title_->SetFontFallback(kBodyFont);
   title_->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
@@ -91,6 +96,7 @@ void PauseScene::Draw(engine::render::Renderer2D& renderer) {
                      static_cast<float>(window_size.y)},
                     engine::render::Color::FromBytes(6, 10, 22, 210));
 
+  renderer.SetFont(kBodyFont);
   canvas_.Draw(renderer);
   for (auto& button : menu_buttons_) {
     button->Draw(renderer);
@@ -146,6 +152,7 @@ void PauseScene::BuildUi() {
 
 void PauseScene::LayoutUi(engine::render::Renderer2D& renderer) {
   const auto window_size = app_.GetEngine().Window().GetSize();
+  renderer.SetFont(kBodyFont);
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);
