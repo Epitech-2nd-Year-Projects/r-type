@@ -21,6 +21,8 @@ namespace {
 constexpr std::array<GameAction, 5> kRebindableActions{
     GameAction::kMoveUp, GameAction::kMoveDown, GameAction::kMoveLeft,
     GameAction::kMoveRight, GameAction::kShoot};
+constexpr const char* kTitleFont = "title_font";
+constexpr const char* kBodyFont = "body_font";
 
 std::string VolumeToString(float volume) {
   int percent = static_cast<int>(std::round(volume * 100.0f));
@@ -40,8 +42,9 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
 
 SettingsScene::SettingsScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont("times", "assets/fonts/times.ttf");
-  renderer.SetFont("times");
+  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
+  renderer.LoadFont(kBodyFont, "assets/fonts/Perpetua-Regular.otf");
+  renderer.SetFont(kBodyFont);
 
   engine::render::Color white = engine::render::Color::White();
 
@@ -60,6 +63,8 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
 
   auto title_text = std::make_shared<engine::ui::TextElement>(
       "Settings", engine::ui::FontSize::RelativeWidth(0.1f), white);
+  title_text->SetFont(kTitleFont);
+  title_text->SetFontFallback(kBodyFont);
   title_text->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_text);
@@ -160,6 +165,8 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
 
   auto controls_title = std::make_shared<engine::ui::TextElement>(
       "Controls", engine::ui::FontSize::Pixels(28.0f), white);
+  controls_title->SetFont(kTitleFont);
+  controls_title->SetFontFallback(kBodyFont);
   controls_title->Layout().margin.top = 20.0f;
   content->AddChild(controls_title);
 
@@ -358,6 +365,7 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
 }
 
 void SettingsScene::Draw(engine::render::Renderer2D& renderer) {
+  renderer.SetFont(kBodyFont);
   LayoutUi(renderer);
   canvas_.Draw(renderer);
   for (auto& btn : buttons_) {
@@ -367,6 +375,7 @@ void SettingsScene::Draw(engine::render::Renderer2D& renderer) {
 
 void SettingsScene::LayoutUi(engine::render::Renderer2D& renderer) {
   const auto window_size = app_.GetEngine().Window().GetSize();
+  renderer.SetFont(kBodyFont);
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);

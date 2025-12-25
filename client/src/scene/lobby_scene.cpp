@@ -27,6 +27,8 @@ constexpr auto kBannerDuration = std::chrono::seconds(6);
 constexpr std::size_t kGoldenHashRatio = 0x9e3779b9;
 constexpr std::size_t kHashPrivateSalt = 0xabcddcba;
 constexpr std::size_t kHashPublicSeed = 0x12344321;
+constexpr const char* kTitleFont = "title_font";
+constexpr const char* kBodyFont = "body_font";
 
 std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
   std::size_t value = rooms.size();
@@ -55,8 +57,9 @@ bool IsFourDigitPassword(const std::string& value) {
 
 LobbyScene::LobbyScene(Application& app) : app_(app) {
   auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont("times", "assets/fonts/times.ttf");
-  renderer.SetFont("times");
+  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
+  renderer.LoadFont(kBodyFont, "assets/fonts/Perpetua-Regular.otf");
+  renderer.SetFont(kBodyFont);
 
   auto& runtime_config = app_.GetEngine().Config();
   lobby_host_ = runtime_config.GetString("client.host", "127.0.0.1");
@@ -294,6 +297,7 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
 
 void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
   LayoutUi(renderer);
+  renderer.SetFont(kBodyFont);
   const auto window_size = app_.GetEngine().Window().GetSize();
   const float width = static_cast<float>(window_size.x);
   const float height = static_cast<float>(window_size.y);
@@ -303,8 +307,10 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
   const float margin = 32.0f;
 
   const float list_top = 220.0f;
+  renderer.SetFont(kTitleFont);
   renderer.DrawText("Available rooms", {margin, list_top - 44.0f}, 28.0f,
                     engine::render::Color::White());
+  renderer.SetFont(kBodyFont);
   renderer.DrawText(app_.RoomDirectoryStatus(), {margin, list_top - 14.0f},
                     18.0f,
                     engine::render::Color::FromBytes(180, 190, 210, 255));
@@ -330,7 +336,9 @@ void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
     renderer.DrawRect({modal_x, modal_y, kModalWidth, kModalHeight}, panel);
     const std::string title =
         modal_mode_ == ModalMode::kCreate ? "Create a room" : "Enter password";
+    renderer.SetFont(kTitleFont);
     renderer.DrawText(title, {modal_x + 24.0f, modal_y + 34.0f}, 28.0f, accent);
+    renderer.SetFont(kBodyFont);
     if (modal_mode_ == ModalMode::kCreate) {
       renderer.DrawText("Room name", {modal_x + 24.0f, modal_y + 84.0f}, 16.0f,
                         engine::render::Color::White());
@@ -401,12 +409,12 @@ void LobbyScene::RefreshRoomButtons() {
 }
 
 void LobbyScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  (void)renderer;
   const auto window_size = app_.GetEngine().Window().GetSize();
   const float width = static_cast<float>(window_size.x);
   const float margin = 32.0f;
 
   const float controls_y = 110.0f;
+  renderer.SetFont(kBodyFont);
   const float field_y = controls_y + (kButtonHeight - kFieldHeight) / 2.0f;
   renderer.DrawText("Server address", {margin, controls_y - 20.0f}, 16.0f,
                     engine::render::Color::FromBytes(200, 210, 230, 255));

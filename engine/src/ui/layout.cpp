@@ -467,18 +467,43 @@ void TextElement::SetText(std::string text) { text_ = std::move(text); }
 
 void TextElement::SetFontSize(FontSize size) { font_size_ = size; }
 
+void TextElement::SetFont(std::string font_name) {
+  font_name_ = std::move(font_name);
+}
+
+void TextElement::SetFontFallback(std::string font_name) {
+  if (font_name.empty()) {
+    fallback_font_name_.reset();
+    return;
+  }
+  fallback_font_name_ = std::move(font_name);
+}
+
 math::Vector2f TextElement::ComputeContentSize(
     const LayoutContext& context, const math::Vector2f& /*available_space*/) {
+  if (font_name_) {
+    context.renderer.SetFont(*font_name_);
+  }
   resolved_font_size_ = font_size_.Resolve(context.viewport_size);
   if (text_.empty()) {
+    if (font_name_ && fallback_font_name_) {
+      context.renderer.SetFont(*fallback_font_name_);
+    }
     return {0.0f, 0.0f};
   }
-  return context.renderer.MeasureText(text_, resolved_font_size_);
+  auto size = context.renderer.MeasureText(text_, resolved_font_size_);
+  if (font_name_ && fallback_font_name_) {
+    context.renderer.SetFont(*fallback_font_name_);
+  }
+  return size;
 }
 
 void TextElement::Draw(render::Renderer2D& renderer) const {
   if (text_.empty()) {
     return;
+  }
+  if (font_name_) {
+    renderer.SetFont(*font_name_);
   }
   const float font_size =
       resolved_font_size_ > 0.0f
@@ -487,6 +512,9 @@ void TextElement::Draw(render::Renderer2D& renderer) const {
   renderer.DrawText(text_,
                     {ContentRect().top_left_x_, ContentRect().top_left_y_},
                     font_size, color_);
+  if (font_name_ && fallback_font_name_) {
+    renderer.SetFont(*fallback_font_name_);
+  }
 }
 
 LayoutContext Canvas::BuildContext(render::Renderer2D& renderer) const {

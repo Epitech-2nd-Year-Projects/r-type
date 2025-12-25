@@ -10,6 +10,7 @@
 #ifndef ENGINE_UI_TEXT_H_
 #define ENGINE_UI_TEXT_H_
 
+#include <optional>
 #include <string>
 
 #include "engine/render/color.h"
@@ -35,6 +36,18 @@ class TextElement : public UIElement {
   void SetFontSize(FontSize size);
 
   /**
+   * @brief Set the font used to render this text
+   */
+  void SetFont(std::string font_name);
+
+  /**
+   * @brief Set the font restored after measuring and drawing when a custom font
+   * is used
+   * @details If empty the renderer keeps the custom font after measure and draw
+   */
+  void SetFontFallback(std::string font_name);
+
+  /**
    * @brief Update text color
    */
   void SetColor(render::Color color) { color_ = color; }
@@ -51,6 +64,8 @@ class TextElement : public UIElement {
   FontSize font_size_;
   render::Color color_;
   float resolved_font_size_{0.0f};
+  std::optional<std::string> font_name_{};
+  std::optional<std::string> fallback_font_name_{};
 };
 
 }  // namespace engine::ui

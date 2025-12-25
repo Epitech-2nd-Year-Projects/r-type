@@ -21,7 +21,12 @@ class Button : public UIElement {
 
   void SetTexture(std::shared_ptr<engine::render::Texture2D> texture);
   void SetColors(engine::render::Color normal, engine::render::Color hover, engine::render::Color pressed);
-  
+  /**
+   * Set text color used when drawing
+   */
+  void SetTextColor(engine::render::Color color) { text_color_ = color; }
+  void SetTextScale(float scale) { text_scale_ = scale; }
+
   const std::string& GetText() const { return text_; }
   void SetText(const std::string& text) { text_ = text; }
 
@@ -46,6 +51,7 @@ class Button : public UIElement {
   engine::render::Color hover_color_{engine::render::Color::White()};
   engine::render::Color pressed_color_{engine::render::Color::FromBytes(180, 180, 180)};
   engine::render::Color text_color_{engine::render::Color::Black()};
+  float text_scale_{0.4f};
 };
 
 }  // namespace client::ui
