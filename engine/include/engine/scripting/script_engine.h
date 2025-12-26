@@ -1,9 +1,11 @@
 #ifndef ENGINE_SCRIPTING_SCRIPT_ENGINE_H_
 #define ENGINE_SCRIPTING_SCRIPT_ENGINE_H_
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace sol {
 class state;
@@ -73,8 +75,27 @@ class ScriptEngine {
    */
   sol::state& LuaState();
 
+  /**
+   * @brief Load and execute a script file, then monitor it for changes (hot-reload).
+   * @param path Absolute or relative path to the .lua file.
+   */
+  void LoadScript(const std::string& path);
+
+  /**
+   * @brief Check for file changes and reload modified scripts.
+   * Call this once per frame or at a regular interval.
+   */
+  void Update();
+
  private:
+  struct WatchedScript {
+    std::string path;
+    std::filesystem::file_time_type last_write_time;
+  };
+
   std::unique_ptr<sol::state> lua_;
+  std::vector<WatchedScript> watched_scripts_;
+  void ReloadScript(const std::string& path);
 };
 
 }  // namespace engine::scripting
