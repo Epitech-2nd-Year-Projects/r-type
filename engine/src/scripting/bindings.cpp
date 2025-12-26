@@ -114,8 +114,8 @@ void BindTypes(sol::state& lua) {
       },
 
       "register_system",
-      [](ecs::Registry& self, std::string name, sol::protected_function fn,
-         sol::optional<ecs::SystemType> type,
+      [](ecs::Registry& self, const std::string& name,
+         sol::protected_function fn, sol::optional<ecs::SystemType> type,
          sol::optional<ecs::SystemPriority> priority) {
         auto existing = self.GetSystem(name);
         if (existing) {
