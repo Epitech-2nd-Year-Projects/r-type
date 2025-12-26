@@ -1,6 +1,9 @@
 #ifndef ENGINE_SCRIPTING_BINDINGS_H_
 #define ENGINE_SCRIPTING_BINDINGS_H_
 
+#include <sol/sol.hpp>
+#include <string>
+
 namespace sol {
 class state;
 }
@@ -27,6 +30,14 @@ void BindTypes(sol::state& lua);
  * @param registry The active ECS registry instance.
  */
 void BindRegistry(sol::state& lua, engine::ecs::Registry& registry);
+
+/**
+ * @brief Generic event wrapper for Lua-defined events.
+ */
+struct LuaEvent {
+  std::string name;
+  sol::table data;
+};
 
 /**
  * @brief Bind the EventBus instance to Lua.
