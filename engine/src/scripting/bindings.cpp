@@ -113,7 +113,7 @@ void BindTypes(sol::state& lua) {
       },
 
       "register_system",
-      [](ecs::Registry& self, sol::function fn,
+      [](ecs::Registry& self, sol::protected_function fn,
          sol::optional<ecs::SystemType> type,
          sol::optional<ecs::SystemPriority> priority) {
         auto sys = std::make_shared<engine::scripting::ScriptSystem>(fn);

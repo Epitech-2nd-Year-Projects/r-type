@@ -1,6 +1,5 @@
 #include "engine/scripting/script_engine.h"
 
-#define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
 #include "engine/scripting/bindings.h"
