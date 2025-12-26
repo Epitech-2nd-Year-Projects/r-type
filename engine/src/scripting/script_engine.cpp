@@ -65,15 +65,28 @@ void ScriptEngine::LoadScript(const std::string& path) {
 }
 
 void ScriptEngine::Update() {
-  for (auto& script : watched_scripts_) {
+  auto now = std::chrono::steady_clock::now();
+  if (now - last_check_time_ < check_interval_) return;
+  last_check_time_ = now;
+
+  for (auto it = watched_scripts_.begin(); it != watched_scripts_.end();) {
     std::error_code ec;
-    auto current_time = std::filesystem::last_write_time(script.path, ec);
-    if (!ec && current_time > script.last_write_time) {
-      ENGINE_LOG_INFO("Detected change in script '{}', reloading...",
-                      script.path);
-      ReloadScript(script.path);
-      script.last_write_time = current_time;
+    auto current_time = std::filesystem::last_write_time(it->path, ec);
+
+    if (ec) {
+      ENGINE_LOG_WARN(
+          "Script '{}' no longer accessible, stopping watch. Error: {}",
+          it->path, ec.message());
+      it = watched_scripts_.erase(it);
+      continue;
     }
+
+    if (current_time > it->last_write_time) {
+      ENGINE_LOG_INFO("Detected change in script '{}', reloading...", it->path);
+      ReloadScript(it->path);
+      it->last_write_time = current_time;
+    }
+    ++it;
   }
 }
 
