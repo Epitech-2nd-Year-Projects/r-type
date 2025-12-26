@@ -1,6 +1,7 @@
 #ifndef ENGINE_SCRIPTING_SCRIPT_ENGINE_H_
 #define ENGINE_SCRIPTING_SCRIPT_ENGINE_H_
 
+#include <chrono>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -88,6 +89,14 @@ class ScriptEngine {
    */
   void Update();
 
+  /**
+   * @brief Set the polling interval for file watching.
+   * @param interval Time to wait between checks.
+   */
+  void SetCheckInterval(std::chrono::milliseconds interval) {
+    check_interval_ = interval;
+  }
+
  private:
   struct WatchedScript {
     std::string path;
@@ -96,6 +105,13 @@ class ScriptEngine {
 
   std::unique_ptr<sol::state> lua_;
   std::vector<WatchedScript> watched_scripts_;
+  std::chrono::steady_clock::time_point last_check_time_;
+  std::chrono::milliseconds check_interval_{1000};  // Default 1s polling
+
+  /**
+   * @brief Internal helper to load and execute a script safely.
+   * @param path Path to the script.
+   */
   void ReloadScript(const std::string& path);
 };
 
