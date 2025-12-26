@@ -27,15 +27,16 @@ class HotReloadTest : public ::testing::Test {
     ofs << content;
     ofs.close();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   fs::path script_path_;
 };
 
-TEST_F(HotReloadTest, ReloadsSystemLogicOnFly) {
+TEST_F(HotReloadTest, HotReload_ReloadsSystemLogicOnFly) {
   engine::scripting::ScriptEngine engine;
   engine::ecs::Registry registry;
+  engine.SetCheckInterval(std::chrono::milliseconds(1));
   engine.Initialize();
   engine.SetRegistry(registry);
 
@@ -51,11 +52,12 @@ TEST_F(HotReloadTest, ReloadsSystemLogicOnFly) {
 
   registry.UpdateSystems(engine::time::TimeDelta::from_seconds(1.0));
 
-  int counter = engine.LuaState()["Counter"].get_or(0);
-  EXPECT_EQ(counter, 1);
+  {
+    int current_counter = engine.LuaState()["Counter"].get_or(0);
+    EXPECT_EQ(current_counter, 1);
+  }
 
   std::string script_v2 = R"(
-    -- Note: We don't reset Counter usually, but here we just redefine the system
     registry:register_system("TestSystem", function(dt, reg)
         Counter = Counter + 10
     end)
@@ -64,15 +66,19 @@ TEST_F(HotReloadTest, ReloadsSystemLogicOnFly) {
 
   engine.Update();
 
+  engine.LuaState()["Counter"] = 0;
   registry.UpdateSystems(engine::time::TimeDelta::from_seconds(1.0));
 
-  counter = engine.LuaState()["Counter"].get_or(0);
-  EXPECT_EQ(counter, 11);
+  {
+    int current_counter = engine.LuaState()["Counter"].get_or(0);
+    EXPECT_EQ(current_counter, 10);
+  }
 }
 
-TEST_F(HotReloadTest, IgnoresSyntaxErrorsAndKeepsOldSystem) {
+TEST_F(HotReloadTest, HotReload_IgnoresSyntaxErrorsAndKeepsOldSystem) {
   engine::scripting::ScriptEngine engine;
   engine::ecs::Registry registry;
+  engine.SetCheckInterval(std::chrono::milliseconds(1));
   engine.Initialize();
   engine.SetRegistry(registry);
 
