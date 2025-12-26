@@ -39,7 +39,7 @@ void ScriptEngine::SetRegistry(engine::ecs::Registry& registry) {
   }
 }
 
-void ScriptEngine::SetEventBus(::engine::event::EventBus& event_bus) {
+void ScriptEngine::SetEventBus(engine::event::EventBus& event_bus) {
   if (lua_) {
     BindEventBus(*lua_, event_bus);
   }
