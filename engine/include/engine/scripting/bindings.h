@@ -9,6 +9,10 @@ namespace engine::ecs {
 class Registry;
 }
 
+namespace engine::event {
+class EventBus;
+}
+
 namespace engine::scripting {
 
 /**
@@ -23,6 +27,13 @@ void BindTypes(sol::state& lua);
  * @param registry The active ECS registry instance.
  */
 void BindRegistry(sol::state& lua, engine::ecs::Registry& registry);
+
+/**
+ * @brief Bind the EventBus instance to Lua.
+ * @param lua The Lua state.
+ * @param event_bus The global event bus.
+ */
+void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus);
 
 }  // namespace engine::scripting
 
