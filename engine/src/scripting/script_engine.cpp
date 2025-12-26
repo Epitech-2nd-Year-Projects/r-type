@@ -47,4 +47,55 @@ void ScriptEngine::SetEventBus(engine::event::EventBus& event_bus) {
 
 sol::state& ScriptEngine::LuaState() { return *lua_; }
 
+void ScriptEngine::LoadScript(const std::string& path) {
+  ReloadScript(path);
+
+  for (const auto& script : watched_scripts_) {
+    if (script.path == path) return;
+  }
+
+  std::error_code ec;
+  auto last_time = std::filesystem::last_write_time(path, ec);
+  if (ec) {
+    ENGINE_LOG_WARN("Could not get write time for script '{}': {}", path,
+                    ec.message());
+    return;
+  }
+  watched_scripts_.push_back({path, last_time});
+}
+
+void ScriptEngine::Update() {
+  for (auto& script : watched_scripts_) {
+    std::error_code ec;
+    auto current_time = std::filesystem::last_write_time(script.path, ec);
+    if (!ec && current_time > script.last_write_time) {
+      ENGINE_LOG_INFO("Detected change in script '{}', reloading...",
+                      script.path);
+      ReloadScript(script.path);
+      script.last_write_time = current_time;
+    }
+  }
+}
+
+void ScriptEngine::ReloadScript(const std::string& path) {
+  if (!lua_) return;
+
+  auto load_result = lua_->load_file(path);
+  if (!load_result.valid()) {
+    sol::error err = load_result;
+    ENGINE_LOG_ERROR("Syntax error in script '{}': {}", path, err.what());
+    return;
+  }
+
+  sol::protected_function script_func = load_result;
+  auto exec_result = script_func();
+  if (!exec_result.valid()) {
+    sol::error err = exec_result;
+    ENGINE_LOG_ERROR("Runtime error executing script '{}': {}", path,
+                     err.what());
+  } else {
+    ENGINE_LOG_INFO("Successfully loaded script '{}'", path);
+  }
+}
+
 }  // namespace engine::scripting
