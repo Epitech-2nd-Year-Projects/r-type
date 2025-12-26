@@ -6,7 +6,7 @@
 #include "engine/ecs/registry.h"
 #include "engine/scripting/script_engine.h"
 
-TEST(ScriptingTest, RegisterAndRunLuaSystem) {
+TEST(ScriptingTest, ScriptSystem_RegistersAndExecutesLuaSystem) {
   engine::scripting::ScriptEngine script_engine;
   script_engine.Initialize();
 
