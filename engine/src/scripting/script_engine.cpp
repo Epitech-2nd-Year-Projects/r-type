@@ -39,6 +39,12 @@ void ScriptEngine::SetRegistry(engine::ecs::Registry& registry) {
   }
 }
 
+void ScriptEngine::SetEventBus(::engine::event::EventBus& event_bus) {
+  if (lua_) {
+    BindEventBus(*lua_, event_bus);
+  }
+}
+
 sol::state& ScriptEngine::LuaState() { return *lua_; }
 
 }  // namespace engine::scripting
