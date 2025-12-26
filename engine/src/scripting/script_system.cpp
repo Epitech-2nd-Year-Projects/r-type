@@ -5,7 +5,7 @@
 
 namespace engine::scripting {
 
-ScriptSystem::ScriptSystem(sol::function update_fn)
+ScriptSystem::ScriptSystem(sol::protected_function update_fn)
     : update_fn_(std::move(update_fn)) {}
 
 void ScriptSystem::Update(ecs::Registry& registry, time::TimeDelta dt) {
