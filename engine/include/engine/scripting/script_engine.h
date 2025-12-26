@@ -76,7 +76,8 @@ class ScriptEngine {
   sol::state& LuaState();
 
   /**
-   * @brief Load and execute a script file, then monitor it for changes (hot-reload).
+   * @brief Load and execute a script file, then monitor it for changes
+   * (hot-reload).
    * @param path Absolute or relative path to the .lua file.
    */
   void LoadScript(const std::string& path);
