@@ -130,14 +130,12 @@ void BindRegistry(sol::state& lua, engine::ecs::Registry& registry) {
   ENGINE_LOG_INFO("Lua global 'registry' bound");
 }
 
-struct LuaEvent {
-  std::string name;
-  sol::table data;
-};
-
 void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
   lua.new_usertype<LuaEvent>("LuaEvent", "name", &LuaEvent::name, "data",
                              &LuaEvent::data);
+
+  lua.new_usertype<engine::event::EventBus::SubscriptionHandle>(
+      "SubscriptionHandle");
 
   lua.new_usertype<engine::event::EventBus>(
       "EventBus", sol::no_constructor,
@@ -148,7 +146,8 @@ void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
 
       "subscribe",
       [](engine::event::EventBus& self, const std::string& name,
-         sol::protected_function callback, sol::this_state s) {
+         sol::protected_function callback)
+          -> engine::event::EventBus::SubscriptionHandle {
         auto wrapper = [name,
                         callback = std::move(callback)](const LuaEvent& event) {
           if (event.name == name) {
@@ -159,7 +158,13 @@ void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
             }
           }
         };
-        self.Subscribe<LuaEvent>(std::move(wrapper));
+        return self.Subscribe<LuaEvent>(std::move(wrapper));
+      },
+
+      "unsubscribe",
+      [](engine::event::EventBus& self,
+         const engine::event::EventBus::SubscriptionHandle& handle) {
+        self.Unsubscribe(handle);
       });
 
   lua["event_bus"] = std::ref(event_bus);
