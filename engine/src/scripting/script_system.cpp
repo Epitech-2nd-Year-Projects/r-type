@@ -19,4 +19,8 @@ void ScriptSystem::Update(ecs::Registry& registry, time::TimeDelta dt) {
   }
 }
 
+void ScriptSystem::SetFunction(sol::protected_function update_fn) {
+  update_fn_ = std::move(update_fn);
+}
+
 }  // namespace engine::scripting
