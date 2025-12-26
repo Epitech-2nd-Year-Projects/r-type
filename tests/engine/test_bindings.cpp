@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
 #include "engine/ecs/components/position_component.h"

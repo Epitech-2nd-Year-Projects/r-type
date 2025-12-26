@@ -1,14 +1,15 @@
 #include "engine/scripting/bindings.h"
 
-#define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
+#include "engine/ecs/system.h"
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/color.h"
+#include "engine/scripting/script_system.h"
 #include "engine/util/logging.h"
 
 namespace engine::scripting {
@@ -64,6 +65,9 @@ void BindTypes(sol::state& lua) {
                         ecs::VelocityComponent(math::Vector2<float>)>(),
       "velocity", &ecs::VelocityComponent::velocity);
 
+  lua.new_enum("SystemType", "Variable", ecs::SystemType::Variable, "Fixed",
+               ecs::SystemType::Fixed);
+
   lua.new_usertype<ecs::Registry>(
       "Registry", sol::no_constructor, "create_entity",
       &ecs::Registry::SpawnEntity, "kill_entity", &ecs::Registry::KillEntity,
@@ -106,9 +110,18 @@ void BindTypes(sol::state& lua) {
           ENGINE_LOG_ERROR("Lua get_velocity error: Unknown exception");
         }
         return std::nullopt;
+      },
+
+      "register_system",
+      [](ecs::Registry& self, sol::protected_function fn,
+         sol::optional<ecs::SystemType> type,
+         sol::optional<ecs::SystemPriority> priority) {
+        auto sys = std::make_shared<engine::scripting::ScriptSystem>(fn);
+        self.AddSystemClass(sys, type.value_or(ecs::SystemType::Variable),
+                            priority.value_or(ecs::kDefaultPriority));
       });
 
-  ENGINE_LOG_INFO("Lua bindings types initialized (Math + ECS)");
+  ENGINE_LOG_INFO("Lua bindings types initialized (Math + ECS + Systems)");
 }
 
 void BindRegistry(sol::state& lua, engine::ecs::Registry& registry) {
