@@ -30,7 +30,7 @@ TEST(ScriptingTest, ScriptSystem_RegistersAndExecutesLuaSystem) {
     end
 
     -- Register as a Variable system (runs every frame)
-    registry:register_system(move_system, SystemType.Variable, 100)
+    registry:register_system("MoveSystem", move_system, SystemType.Variable, 100)
   )";
 
   auto result = lua.script(script);
