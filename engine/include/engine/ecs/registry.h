@@ -440,9 +440,13 @@ class Registry {
   /**
    * @brief Register a named object-oriented system
    * @param name Unique name for the system (for hot-reloading/retrieval)
-   * @param system Unique pointer to system object
+   * @param system Shared pointer to system object
    * @param type System type (Fixed or Variable)
    * @param priority Execution priority
+   *
+   * @note Named systems are stored in both the execution list and a
+   * name-to-system map. This creates two shared_ptr references to the same
+   * system.
    */
   void AddSystemClass(const std::string& name, std::shared_ptr<ISystem> system,
                       SystemType type = SystemType::Variable,
