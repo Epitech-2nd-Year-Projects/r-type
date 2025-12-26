@@ -76,3 +76,68 @@ TEST(PrefabFactoryTest, ReturnsNulloptForMissingPrefab) {
   auto e_opt = factory.Spawn(registry, "NonExistent");
   EXPECT_FALSE(e_opt.has_value());
 }
+
+TEST(PrefabFactoryTest, ReturnsNulloptForEmptyName) {
+  sol::state lua;
+  lua.open_libraries(sol::lib::base);
+  engine::ecs::Registry registry;
+  engine::scripting::PrefabFactory factory(lua);
+
+  lua.script("Prefabs = {}");
+
+  auto e_opt = factory.Spawn(registry, "");
+  EXPECT_FALSE(e_opt.has_value());
+}
+
+TEST(PrefabFactoryTest, ReturnsNulloptForMissingGlobalTable) {
+  sol::state lua;
+  lua.open_libraries(sol::lib::base);
+  engine::ecs::Registry registry;
+  engine::scripting::PrefabFactory factory(lua);
+
+  auto e_opt = factory.Spawn(registry, "Any");
+  EXPECT_FALSE(e_opt.has_value());
+}
+
+TEST(PrefabFactoryTest, AtomicSpawnRollbackOnException) {
+  sol::state lua;
+  lua.open_libraries(sol::lib::base);
+  engine::ecs::Registry registry;
+  engine::scripting::PrefabFactory factory(lua);
+
+  factory.RegisterComponent(
+      "FaultyComp",
+      [](engine::ecs::Registry&, engine::ecs::EntityId, const sol::object&) {
+        throw std::runtime_error("Component creation failed");
+      });
+
+  lua.script(R"(
+    Prefabs = {
+      BrokenObj = {
+        FaultyComp = 1
+      }
+    }
+  )");
+
+  auto e_opt = factory.Spawn(registry, "BrokenObj");
+  EXPECT_FALSE(e_opt.has_value());
+}
+
+TEST(PrefabFactoryTest, IgnoresUnknownAndNonStringKeys) {
+  sol::state lua;
+  lua.open_libraries(sol::lib::base);
+  engine::ecs::Registry registry;
+  engine::scripting::PrefabFactory factory(lua);
+
+  lua.script(R"(
+    Prefabs = {
+      WeirdObj = {
+        [1] = "NonStringKey", 
+        UnknownComp = 123
+      }
+    }
+  )");
+
+  auto e_opt = factory.Spawn(registry, "WeirdObj");
+  ASSERT_TRUE(e_opt.has_value());
+}
