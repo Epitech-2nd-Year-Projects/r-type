@@ -29,7 +29,7 @@ engine_module("net", {"engine_event", "engine_util", "engine_core"}, "asio")
 engine_module("audio", {"engine_resource"}, "raylib")
 engine_module("render", {"engine_math", "engine_resource"}, "raylib")
 engine_module("ui", {"engine_render", "engine_input"})
-engine_module("scripting", {"engine_core", "engine_util", "engine_ecs", "engine_math", "engine_render"}, {"lua", "sol2"})
+engine_module("scripting", {"engine_core", "engine_util", "engine_ecs", "engine_math", "engine_render", "engine_event"}, {"lua", "sol2"})
 engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui", "engine_scripting"})
 
 target("engine")

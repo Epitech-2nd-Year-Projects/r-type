@@ -13,6 +13,10 @@ namespace engine::ecs {
 class Registry;
 }
 
+namespace engine::event {
+class EventBus;
+}
+
 namespace engine::scripting {
 
 /**
@@ -49,6 +53,16 @@ class ScriptEngine {
    * ownership of the registry.
    */
   void SetRegistry(engine::ecs::Registry& registry);
+
+  /**
+   * @brief Bind the global event bus.
+   * @param event_bus Reference to the event bus.
+   *
+   * @note The event_bus reference must remain valid for the lifetime of
+   * the ScriptEngine or until unbound. The ScriptEngine does not take
+   * ownership of the event_bus.
+   */
+  void SetEventBus(engine::event::EventBus& event_bus);
 
   /**
    * @brief Access the underlying Lua state.
