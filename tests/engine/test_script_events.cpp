@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 
 #include "engine/event.h"
+#include "engine/scripting/bindings.h"
 #include "engine/scripting/script_engine.h"
 
 TEST(ScriptingTest, EventBus_LuaPublishSubscribe) {
@@ -37,4 +38,53 @@ TEST(ScriptingTest, EventBus_LuaPublishSubscribe) {
   std::tuple<int, std::string> res = result;
   EXPECT_EQ(std::get<0>(res), 1);
   EXPECT_EQ(std::get<1>(res), "Hello from Lua");
+}
+
+TEST(ScriptingTest, EventBus_BiDirectionalAndUnsubscribe) {
+  engine::scripting::ScriptEngine script_engine;
+  engine::event::EventBus event_bus;
+  script_engine.Initialize();
+  script_engine.SetEventBus(event_bus);
+
+  auto& lua = script_engine.LuaState();
+
+  const std::string script = R"(
+    local count = 0
+    local last_msg = ""
+    
+    function on_cpp_event(data)
+       count = count + 1
+       last_msg = data.msg
+    end
+
+    -- Return handle to C++ to verify we got it
+    local handle = event_bus:subscribe("CppToLua", on_cpp_event)
+    
+    function unsubscribe_me()
+        event_bus:unsubscribe(handle)
+    end
+    
+    function get_status()
+        return count, last_msg
+    end
+  )";
+
+  lua.script(script);
+
+  sol::table data = lua.create_table();
+  data["msg"] = "Hello from C++";
+
+  event_bus.Publish(engine::scripting::LuaEvent{"CppToLua", data});
+
+  auto result = lua["get_status"]();
+  std::tuple<int, std::string> status = result;
+  EXPECT_EQ(std::get<0>(status), 1);
+  EXPECT_EQ(std::get<1>(status), "Hello from C++");
+
+  lua["unsubscribe_me"]();
+
+  event_bus.Publish(engine::scripting::LuaEvent{"CppToLua", data});
+
+  status = lua["get_status"]();
+  EXPECT_EQ(std::get<0>(status), 1);
 }
