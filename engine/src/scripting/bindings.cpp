@@ -6,6 +6,7 @@
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
+#include "engine/event.h"
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/color.h"
@@ -127,6 +128,42 @@ void BindTypes(sol::state& lua) {
 void BindRegistry(sol::state& lua, engine::ecs::Registry& registry) {
   lua["registry"] = std::ref(registry);
   ENGINE_LOG_INFO("Lua global 'registry' bound");
+}
+
+struct LuaEvent {
+  std::string name;
+  sol::table data;
+};
+
+void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
+  lua.new_usertype<LuaEvent>("LuaEvent", "name", &LuaEvent::name, "data",
+                             &LuaEvent::data);
+
+  lua.new_usertype<engine::event::EventBus>(
+      "EventBus", sol::no_constructor,
+
+      "publish",
+      [](engine::event::EventBus& self, const std::string& name,
+         sol::table data) { self.Publish(LuaEvent{name, data}); },
+
+      "subscribe",
+      [](engine::event::EventBus& self, const std::string& name,
+         sol::protected_function callback, sol::this_state s) {
+        auto wrapper = [name,
+                        callback = std::move(callback)](const LuaEvent& event) {
+          if (event.name == name) {
+            auto result = callback(event.data);
+            if (!result.valid()) {
+              sol::error err = result;
+              ENGINE_LOG_ERROR("Lua EventCallback Error: {}", err.what());
+            }
+          }
+        };
+        self.Subscribe<LuaEvent>(std::move(wrapper));
+      });
+
+  lua["event_bus"] = std::ref(event_bus);
+  ENGINE_LOG_INFO("Lua global 'event_bus' bound");
 }
 
 }  // namespace engine::scripting
