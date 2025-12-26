@@ -15,15 +15,17 @@ namespace engine::scripting {
  * @brief Factory for spawning entities defined in Lua tables (Prefabs).
  *
  * Allows registering C++ component creators that map Lua values to ECS
- * components. Entities are spawned by looking up value in the global 'Prefabs'
+ * components. Entities are spawned by looking up values in the global 'Prefabs'
  * Lua table.
+ *
+ * @note This class is NOT thread-safe for write operations.
  */
 class PrefabFactory {
  public:
   /**
    * @brief callback signature for creating a component from a Lua value.
    * @param registry The ECS registry.
-   * @param entity The entity to add attributes to.
+   * @param entity The entity to add components to.
    * @param value The Lua value corresponding to the component key in the prefab
    * table.
    */

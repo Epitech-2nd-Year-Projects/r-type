@@ -13,6 +13,11 @@ void PrefabFactory::RegisterComponent(const std::string& name,
 
 std::optional<ecs::EntityId> PrefabFactory::Spawn(
     ecs::Registry& registry, const std::string& prefab_name) {
+  if (prefab_name.empty()) {
+    ENGINE_LOG_ERROR("Spawn failed: prefab_name cannot be empty.");
+    return std::nullopt;
+  }
+
   sol::optional<sol::table> prefabs_opt = lua_["Prefabs"];
   if (!prefabs_opt) {
     ENGINE_LOG_ERROR("Lua global 'Prefabs' table not found.");
@@ -46,6 +51,8 @@ std::optional<ecs::EntityId> PrefabFactory::Spawn(
       } catch (const std::exception& e) {
         ENGINE_LOG_ERROR("Error creating component '{}' for prefab '{}': {}",
                          key, prefab_name, e.what());
+        registry.KillEntity(entity);
+        return std::nullopt;
       }
     } else {
       ENGINE_LOG_WARN("Unknown component key '{}' in prefab '{}'", key,
