@@ -17,8 +17,6 @@ void SpriteSyncSystem::RegisterComponents() {
 }
 
 void SpriteSyncSystem::SyncSprites() {
-  auto& sprites = registry_.GetComponents<ecs::SpriteComponent>();
-  auto& layers = registry_.GetComponents<ecs::RenderLayerComponent>();
   const auto& positions = registry_.GetComponents<ecs::PositionComponent>();
   const auto& nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
   const auto& velocities = registry_.GetComponents<ecs::VelocityComponent>();

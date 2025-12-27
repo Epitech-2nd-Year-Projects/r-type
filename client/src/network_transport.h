@@ -56,13 +56,25 @@ class NetworkTransport {
    * @brief Access current server endpoint
    */
   engine::net::Endpoint server_endpoint() const {
+#ifdef RTYPE_TESTING
+    if (test_state_.has_value()) {
+      return test_state_->server_endpoint;
+    }
+#endif
     return client_.server_endpoint();
   }
 
   /**
    * @brief Running state helper
    */
-  bool running() const { return client_.running(); }
+  bool running() const {
+#ifdef RTYPE_TESTING
+    if (test_state_.has_value()) {
+      return test_state_->running;
+    }
+#endif
+    return client_.running();
+  }
 
   /**
    * @brief Timestamp in milliseconds of the last received packet
@@ -72,7 +84,17 @@ class NetworkTransport {
   }
 
  private:
+#ifdef RTYPE_TESTING
+  struct TestState {
+    engine::net::Endpoint server_endpoint{};
+    bool running{false};
+  };
+#endif
+
   engine::net::Client client_{};
+#ifdef RTYPE_TESTING
+  std::optional<TestState> test_state_{};
+#endif
   std::atomic<std::uint64_t> last_receive_ms_{0};
 };
 
