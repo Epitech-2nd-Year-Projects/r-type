@@ -4,12 +4,13 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <sol/sol.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
 
-namespace sol {
-class state;
+namespace engine::scripting {
+class ScriptEngine;
 }
 
 namespace engine::ecs {
