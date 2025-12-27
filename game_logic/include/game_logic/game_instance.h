@@ -14,8 +14,6 @@
 #include "engine/time/time_delta.h"
 #include "game_logic/game_state.h"
 
-
-
 namespace engine::scripting {
 class ScriptEngine;
 struct LuaEvent;
