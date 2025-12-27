@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "audio_controller.h"
+#include "client_asset_manager.h"
 #include "client_runtime.h"
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
@@ -68,6 +69,10 @@ int Application::Run() {
     audio_->Initialize(*audio_engine);
   }
 
+  assets_ = std::make_unique<ClientAssetManager>(runtime_->Renderer());
+  assets_->SetAudioEngine(audio_engine);
+  assets_->PreloadMenuAssets();
+
   UpdateRuntimeConfig();
   scene_manager_->Initialize(ClientState::kMainMenu);
 
@@ -104,6 +109,8 @@ engine::render::Window& Application::Window() { return runtime_->Window(); }
 std::shared_ptr<engine::audio::AudioEngine> Application::Audio() {
   return runtime_->Audio();
 }
+
+ClientAssetManager& Application::Assets() { return *assets_; }
 
 engine::util::Configuration& Application::Config() {
   return runtime_->Config();

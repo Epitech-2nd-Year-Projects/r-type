@@ -10,6 +10,7 @@
 namespace client {
 
 class AudioController;
+class ClientAssetManager;
 class ClientRuntime;
 class InputCoordinator;
 struct NetworkEvents;
@@ -46,6 +47,10 @@ class Application : public ClientContext {
                                           engine::input::Key key) override;
   engine::render::Window& Window() override;
   std::shared_ptr<engine::audio::AudioEngine> Audio() override;
+  /**
+   * @brief Access the asset manager
+   */
+  ClientAssetManager& Assets() override;
   engine::util::Configuration& Config() override;
   void OnPlay() override;
   void OnOpenSettings() override;
@@ -86,6 +91,7 @@ class Application : public ClientContext {
   std::unique_ptr<ClientRuntime> runtime_;
   std::unique_ptr<SceneManager> scene_manager_;
   std::unique_ptr<AudioController> audio_;
+  std::unique_ptr<ClientAssetManager> assets_;
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
 };
