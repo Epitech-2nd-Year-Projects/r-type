@@ -1,5 +1,5 @@
 /**
- * @file input_coordinator
+ * @file input_coordinator.h
  * @brief Input routing and key binding control
  */
 
