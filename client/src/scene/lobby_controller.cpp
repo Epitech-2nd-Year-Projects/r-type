@@ -5,6 +5,7 @@
 #include <exception>
 #include <utility>
 
+#include "client_asset_manager.h"
 #include "client_config.h"
 #include "client_context.h"
 #include "constants/config_keys.h"
@@ -173,9 +174,8 @@ void LobbyController::Draw(engine::render::Renderer2D& renderer) const {
   }
 }
 
-void LobbyController::ApplyButtonStyle(engine::render::Renderer2D& renderer) {
-  const auto btn_tex = renderer.LoadTextureFromFile(
-      std::string(constants::ui::kButtonTextureLargePath));
+void LobbyController::ApplyButtonStyle(ClientAssetManager& assets) {
+  const auto btn_tex = assets.GetTexture(constants::ui::kButtonTextureLargePath);
   const auto white = constants::ui::kButtonBaseColor;
   if (btn_tex) {
     const auto hover = constants::ui::kButtonHoverColor;

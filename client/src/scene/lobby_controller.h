@@ -27,6 +27,7 @@
 
 namespace client {
 
+class ClientAssetManager;
 class ClientContext;
 
 /**
@@ -64,9 +65,9 @@ class LobbyController {
 
   /**
    * @brief Apply button visuals for refresh and create actions
-   * @param renderer Renderer instance
+   * @param assets Asset manager reference
    */
-  void ApplyButtonStyle(engine::render::Renderer2D& renderer);
+  void ApplyButtonStyle(ClientAssetManager& assets);
 
   /**
    * @brief Set focus based on pointer location
