@@ -20,6 +20,14 @@ namespace engine::event {
 class EventBus;
 }
 
+namespace engine::input {
+class InputManager;
+}
+
+namespace engine::audio {
+class AudioEngine;
+}
+
 namespace engine::scripting {
 
 /**
@@ -66,6 +74,18 @@ class ScriptEngine {
    * ownership of the event_bus.
    */
   void SetEventBus(engine::event::EventBus& event_bus);
+
+  /**
+   * @brief Bind the global input manager.
+   * @param input_manager Reference to the input manager.
+   */
+  void SetInputManager(engine::input::InputManager& input_manager);
+
+  /**
+   * @brief Bind the global audio engine.
+   * @param audio_engine Reference to the audio engine.
+   */
+  void SetAudioEngine(engine::audio::AudioEngine& audio_engine);
 
   /**
    * @brief Access the underlying Lua state.
