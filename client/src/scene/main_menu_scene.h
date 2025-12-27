@@ -15,11 +15,11 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class MainMenuScene : public Scene {
  public:
-  explicit MainMenuScene(Application& app);
+  explicit MainMenuScene(ClientContext& context);
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
@@ -28,7 +28,7 @@ class MainMenuScene : public Scene {
   void DrawPointers(engine::render::Renderer2D& renderer);
   void DrawTitle(engine::render::Renderer2D& renderer);
 
-  Application& app_;
+  ClientContext& context_;
   std::vector<std::shared_ptr<ui::UIElement>> ui_elements_;
   std::shared_ptr<ui::Button> play_button_;
   std::shared_ptr<ui::Button> settings_button_;
