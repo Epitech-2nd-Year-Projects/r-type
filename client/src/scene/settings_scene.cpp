@@ -15,7 +15,7 @@
 #include "engine/ui/text.h"
 #include "engine/ui/types.h"
 #include "key_bindings.h"
-#include "ui/button.h"
+#include "engine/ui/button.h"
 
 namespace client {
 
@@ -120,7 +120,8 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
     volume_label->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kCenter;
 
-    auto add_button_slot = [&](const std::shared_ptr<ui::Button>& button) {
+    auto add_button_slot =
+        [&](const std::shared_ptr<engine::ui::Button>& button) {
       buttons_.push_back(button);
       auto slot = std::make_shared<engine::ui::BoxElement>();
       slot->Layout().size = {engine::ui::LayoutValue::Pixels(
@@ -134,7 +135,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
       row->AddChild(slot);
     };
 
-    auto minus_btn = std::make_shared<ui::Button>(
+    auto minus_btn = std::make_shared<engine::ui::Button>(
         engine::math::Vector2f{},
         engine::math::Vector2f{constants::ui::Settings::kVolumeButtonSize,
                                constants::ui::Settings::kVolumeButtonSize},
@@ -150,7 +151,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
 
     row->AddChild(volume_label);
 
-    auto plus_btn = std::make_shared<ui::Button>(
+    auto plus_btn = std::make_shared<engine::ui::Button>(
         engine::math::Vector2f{},
         engine::math::Vector2f{constants::ui::Settings::kVolumeButtonSize,
                                constants::ui::Settings::kVolumeButtonSize},
@@ -241,7 +242,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
         constants::ui::Settings::kBindingLabelWidth);
     row->AddChild(action_label);
 
-    auto button = std::make_shared<ui::Button>(
+    auto button = std::make_shared<engine::ui::Button>(
         engine::math::Vector2f{},
         engine::math::Vector2f{constants::ui::Settings::kBindingButtonWidth,
                                constants::ui::Settings::kBindingButtonHeight},
@@ -266,7 +267,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   }
   content->AddChild(bindings_column);
 
-  auto fullscreen_btn = std::make_shared<ui::Button>(
+  auto fullscreen_btn = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Settings::kFullscreenButtonWidth,
                              constants::ui::Settings::kFullscreenButtonHeight},
@@ -291,7 +292,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
 
   root->AddChild(content);
 
-  auto back_btn = std::make_shared<ui::Button>(
+  auto back_btn = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Settings::kBackButtonWidth,
                              constants::ui::Settings::kBackButtonHeight},
