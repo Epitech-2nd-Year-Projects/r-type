@@ -142,8 +142,9 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
       logger.Error("[game_logic.enemy] Error loading enemy missile config: ",
                    e.what());
     } catch (...) {
-      logger.Error("[game_logic.enemy] Unknown error loading enemy missile "
-                   "config");
+      logger.Error(
+          "[game_logic.enemy] Unknown error loading enemy missile "
+          "config");
     }
   }
 
