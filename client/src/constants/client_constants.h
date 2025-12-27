@@ -6,6 +6,8 @@
 #ifndef CLIENT_CONSTANTS_CLIENT_CONSTANTS_H_
 #define CLIENT_CONSTANTS_CLIENT_CONSTANTS_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <string_view>
 
 #include "engine/math/vector2.h"
@@ -24,6 +26,11 @@ inline constexpr bool kWindowVsync = true;
 inline constexpr std::string_view kWindowTitle = "R-Type Client";
 inline constexpr std::string_view kClientConfigPath = "config/client.json";
 inline constexpr std::string_view kKeyBindingsPath = "config/keybindings.json";
+inline constexpr std::size_t kLobbyPasswordLength = 4;
+inline constexpr int kLobbyDefaultMaxPlayers = 4;
+inline constexpr int kLobbyMaxPlayersMin = 1;
+inline constexpr int kLobbyMaxPlayersMax = 255;
+inline constexpr std::uint8_t kPlayerReadyFlag = 1u << 1;
 
 }  // namespace client::constants::client
 
