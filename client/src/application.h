@@ -1,237 +1,91 @@
 #ifndef CLIENT_APPLICATION_H_
 #define CLIENT_APPLICATION_H_
 
-#include <filesystem>
 #include <memory>
-#include <optional>
-#include <string>
-#include <string_view>
 
-#include "audio_manager.h"
 #include "client_config.h"
-#include "debug_overlay.h"
-#include "ecs/animation_system.h"
-#include "ecs/interpolation_system.h"
-#include "ecs/render_system.h"
-#include "ecs/world_state_system.h"
-#include "engine/app/engine_runtime.h"
-#include "engine/ecs/registry.h"
+#include "client_context.h"
 #include "engine/time/time_delta.h"
-#include "input_layer.h"
-#include "input_sender.h"
-#include "join_flow.h"
-#include "key_bindings.h"
-#include "local_prediction.h"
-#include "network_transport.h"
-#include "render/parallax_background.h"
-#include "room_directory_client.h"
-#include "scene/lobby_scene.h"
-#include "scene/scene.h"
-#include "sound_effects.h"
-#include "world_update_receiver.h"
 
 namespace client {
 
-/**
- * @brief High level client state controlling active screen
- *
- * Represents the coarse grained client lifecycle and drives which scene is
- * active at any given time.
- */
-enum class ClientState {
-  kMainMenu,
-  kLobby,
-  kSettings,
-  kConnecting,
-  kInGame,
-  kPaused,
-  kGameOver,
-  kDisconnected
-};
+class AudioController;
+class ClientRuntime;
+class InputCoordinator;
+struct NetworkEvents;
+class NetworkSession;
+class SceneManager;
 
 /**
- * @brief High-level application object driving the client runtime
+ * @brief High level application object driving the client runtime
  */
-class Application {
+class Application : public ClientContext {
  public:
   /**
    * @brief Construct an Application with user provided configuration
+   * @param config Client configuration
    */
   explicit Application(ClientConfig config);
 
+  /**
+   * @brief Destroy the application
+   */
+  ~Application() override;
+
+  /**
+   * @brief Run the client loop
+   * @return Exit code
+   */
   int Run();
 
-  /**
-   * @brief Access the engine runtime
-   */
-  engine::app::EngineRuntime& GetEngine() { return *engine_; }
-
-  /**
-   * @brief Switch the active scene
-   */
-  void SwitchScene(std::unique_ptr<Scene> scene);
-
-  /**
-   * @brief Current high level client state
-   */
-  ClientState state() const { return state_; }
-
-  /**
-   * @brief Update connection configuration.
-   */
+  engine::render::Renderer2D& Renderer() override;
+  engine::input::InputManager& Input() override;
+  const KeyBindings& KeyBindingSet() const override;
+  bool UpdateKeyBinding(GameAction action, engine::input::Key key) override;
+  engine::render::Window& Window() override;
+  std::shared_ptr<engine::audio::AudioEngine> Audio() override;
+  engine::util::Configuration& Config() override;
+  void OnPlay() override;
+  void OnOpenSettings() override;
+  void OnCloseSettings() override;
+  void OnQuitApplication() override;
+  void OnQuitToMenu() override;
+  void OnGamePause() override;
+  void OnGameResume() override;
   void SetConnectionConfig(std::string host, int port, std::string player_name,
                            std::string room_code,
-                           std::string room_password = {});
-
-  /**
-   * @brief Begin the connection handshake
-   */
-  bool StartConnection();
-  void OnConnected();
-  void OnPlay();
-  void OnConnectionFailed(const std::string& reason);
-  void OnGameStart();
-  void OnGamePause();
-  void OnGameResume();
-  struct GameOverStats {
-    std::uint32_t score{0};
-    std::uint32_t wave{1};
-    std::uint32_t level{1};
-  };
-
-  void OnGameOver(const GameOverStats& stats);
-  void OnGameOver();
-  void OnDisconnect(std::string reason);
-  void OnQuitToMenu();
-  void OnQuitApplication();
-  void OnOpenSettings();
-  /**
-   * @brief Return from settings to the previously saved state
-   */
-  void OnCloseSettings();
-
-  JoinFlow& GetJoinFlow() { return join_flow_; }
-  NetworkTransport& GetTransport() { return *transport_; }
-  WorldUpdateReceiver& GetWorldUpdateReceiver() {
-    return world_update_receiver_;
-  }
-  /**
-   * @brief Latest measured latency in milliseconds
-   */
-  std::optional<float> LatestLatencyMs() const;
-
-  /**
-   * @brief Current key binding configuration
-   */
-  const KeyBindings& key_bindings() const { return key_bindings_; }
-
-  /**
-   * @brief Replace a single action binding and persist it
-   */
-  bool UpdateKeyBinding(GameAction action, engine::input::Key key);
-
-  /**
-   * @brief Latest wave number as reported by the server
-   */
-  std::optional<std::uint32_t> CurrentWave() const { return last_wave_; }
-
-  /**
-   * @brief Access the mutable ECS world
-   * @note Not thread-safe; call from the main/game thread
-   */
-  engine::ecs::Registry& World() { return *world_registry_; }
-  /**
-   * @brief Access the immutable ECS world
-   * @note Not thread-safe; call from the main/game thread
-   */
-  const engine::ecs::Registry& World() const { return *world_registry_; }
-  /**
-   * @brief Access the world state synchronization system
-   * @note Not thread-safe; call from the main/game thread
-   */
-  ecs::WorldStateSystem& WorldSync() { return *world_state_system_; }
-
-  /**
-   * @brief Request a fresh room list from the server.
-   */
-  void RefreshRoomList(std::string host, std::uint16_t port);
-
-  /**
-   * @brief Ask the server to create a room.
-   */
+                           std::string room_password = {}) override;
+  bool StartConnection() override;
+  void RefreshRoomList(std::string host, std::uint16_t port) override;
   void CreateRoom(std::string host, std::uint16_t port,
                   const std::string& room_name, bool is_private,
-                  std::string room_password, std::uint16_t max_players);
-
-  /**
-   * @brief Read-only access to the current room directory snapshot.
-   */
-  const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const;
-
-  /**
-   * @brief Latest lobby status message.
-   */
-  std::string RoomDirectoryStatus() const;
-
-  /**
-   * @brief Retrieve and clear the latest room creation response.
-   */
-  std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation();
+                  std::string room_password,
+                  std::uint16_t max_players) override;
+  const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const override;
+  std::string RoomDirectoryStatus() const override;
+  std::optional<protocol::CreateRoomResponsePayload>
+  ConsumeLastRoomCreation() override;
+  engine::ecs::Registry& World() override;
+  const engine::ecs::Registry& World() const override;
+  bool EnqueueCommand(const protocol::CommandPayload& payload) override;
+  std::optional<std::uint32_t> CurrentWave() const override;
+  std::optional<float> LatestLatencyMs() const override;
+  std::optional<std::uint32_t> LocalPlayerId() const override;
+  std::string_view ConnectionStatus() const override;
+  bool ConnectionActive() const override;
 
  private:
   bool Tick(engine::time::TimeDelta dt);
-  void UpdateAudio(engine::time::TimeDelta dt, JoinState join_state);
-  void HandleGameOverAudio();
-  void HandleServerCommand(const protocol::CommandPayload& payload);
-  void MonitorConnection(JoinState join_state);
-  void HandleConnectionLost(std::string_view reason);
-  void HandleReconnectInput(JoinState join_state);
-  void ProcessJoinState(JoinState join_state);
-  void ApplyState(ClientState next_state, std::string reason = {});
-  bool TransitionTo(ClientState next_state, std::string reason = {});
-  bool IsTransitionAllowed(ClientState next_state) const;
   void StopNetworkSession();
-  void LoadKeyBindings();
-  bool SaveKeyBindings();
-  void UpdateDebugOverlayState();
-  std::size_t RenderableEntityCount() const;
-  void CommitSceneChange();
-  void UpdateLocalPlayerCache();
+  void HandleNetworkEvents(const NetworkEvents& events);
+  void UpdateRuntimeConfig();
 
-  ClientConfig config_;
-  std::shared_ptr<NetworkTransport> transport_;
-  std::shared_ptr<NetworkTransport> lobby_transport_;
-  JoinFlow join_flow_;
-  std::unique_ptr<RoomDirectoryClient> room_directory_;
-  std::unique_ptr<engine::app::EngineRuntime> engine_;
-  std::unique_ptr<engine::ecs::Registry> world_registry_;
-  std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
-  std::unique_ptr<ecs::AnimationSystem> animation_system_;
-  std::unique_ptr<ecs::InterpolationSystem> interpolation_system_;
-  std::unique_ptr<ecs::RenderSystem> render_system_;
-  std::unique_ptr<InputLayer> input_layer_;
-  std::unique_ptr<InputSender> input_sender_;
-  std::unique_ptr<ParallaxBackground> background_;
-  std::unique_ptr<LocalPrediction> local_prediction_;
-  std::unique_ptr<AudioManager> audio_manager_;
-  std::unique_ptr<SoundEffects> sound_effects_;
-  std::unique_ptr<Scene> current_scene_;
-  std::unique_ptr<Scene> pending_scene_;
-  WorldUpdateReceiver world_update_receiver_;
-  KeyBindings key_bindings_{KeyBindings::Default()};
-  std::filesystem::path keybindings_path_{"config/keybindings.json"};
-  ClientState state_{ClientState::kMainMenu};
-  std::optional<ClientState> settings_return_state_;
-  std::string disconnect_reason_;
-  GameOverStats last_game_stats_;
-  JoinState last_join_state_{JoinState::kIdle};
-  bool music_allowed_{false};
-  bool music_blocked_{false};
-  bool reconnect_requested_{false};
-  bool debug_toggle_pressed_{false};
-  DebugOverlay debug_overlay_{};
-  std::optional<std::uint32_t> cached_local_score_{};
-  std::optional<std::uint32_t> last_wave_{1u};
+  ClientConfig config_{};
+  std::unique_ptr<ClientRuntime> runtime_;
+  std::unique_ptr<SceneManager> scene_manager_;
+  std::unique_ptr<AudioController> audio_;
+  std::unique_ptr<NetworkSession> network_;
+  std::unique_ptr<InputCoordinator> input_;
 };
 
 }  // namespace client
