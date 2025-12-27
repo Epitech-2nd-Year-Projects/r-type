@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/ui_constants.h"
 #include "engine/input.h"
@@ -28,18 +29,16 @@ LobbyScene::LobbyScene(ClientContext& context)
             return controller_.TryJoinRoom(room, password);
           }) {
   auto& renderer = context_.Renderer();
-  renderer.LoadFont(std::string(constants::ui::kTitleFont),
-                    std::string(constants::ui::kTitleFontPath));
-  renderer.LoadFont(std::string(constants::ui::kBodyFont),
-                    std::string(constants::ui::kBodyFontPath));
+  auto& assets = context_.Assets();
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
+  assets.LoadFont(constants::ui::kBodyFont, constants::ui::kBodyFontPath);
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
-  controller_.ApplyButtonStyle(renderer);
+  controller_.ApplyButtonStyle(assets);
 }
 
 void LobbyScene::Update(engine::time::TimeDelta dt) {
-  auto& renderer = context_.Renderer();
-  room_list_view_.RefreshRooms(context_.RoomDirectoryRooms(), renderer);
+  room_list_view_.RefreshRooms(context_.RoomDirectoryRooms(), context_.Assets());
   LayoutUi();
 
   auto& input = context_.Input();
