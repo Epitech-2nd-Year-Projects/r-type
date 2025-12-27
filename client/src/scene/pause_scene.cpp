@@ -1,5 +1,6 @@
 #include "pause_scene.h"
 
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/input_constants.h"
 #include "constants/ui_constants.h"
@@ -10,10 +11,9 @@
 namespace client {
 PauseScene::PauseScene(ClientContext& context) : context_(context) {
   auto& renderer = context_.Renderer();
-  renderer.LoadFont(std::string(constants::ui::kTitleFont),
-                    std::string(constants::ui::kTitleFontPath));
-  renderer.LoadFont(std::string(constants::ui::kBodyFont),
-                    std::string(constants::ui::kBodyFontPath));
+  auto& assets = context_.Assets();
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
+  assets.LoadFont(constants::ui::kBodyFont, constants::ui::kBodyFontPath);
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
   auto& input = context_.Input();
@@ -47,8 +47,8 @@ PauseScene::PauseScene(ClientContext& context) : context_(context) {
   menu_buttons_.push_back(options_button_);
   menu_buttons_.push_back(quit_button_);
 
-  const auto large_button_texture = renderer.LoadTextureFromFile(
-      std::string(constants::ui::kButtonTextureLargePath));
+  const auto large_button_texture =
+      assets.GetTexture(constants::ui::kButtonTextureLargePath);
   if (large_button_texture) {
     for (auto& button : menu_buttons_) {
       button->SetTexture(large_button_texture);
