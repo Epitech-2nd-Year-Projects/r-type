@@ -5,9 +5,12 @@
 #include <cmath>
 #include <string>
 
-#include "application.h"
-#include "engine/app/engine_runtime.h"
+#include "client_context.h"
+#include "constants/input_constants.h"
+#include "constants/ui_constants.h"
+#include "engine/audio/audio_engine.h"
 #include "engine/math/rect.h"
+#include "engine/render/renderer2d.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
 #include "engine/ui/types.h"
@@ -21,8 +24,6 @@ namespace {
 constexpr std::array<GameAction, 5> kRebindableActions{
     GameAction::kMoveUp, GameAction::kMoveDown, GameAction::kMoveLeft,
     GameAction::kMoveRight, GameAction::kShoot};
-constexpr const char* kTitleFont = "title_font";
-constexpr const char* kBodyFont = "body_font";
 
 std::string VolumeToString(float volume) {
   int percent = static_cast<int>(std::round(volume * 100.0f));
@@ -40,13 +41,15 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
 
 }  // namespace
 
-SettingsScene::SettingsScene(Application& app) : app_(app) {
-  auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
-  renderer.LoadFont(kBodyFont, "assets/fonts/Perpetua-Regular.otf");
-  renderer.SetFont(kBodyFont);
+SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
+  auto& renderer = context_.Renderer();
+  renderer.LoadFont(std::string(constants::ui::kTitleFont),
+                    std::string(constants::ui::kTitleFontPath));
+  renderer.LoadFont(std::string(constants::ui::kBodyFont),
+                    std::string(constants::ui::kBodyFontPath));
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
 
-  engine::render::Color white = engine::render::Color::White();
+  const auto white = constants::ui::kButtonBaseColor;
 
   auto root =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
@@ -55,61 +58,75 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  root->SetPadding(engine::ui::Insets::Uniform(48.0f));
-  root->SetSpacing(20.0f);
+  root->SetPadding(
+      engine::ui::Insets::Uniform(constants::ui::Settings::kRootPadding));
+  root->SetSpacing(constants::ui::Settings::kRootSpacing);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
   auto title_text = std::make_shared<engine::ui::TextElement>(
-      "Settings", engine::ui::FontSize::RelativeWidth(0.1f), white);
-  title_text->SetFont(kTitleFont);
-  title_text->SetFontFallback(kBodyFont);
+      "Settings",
+      engine::ui::FontSize::RelativeWidth(
+          constants::ui::Settings::kTitleFontScale),
+      white);
+  title_text->SetFont(std::string(constants::ui::kTitleFont));
+  title_text->SetFontFallback(std::string(constants::ui::kBodyFont));
   title_text->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_text);
 
   auto content =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
-  content->SetSpacing(15.0f);
+  content->SetSpacing(constants::ui::Settings::kContentSpacing);
   content->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
-  auto audio = app_.GetEngine().Audio();
+  auto audio = context_.Audio();
   float current_music_vol = audio ? audio->GetMusicVolume() : 0.0f;
   float current_sfx_vol = audio ? audio->GetSfxVolume() : 0.0f;
 
-  auto btn_tex = renderer.LoadTextureFromFile("assets/ui/button_large.png");
-  auto small_btn_tex =
-      renderer.LoadTextureFromFile("assets/ui/button_small.png");
-  const auto hover = engine::render::Color::FromBytes(220, 220, 220);
-  const auto press = engine::render::Color::FromBytes(180, 180, 180);
+  auto btn_tex = renderer.LoadTextureFromFile(
+      std::string(constants::ui::kButtonTextureLargePath));
+  auto small_btn_tex = renderer.LoadTextureFromFile(
+      std::string(constants::ui::kButtonTextureSmallPath));
+  const auto hover = constants::ui::kButtonHoverColor;
+  const auto press = constants::ui::kButtonPressColor;
 
   auto make_volume_slider = [&](const std::string& label, float initial_volume,
                                 auto on_change) {
     auto row = std::make_shared<engine::ui::StackContainer>(
         engine::ui::Axis::kHorizontal);
-    row->SetSpacing(15.0f);
+    row->SetSpacing(constants::ui::Settings::kVolumeRowSpacing);
     row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                             engine::ui::VerticalAlignment::kCenter});
 
     auto label_elem = std::make_shared<engine::ui::TextElement>(
-        label, engine::ui::FontSize::Pixels(24.0f), white);
-    label_elem->Layout().size.width = engine::ui::LayoutValue::Pixels(200.0f);
+        label,
+        engine::ui::FontSize::Pixels(
+            constants::ui::Settings::kVolumeLabelFontSize),
+        white);
+    label_elem->Layout().size.width = engine::ui::LayoutValue::Pixels(
+        constants::ui::Settings::kVolumeLabelWidth);
     row->AddChild(label_elem);
 
     auto volume_label = std::make_shared<engine::ui::TextElement>(
-        VolumeToString(initial_volume), engine::ui::FontSize::Pixels(24.0f),
+        VolumeToString(initial_volume),
+        engine::ui::FontSize::Pixels(
+            constants::ui::Settings::kVolumeLabelFontSize),
         white);
-    volume_label->Layout().size.width = engine::ui::LayoutValue::Pixels(80.0f);
+    volume_label->Layout().size.width = engine::ui::LayoutValue::Pixels(
+        constants::ui::Settings::kVolumeValueWidth);
     volume_label->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kCenter;
 
     auto add_button_slot = [&](const std::shared_ptr<ui::Button>& button) {
       buttons_.push_back(button);
       auto slot = std::make_shared<engine::ui::BoxElement>();
-      slot->Layout().size = {engine::ui::LayoutValue::Pixels(40.0f),
-                             engine::ui::LayoutValue::Pixels(40.0f)};
+      slot->Layout().size = {engine::ui::LayoutValue::Pixels(
+                                 constants::ui::Settings::kVolumeButtonSize),
+                             engine::ui::LayoutValue::Pixels(
+                                 constants::ui::Settings::kVolumeButtonSize)};
       slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
         button->SetPosition({rect.top_left_x_, rect.top_left_y_});
         button->SetSize({rect.width_, rect.height_});
@@ -118,10 +135,12 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     };
 
     auto minus_btn = std::make_shared<ui::Button>(
-        engine::math::Vector2f{}, engine::math::Vector2f{40.0f, 40.0f}, "-",
-        [this, on_change, volume_label]() {
-          if (auto audio = app_.GetEngine().Audio()) {
-            float v = on_change(audio, -0.1f);
+        engine::math::Vector2f{},
+        engine::math::Vector2f{constants::ui::Settings::kVolumeButtonSize,
+                               constants::ui::Settings::kVolumeButtonSize},
+        "-", [this, on_change, volume_label]() {
+          if (auto audio = context_.Audio()) {
+            float v = on_change(audio, -constants::ui::Settings::kVolumeStep);
             volume_label->SetText(VolumeToString(v));
           }
         });
@@ -132,10 +151,12 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     row->AddChild(volume_label);
 
     auto plus_btn = std::make_shared<ui::Button>(
-        engine::math::Vector2f{}, engine::math::Vector2f{40.0f, 40.0f}, "+",
-        [this, on_change, volume_label]() {
-          if (auto audio = app_.GetEngine().Audio()) {
-            float v = on_change(audio, 0.1f);
+        engine::math::Vector2f{},
+        engine::math::Vector2f{constants::ui::Settings::kVolumeButtonSize,
+                               constants::ui::Settings::kVolumeButtonSize},
+        "+", [this, on_change, volume_label]() {
+          if (auto audio = context_.Audio()) {
+            float v = on_change(audio, constants::ui::Settings::kVolumeStep);
             volume_label->SetText(VolumeToString(v));
           }
         });
@@ -164,15 +185,21 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
       });
 
   auto controls_title = std::make_shared<engine::ui::TextElement>(
-      "Controls", engine::ui::FontSize::Pixels(28.0f), white);
-  controls_title->SetFont(kTitleFont);
-  controls_title->SetFontFallback(kBodyFont);
-  controls_title->Layout().margin.top = 20.0f;
+      "Controls",
+      engine::ui::FontSize::Pixels(
+          constants::ui::Settings::kControlsTitleFontSize),
+      white);
+  controls_title->SetFont(std::string(constants::ui::kTitleFont));
+  controls_title->SetFontFallback(std::string(constants::ui::kBodyFont));
+  controls_title->Layout().margin.top =
+      constants::ui::Settings::kControlsTitleMarginTop;
   content->AddChild(controls_title);
 
   rebind_status_label_ = std::make_shared<engine::ui::TextElement>(
-      "Click a binding to remap", engine::ui::FontSize::Pixels(18.0f),
-      engine::render::Color::FromBytes(200, 200, 200));
+      "Click a binding to remap",
+      engine::ui::FontSize::Pixels(
+          constants::ui::Settings::kRebindStatusFontSize),
+      constants::ui::Settings::kRebindStatusColor);
   content->AddChild(rebind_status_label_);
 
   const auto keys = BindableKeys();
@@ -188,30 +215,37 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
         row->get().button->SetText("Press key...");
       }
     }
-    auto& input = app_.GetEngine().Input();
+    auto& input = context_.Input();
     RefreshKeyStateBuffer(input, key_state_buffer_);
   };
 
   auto bindings_column =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
-  bindings_column->SetSpacing(10.0f);
-  bindings_column->Layout().margin.top = 10.0f;
+  bindings_column->SetSpacing(constants::ui::Settings::kBindingColumnSpacing);
+  bindings_column->Layout().margin.top =
+      constants::ui::Settings::kBindingColumnMarginTop;
 
   for (const GameAction action : kRebindableActions) {
     auto row = std::make_shared<engine::ui::StackContainer>(
         engine::ui::Axis::kHorizontal);
-    row->SetSpacing(15.0f);
+    row->SetSpacing(constants::ui::Settings::kBindingRowSpacing);
     row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                             engine::ui::VerticalAlignment::kCenter});
 
     auto action_label = std::make_shared<engine::ui::TextElement>(
-        ActionLabel(action), engine::ui::FontSize::Pixels(22.0f), white);
-    action_label->Layout().size.width = engine::ui::LayoutValue::Pixels(150.0f);
+        ActionLabel(action),
+        engine::ui::FontSize::Pixels(
+            constants::ui::Settings::kBindingLabelFontSize),
+        white);
+    action_label->Layout().size.width = engine::ui::LayoutValue::Pixels(
+        constants::ui::Settings::kBindingLabelWidth);
     row->AddChild(action_label);
 
     auto button = std::make_shared<ui::Button>(
-        engine::math::Vector2f{}, engine::math::Vector2f{280.0f, 45.0f},
-        KeyDisplayName(app_.key_bindings().Primary(action)),
+        engine::math::Vector2f{},
+        engine::math::Vector2f{constants::ui::Settings::kBindingButtonWidth,
+                               constants::ui::Settings::kBindingButtonHeight},
+        KeyDisplayName(context_.KeyBindingSet().Primary(action)),
         [begin_rebind, action]() { begin_rebind(action); });
     button->SetTexture(btn_tex);
     button->SetColors(white, hover, press);
@@ -219,8 +253,10 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
     binding_rows_.emplace_back(action, button);
 
     auto slot = std::make_shared<engine::ui::BoxElement>();
-    slot->Layout().size = {engine::ui::LayoutValue::Pixels(280.0f),
-                           engine::ui::LayoutValue::Pixels(45.0f)};
+    slot->Layout().size = {engine::ui::LayoutValue::Pixels(
+                               constants::ui::Settings::kBindingButtonWidth),
+                           engine::ui::LayoutValue::Pixels(
+                               constants::ui::Settings::kBindingButtonHeight)};
     slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
       button->SetPosition({rect.top_left_x_, rect.top_left_y_});
       button->SetSize({rect.width_, rect.height_});
@@ -231,16 +267,21 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
   content->AddChild(bindings_column);
 
   auto fullscreen_btn = std::make_shared<ui::Button>(
-      engine::math::Vector2f{}, engine::math::Vector2f{400.0f, 50.0f},
-      "Toggle Fullscreen",
-      [this]() { app_.GetEngine().Window().ToggleFullscreen(); });
+      engine::math::Vector2f{},
+      engine::math::Vector2f{constants::ui::Settings::kFullscreenButtonWidth,
+                             constants::ui::Settings::kFullscreenButtonHeight},
+      "Toggle Fullscreen", [this]() { context_.Window().ToggleFullscreen(); });
   fullscreen_btn->SetTexture(btn_tex);
   fullscreen_btn->SetColors(white, hover, press);
   buttons_.push_back(fullscreen_btn);
   auto fullscreen_slot = std::make_shared<engine::ui::BoxElement>();
-  fullscreen_slot->Layout().size = {engine::ui::LayoutValue::Pixels(400.0f),
-                                    engine::ui::LayoutValue::Pixels(50.0f)};
-  fullscreen_slot->Layout().margin.top = 20.0f;
+  fullscreen_slot->Layout().size = {
+      engine::ui::LayoutValue::Pixels(
+          constants::ui::Settings::kFullscreenButtonWidth),
+      engine::ui::LayoutValue::Pixels(
+          constants::ui::Settings::kFullscreenButtonHeight)};
+  fullscreen_slot->Layout().margin.top =
+      constants::ui::Settings::kFullscreenMarginTop;
   fullscreen_slot->SetLayoutCallback(
       [fullscreen_btn](const engine::math::RectF& rect) {
         fullscreen_btn->SetPosition({rect.top_left_x_, rect.top_left_y_});
@@ -251,17 +292,21 @@ SettingsScene::SettingsScene(Application& app) : app_(app) {
   root->AddChild(content);
 
   auto back_btn = std::make_shared<ui::Button>(
-      engine::math::Vector2f{}, engine::math::Vector2f{400.0f, 50.0f}, "Back",
-      [this]() { app_.OnCloseSettings(); });
+      engine::math::Vector2f{},
+      engine::math::Vector2f{constants::ui::Settings::kBackButtonWidth,
+                             constants::ui::Settings::kBackButtonHeight},
+      "Back", [this]() { context_.OnCloseSettings(); });
   back_btn->SetTexture(btn_tex);
   back_btn->SetColors(white, hover, press);
   buttons_.push_back(back_btn);
   auto back_slot = std::make_shared<engine::ui::BoxElement>();
-  back_slot->Layout().size = {engine::ui::LayoutValue::Pixels(400.0f),
-                              engine::ui::LayoutValue::Pixels(50.0f)};
+  back_slot->Layout().size = {engine::ui::LayoutValue::Pixels(
+                                  constants::ui::Settings::kBackButtonWidth),
+                              engine::ui::LayoutValue::Pixels(
+                                  constants::ui::Settings::kBackButtonHeight)};
   back_slot->Layout().alignment.vertical =
       engine::ui::VerticalAlignment::kStretch;
-  back_slot->Layout().margin.top = 20.0f;
+  back_slot->Layout().margin.top = constants::ui::Settings::kBackMarginTop;
   back_slot->SetLayoutCallback([back_btn](const engine::math::RectF& rect) {
     back_btn->SetPosition({rect.top_left_x_, rect.top_left_y_});
     back_btn->SetSize({rect.width_, rect.height_});
@@ -287,9 +332,9 @@ SettingsScene::FindRow(GameAction action) {
 }
 
 void SettingsScene::Update(engine::time::TimeDelta dt) {
-  auto& renderer = app_.GetEngine().Renderer();
+  auto& renderer = context_.Renderer();
   LayoutUi(renderer);
-  auto& input = app_.GetEngine().Input();
+  auto& input = context_.Input();
   for (auto& btn : buttons_) {
     btn->Update(dt, input);
   }
@@ -300,8 +345,8 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
         rebind_status_label_->SetText("Rebind canceled");
       if (auto row = FindRow(*pending_rebind_)) {
         if (row->get().button) {
-          row->get().button->SetText(
-              KeyDisplayName(app_.key_bindings().Primary(row->get().action)));
+          row->get().button->SetText(KeyDisplayName(
+              context_.KeyBindingSet().Primary(row->get().action)));
         }
       }
       pending_rebind_.reset();
@@ -320,9 +365,9 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
       if (down && !was_down) {
         const GameAction action = *pending_rebind_;
         bool conflict = false;
-        for (GameAction other : app_.key_bindings().Actions()) {
+        for (GameAction other : context_.KeyBindingSet().Actions()) {
           if (other == action) continue;
-          if (app_.key_bindings().Primary(other) == keys[i]) {
+          if (context_.KeyBindingSet().Primary(other) == keys[i]) {
             conflict = true;
             if (rebind_status_label_) {
               rebind_status_label_->SetText("Key already bound to " +
@@ -336,11 +381,11 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           break;
         }
 
-        const bool saved = app_.UpdateKeyBinding(action, keys[i]);
+        const bool saved = context_.UpdateKeyBinding(action, keys[i]);
         if (auto row = FindRow(action)) {
           if (row->get().button) {
             row->get().button->SetText(
-                KeyDisplayName(app_.key_bindings().Primary(action)));
+                KeyDisplayName(context_.KeyBindingSet().Primary(action)));
           }
         }
         if (rebind_status_label_) {
@@ -358,14 +403,14 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
     }
   } else {
     RefreshKeyStateBuffer(input, key_state_buffer_);
-    if (input.IsActionActive("Cancel")) {
-      app_.OnCloseSettings();
+    if (input.IsActionActive(std::string(constants::input::kActionCancel))) {
+      context_.OnCloseSettings();
     }
   }
 }
 
 void SettingsScene::Draw(engine::render::Renderer2D& renderer) {
-  renderer.SetFont(kBodyFont);
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
   LayoutUi(renderer);
   canvas_.Draw(renderer);
   for (auto& btn : buttons_) {
@@ -374,8 +419,8 @@ void SettingsScene::Draw(engine::render::Renderer2D& renderer) {
 }
 
 void SettingsScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = app_.GetEngine().Window().GetSize();
-  renderer.SetFont(kBodyFont);
+  const auto window_size = context_.Window().GetSize();
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);
