@@ -41,7 +41,9 @@ class Application : public ClientContext {
   engine::render::Renderer2D& Renderer() override;
   engine::input::InputManager& Input() override;
   const KeyBindings& KeyBindingSet() const override;
-  bool UpdateKeyBinding(GameAction action, engine::input::Key key) override;
+  const KeyBindingService& KeyBindingServiceRef() const override;
+  KeyBindingUpdateResult UpdateKeyBinding(GameAction action,
+                                          engine::input::Key key) override;
   engine::render::Window& Window() override;
   std::shared_ptr<engine::audio::AudioEngine> Audio() override;
   engine::util::Configuration& Config() override;
