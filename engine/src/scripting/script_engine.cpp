@@ -30,6 +30,8 @@ void ScriptEngine::Initialize() {
 
   BindTypes(*lua_);
 
+  prefab_factory_ = std::make_unique<PrefabFactory>(*lua_);
+
   ENGINE_LOG_INFO("ScriptEngine initialized with Lua 5.4");
 }
 
@@ -58,6 +60,8 @@ void ScriptEngine::SetAudioEngine(engine::audio::AudioEngine& audio_engine) {
 }
 
 sol::state& ScriptEngine::LuaState() { return *lua_; }
+
+PrefabFactory& ScriptEngine::GetPrefabFactory() { return *prefab_factory_; }
 
 void ScriptEngine::LoadScript(const std::string& path) {
   ReloadScript(path);
