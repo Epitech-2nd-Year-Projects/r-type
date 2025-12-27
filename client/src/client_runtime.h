@@ -48,6 +48,7 @@ class Scene;
 
 namespace ecs {
 class RenderSystem;
+class RenderDebug;
 }  // namespace ecs
 
 /**
@@ -152,6 +153,7 @@ class ClientRuntime {
 
   std::unique_ptr<engine::app::EngineRuntime> engine_;
   std::unique_ptr<ecs::RenderSystem> render_system_;
+  std::unique_ptr<ecs::RenderDebug> render_debug_;
   std::unique_ptr<ParallaxBackground> background_;
   DebugOverlay debug_overlay_{};
   bool debug_toggle_pressed_{false};
