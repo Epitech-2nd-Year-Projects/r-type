@@ -28,7 +28,6 @@ class Registry;
 namespace client {
 
 class AudioController;
-class LocalPrediction;
 class NetworkTransport;
 class LobbyService;
 
@@ -203,7 +202,6 @@ class NetworkSession {
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
   std::unique_ptr<ecs::AnimationSystem> animation_system_;
   std::unique_ptr<ecs::InterpolationSystem> interpolation_system_;
-  std::unique_ptr<LocalPrediction> local_prediction_;
   WorldUpdateReceiver world_update_receiver_;
   std::optional<std::uint32_t> cached_local_score_;
   std::optional<std::uint32_t> last_wave_{1u};
