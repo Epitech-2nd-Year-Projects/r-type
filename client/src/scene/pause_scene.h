@@ -8,7 +8,7 @@
 #include "engine/ui/canvas.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
-#include "ui/button.h"
+#include "engine/ui/button.h"
 
 namespace client {
 
@@ -34,10 +34,10 @@ class PauseScene : public Scene {
   ClientContext& context_;
   engine::ui::Canvas canvas_;
   std::shared_ptr<engine::ui::TextElement> title_;
-  std::shared_ptr<ui::Button> resume_button_;
-  std::shared_ptr<ui::Button> options_button_;
-  std::shared_ptr<ui::Button> quit_button_;
-  std::vector<std::shared_ptr<ui::Button>> menu_buttons_;
+  std::shared_ptr<engine::ui::Button> resume_button_;
+  std::shared_ptr<engine::ui::Button> options_button_;
+  std::shared_ptr<engine::ui::Button> quit_button_;
+  std::vector<std::shared_ptr<engine::ui::Button>> menu_buttons_;
   bool pause_toggle_pressed_{false};
   bool confirm_pressed_{false};
 };
