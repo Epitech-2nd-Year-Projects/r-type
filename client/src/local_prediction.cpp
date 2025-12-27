@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "ecs/archetype_registry.h"
+
 namespace client {
 
 namespace {
@@ -41,6 +43,7 @@ std::optional<engine::ecs::EntityId> LocalPrediction::ResolveLocalEntity() {
 
   const auto player_id = join_flow_.player_id();
   const auto& net = registry_.GetComponents<ecs::NetworkedEntityComponent>();
+  const auto& archetypes = ecs::ArchetypeRegistry::Get();
   if (player_id.has_value()) {
     for (std::size_t i = 0; i < net.size(); ++i) {
       if (!net[i].has_value()) {
@@ -60,7 +63,7 @@ std::optional<engine::ecs::EntityId> LocalPrediction::ResolveLocalEntity() {
       continue;
     }
     const auto& comp = net[i].value();
-    if (comp.type_code == kPlayerTypeCode ||
+    if (archetypes.IsPlayer(comp.type_code) ||
         HasPlayerTag(registry_, registry_.EntityFromIndex(i))) {
       local_entity_ = registry_.EntityFromIndex(i);
       MarkLocalPlayer(*local_entity_);
