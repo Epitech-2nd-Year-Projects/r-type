@@ -1,6 +1,7 @@
 #ifndef CLIENT_CLIENT_CONFIG_H_
 #define CLIENT_CLIENT_CONFIG_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -19,6 +20,12 @@ struct ClientConfig {
   std::string room_code{"default"};
   bool debug{false};
   std::uint32_t timeout_ms{7'000};
+  std::uint32_t ping_interval_ms{1'000};
+  std::size_t network_queue_size{256};
+  std::uint32_t join_retry_delay_ms{500};
+  int join_max_attempts{5};
+  std::uint32_t lobby_retry_delay_ms{400};
+  int lobby_max_attempts{4};
   engine::util::LogLevel log_level{engine::util::LogLevel::kDebug};
 };
 
@@ -32,6 +39,12 @@ struct ClientConfig {
  *  - RTYPE_CLIENT_ROOM
  *  - RTYPE_CLIENT_DEBUG
  *  - RTYPE_CLIENT_TIMEOUT_MS
+ *  - RTYPE_CLIENT_PING_INTERVAL_MS
+ *  - RTYPE_CLIENT_QUEUE_SIZE
+ *  - RTYPE_CLIENT_JOIN_RETRY_MS
+ *  - RTYPE_CLIENT_JOIN_MAX_ATTEMPTS
+ *  - RTYPE_CLIENT_LOBBY_RETRY_MS
+ *  - RTYPE_CLIENT_LOBBY_MAX_ATTEMPTS
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
 ClientConfig LoadClientConfig();
