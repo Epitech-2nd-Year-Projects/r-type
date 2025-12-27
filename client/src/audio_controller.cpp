@@ -1,11 +1,49 @@
 #include "audio_controller.h"
 
-#include "audio_manager.h"
+#include <array>
+
+#include "audio/audio_manager.h"
+#include "audio/sound_effects.h"
 #include "constants/client_constants.h"
 #include "logging.h"
-#include "sound_effects.h"
 
 namespace client {
+namespace {
+
+struct MusicCueEntry {
+  ClientState state;
+  std::optional<MusicType> cue;
+};
+
+constexpr std::array<MusicCueEntry, 8> kMusicCueTable{{
+    {ClientState::kMainMenu, MusicType::kMainMenu},
+    {ClientState::kLobby, MusicType::kMainMenu},
+    {ClientState::kSettings, MusicType::kMainMenu},
+    {ClientState::kConnecting, std::nullopt},
+    {ClientState::kInGame, MusicType::kBackground},
+    {ClientState::kPaused, MusicType::kBackground},
+    {ClientState::kGameOver, std::nullopt},
+    {ClientState::kDisconnected, std::nullopt},
+}};
+
+std::optional<MusicType> ResolveMusicCue(
+    ClientState state, std::optional<ClientState> settings_return_state) {
+  if (state == ClientState::kSettings && settings_return_state.has_value()) {
+    const ClientState return_state = *settings_return_state;
+    if (return_state == ClientState::kInGame ||
+        return_state == ClientState::kPaused) {
+      state = return_state;
+    }
+  }
+  for (const auto& entry : kMusicCueTable) {
+    if (entry.state == state) {
+      return entry.cue;
+    }
+  }
+  return std::nullopt;
+}
+
+}  // namespace
 
 AudioController::AudioController() = default;
 
@@ -38,19 +76,16 @@ void AudioController::Update(engine::time::TimeDelta dt, ClientState state,
     return;
   }
 
-  const bool settings_from_gameplay =
-      state == ClientState::kSettings && settings_return_state.has_value() &&
-      (*settings_return_state == ClientState::kInGame ||
-       *settings_return_state == ClientState::kPaused);
-
-  const bool in_menu =
-      state == ClientState::kMainMenu || state == ClientState::kLobby ||
-      (state == ClientState::kSettings && !settings_from_gameplay);
+  const auto desired_music = ResolveMusicCue(state, settings_return_state);
   const auto active_music = audio_manager_->ActiveMusic();
   const bool menu_music_active =
       active_music.has_value() && active_music.value() == MusicType::kMainMenu;
+  const bool wants_menu_music =
+      desired_music.has_value() && *desired_music == MusicType::kMainMenu;
+  const bool wants_game_music =
+      desired_music.has_value() && *desired_music == MusicType::kBackground;
 
-  if (in_menu) {
+  if (wants_menu_music) {
     music_allowed_ = false;
     music_blocked_ = false;
     if (!menu_music_active) {
@@ -65,7 +100,11 @@ void AudioController::Update(engine::time::TimeDelta dt, ClientState state,
     audio_manager_->StopMusic();
   }
 
-  if (connected && !music_blocked_) {
+  if (!wants_game_music) {
+    music_allowed_ = false;
+  }
+
+  if (connected && !music_blocked_ && wants_game_music) {
     music_allowed_ = true;
   }
 
@@ -79,7 +118,8 @@ void AudioController::Update(engine::time::TimeDelta dt, ClientState state,
     }
   }
 
-  if (music_allowed_ && !music_blocked_ && !audio_manager_->MusicActive()) {
+  if (wants_game_music && music_allowed_ && !music_blocked_ &&
+      !audio_manager_->MusicActive()) {
     audio_manager_->PlayMusic(MusicType::kBackground);
   }
 
