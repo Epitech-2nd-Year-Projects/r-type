@@ -11,11 +11,11 @@
 #include "engine/audio/audio_engine.h"
 #include "engine/math/rect.h"
 #include "engine/render/renderer2d.h"
+#include "engine/ui/button.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
 #include "engine/ui/types.h"
 #include "key_bindings.h"
-#include "engine/ui/button.h"
 
 namespace client {
 
@@ -122,18 +122,19 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
 
     auto add_button_slot =
         [&](const std::shared_ptr<engine::ui::Button>& button) {
-      buttons_.push_back(button);
-      auto slot = std::make_shared<engine::ui::BoxElement>();
-      slot->Layout().size = {engine::ui::LayoutValue::Pixels(
-                                 constants::ui::Settings::kVolumeButtonSize),
-                             engine::ui::LayoutValue::Pixels(
-                                 constants::ui::Settings::kVolumeButtonSize)};
-      slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
-        button->SetPosition({rect.top_left_x_, rect.top_left_y_});
-        button->SetSize({rect.width_, rect.height_});
-      });
-      row->AddChild(slot);
-    };
+          buttons_.push_back(button);
+          auto slot = std::make_shared<engine::ui::BoxElement>();
+          slot->Layout().size = {
+              engine::ui::LayoutValue::Pixels(
+                  constants::ui::Settings::kVolumeButtonSize),
+              engine::ui::LayoutValue::Pixels(
+                  constants::ui::Settings::kVolumeButtonSize)};
+          slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
+            button->SetPosition({rect.top_left_x_, rect.top_left_y_});
+            button->SetSize({rect.width_, rect.height_});
+          });
+          row->AddChild(slot);
+        };
 
     auto minus_btn = std::make_shared<engine::ui::Button>(
         engine::math::Vector2f{},
