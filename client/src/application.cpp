@@ -263,8 +263,8 @@ void Application::StopNetworkSession() {
 }
 
 void Application::HandleNetworkEvents(const NetworkEvents& events) {
-  const bool should_stop = events.connection_failed.has_value() ||
-                           events.disconnected.has_value();
+  const bool should_stop =
+      events.connection_failed.has_value() || events.disconnected.has_value();
   if (should_stop) {
     StopNetworkSession();
   }
