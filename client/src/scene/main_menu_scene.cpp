@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+
 #include "client_context.h"
 #include "constants/ui_constants.h"
 #include "engine/math/rect.h"
@@ -46,8 +47,7 @@ MainMenuScene::MainMenuScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::MainMenu::kButtonWidth,
                              constants::ui::MainMenu::kButtonHeight},
-      "Start Game",
-      menu_effects_.WrapClick([this]() { context_.OnPlay(); }));
+      "Start Game", menu_effects_.WrapClick([this]() { context_.OnPlay(); }));
   settings_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::MainMenu::kButtonWidth,
