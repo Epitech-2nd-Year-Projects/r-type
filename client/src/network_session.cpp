@@ -17,17 +17,27 @@
 #include "protocol/command.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
-#include "room_directory_client.h"
+#include "lobby_service.h"
 #include "world_update_receiver.h"
 
 namespace client {
+namespace {
+
+LobbyRetryPolicy BuildLobbyRetryPolicy(const ClientConfig& config) {
+  return LobbyRetryPolicy{
+      config.lobby_max_attempts,
+      std::chrono::milliseconds(config.lobby_retry_delay_ms)};
+}
+
+}  // namespace
 
 NetworkSession::NetworkSession(ClientConfig config)
     : config_(std::move(config)),
       transport_(std::make_shared<NetworkTransport>()),
       lobby_transport_(std::make_shared<NetworkTransport>()),
       join_flow_(config_.player_name, config_.room_code),
-      room_directory_(std::make_unique<RoomDirectoryClient>(lobby_transport_)),
+      lobby_service_(std::make_unique<LobbyService>(
+          lobby_transport_, BuildLobbyRetryPolicy(config_))),
       world_registry_(std::make_unique<engine::ecs::Registry>()),
       world_state_system_(
           std::make_unique<ecs::WorldStateSystem>(*world_registry_)),
@@ -35,18 +45,24 @@ NetworkSession::NetworkSession(ClientConfig config)
           std::make_unique<ecs::AnimationSystem>(*world_registry_)),
       interpolation_system_(
           std::make_unique<ecs::InterpolationSystem>(*world_registry_)) {
+  join_flow_.ConfigureRetryPolicy(
+      config_.join_max_attempts,
+      std::chrono::milliseconds(config_.join_retry_delay_ms));
+  world_update_receiver_.Configure(
+      std::chrono::milliseconds(config_.ping_interval_ms),
+      config_.network_queue_size);
   local_prediction_ =
       std::make_unique<LocalPrediction>(*world_registry_, join_flow_);
 }
 
-NetworkSession::~NetworkSession() = default;
+NetworkSession::~NetworkSession() { Shutdown(); }
 
 NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
                                      AudioController& audio) {
   NetworkEvents events;
 
-  if (room_directory_) {
-    room_directory_->Update();
+  if (lobby_service_) {
+    lobby_service_->Update();
   }
 
   if (transport_) {
@@ -57,8 +73,8 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
   if (join_state == JoinState::kConnected &&
       !world_update_receiver_.running()) {
     if (!world_update_receiver_.Start(transport_)) {
-      LogLifecycle(engine::util::LogLevel::kError,
-                   "Failed to start world update receiver");
+      LogNetwork(engine::util::LogLevel::kError,
+                 "Failed to start world update receiver");
       events.stop_requested = true;
       return events;
     }
@@ -139,6 +155,7 @@ std::optional<std::string> NetworkSession::StartConnection() {
   if (!transport_) {
     return std::string("Network transport unavailable");
   }
+  disconnect_notice_sent_ = false;
   const auto transport_error = transport_->Start(config_.host, config_.port);
   if (transport_error) {
     const std::string reason =
@@ -152,8 +169,15 @@ std::optional<std::string> NetworkSession::StartConnection() {
 }
 
 void NetworkSession::Stop() {
-  if (transport_ && transport_->running() &&
-      join_flow_.state() == JoinState::kConnected) {
+  Disconnect(DisconnectMode::kNotifyServer);
+}
+
+void NetworkSession::Disconnect(DisconnectMode mode) {
+  const bool should_notify = mode == DisconnectMode::kNotifyServer &&
+                             !disconnect_notice_sent_ && transport_ &&
+                             transport_->running() &&
+                             join_flow_.state() == JoinState::kConnected;
+  if (should_notify) {
     protocol::CommandPayload disconnect{};
     disconnect.command_id =
         static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice);
@@ -176,6 +200,7 @@ void NetworkSession::Stop() {
         (void)transport_->Send(std::move(buffer));
       }
     }
+    disconnect_notice_sent_ = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
@@ -198,12 +223,13 @@ void NetworkSession::Reset() {
   cached_local_score_.reset();
   last_wave_ = 1u;
   last_join_state_ = JoinState::kIdle;
+  disconnect_notice_sent_ = false;
 }
 
 void NetworkSession::Shutdown() {
-  Stop();
-  if (room_directory_) {
-    room_directory_->Disconnect();
+  Disconnect(DisconnectMode::kNotifyServer);
+  if (lobby_service_) {
+    lobby_service_->Disconnect();
   }
 }
 
@@ -217,49 +243,53 @@ void NetworkSession::SetConnectionConfig(std::string host, int port,
   config_.room_code = std::move(room_code);
 
   join_flow_ = JoinFlow(config_.player_name, config_.room_code);
+  join_flow_.ConfigureRetryPolicy(
+      config_.join_max_attempts,
+      std::chrono::milliseconds(config_.join_retry_delay_ms));
   join_flow_.SetRoomPassword(std::move(room_password));
+  disconnect_notice_sent_ = false;
 }
 
 void NetworkSession::RefreshRoomList(std::string host, std::uint16_t port) {
-  if (!room_directory_) {
+  if (!lobby_service_) {
     return;
   }
-  if (!room_directory_->Connect(std::move(host), port)) {
+  if (!lobby_service_->Connect(std::move(host), port)) {
     return;
   }
-  room_directory_->RequestRoomList();
+  lobby_service_->RequestRoomList();
 }
 
 void NetworkSession::CreateRoom(std::string host, std::uint16_t port,
                                 const std::string& room_name, bool is_private,
                                 std::string room_password,
                                 std::uint16_t max_players) {
-  if (!room_directory_) {
+  if (!lobby_service_) {
     return;
   }
-  if (!room_directory_->Connect(std::move(host), port)) {
+  if (!lobby_service_->Connect(std::move(host), port)) {
     return;
   }
-  room_directory_->RequestCreateRoom(room_name, is_private,
-                                     std::move(room_password), max_players);
+  lobby_service_->RequestCreateRoom(room_name, is_private,
+                                    std::move(room_password), max_players);
 }
 
 const std::vector<protocol::RoomSummary>& NetworkSession::RoomDirectoryRooms()
     const {
   static const std::vector<protocol::RoomSummary> kEmpty;
-  return room_directory_ ? room_directory_->rooms() : kEmpty;
+  return lobby_service_ ? lobby_service_->rooms() : kEmpty;
 }
 
 std::string NetworkSession::RoomDirectoryStatus() const {
-  return room_directory_ ? room_directory_->status() : "Lobby unavailable";
+  return lobby_service_ ? lobby_service_->status() : "Lobby unavailable";
 }
 
 std::optional<protocol::CreateRoomResponsePayload>
 NetworkSession::ConsumeLastRoomCreation() {
-  if (!room_directory_) {
+  if (!lobby_service_) {
     return std::nullopt;
   }
-  return room_directory_->ConsumeCreateResponse();
+  return lobby_service_->ConsumeCreateResponse();
 }
 
 std::string_view NetworkSession::JoinStatus() const {
@@ -302,7 +332,7 @@ void NetworkSession::HandleServerCommand(
       static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice)) {
     const std::string reason =
         payload.payload.empty() ? "Disconnected by server" : payload.payload;
-    LogLifecycle(engine::util::LogLevel::kWarn, reason);
+    LogNetwork(engine::util::LogLevel::kWarn, reason);
     if (const auto lost = HandleConnectionLost(reason)) {
       events.disconnected = *lost;
     }
@@ -315,7 +345,7 @@ std::optional<std::string> NetworkSession::HandleConnectionLost(
     return std::nullopt;
   }
 
-  Stop();
+  Disconnect(DisconnectMode::kSilent);
   join_flow_.MarkDisconnected(reason);
   return std::string(reason);
 }
