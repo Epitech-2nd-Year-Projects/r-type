@@ -14,9 +14,7 @@
 #include "engine/time/time_delta.h"
 #include "game_logic/game_state.h"
 
-namespace engine::ecs {
-class Registry;
-}
+
 
 namespace engine::scripting {
 class ScriptEngine;
@@ -269,11 +267,21 @@ class GameInstance {
 
   /**
    * @brief Get internal EventBus
+   * @return Reference to the event bus
+   *
+   * @details
+   * Use this to subscribe to game events (e.g., collisions) or publish
+   * custom events to be handled by Lua scripts or other systems.
    */
   engine::event::EventBus &EventBus();
 
   /**
    * @brief Get internal ScriptEngine
+   * @return Reference to the script engine
+   *
+   * @details
+   * Access the Lua state for binding new types, running scripts manually,
+   * or debugging script execution.
    */
   engine::scripting::ScriptEngine &ScriptEngine();
 
