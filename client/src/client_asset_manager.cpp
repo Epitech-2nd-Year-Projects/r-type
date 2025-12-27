@@ -74,9 +74,9 @@ void ClientAssetManager::PreloadMenuAssets() {
   GetTexture(constants::ui::kButtonTextureSmallPath);
   GetTexture(constants::ui::MainMenu::kTitleTexturePath);
 
-  const int pointer_frames = std::max(
-      constants::ui::MainMenu::kPointerFrameCount,
-      constants::ui::OptionsMenu::kPointerFrameCount);
+  const int pointer_frames =
+      std::max(constants::ui::MainMenu::kPointerFrameCount,
+               constants::ui::OptionsMenu::kPointerFrameCount);
   PreloadTextureSequence(constants::ui::kMenuPointerFramePrefix,
                          constants::ui::kMenuPointerFrameExtension,
                          pointer_frames);

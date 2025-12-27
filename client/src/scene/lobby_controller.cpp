@@ -175,7 +175,8 @@ void LobbyController::Draw(engine::render::Renderer2D& renderer) const {
 }
 
 void LobbyController::ApplyButtonStyle(ClientAssetManager& assets) {
-  const auto btn_tex = assets.GetTexture(constants::ui::kButtonTextureLargePath);
+  const auto btn_tex =
+      assets.GetTexture(constants::ui::kButtonTextureLargePath);
   const auto white = constants::ui::kButtonBaseColor;
   if (btn_tex) {
     const auto hover = constants::ui::kButtonHoverColor;

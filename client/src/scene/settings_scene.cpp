@@ -87,7 +87,8 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   float current_sfx_vol = audio ? audio->GetSfxVolume() : 0.0f;
 
   auto btn_tex = assets.GetTexture(constants::ui::kButtonTextureLargePath);
-  auto small_btn_tex = assets.GetTexture(constants::ui::kButtonTextureSmallPath);
+  auto small_btn_tex =
+      assets.GetTexture(constants::ui::kButtonTextureSmallPath);
   const auto hover = constants::ui::kButtonHoverColor;
   const auto press = constants::ui::kButtonPressColor;
 

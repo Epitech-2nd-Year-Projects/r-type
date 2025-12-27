@@ -12,8 +12,8 @@
 #include "scene/in_game_scene.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
-#include "scene/settings_scene.h"
 #include "scene/pause_scene.h"
+#include "scene/settings_scene.h"
 
 namespace client {
 namespace {

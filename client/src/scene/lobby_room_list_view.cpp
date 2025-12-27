@@ -89,8 +89,7 @@ void LobbyRoomListView::RefreshRooms(
   room_buttons_.clear();
 
   if (!button_texture_) {
-    button_texture_ =
-        assets.GetTexture(constants::ui::kButtonTextureLargePath);
+    button_texture_ = assets.GetTexture(constants::ui::kButtonTextureLargePath);
   }
   const auto white = constants::ui::kButtonBaseColor;
   const auto hover = constants::ui::kButtonHoverColor;

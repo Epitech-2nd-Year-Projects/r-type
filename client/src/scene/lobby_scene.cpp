@@ -38,7 +38,8 @@ LobbyScene::LobbyScene(ClientContext& context)
 }
 
 void LobbyScene::Update(engine::time::TimeDelta dt) {
-  room_list_view_.RefreshRooms(context_.RoomDirectoryRooms(), context_.Assets());
+  room_list_view_.RefreshRooms(context_.RoomDirectoryRooms(),
+                               context_.Assets());
   LayoutUi();
 
   auto& input = context_.Input();
