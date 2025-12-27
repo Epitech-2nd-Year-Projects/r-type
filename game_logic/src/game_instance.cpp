@@ -16,6 +16,7 @@
 #include "game_logic/constants.h"
 #include "game_logic/entities/player_builder.h"
 #include "game_logic/game_config.h"
+#include "game_logic/prefab_binder.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/animation_system.h"
 #include "game_logic/systems/boundary_system.h"
@@ -47,6 +48,13 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->Initialize();
   engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
   engine::scripting::BindEventBus(script_engine_->LuaState(), event_bus_);
+  BindGameComponents(script_engine_->GetPrefabFactory());
+
+  BindGameComponents(script_engine_->GetPrefabFactory());
+
+  std::string script_path =
+      GameConfig::Get().GetConfigDirectory() + "/prefabs/enemies.lua";
+  script_engine_->LoadScript(script_path);
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
