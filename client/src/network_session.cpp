@@ -12,7 +12,6 @@
 #include "engine/net/packet_buffer.h"
 #include "engine/time/monotonic_time.h"
 #include "lobby_service.h"
-#include "local_prediction.h"
 #include "logging.h"
 #include "network_transport.h"
 #include "protocol/command.h"
@@ -51,8 +50,6 @@ NetworkSession::NetworkSession(ClientConfig config)
   world_update_receiver_.Configure(
       std::chrono::milliseconds(config_.ping_interval_ms),
       config_.network_queue_size);
-  local_prediction_ =
-      std::make_unique<LocalPrediction>(*world_registry_, join_flow_);
 }
 
 NetworkSession::~NetworkSession() { Shutdown(); }
@@ -208,9 +205,6 @@ void NetworkSession::Disconnect(DisconnectMode mode) {
   }
   if (world_state_system_) {
     world_state_system_->Reset();
-  }
-  if (local_prediction_) {
-    local_prediction_->Reset();
   }
   cached_local_score_.reset();
   last_wave_ = 1u;
