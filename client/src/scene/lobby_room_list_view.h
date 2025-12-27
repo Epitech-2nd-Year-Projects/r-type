@@ -24,6 +24,8 @@
 
 namespace client {
 
+class ClientAssetManager;
+
 /**
  * @brief View for the lobby room list
  */
@@ -61,10 +63,10 @@ class LobbyRoomListView {
   /**
    * @brief Sync room entries with current data
    * @param rooms Room list
-   * @param renderer Renderer instance
+   * @param assets Asset manager reference
    */
   void RefreshRooms(const std::vector<protocol::RoomSummary>& rooms,
-                    engine::render::Renderer2D& renderer);
+                    ClientAssetManager& assets);
 
  private:
   std::function<void(const protocol::RoomSummary&)> on_room_selected_;

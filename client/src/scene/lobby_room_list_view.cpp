@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "client_asset_manager.h"
 #include "constants/ui_constants.h"
 
 namespace client {
@@ -79,7 +80,7 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
 
 void LobbyRoomListView::RefreshRooms(
     const std::vector<protocol::RoomSummary>& rooms,
-    engine::render::Renderer2D& renderer) {
+    ClientAssetManager& assets) {
   const auto hash = HashRooms(rooms);
   if (hash == last_rooms_hash_) {
     return;
@@ -88,8 +89,8 @@ void LobbyRoomListView::RefreshRooms(
   room_buttons_.clear();
 
   if (!button_texture_) {
-    button_texture_ = renderer.LoadTextureFromFile(
-        std::string(constants::ui::kButtonTextureLargePath));
+    button_texture_ =
+        assets.GetTexture(constants::ui::kButtonTextureLargePath);
   }
   const auto white = constants::ui::kButtonBaseColor;
   const auto hover = constants::ui::kButtonHoverColor;
