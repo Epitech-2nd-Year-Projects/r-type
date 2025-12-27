@@ -64,8 +64,8 @@ void SpriteSyncSystem::ApplyDefinition(std::size_t index,
 
   auto& sprite = sprites[index];
   if (!sprite.has_value()) {
-    sprite = ecs::SpriteComponent(definition.texture_id,
-                                  definition.source_rect);
+    sprite =
+        ecs::SpriteComponent(definition.texture_id, definition.source_rect);
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
   } else {

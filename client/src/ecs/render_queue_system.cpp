@@ -80,9 +80,9 @@ void RenderQueueSystem::Render() {
                               ? velocities[i]
                               : std::optional<ecs::VelocityComponent>{};
 
-    const auto params = BuildParams(positions[i].value(), sprites[i].value(),
-                                    layers[i].value(), velocity,
-                                    nets[i]->type_code, texture);
+    const auto params =
+        BuildParams(positions[i].value(), sprites[i].value(), layers[i].value(),
+                    velocity, nets[i]->type_code, texture);
 
     draw_queue_.push_back(
         DrawCommand{texture, params, layers[i]->layer, layers[i]->depth, i});

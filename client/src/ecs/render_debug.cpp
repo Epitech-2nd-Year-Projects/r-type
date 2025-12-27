@@ -42,8 +42,8 @@ void RenderDebug::Draw() {
     const auto& pos = positions[i]->render_position;
     const auto& bounds = hitboxes[i]->bounds;
     const engine::math::RectF rect{pos.x + bounds.top_left_x_,
-                                   pos.y + bounds.top_left_y_,
-                                   bounds.width_, bounds.height_};
+                                   pos.y + bounds.top_left_y_, bounds.width_,
+                                   bounds.height_};
     renderer_.DrawRect(rect, box_color);
   }
 }

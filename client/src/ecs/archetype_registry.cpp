@@ -94,8 +94,7 @@ SpriteDefinition PlayerDefinition(std::uint32_t player_id) {
         break;
     }
     return MakeDefinition(kPlayerTexture, kPlayerSpriteWidth,
-                          kPlayerSpriteHeight, kPlayerRenderLayer, 0.0f,
-                          false,
+                          kPlayerSpriteHeight, kPlayerRenderLayer, 0.0f, false,
                           engine::render::Color::FromBytes(r, g, b));
   }
 
@@ -125,13 +124,11 @@ SpriteDefinition ObstacleDefinition(std::string_view texture, float scale) {
 
 std::optional<SpriteDefinition> ResolveEnemySprite(
     const SpriteContext& context) {
-  const auto hp =
-      context.health.has_value()
-          ? static_cast<std::uint32_t>(context.health->max)
-          : 0u;
-  const float speed = context.velocity.has_value()
-                          ? context.velocity->velocity.Length()
-                          : 0.0f;
+  const auto hp = context.health.has_value()
+                      ? static_cast<std::uint32_t>(context.health->max)
+                      : 0u;
+  const float speed =
+      context.velocity.has_value() ? context.velocity->velocity.Length() : 0.0f;
 
   if (hp >= kTankHealthThreshold) {
     return EnemyDefinition(kEnemyTankTexture, 0.3f);
@@ -140,9 +137,8 @@ std::optional<SpriteDefinition> ResolveEnemySprite(
     return EnemyDefinition(kEnemyBomberTexture, 0.2f);
   }
   if (speed > kInterceptorSpeedThreshold ||
-      (context.velocity.has_value() &&
-       std::abs(context.velocity->velocity.y) >
-           kInterceptorVerticalThreshold)) {
+      (context.velocity.has_value() && std::abs(context.velocity->velocity.y) >
+                                           kInterceptorVerticalThreshold)) {
     return EnemyDefinition(kEnemyInterceptorTexture, 0.1f);
   }
 
@@ -156,9 +152,8 @@ std::optional<SpriteDefinition> ResolveMissileSprite(
     const SpriteContext& context) {
   const float vx =
       context.velocity.has_value() ? context.velocity->velocity.x : 1.0f;
-  const float speed = context.velocity.has_value()
-                          ? context.velocity->velocity.Length()
-                          : 0.0f;
+  const float speed =
+      context.velocity.has_value() ? context.velocity->velocity.Length() : 0.0f;
 
   if (vx < -5.0f) {
     return MissileDefinition(kEnemyMissileTexture, true);
