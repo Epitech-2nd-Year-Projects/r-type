@@ -12,7 +12,7 @@
 #include "scene/in_game_scene.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
-#include "scene/options_menu_scene.h"
+#include "scene/settings_scene.h"
 #include "scene/pause_scene.h"
 
 namespace client {
@@ -215,7 +215,7 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
       SwitchScene(std::make_shared<LobbyScene>(context_));
       break;
     case ClientState::kSettings:
-      SwitchScene(std::make_shared<OptionsMenuScene>(context_));
+      SwitchScene(std::make_shared<SettingsScene>(context_));
       break;
     case ClientState::kConnecting:
       SwitchScene(std::make_shared<ConnectingScene>(context_));
