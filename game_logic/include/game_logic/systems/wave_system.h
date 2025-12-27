@@ -3,12 +3,9 @@
 
 #include <deque>
 #include <random>
+#include <string>
 
 #include "engine/ecs/registry.h"
-#include "engine/ecs/system.h"
-#include "engine/math/vector2.h"
-#include "engine/time/time_delta.h"
-#include "game_logic/entities/enemy_builder.h"
 #include "game_logic/game_config.h"
 
 namespace game_logic {
@@ -23,7 +20,7 @@ namespace game_logic::systems {
  */
 struct WaveEntry {
   float spawn_time{0.0f};
-  entities::EnemyType type{entities::EnemyType::kScout};
+  std::string type{"Scout"};
   engine::math::Vector2f position{0.0f, 0.0f};
   bool random_y{false};
   bool drops_powerup{false};
