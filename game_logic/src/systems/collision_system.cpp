@@ -9,13 +9,16 @@
 #include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
+#include "engine/event.h"
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/constants.h"
 
 namespace game_logic::systems {
 
-CollisionSystem::CollisionSystem(float cell_size) : grid_(cell_size) {}
+CollisionSystem::CollisionSystem(engine::event::EventBus& event_bus,
+                                 float cell_size)
+    : event_bus_(event_bus), grid_(cell_size) {}
 
 bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
                                            const engine::math::RectF& b) {
@@ -66,6 +69,8 @@ void CollisionSystem::ResolveCollision(engine::ecs::Registry& registry,
   } else if (!has_dmg1 && has_dmg2) {
     ResolveProjectile(registry, e2, e1, damageables[e2].value());
   }
+
+  event_bus_.Publish(EntityCollisionEvent{e1, e2});
 }
 
 void CollisionSystem::ResolveProjectile(
