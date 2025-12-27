@@ -4,62 +4,52 @@
 #include <iomanip>
 #include <sstream>
 
-#include "application.h"
 #include "audio_paths.h"
-#include "engine/app/engine_runtime.h"
+#include "client_context.h"
+#include "constants/ui_constants.h"
+#include "engine/audio/audio_engine.h"
+#include "engine/input.h"
 #include "engine/math/rect.h"
 
 namespace client {
 
 namespace {
 
-constexpr float kButtonHeight = 72.0f;
-constexpr float kButtonWidth = 170.0f;
-constexpr float kButtonTextScale = 0.46f;
-constexpr const char* kTitleFont = "title_font";
-constexpr float kPointerFrameDuration = 0.06f;
-constexpr float kPointerSpacing = 28.0f;
-constexpr float kPointerScaleFactor = 0.6f;
-constexpr float kTitleScaleFactor = 1.5f;
-constexpr float kWarningFrameDuration = 0.06f;
-constexpr float kWarningSlotHeight = 50.0f;
-constexpr int kWarningFrameCount = 9;
-constexpr int kPointerFrameCount = 11;
-
-void PlayUiSound(Application& app, const std::string& path) {
+void PlayUiSound(ClientContext& context, const std::string& path) {
   if (path.empty()) {
     return;
   }
-  if (auto audio = app.GetEngine().Audio()) {
+  if (auto audio = context.Audio()) {
     audio->PlaySoundEffect(path);
   }
 }
 
 }  // namespace
 
-OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
-  auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
-  renderer.SetFont(kTitleFont);
+OptionsMenuScene::OptionsMenuScene(ClientContext& context) : context_(context) {
+  auto& renderer = context_.Renderer();
+  renderer.LoadFont(std::string(constants::ui::kTitleFont),
+                    std::string(constants::ui::kTitleFontPath));
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
 
-  hover_sfx_path_ =
-      ResolveAssetPath("assets/song/effects/change_selection.mp3");
-  click_sfx_path_ = ResolveAssetPath("assets/song/effects/button_confirm.mp3");
+  hover_sfx_path_ = ResolveAssetPath(constants::ui::kMenuHoverSfxPath);
+  click_sfx_path_ = ResolveAssetPath(constants::ui::kMenuClickSfxPath);
 
-  for (int i = 0; i < kPointerFrameCount; ++i) {
+  for (int i = 0; i < constants::ui::OptionsMenu::kPointerFrameCount; ++i) {
     std::ostringstream path;
-    path << "assets/ui/main_menu_pointer_anim" << std::setw(4)
-         << std::setfill('0') << i << ".png";
+    path << constants::ui::kMenuPointerFramePrefix << std::setw(4)
+         << std::setfill('0') << i << constants::ui::kMenuPointerFrameExtension;
     auto tex = renderer.LoadTextureFromFile(path.str());
     if (tex) {
       pointer_frames_.push_back(tex);
     }
   }
 
-  for (int i = 0; i < kWarningFrameCount; ++i) {
+  for (int i = 0; i < constants::ui::OptionsMenu::kWarningFrameCount; ++i) {
     std::ostringstream path;
-    path << "assets/ui/Warning_Fleur" << std::setw(4) << std::setfill('0') << i
-         << ".png";
+    path << constants::ui::OptionsMenu::kWarningFramePrefix << std::setw(4)
+         << std::setfill('0') << i
+         << constants::ui::OptionsMenu::kWarningFrameExtension;
     auto tex = renderer.LoadTextureFromFile(path.str());
     if (tex) {
       warning_frames_.push_back(tex);
@@ -76,28 +66,31 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  auto padding = engine::ui::Insets::Uniform(48.0f);
-  padding.top = 40.0f;
+  auto padding =
+      engine::ui::Insets::Uniform(constants::ui::OptionsMenu::kRootPadding);
+  padding.top = constants::ui::OptionsMenu::kRootPaddingTop;
   root->SetPadding(padding);
-  root->SetSpacing(14.0f);
+  root->SetSpacing(constants::ui::OptionsMenu::kRootSpacing);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
   auto title_text = std::make_shared<engine::ui::TextElement>(
       "Options",
-      engine::ui::FontSize::Pixels(kButtonHeight * kButtonTextScale *
-                                   kTitleScaleFactor),
+      engine::ui::FontSize::Pixels(
+          constants::ui::OptionsMenu::kButtonHeight *
+          constants::ui::OptionsMenu::kButtonTextScale *
+          constants::ui::OptionsMenu::kTitleScaleFactor),
       white);
-  title_text->SetFont(kTitleFont);
+  title_text->SetFont(std::string(constants::ui::kTitleFont));
   title_text->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_text);
 
   auto warning_slot = std::make_shared<engine::ui::BoxElement>();
   warning_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
-  warning_slot->Layout().size.height =
-      engine::ui::LayoutValue::Pixels(kWarningSlotHeight);
+  warning_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::OptionsMenu::kWarningSlotHeight);
   warning_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
   warning_slot->SetLayoutCallback(
@@ -106,7 +99,7 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
 
   auto button_column =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
-  button_column->SetSpacing(20.0f);
+  button_column->SetSpacing(constants::ui::OptionsMenu::kButtonColumnSpacing);
   button_column->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
@@ -115,34 +108,42 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
     auto slot = std::make_shared<engine::ui::BoxElement>();
     slot->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kCenter;
-    slot->Layout().size.height =
-        engine::ui::LayoutValue::Pixels(kButtonHeight + 8.0f);
+    slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+        constants::ui::OptionsMenu::kButtonHeight +
+        constants::ui::OptionsMenu::kButtonSlotPadding);
     slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
       button->SetPosition(
-          {rect.top_left_x_ + (rect.width_ - kButtonWidth) * 0.5f,
-           rect.top_left_y_ + 4.0f});
-      button->SetSize({kButtonWidth, kButtonHeight});
+          {rect.top_left_x_ +
+               (rect.width_ - constants::ui::OptionsMenu::kButtonWidth) * 0.5f,
+           rect.top_left_y_ + constants::ui::OptionsMenu::kButtonSlotInset});
+      button->SetSize({constants::ui::OptionsMenu::kButtonWidth,
+                       constants::ui::OptionsMenu::kButtonHeight});
     });
     button_column->AddChild(slot);
   };
 
   auto audio_button = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Audio",
-      [this]() { PlayUiSound(app_, click_sfx_path_); });
+      engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
+                             constants::ui::OptionsMenu::kButtonHeight},
+      "Audio", [this]() { PlayUiSound(context_, click_sfx_path_); });
   auto video_button = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Video",
-      [this]() { PlayUiSound(app_, click_sfx_path_); });
+      engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
+                             constants::ui::OptionsMenu::kButtonHeight},
+      "Video", [this]() { PlayUiSound(context_, click_sfx_path_); });
   auto keyboard_button = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Keyboard",
-      [this]() { PlayUiSound(app_, click_sfx_path_); });
+      engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
+                             constants::ui::OptionsMenu::kButtonHeight},
+      "Keyboard", [this]() { PlayUiSound(context_, click_sfx_path_); });
   auto back_button = std::make_shared<ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Back", [this]() {
-        PlayUiSound(app_, click_sfx_path_);
-        app_.OnCloseSettings();
+      engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
+                             constants::ui::OptionsMenu::kButtonHeight},
+      "Back", [this]() {
+        PlayUiSound(context_, click_sfx_path_);
+        context_.OnCloseSettings();
       });
 
   add_slot(audio_button);
@@ -154,14 +155,18 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
   auto back_slot = std::make_shared<engine::ui::BoxElement>();
   back_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
-  back_slot->Layout().size.height =
-      engine::ui::LayoutValue::Pixels(kButtonHeight + 8.0f);
-  back_slot->Layout().margin.top = 116.0f;
+  back_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::OptionsMenu::kButtonHeight +
+      constants::ui::OptionsMenu::kButtonSlotPadding);
+  back_slot->Layout().margin.top =
+      constants::ui::OptionsMenu::kBackSlotMarginTop;
   back_slot->SetLayoutCallback([back_button](const engine::math::RectF& rect) {
     back_button->SetPosition(
-        {rect.top_left_x_ + (rect.width_ - kButtonWidth) * 0.5f,
-         rect.top_left_y_ + 4.0f});
-    back_button->SetSize({kButtonWidth, kButtonHeight});
+        {rect.top_left_x_ +
+             (rect.width_ - constants::ui::OptionsMenu::kButtonWidth) * 0.5f,
+         rect.top_left_y_ + constants::ui::OptionsMenu::kButtonSlotInset});
+    back_button->SetSize({constants::ui::OptionsMenu::kButtonWidth,
+                          constants::ui::OptionsMenu::kButtonHeight});
   });
   root->AddChild(back_slot);
 
@@ -172,17 +177,17 @@ OptionsMenuScene::OptionsMenuScene(Application& app) : app_(app) {
   for (auto& button : buttons_) {
     button->SetColors(transparent, transparent, transparent);
     button->SetTextColor(white);
-    button->SetTextScale(kButtonTextScale);
+    button->SetTextScale(constants::ui::OptionsMenu::kButtonTextScale);
   }
 }
 
 void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
-  auto& renderer = app_.GetEngine().Renderer();
+  auto& renderer = context_.Renderer();
   LayoutUi(renderer);
 
   if (!warning_frames_.empty() && warning_animating_) {
-    const float max_elapsed =
-        static_cast<float>(warning_frames_.size() - 1) * kWarningFrameDuration;
+    const float max_elapsed = static_cast<float>(warning_frames_.size() - 1) *
+                              constants::ui::OptionsMenu::kWarningFrameDuration;
     warning_elapsed_ += dt.as_seconds();
     if (warning_elapsed_ >= max_elapsed) {
       warning_elapsed_ = max_elapsed;
@@ -190,13 +195,13 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
     }
   }
 
-  auto& input = app_.GetEngine().Input();
+  auto& input = context_.Input();
   const auto mouse_pos = input.GetMousePosition();
   const float max_elapsed =
       pointer_frames_.empty()
           ? 0.0f
           : (static_cast<float>(pointer_frames_.size() - 1) *
-             kPointerFrameDuration);
+             constants::ui::OptionsMenu::kPointerFrameDuration);
   for (std::size_t i = 0; i < buttons_.size(); ++i) {
     auto& button = buttons_[i];
     if (!button) {
@@ -210,7 +215,7 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
     if (state.hovered && !state.was_hovered) {
       state.elapsed = 0.0f;
       state.animating = true;
-      PlayUiSound(app_, hover_sfx_path_);
+      PlayUiSound(context_, hover_sfx_path_);
     }
     if (state.hovered && state.animating && max_elapsed > 0.0f) {
       state.elapsed += dt.as_seconds();
@@ -231,12 +236,12 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
 }
 
 void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
-  renderer.SetFont(kTitleFont);
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
 
   canvas_.Draw(renderer);
   DrawWarning(renderer);
-  renderer.SetFont(kTitleFont);
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
   for (auto& button : buttons_) {
     button->Draw(renderer);
   }
@@ -244,7 +249,7 @@ void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
 }
 
 void OptionsMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = app_.GetEngine().Window().GetSize();
+  const auto window_size = context_.Window().GetSize();
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);
@@ -262,7 +267,8 @@ void OptionsMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
       continue;
     }
 
-    const float frame_pos = state.elapsed / kPointerFrameDuration;
+    const float frame_pos =
+        state.elapsed / constants::ui::OptionsMenu::kPointerFrameDuration;
     const std::size_t frame_index =
         std::min(frame_count - 1, static_cast<std::size_t>(frame_pos));
     auto texture = pointer_frames_[frame_index];
@@ -274,15 +280,19 @@ void OptionsMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
       continue;
     }
 
-    const float scale = (kButtonHeight * 0.85f * kPointerScaleFactor) /
+    const float scale = (constants::ui::OptionsMenu::kButtonHeight *
+                         constants::ui::OptionsMenu::kPointerHeightFactor *
+                         constants::ui::OptionsMenu::kPointerScaleFactor) /
                         static_cast<float>(tex_size.y);
     const float scaled_width = static_cast<float>(tex_size.x) * scale;
     const float scaled_height = static_cast<float>(tex_size.y) * scale;
     const auto pos = button->GetPosition();
     const auto size = button->GetSize();
     const float y = pos.y + (size.y - scaled_height) * 0.5f;
-    const float left_x = pos.x - scaled_width - kPointerSpacing;
-    const float right_x = pos.x + size.x + kPointerSpacing;
+    const float left_x =
+        pos.x - scaled_width - constants::ui::OptionsMenu::kPointerSpacing;
+    const float right_x =
+        pos.x + size.x + constants::ui::OptionsMenu::kPointerSpacing;
 
     engine::render::SpriteDrawParams left_params;
     left_params.position = {left_x, y};
@@ -304,7 +314,8 @@ void OptionsMenuScene::DrawWarning(engine::render::Renderer2D& renderer) {
     return;
   }
   const std::size_t frame_count = warning_frames_.size();
-  const float frame_pos = warning_elapsed_ / kWarningFrameDuration;
+  const float frame_pos =
+      warning_elapsed_ / constants::ui::OptionsMenu::kWarningFrameDuration;
   const std::size_t frame_index =
       std::min(frame_count - 1, static_cast<std::size_t>(frame_pos));
   auto texture = warning_frames_[frame_index];
