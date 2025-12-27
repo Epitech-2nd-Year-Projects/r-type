@@ -2,6 +2,7 @@
 #define CLIENT_SCENE_LOBBY_SCENE_H_
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -15,11 +16,11 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class LobbyScene : public Scene {
  public:
-  explicit LobbyScene(Application& app);
+  explicit LobbyScene(ClientContext& context);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
@@ -37,7 +38,7 @@ class LobbyScene : public Scene {
 
   enum class ModalMode { kCreate, kJoinPrivate };
 
-  Application& app_;
+  ClientContext& context_;
   std::vector<std::shared_ptr<ui::UIElement>> ui_elements_;
   std::vector<std::shared_ptr<ui::Button>> room_buttons_;
   std::vector<std::shared_ptr<ui::UIElement>> modal_elements_;
