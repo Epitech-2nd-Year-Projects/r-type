@@ -16,7 +16,7 @@
 #include "engine/ecs/registry.h"
 #include "engine/math/vector2.h"
 #include "engine/time/time_delta.h"
-#include "input_buffer.h"
+#include "input/input_buffer.h"
 #include "join_flow.h"
 
 namespace client {
