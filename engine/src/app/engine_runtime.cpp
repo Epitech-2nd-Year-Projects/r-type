@@ -106,6 +106,12 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
 
   script_engine_ = std::make_unique<scripting::ScriptEngine>();
   script_engine_->Initialize();
+  if (input_) {
+    script_engine_->SetInputManager(*input_);
+  }
+  if (audio_) {
+    script_engine_->SetAudioEngine(*audio_);
+  }
 
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
