@@ -31,6 +31,15 @@ class ScriptSystem : public ecs::ISystem {
 
   void Update(ecs::Registry& registry, time::TimeDelta dt) override;
 
+  /**
+   * @brief Update the internal Lua function.
+   * @param update_fn New function to replace the existing one.
+   *
+   * @note This method is NOT thread-safe. It must be called from the same
+   * thread that executes the system integration loop.
+   */
+  void SetFunction(sol::protected_function update_fn);
+
  private:
   sol::protected_function update_fn_;
 };

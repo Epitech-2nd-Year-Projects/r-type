@@ -438,6 +438,41 @@ class Registry {
   }
 
   /**
+   * @brief Register a named object-oriented system
+   * @param name Unique name for the system (for hot-reloading/retrieval)
+   * @param system Shared pointer to system object
+   * @param type System type (Fixed or Variable)
+   * @param priority Execution priority
+   *
+   * @note Named systems are stored in both the execution list and a
+   * name-to-system map. This creates two shared_ptr references to the same
+   * system.
+   */
+  void AddSystemClass(const std::string& name, std::shared_ptr<ISystem> system,
+                      SystemType type = SystemType::Variable,
+                      SystemPriority priority = kDefaultPriority) {
+    if (named_systems_.find(name) != named_systems_.end()) {
+      throw std::runtime_error("System with name '" + name +
+                               "' already exists. Use GetSystem to update it.");
+    }
+    named_systems_[name] = system;
+    AddSystemClass(system, type, priority);
+  }
+
+  /**
+   * @brief Retrieve a registered system by name.
+   * @param name The system name.
+   * @return The system pointer or nullptr if not found.
+   */
+  std::shared_ptr<ISystem> GetSystem(const std::string& name) {
+    auto it = named_systems_.find(name);
+    if (it != named_systems_.end()) {
+      return it->second;
+    }
+    return nullptr;
+  }
+
+  /**
    * @brief Execute all registered systems
    * @param dt Time since last frame
    *
@@ -490,6 +525,9 @@ class Registry {
 
   /// @brief OOP-style systems storage
   std::vector<std::shared_ptr<ISystem>> owned_systems_;
+
+  /// @brief Named systems for retrieval (e.g. hot-reloading)
+  std::unordered_map<std::string, std::shared_ptr<ISystem>> named_systems_;
 };
 
 }  // namespace engine::ecs

@@ -114,12 +114,28 @@ void BindTypes(sol::state& lua) {
       },
 
       "register_system",
-      [](ecs::Registry& self, sol::protected_function fn,
-         sol::optional<ecs::SystemType> type,
+      [](ecs::Registry& self, const std::string& name,
+         sol::protected_function fn, sol::optional<ecs::SystemType> type,
          sol::optional<ecs::SystemPriority> priority) {
-        auto sys = std::make_shared<engine::scripting::ScriptSystem>(fn);
-        self.AddSystemClass(sys, type.value_or(ecs::SystemType::Variable),
-                            priority.value_or(ecs::kDefaultPriority));
+        auto existing = self.GetSystem(name);
+        if (existing) {
+          auto script_sys =
+              std::dynamic_pointer_cast<engine::scripting::ScriptSystem>(
+                  existing);
+          if (script_sys) {
+            script_sys->SetFunction(fn);
+            ENGINE_LOG_INFO("Hot-reloaded system: {}", name);
+          } else {
+            ENGINE_LOG_ERROR(
+                "Cannot hot-reload system '{}': Not a ScriptSystem", name);
+          }
+        } else {
+          auto sys = std::make_shared<engine::scripting::ScriptSystem>(fn);
+          self.AddSystemClass(name, sys,
+                              type.value_or(ecs::SystemType::Variable),
+                              priority.value_or(ecs::kDefaultPriority));
+          ENGINE_LOG_INFO("Registered new system: {}", name);
+        }
       });
 
   ENGINE_LOG_INFO("Lua bindings types initialized (Math + ECS + Systems)");

@@ -19,7 +19,7 @@ TEST(ScriptingTest, ScriptSystem_HandlesLuaErrorsGracefully) {
     function faulty_system(dt, reg)
        error("Simulated Lua Error")
     end
-    registry:register_system(faulty_system)
+    registry:register_system("FaultySys", faulty_system)
   )";
 
   auto result = lua.script(script);
