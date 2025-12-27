@@ -10,17 +10,17 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class DisconnectedScene : public Scene {
  public:
-  explicit DisconnectedScene(Application& app, std::string reason);
+  explicit DisconnectedScene(ClientContext& context, std::string reason);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
-  Application& app_;
+  ClientContext& context_;
   std::string reason_;
   engine::ui::Canvas canvas_;
   std::shared_ptr<engine::ui::TextElement> title_;
