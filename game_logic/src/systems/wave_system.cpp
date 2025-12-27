@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "engine/ecs/components/tag_component.h"
+#include "engine/util/logging.h"
 #include "game_logic/constants.h"
 #include "game_logic/entities/enemy_builder.h"
 #include "game_logic/game_config.h"
@@ -16,6 +17,7 @@ WaveSystem::WaveSystem(GameInstance &game_instance)
 }
 
 void WaveSystem::LoadLevel(int level_id) {
+  auto &logger = engine::util::Logger::Default();
   current_level_ = level_id;
   current_wave_time_ = 0.0f;
   pending_spawns_.clear();
@@ -35,8 +37,8 @@ void WaveSystem::LoadLevel(int level_id) {
       else if (spawn.enemy_type == "Interceptor")
         type = entities::EnemyType::kInterceptor;
       else if (spawn.enemy_type != "Scout") {
-        std::cerr << "Warning: Unknown enemy type '" << spawn.enemy_type
-                  << "' in wave config. Defaulting to Scout." << std::endl;
+        logger.Warn("[game_logic.wave] Unknown enemy type '", spawn.enemy_type,
+                    "' in wave config defaulting to Scout");
       }
       WaveEntry entry;
       entry.spawn_time = spawn.time;
@@ -47,13 +49,14 @@ void WaveSystem::LoadLevel(int level_id) {
       pending_spawns_.push_back(entry);
     }
   } catch (const std::exception &e) {
-    std::cerr << "Error loading level " << level_id << ": " << e.what()
-              << std::endl;
+    logger.Error("[game_logic.wave] Error loading level ", level_id, ": ",
+                 e.what());
   }
 }
 
 void WaveSystem::Update(engine::ecs::Registry &registry,
                         engine::time::TimeDelta dt) {
+  auto &logger = engine::util::Logger::Default();
   current_wave_time_ += dt.as_seconds();
 
   const auto &world = GameConfig::Get().GetWorld();
@@ -103,18 +106,20 @@ void WaveSystem::Update(engine::ecs::Registry &registry,
           try {
             GameConfig::Get().GetLevel(next_level);
           } catch (...) {
-            std::cerr << "Max level reached (" << current_level_
-                      << "), looping back to level 1" << std::endl;
+            logger.Warn("[game_logic.wave] Max level reached ", current_level_,
+                        " looping back to level 1");
             next_level = 1;
           }
           try {
             LoadLevel(next_level);
             game_instance_.State().current_level = next_level;
           } catch (const std::exception &e) {
-            std::cerr << "Level transition error: " << e.what() << std::endl;
+            logger.Error("[game_logic.wave] Level transition error: ",
+                         e.what());
             game_instance_.State().is_game_over = true;
           } catch (...) {
-            std::cerr << "Unknown error during level transition" << std::endl;
+            logger.Error(
+                "[game_logic.wave] Unknown error during level transition");
             game_instance_.State().is_game_over = true;
           }
         }
