@@ -121,7 +121,10 @@ void BindTypes(sol::state& lua) {
           if (e < sparse.size() && sparse[e].has_value()) {
             return sparse[e].value();
           }
+        } catch (const std::exception& ex) {
+          ENGINE_LOG_ERROR("Lua get_bounding_box error: {}", ex.what());
         } catch (...) {
+          ENGINE_LOG_ERROR("Lua get_bounding_box error: Unknown exception");
         }
         return std::nullopt;
       },
