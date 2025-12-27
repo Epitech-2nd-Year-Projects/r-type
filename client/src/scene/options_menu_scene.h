@@ -1,18 +1,16 @@
 #ifndef CLIENT_SCENE_OPTIONS_MENU_SCENE_H_
 #define CLIENT_SCENE_OPTIONS_MENU_SCENE_H_
 
-#include <array>
 #include <memory>
-#include <string>
 #include <vector>
 
-#include "../ui/button.h"
-#include "../ui/ui_element.h"
+#include "engine/ui/button.h"
 #include "engine/math/rect.h"
 #include "engine/ui/canvas.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
 #include "scene.h"
+#include "ui/menu_effects.h"
 
 namespace client {
 
@@ -45,26 +43,16 @@ class OptionsMenuScene : public Scene {
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
-  void DrawPointers(engine::render::Renderer2D& renderer);
   void DrawWarning(engine::render::Renderer2D& renderer);
 
   ClientContext& context_;
   engine::ui::Canvas canvas_;
-  std::vector<std::shared_ptr<ui::Button>> buttons_;
-  std::vector<std::shared_ptr<engine::render::Texture2D>> pointer_frames_;
+  std::vector<std::shared_ptr<engine::ui::Button>> buttons_;
   std::vector<std::shared_ptr<engine::render::Texture2D>> warning_frames_;
   engine::math::RectF warning_rect_{};
   float warning_elapsed_{0.0f};
   bool warning_animating_{true};
-  std::string hover_sfx_path_;
-  std::string click_sfx_path_;
-  struct PointerState {
-    bool hovered{false};
-    bool was_hovered{false};
-    float elapsed{0.0f};
-    bool animating{false};
-  };
-  std::array<PointerState, 4> pointer_states_{};
+  ui::MenuEffects menu_effects_;
 };
 
 }  // namespace client
