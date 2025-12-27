@@ -1,51 +1,48 @@
 #ifndef CLIENT_SCENE_SETTINGS_SCENE_H_
 #define CLIENT_SCENE_SETTINGS_SCENE_H_
 
-#include <vector>
+#include <functional>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "scene.h"
 #include "engine/ui/canvas.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
-#include "engine/ui/types.h"
 #include "../ui/button.h"
 #include "../input_layer.h"
-
-namespace engine::render {
-class Renderer2D;
-}
+#include "engine/ui/types.h"
 
 namespace client {
 
-class Application;
+class ClientContext;
 namespace ui {
 class Button;
 }
 
 class SettingsScene : public Scene {
  public:
-  explicit SettingsScene(Application& app);
+  explicit SettingsScene(ClientContext& context);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
-  Application& app_;
-  
+  ClientContext& context_;
+
   engine::ui::Canvas canvas_;
 
   std::vector<std::shared_ptr<ui::Button>> buttons_;
-  
+
   std::shared_ptr<engine::ui::TextElement> music_volume_label_;
   std::shared_ptr<engine::ui::TextElement> sfx_volume_label_;
   std::shared_ptr<engine::ui::TextElement> rebind_status_label_;
-  
+
   std::vector<bool> key_state_buffer_;
   std::optional<GameAction> pending_rebind_;
-  
+
   struct BindingRow {
     GameAction action;
     std::shared_ptr<ui::Button> button;
