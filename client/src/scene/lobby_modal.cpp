@@ -46,34 +46,30 @@ void LobbyModal::Layout(const engine::math::Vector2f& window_size) {
     room_name_input_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalRoomNameInputY});
-    room_name_input_->SetSize(
-        {constants::ui::Lobby::kModalWidth -
-             constants::ui::Lobby::kModalPaddingX * 2.0f,
-         constants::ui::Lobby::kFieldHeight});
+    room_name_input_->SetSize({constants::ui::Lobby::kModalWidth -
+                                   constants::ui::Lobby::kModalPaddingX * 2.0f,
+                               constants::ui::Lobby::kFieldHeight});
 
     max_players_input_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalMaxPlayersInputY});
-    max_players_input_->SetSize(
-        {constants::ui::Lobby::kModalMaxPlayersWidth,
-         constants::ui::Lobby::kFieldHeight});
+    max_players_input_->SetSize({constants::ui::Lobby::kModalMaxPlayersWidth,
+                                 constants::ui::Lobby::kFieldHeight});
 
     privacy_button_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalPrivacyButtonX,
          max_players_input_->GetPosition().y -
              constants::ui::Lobby::kModalPrivacyButtonOffsetY});
-    privacy_button_->SetSize(
-        {constants::ui::Lobby::kModalActionButtonWidth,
-         constants::ui::Lobby::kButtonHeight});
+    privacy_button_->SetSize({constants::ui::Lobby::kModalActionButtonWidth,
+                              constants::ui::Lobby::kButtonHeight});
 
     if (modal_private_) {
       password_input_->SetPosition(
           {modal_x + constants::ui::Lobby::kModalPaddingX,
            modal_y + constants::ui::Lobby::kModalPasswordInputY});
-      password_input_->SetSize(
-          {constants::ui::Lobby::kModalWidth -
-               constants::ui::Lobby::kModalPaddingX * 2.0f,
-           constants::ui::Lobby::kFieldHeight});
+      password_input_->SetSize({constants::ui::Lobby::kModalWidth -
+                                    constants::ui::Lobby::kModalPaddingX * 2.0f,
+                                constants::ui::Lobby::kFieldHeight});
     }
 
     primary_button_->SetPosition(
@@ -81,25 +77,22 @@ void LobbyModal::Layout(const engine::math::Vector2f& window_size) {
          modal_y + constants::ui::Lobby::kModalPrimaryButtonY});
     cancel_button_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalWidth -
-             cancel_button_->GetSize().x -
-             constants::ui::Lobby::kModalPaddingX,
+             cancel_button_->GetSize().x - constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalPrimaryButtonY});
   } else if (modal_mode_ == ModalMode::kJoinPrivate) {
     password_input_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalPasswordJoinInputY});
-    password_input_->SetSize(
-        {constants::ui::Lobby::kModalWidth -
-             constants::ui::Lobby::kModalPaddingX * 2.0f,
-         constants::ui::Lobby::kFieldHeight});
+    password_input_->SetSize({constants::ui::Lobby::kModalWidth -
+                                  constants::ui::Lobby::kModalPaddingX * 2.0f,
+                              constants::ui::Lobby::kFieldHeight});
 
     primary_button_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalJoinButtonY});
     cancel_button_->SetPosition(
         {modal_x + constants::ui::Lobby::kModalWidth -
-             cancel_button_->GetSize().x -
-             constants::ui::Lobby::kModalPaddingX,
+             cancel_button_->GetSize().x - constants::ui::Lobby::kModalPaddingX,
          modal_y + constants::ui::Lobby::kModalJoinButtonY});
   }
 
@@ -119,57 +112,50 @@ void LobbyModal::Draw(engine::render::Renderer2D& renderer) const {
   const float x = modal_rect_.top_left_x_;
   const float y = modal_rect_.top_left_y_;
 
-  renderer.DrawRect(
-      {0.0f, 0.0f, viewport_size_.x, viewport_size_.y},
-      constants::ui::Lobby::kOverlayColor);
+  renderer.DrawRect({0.0f, 0.0f, viewport_size_.x, viewport_size_.y},
+                    constants::ui::Lobby::kOverlayColor);
   renderer.DrawRect({x, y, width, height}, constants::ui::Lobby::kPanelColor);
 
   const std::string title =
       modal_mode_ == ModalMode::kCreate ? "Create a room" : "Enter password";
   renderer.SetFont(std::string(constants::ui::kTitleFont));
-  renderer.DrawText(
-      title,
-      {x + constants::ui::Lobby::kModalPaddingX,
-       y + constants::ui::Lobby::kModalTitleOffsetY},
-      constants::ui::Lobby::kModalTitleFontSize,
-      constants::ui::Lobby::kAccentColor);
+  renderer.DrawText(title,
+                    {x + constants::ui::Lobby::kModalPaddingX,
+                     y + constants::ui::Lobby::kModalTitleOffsetY},
+                    constants::ui::Lobby::kModalTitleFontSize,
+                    constants::ui::Lobby::kAccentColor);
 
   renderer.SetFont(std::string(constants::ui::kBodyFont));
   if (modal_mode_ == ModalMode::kCreate) {
-    renderer.DrawText(
-        "Room name",
-        {x + constants::ui::Lobby::kModalPaddingX,
-         y + constants::ui::Lobby::kModalLabelRow1Y},
-        constants::ui::Lobby::kModalLabelFontSize,
-        engine::render::Color::White());
-    renderer.DrawText(
-        "Max players",
-        {x + constants::ui::Lobby::kModalPaddingX,
-         y + constants::ui::Lobby::kModalLabelRow2Y},
-        constants::ui::Lobby::kModalLabelFontSize,
-        engine::render::Color::White());
-    renderer.DrawText(
-        modal_private_ ? "Private lobby" : "Public lobby",
-        {x + constants::ui::Lobby::kModalLabelValueX,
-         y + constants::ui::Lobby::kModalLabelRow2Y},
-        constants::ui::Lobby::kModalLabelFontSize,
-        constants::ui::Lobby::kSoftTextColor);
+    renderer.DrawText("Room name",
+                      {x + constants::ui::Lobby::kModalPaddingX,
+                       y + constants::ui::Lobby::kModalLabelRow1Y},
+                      constants::ui::Lobby::kModalLabelFontSize,
+                      engine::render::Color::White());
+    renderer.DrawText("Max players",
+                      {x + constants::ui::Lobby::kModalPaddingX,
+                       y + constants::ui::Lobby::kModalLabelRow2Y},
+                      constants::ui::Lobby::kModalLabelFontSize,
+                      engine::render::Color::White());
+    renderer.DrawText(modal_private_ ? "Private lobby" : "Public lobby",
+                      {x + constants::ui::Lobby::kModalLabelValueX,
+                       y + constants::ui::Lobby::kModalLabelRow2Y},
+                      constants::ui::Lobby::kModalLabelFontSize,
+                      constants::ui::Lobby::kSoftTextColor);
     if (modal_private_) {
-      renderer.DrawText(
-          "Password (4 digits)",
-          {x + constants::ui::Lobby::kModalPaddingX,
-           y + constants::ui::Lobby::kModalPrivateLabelY},
-          constants::ui::Lobby::kModalLabelFontSize,
-          constants::ui::Lobby::kSoftTextColor);
+      renderer.DrawText("Password (4 digits)",
+                        {x + constants::ui::Lobby::kModalPaddingX,
+                         y + constants::ui::Lobby::kModalPrivateLabelY},
+                        constants::ui::Lobby::kModalLabelFontSize,
+                        constants::ui::Lobby::kSoftTextColor);
     }
   } else {
     std::string subtitle = "Join " + pending_join_room_name_;
-    renderer.DrawText(
-        subtitle,
-        {x + constants::ui::Lobby::kModalPaddingX,
-         y + constants::ui::Lobby::kModalLabelRow1Y},
-        constants::ui::Lobby::kModalSubtitleFontSize,
-        constants::ui::Lobby::kSoftTextColor);
+    renderer.DrawText(subtitle,
+                      {x + constants::ui::Lobby::kModalPaddingX,
+                       y + constants::ui::Lobby::kModalLabelRow1Y},
+                      constants::ui::Lobby::kModalSubtitleFontSize,
+                      constants::ui::Lobby::kSoftTextColor);
   }
 
   auto active = ActiveElements();
@@ -247,14 +233,12 @@ bool LobbyModal::IsInputCaptured() const {
 }
 
 void LobbyModal::BuildModal() {
-  room_name_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  room_name_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   room_name_input_->SetPlaceholder("Room name");
 
-  max_players_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  max_players_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   max_players_input_->SetPlaceholder("Max players (1-255)");
   max_players_input_->SetText("4");
 
@@ -270,9 +254,8 @@ void LobbyModal::BuildModal() {
         }
       });
 
-  password_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  password_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   password_input_->SetPlaceholder("4-digit password");
 
   primary_button_ = std::make_shared<engine::ui::Button>(
@@ -287,8 +270,8 @@ void LobbyModal::BuildModal() {
                              constants::ui::Lobby::kButtonHeight},
       "Cancel", [this]() { Close(); });
 
-  create_elements_ = {room_name_input_,   max_players_input_, privacy_button_,
-                      primary_button_,    cancel_button_};
+  create_elements_ = {room_name_input_, max_players_input_, privacy_button_,
+                      primary_button_, cancel_button_};
   join_elements_ = {password_input_, primary_button_, cancel_button_};
 }
 
