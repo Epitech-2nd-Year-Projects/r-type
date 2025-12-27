@@ -22,6 +22,7 @@ inline constexpr int kTargetFps = 60;
 inline constexpr bool kWindowResizable = false;
 inline constexpr bool kWindowVsync = true;
 inline constexpr std::string_view kWindowTitle = "R-Type Client";
+inline constexpr std::string_view kClientConfigPath = "config/client.json";
 inline constexpr std::string_view kKeyBindingsPath = "config/keybindings.json";
 
 }  // namespace client::constants::client
