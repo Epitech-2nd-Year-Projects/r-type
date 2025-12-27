@@ -78,6 +78,7 @@ void InputManager::ResetBindings() {
 
 void InputManager::HandleKey(Key key, bool pressed) {
   key_states_[key] = pressed;
+  if (!actions_enabled_) return;
 
   auto it = key_to_actions_.find(key);
   if (it == key_to_actions_.end()) return;
@@ -95,6 +96,7 @@ void InputManager::HandleKey(Key key, bool pressed) {
 
 void InputManager::HandleMouseButton(MouseButton button, bool pressed) {
   mouse_states_[button] = pressed;
+  if (!actions_enabled_) return;
 
   auto it = mouse_to_actions_.find(button);
   if (it == mouse_to_actions_.end()) return;
@@ -111,6 +113,7 @@ void InputManager::HandleMouseButton(MouseButton button, bool pressed) {
 }
 
 bool InputManager::IsActionActive(const std::string& action) const {
+  if (!actions_enabled_) return false;
   if (action.empty()) return false;
   auto it = action_states_.find(action);
   if (it == action_states_.end()) return false;
@@ -128,6 +131,22 @@ bool InputManager::IsMouseButtonDown(MouseButton button) const {
   if (it == mouse_states_.end()) return false;
   return it->second;
 }
+
+void InputManager::SetActionsEnabled(bool enabled) {
+  if (actions_enabled_ == enabled) return;
+  actions_enabled_ = enabled;
+  if (!actions_enabled_) {
+    events_.clear();
+    for (auto& [action, active] : action_states_) {
+      if (active) {
+        events_.push_back({action, ActionEventType::kReleased});
+      }
+      active = false;
+    }
+  }
+}
+
+bool InputManager::ActionsEnabled() const { return actions_enabled_; }
 
 void InputManager::SetMousePosition(math::Vector2f position) {
   mouse_position_ = position;
