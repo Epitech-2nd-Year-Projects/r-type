@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 
+#include "ecs/archetype_registry.h"
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
 #include "engine/math/rect.h"
@@ -21,7 +22,6 @@
 namespace client {
 namespace {
 
-constexpr std::uint16_t kPlayerTypeCode = 1u;
 constexpr float kPanelMargin = 16.0f;
 constexpr float kPanelPadding = 12.0f;
 constexpr float kLineSpacing = 6.0f;
@@ -149,6 +149,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry &registry,
   const auto &health = registry.GetComponents<ecs::HealthComponent>();
   const auto &player_state =
       registry.GetComponents<ecs::PlayerStateComponent>();
+  const auto &archetypes = ecs::ArchetypeRegistry::Get();
   players_.reserve(net.size());
 
   for (std::size_t i = 0; i < net.size(); ++i) {
@@ -156,7 +157,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry &registry,
       continue;
     }
     const auto &comp = net[i].value();
-    if (comp.type_code != kPlayerTypeCode) {
+    if (!archetypes.IsPlayer(comp.type_code)) {
       continue;
     }
     HudPlayerRow row;
