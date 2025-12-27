@@ -165,6 +165,17 @@ class InputManager {
   bool IsMouseButtonDown(MouseButton button) const;
 
   /**
+   * @brief Enable or disable action processing
+   * @param enabled True when actions are enabled
+   */
+  void SetActionsEnabled(bool enabled);
+
+  /**
+   * @brief Check if action processing is enabled
+   */
+  bool ActionsEnabled() const;
+
+  /**
    * @brief Retrieve and clear pending action events
    *
    * Returns a copy of the current transition events and empties the queue.
@@ -197,6 +208,7 @@ class InputManager {
   std::unordered_map<std::string, bool> action_states_;
   std::unordered_map<Key, bool, EnumClassHash> key_states_;
   std::unordered_map<MouseButton, bool, EnumClassHash> mouse_states_;
+  bool actions_enabled_{true};
   std::unordered_map<Key, std::vector<std::string>, EnumClassHash>
       key_to_actions_;
   std::unordered_map<MouseButton, std::vector<std::string>, EnumClassHash>
