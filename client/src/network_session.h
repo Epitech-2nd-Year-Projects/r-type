@@ -30,7 +30,7 @@ namespace client {
 class AudioController;
 class LocalPrediction;
 class NetworkTransport;
-class RoomDirectoryClient;
+class LobbyService;
 
 namespace ecs {
 class AnimationSystem;
@@ -191,11 +191,14 @@ class NetworkSession {
   void UpdateLocalPlayerCache();
   GameOverStats BuildGameOverStats() const;
 
+  enum class DisconnectMode { kNotifyServer, kSilent };
+  void Disconnect(DisconnectMode mode);
+
   ClientConfig config_;
   std::shared_ptr<NetworkTransport> transport_;
   std::shared_ptr<NetworkTransport> lobby_transport_;
   JoinFlow join_flow_;
-  std::unique_ptr<RoomDirectoryClient> room_directory_;
+  std::unique_ptr<LobbyService> lobby_service_;
   std::unique_ptr<engine::ecs::Registry> world_registry_;
   std::unique_ptr<ecs::WorldStateSystem> world_state_system_;
   std::unique_ptr<ecs::AnimationSystem> animation_system_;
@@ -205,6 +208,7 @@ class NetworkSession {
   std::optional<std::uint32_t> cached_local_score_;
   std::optional<std::uint32_t> last_wave_{1u};
   JoinState last_join_state_{JoinState::kIdle};
+  bool disconnect_notice_sent_{false};
 };
 
 }  // namespace client
