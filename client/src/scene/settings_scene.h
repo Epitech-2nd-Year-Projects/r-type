@@ -10,7 +10,7 @@
 #include "engine/ui/canvas.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
-#include "../ui/button.h"
+#include "engine/ui/button.h"
 #include "../input_layer.h"
 #include "engine/ui/types.h"
 
@@ -34,7 +34,7 @@ class SettingsScene : public Scene {
 
   engine::ui::Canvas canvas_;
 
-  std::vector<std::shared_ptr<ui::Button>> buttons_;
+  std::vector<std::shared_ptr<engine::ui::Button>> buttons_;
 
   std::shared_ptr<engine::ui::TextElement> music_volume_label_;
   std::shared_ptr<engine::ui::TextElement> sfx_volume_label_;
@@ -45,9 +45,10 @@ class SettingsScene : public Scene {
 
   struct BindingRow {
     GameAction action;
-    std::shared_ptr<ui::Button> button;
+    std::shared_ptr<engine::ui::Button> button;
 
-    BindingRow(GameAction action_in, std::shared_ptr<ui::Button> button_in)
+    BindingRow(GameAction action_in,
+               std::shared_ptr<engine::ui::Button> button_in)
         : action(action_in), button(std::move(button_in)) {}
   };
   std::vector<BindingRow> binding_rows_;
