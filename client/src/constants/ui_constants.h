@@ -98,6 +98,53 @@ struct Connecting {
 };
 
 /**
+ * @brief Debug overlay layout values
+ */
+struct DebugOverlay {
+  static constexpr float kFontSize = 18.0f;
+  static constexpr float kLineSpacing = 6.0f;
+  static constexpr float kPadding = 12.0f;
+  static constexpr float kCornerOffset = 16.0f;
+  static constexpr engine::render::Color kBackgroundColor =
+      engine::render::Color::FromBytes(12, 14, 18, 190);
+  static constexpr engine::render::Color kTextColor =
+      engine::render::Color::FromBytes(220, 225, 232);
+};
+
+/**
+ * @brief HUD overlay layout values
+ */
+struct HudOverlay {
+  static constexpr float kPanelMargin = 16.0f;
+  static constexpr float kPanelPadding = 12.0f;
+  static constexpr float kLineSpacing = 6.0f;
+  static constexpr float kHeaderFontSize = 20.0f;
+  static constexpr float kBodyFontSize = 18.0f;
+  static constexpr float kIndicatorRadius = 7.0f;
+  static constexpr float kIndicatorTextGap = 8.0f;
+  static constexpr float kLatencyGoodThresholdMs = 80.0f;
+  static constexpr float kLatencyWarningThresholdMs = 150.0f;
+  static constexpr engine::render::Color kPanelBackground =
+      engine::render::Color::FromBytes(10, 12, 16, 205);
+  static constexpr engine::render::Color kHeaderColor =
+      engine::render::Color::FromBytes(230, 235, 245);
+  static constexpr engine::render::Color kBodyColor =
+      engine::render::Color::FromBytes(214, 222, 230);
+  static constexpr engine::render::Color kMutedColor =
+      engine::render::Color::FromBytes(150, 160, 170);
+  static constexpr engine::render::Color kLocalColor =
+      engine::render::Color::FromBytes(120, 190, 255);
+  static constexpr engine::render::Color kConnectedColor =
+      engine::render::Color::FromBytes(84, 199, 136);
+  static constexpr engine::render::Color kWarningColor =
+      engine::render::Color::FromBytes(236, 195, 86);
+  static constexpr engine::render::Color kProblemColor =
+      engine::render::Color::FromBytes(214, 89, 82);
+  static constexpr engine::render::Color kOfflineColor =
+      engine::render::Color::FromBytes(120, 130, 140);
+};
+
+/**
  * @brief Disconnected layout values
  */
 struct Disconnected {
