@@ -230,7 +230,6 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
       GameOverScene::Stats scene_stats;
       scene_stats.score = last_game_stats_.score;
       scene_stats.wave = last_game_stats_.wave;
-      scene_stats.level = last_game_stats_.level;
       SwitchScene(std::make_shared<GameOverScene>(context_, scene_stats));
       break;
     }
