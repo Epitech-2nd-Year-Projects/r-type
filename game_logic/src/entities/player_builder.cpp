@@ -53,8 +53,9 @@ engine::ecs::EntityId PlayerBuilder::Create(engine::ecs::Registry& registry,
     logger.Error("[game_logic.player] Error loading player missile config: ",
                  e.what());
   } catch (...) {
-    logger.Error("[game_logic.player] Unknown error loading player missile "
-                 "config");
+    logger.Error(
+        "[game_logic.player] Unknown error loading player missile "
+        "config");
   }
 
   registry.AddComponent<components::WeaponComponent>(player, std::move(weapon));
