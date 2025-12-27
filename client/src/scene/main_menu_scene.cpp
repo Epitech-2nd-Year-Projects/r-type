@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/ui_constants.h"
 #include "engine/math/rect.h"
@@ -30,16 +31,15 @@ MainMenuScene::MainMenuScene(ClientContext& context)
                     constants::ui::kMenuHoverSfxPath,
                     constants::ui::kMenuClickSfxPath) {
   auto& renderer = context_.Renderer();
+  auto& assets = context_.Assets();
 
-  renderer.LoadFont(std::string(constants::ui::kTitleFont),
-                    std::string(constants::ui::kTitleFontPath));
-  renderer.LoadFont(std::string(constants::ui::kBodyFont),
-                    std::string(constants::ui::kBodyFontPath));
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
+  assets.LoadFont(constants::ui::kBodyFont, constants::ui::kBodyFontPath);
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
-  menu_effects_.Load(renderer);
-  title_texture_ = renderer.LoadTextureFromFile(
-      std::string(constants::ui::MainMenu::kTitleTexturePath));
+  menu_effects_.Load();
+  title_texture_ =
+      assets.GetTexture(constants::ui::MainMenu::kTitleTexturePath);
 
   const auto white = engine::render::Color::White();
 
