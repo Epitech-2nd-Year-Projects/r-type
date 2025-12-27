@@ -8,6 +8,7 @@
 #include "client_asset_manager.h"
 #include "client_config.h"
 #include "client_context.h"
+#include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
 #include "engine/math/rect.h"
@@ -17,7 +18,7 @@ namespace client {
 namespace {
 
 bool IsFourDigitPassword(const std::string& value) {
-  if (value.size() != 4) {
+  if (value.size() != constants::client::kLobbyPasswordLength) {
     return false;
   }
   return std::all_of(value.begin(), value.end(),
@@ -50,12 +51,12 @@ LobbyController::LobbyController(ClientContext& context,
 
   host_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
-  host_input_->SetPlaceholder("127.0.0.1");
+  host_input_->SetPlaceholder(defaults.host);
   host_input_->SetText(lobby_host_);
 
   port_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
-  port_input_->SetPlaceholder("4242");
+  port_input_->SetPlaceholder(std::to_string(defaults.port));
   port_input_->SetText(std::to_string(lobby_port_));
 
   name_input_ = std::make_shared<engine::ui::TextInput>(
@@ -223,10 +224,10 @@ bool LobbyController::TryCreateRoom(const std::string& room_name,
     return false;
   }
 
-  std::string max_players_str = max_players_text;
-  if (max_players_str.empty()) {
-    max_players_str = "4";
-  }
+  const std::string max_players_str =
+      max_players_text.empty()
+          ? std::to_string(constants::client::kLobbyDefaultMaxPlayers)
+          : max_players_text;
   int max_players = 0;
   try {
     max_players = std::stoi(max_players_str);
@@ -235,10 +236,13 @@ bool LobbyController::TryCreateRoom(const std::string& room_name,
     return false;
   }
 
-  max_players = std::clamp(max_players, 1, 255);
+  max_players = std::clamp(max_players, constants::client::kLobbyMaxPlayersMin,
+                           constants::client::kLobbyMaxPlayersMax);
 
   if (!password.empty() && !IsFourDigitPassword(password)) {
-    SetBanner("Password must be exactly 4 digits");
+    SetBanner("Password must be exactly " +
+              std::to_string(constants::client::kLobbyPasswordLength) +
+              " digits");
     return false;
   }
 
@@ -251,7 +255,9 @@ bool LobbyController::TryCreateRoom(const std::string& room_name,
 bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
                                   const std::string& password) {
   if (room.is_private && !IsFourDigitPassword(password)) {
-    SetBanner("Enter a 4-digit password to join");
+    SetBanner("Enter a " +
+              std::to_string(constants::client::kLobbyPasswordLength) +
+              "-digit password to join");
     return false;
   }
 
