@@ -91,8 +91,7 @@ bool TryParseTimeout(std::string_view value, std::uint32_t& out_timeout) {
   return TryParseRange(value, out_timeout, kMinTimeoutMs, kMaxTimeoutMs);
 }
 
-bool TryParsePingInterval(std::string_view value,
-                          std::uint32_t& out_interval) {
+bool TryParsePingInterval(std::string_view value, std::uint32_t& out_interval) {
   return TryParseRange(value, out_interval, kMinPingIntervalMs,
                        kMaxPingIntervalMs);
 }
@@ -108,8 +107,7 @@ bool TryParseJoinRetryDelay(std::string_view value,
 }
 
 bool TryParseJoinAttempts(std::string_view value, int& out_attempts) {
-  return TryParseRange(value, out_attempts, kMinJoinAttempts,
-                       kMaxJoinAttempts);
+  return TryParseRange(value, out_attempts, kMinJoinAttempts, kMaxJoinAttempts);
 }
 
 bool TryParseLobbyRetryDelay(std::string_view value,
