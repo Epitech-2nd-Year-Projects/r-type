@@ -11,6 +11,8 @@
 #include <string>
 #include <utility>
 
+#include "constants/client_constants.h"
+#include "constants/ui_constants.h"
 #include "ecs/archetype_registry.h"
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
@@ -22,32 +24,6 @@
 namespace client {
 namespace {
 
-constexpr float kPanelMargin = 16.0f;
-constexpr float kPanelPadding = 12.0f;
-constexpr float kLineSpacing = 6.0f;
-constexpr float kHeaderFontSize = 20.0f;
-constexpr float kBodyFontSize = 18.0f;
-constexpr float kIndicatorRadius = 7.0f;
-
-const engine::render::Color kPanelBackground =
-    engine::render::Color::FromBytes(10, 12, 16, 205);
-const engine::render::Color kHeaderColor =
-    engine::render::Color::FromBytes(230, 235, 245);
-const engine::render::Color kBodyColor =
-    engine::render::Color::FromBytes(214, 222, 230);
-const engine::render::Color kMutedColor =
-    engine::render::Color::FromBytes(150, 160, 170);
-const engine::render::Color kLocalColor =
-    engine::render::Color::FromBytes(120, 190, 255);
-const engine::render::Color kConnectedColor =
-    engine::render::Color::FromBytes(84, 199, 136);
-const engine::render::Color kWarningColor =
-    engine::render::Color::FromBytes(236, 195, 86);
-const engine::render::Color kProblemColor =
-    engine::render::Color::FromBytes(214, 89, 82);
-const engine::render::Color kOfflineColor =
-    engine::render::Color::FromBytes(120, 130, 140);
-
 struct TextLine {
   std::string text;
   float font_size;
@@ -57,18 +33,18 @@ struct TextLine {
 engine::render::Color ConnectionColor(std::optional<float> latency_ms,
                                       bool connected) {
   if (!connected) {
-    return kOfflineColor;
+    return constants::ui::HudOverlay::kOfflineColor;
   }
   if (!latency_ms.has_value()) {
-    return kConnectedColor;
+    return constants::ui::HudOverlay::kConnectedColor;
   }
-  if (*latency_ms < 80.0f) {
-    return kConnectedColor;
+  if (*latency_ms < constants::ui::HudOverlay::kLatencyGoodThresholdMs) {
+    return constants::ui::HudOverlay::kConnectedColor;
   }
-  if (*latency_ms < 150.0f) {
-    return kWarningColor;
+  if (*latency_ms < constants::ui::HudOverlay::kLatencyWarningThresholdMs) {
+    return constants::ui::HudOverlay::kWarningColor;
   }
-  return kProblemColor;
+  return constants::ui::HudOverlay::kProblemColor;
 }
 
 float MaxTextWidth(const std::vector<TextLine> &lines,
@@ -81,11 +57,11 @@ float MaxTextWidth(const std::vector<TextLine> &lines,
 }
 
 float PanelHeight(const std::vector<TextLine> &lines) {
-  float height = kPanelPadding * 2.0f;
+  float height = constants::ui::HudOverlay::kPanelPadding * 2.0f;
   for (std::size_t i = 0; i < lines.size(); ++i) {
     height += lines[i].font_size;
     if (i + 1 < lines.size()) {
-      height += kLineSpacing;
+      height += constants::ui::HudOverlay::kLineSpacing;
     }
   }
   return height;
@@ -162,7 +138,7 @@ void HudOverlay::UpdatePlayers(const engine::ecs::Registry &registry,
     }
     HudPlayerRow row;
     row.player_id = comp.network_id;
-    row.is_ready = (net[i]->flags & 2u) != 0;
+    row.is_ready = (net[i]->flags & constants::client::kPlayerReadyFlag) != 0;
     if (i < player_state.size() && player_state[i].has_value()) {
       if (player_state[i]->player_id != 0u) {
         row.player_id = player_state[i]->player_id;
@@ -213,72 +189,92 @@ void HudOverlay::UpdateNetwork(std::optional<float> latency_ms, bool connected,
 
 void HudOverlay::Draw(engine::render::Renderer2D &renderer,
                       const engine::math::Vector2i &window_size) const {
-  const engine::math::Vector2f player_origin{kPanelMargin, kPanelMargin};
+  const engine::math::Vector2f player_origin{
+      constants::ui::HudOverlay::kPanelMargin,
+      constants::ui::HudOverlay::kPanelMargin};
 
   std::vector<TextLine> player_lines;
-  player_lines.push_back(
-      {"Level " + FormatNumber(current_wave_), kHeaderFontSize, kHeaderColor});
+  player_lines.push_back({"Level " + FormatNumber(current_wave_),
+                          constants::ui::HudOverlay::kHeaderFontSize,
+                          constants::ui::HudOverlay::kHeaderColor});
 
   if (players_.empty()) {
-    player_lines.push_back({"Waiting for players", kBodyFontSize, kMutedColor});
+    player_lines.push_back({"Waiting for players",
+                            constants::ui::HudOverlay::kBodyFontSize,
+                            constants::ui::HudOverlay::kMutedColor});
   } else {
     for (const auto &row : players_) {
       const engine::render::Color line_color =
-          row.alive ? (row.is_local ? kLocalColor : kBodyColor) : kMutedColor;
-      player_lines.push_back(
-          {FormatPlayerLine(row), kBodyFontSize, line_color});
+          row.alive ? (row.is_local ? constants::ui::HudOverlay::kLocalColor
+                                    : constants::ui::HudOverlay::kBodyColor)
+                    : constants::ui::HudOverlay::kMutedColor;
+      player_lines.push_back({FormatPlayerLine(row),
+                              constants::ui::HudOverlay::kBodyFontSize,
+                              line_color});
     }
   }
 
   const float player_width = MaxTextWidth(player_lines, renderer);
   const float player_height = PanelHeight(player_lines);
   const engine::math::RectF player_background{
-      player_origin.x, player_origin.y, player_width + kPanelPadding * 2.0f,
+      player_origin.x, player_origin.y,
+      player_width + constants::ui::HudOverlay::kPanelPadding * 2.0f,
       player_height};
-  renderer.DrawRect(player_background, kPanelBackground);
+  renderer.DrawRect(player_background,
+                    constants::ui::HudOverlay::kPanelBackground);
 
-  float y = player_origin.y + kPanelPadding;
-  const float text_x = player_origin.x + kPanelPadding;
+  float y = player_origin.y + constants::ui::HudOverlay::kPanelPadding;
+  const float text_x =
+      player_origin.x + constants::ui::HudOverlay::kPanelPadding;
   for (const auto &line : player_lines) {
     renderer.DrawText(line.text, {text_x, y}, line.font_size, line.color);
-    y += line.font_size + kLineSpacing;
+    y += line.font_size + constants::ui::HudOverlay::kLineSpacing;
   }
 
   const std::string ping_line = FormatPing(latency_ms_, connected_);
   const engine::render::Color indicator_color =
       ConnectionColor(latency_ms_, connected_);
   const std::vector<TextLine> network_lines = {
-      {status_text_, kBodyFontSize, indicator_color},
-      {ping_line, kBodyFontSize, kBodyColor},
+      {status_text_, constants::ui::HudOverlay::kBodyFontSize, indicator_color},
+      {ping_line, constants::ui::HudOverlay::kBodyFontSize,
+       constants::ui::HudOverlay::kBodyColor},
   };
 
-  const float text_indent = kIndicatorRadius * 2.0f + 8.0f;
+  const float text_indent = constants::ui::HudOverlay::kIndicatorRadius * 2.0f +
+                            constants::ui::HudOverlay::kIndicatorTextGap;
   const float network_text_width = MaxTextWidth(network_lines, renderer);
-  const float network_width =
-      text_indent + network_text_width + kPanelPadding * 2.0f;
+  const float network_width = text_indent + network_text_width +
+                              constants::ui::HudOverlay::kPanelPadding * 2.0f;
   const float network_height = PanelHeight(network_lines);
   const float network_origin_x =
-      std::max(kPanelMargin, static_cast<float>(window_size.x) - network_width -
-                                 kPanelMargin);
-  const engine::math::Vector2f network_origin{network_origin_x, kPanelMargin};
+      std::max(constants::ui::HudOverlay::kPanelMargin,
+               static_cast<float>(window_size.x) - network_width -
+                   constants::ui::HudOverlay::kPanelMargin);
+  const engine::math::Vector2f network_origin{
+      network_origin_x, constants::ui::HudOverlay::kPanelMargin};
 
   const engine::math::RectF network_background{
       network_origin.x, network_origin.y, network_width, network_height};
-  renderer.DrawRect(network_background, kPanelBackground);
+  renderer.DrawRect(network_background,
+                    constants::ui::HudOverlay::kPanelBackground);
 
-  const float indicator_center_x =
-      network_origin.x + kPanelPadding + kIndicatorRadius;
+  const float indicator_center_x = network_origin.x +
+                                   constants::ui::HudOverlay::kPanelPadding +
+                                   constants::ui::HudOverlay::kIndicatorRadius;
   const float indicator_center_y =
-      network_origin.y + kPanelPadding + (kBodyFontSize / 2.0f);
+      network_origin.y + constants::ui::HudOverlay::kPanelPadding +
+      (constants::ui::HudOverlay::kBodyFontSize / 2.0f);
   renderer.DrawCircle({indicator_center_x, indicator_center_y},
-                      kIndicatorRadius, indicator_color);
+                      constants::ui::HudOverlay::kIndicatorRadius,
+                      indicator_color);
 
-  float network_y = network_origin.y + kPanelPadding;
-  const float network_text_x = network_origin.x + kPanelPadding + text_indent;
+  float network_y = network_origin.y + constants::ui::HudOverlay::kPanelPadding;
+  const float network_text_x =
+      network_origin.x + constants::ui::HudOverlay::kPanelPadding + text_indent;
   for (const auto &line : network_lines) {
     renderer.DrawText(line.text, {network_text_x, network_y}, line.font_size,
                       line.color);
-    network_y += line.font_size + kLineSpacing;
+    network_y += line.font_size + constants::ui::HudOverlay::kLineSpacing;
   }
 }
 
