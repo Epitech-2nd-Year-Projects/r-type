@@ -6,6 +6,7 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/systems/lifetime_system.h"
 #include "engine/ecs/systems/movement_system.h"
+#include "engine/util/logging.h"
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
@@ -32,10 +33,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
       is_started_(false) {
   game_state_.room_id = room_id_;
   if (!GameConfig::Get().Load("config")) {
-    std::cerr
-        << "FATAL: Failed to load game config! Defaults usage is dangerous "
-           "and may cause crashes."
-        << std::endl;
+    engine::util::Logger::Default().Error(
+        "[game_logic] Failed to load game config defaults may cause crashes");
   }
   RegisterComponents();
   RegisterSystems();
