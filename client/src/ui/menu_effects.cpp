@@ -15,7 +15,7 @@ namespace client::ui {
 MenuEffects::MenuEffects(ClientContext& context, MenuPointerConfig config,
                          std::string_view hover_sfx_path,
                          std::string_view click_sfx_path)
-    : context_(&context), config_(config) {
+    : context_(context), config_(config) {
   if (!hover_sfx_path.empty()) {
     hover_sfx_path_ = ResolveAssetPath(hover_sfx_path);
   }
@@ -147,10 +147,10 @@ std::function<void()> MenuEffects::WrapClick(
 }
 
 void MenuEffects::PlaySound(const std::string& path) const {
-  if (!context_ || path.empty()) {
+  if (path.empty()) {
     return;
   }
-  if (auto audio = context_->Audio()) {
+  if (auto audio = context_.Audio()) {
     audio->PlaySoundEffect(path);
   }
 }

@@ -105,7 +105,7 @@ class MenuEffects {
   void PlaySound(const std::string& path) const;
   void EnsureStateCount(std::size_t count);
 
-  ClientContext* context_{nullptr};
+  ClientContext& context_;
   MenuPointerConfig config_{};
   std::vector<std::shared_ptr<engine::render::Texture2D>> pointer_frames_{};
   std::vector<PointerState> pointer_states_{};
