@@ -1,54 +1,54 @@
 #include "pause_scene.h"
 
-#include "application.h"
-#include "engine/app/engine_runtime.h"
+#include "client_context.h"
+#include "constants/input_constants.h"
+#include "constants/ui_constants.h"
 #include "engine/input.h"
 #include "engine/math/rect.h"
 #include "engine/render/color.h"
 
 namespace client {
-namespace {
+PauseScene::PauseScene(ClientContext& context) : context_(context) {
+  auto& renderer = context_.Renderer();
+  renderer.LoadFont(std::string(constants::ui::kTitleFont),
+                    std::string(constants::ui::kTitleFontPath));
+  renderer.LoadFont(std::string(constants::ui::kBodyFont),
+                    std::string(constants::ui::kBodyFontPath));
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
 
-constexpr float kButtonWidth = 360.0f;
-constexpr float kButtonHeight = 64.0f;
-constexpr const char* kTitleFont = "title_font";
-constexpr const char* kBodyFont = "body_font";
-}  // namespace
-
-PauseScene::PauseScene(Application& app) : app_(app) {
-  auto& renderer = app_.GetEngine().Renderer();
-  renderer.LoadFont(kTitleFont, "assets/fonts/trajanpro_bold.otf");
-  renderer.LoadFont(kBodyFont, "assets/fonts/Perpetua-Regular.otf");
-  renderer.SetFont(kBodyFont);
-
-  auto& input = app_.GetEngine().Input();
+  auto& input = context_.Input();
   pause_toggle_pressed_ =
-      input.IsActionActive("Pause") || input.IsActionActive("Cancel");
-  confirm_pressed_ = input.IsActionActive("Confirm");
+      input.IsActionActive(std::string(constants::input::kActionPause)) ||
+      input.IsActionActive(std::string(constants::input::kActionCancel));
+  confirm_pressed_ =
+      input.IsActionActive(std::string(constants::input::kActionConfirm));
 
-  const auto white = engine::render::Color::White();
-  const auto hover = engine::render::Color::FromBytes(220, 220, 220);
-  const auto press = engine::render::Color::FromBytes(180, 180, 180);
+  const auto white = constants::ui::kButtonBaseColor;
+  const auto hover = constants::ui::kButtonHoverColor;
+  const auto press = constants::ui::kButtonPressColor;
 
   resume_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Resume",
-      [this]() { app_.OnGameResume(); });
+      engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
+                             constants::ui::Pause::kButtonHeight},
+      "Resume", [this]() { context_.OnGameResume(); });
   options_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Options",
-      [this]() { app_.OnOpenSettings(); });
+      engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
+                             constants::ui::Pause::kButtonHeight},
+      "Options", [this]() { context_.OnOpenSettings(); });
   quit_button_ = std::make_shared<ui::Button>(
       engine::math::Vector2f{},
-      engine::math::Vector2f{kButtonWidth, kButtonHeight}, "Quit to Main Menu",
-      [this]() { app_.OnQuitToMenu(); });
+      engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
+                             constants::ui::Pause::kButtonHeight},
+      "Quit to Main Menu", [this]() { context_.OnQuitToMenu(); });
 
   menu_buttons_.push_back(resume_button_);
   menu_buttons_.push_back(options_button_);
   menu_buttons_.push_back(quit_button_);
 
-  const auto large_button_texture =
-      renderer.LoadTextureFromFile("assets/ui/button_large.png");
+  const auto large_button_texture = renderer.LoadTextureFromFile(
+      std::string(constants::ui::kButtonTextureLargePath));
   if (large_button_texture) {
     for (auto& button : menu_buttons_) {
       button->SetTexture(large_button_texture);
@@ -57,10 +57,12 @@ PauseScene::PauseScene(Application& app) : app_(app) {
   }
 
   title_ = std::make_shared<engine::ui::TextElement>(
-      "Paused", engine::ui::FontSize::RelativeWidth(0.06f),
+      "Paused",
+      engine::ui::FontSize::RelativeWidth(
+          constants::ui::Pause::kTitleFontScale),
       engine::render::Color::White());
-  title_->SetFont(kTitleFont);
-  title_->SetFontFallback(kBodyFont);
+  title_->SetFont(std::string(constants::ui::kTitleFont));
+  title_->SetFontFallback(std::string(constants::ui::kBodyFont));
   title_->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
@@ -68,35 +70,37 @@ PauseScene::PauseScene(Application& app) : app_(app) {
 }
 
 void PauseScene::Update(engine::time::TimeDelta dt) {
-  auto& renderer = app_.GetEngine().Renderer();
+  auto& renderer = context_.Renderer();
   LayoutUi(renderer);
-  auto& input = app_.GetEngine().Input();
+  auto& input = context_.Input();
 
   for (auto& button : menu_buttons_) {
     button->Update(dt, input);
   }
 
   const bool pause_toggle =
-      input.IsActionActive("Pause") || input.IsActionActive("Cancel");
+      input.IsActionActive(std::string(constants::input::kActionPause)) ||
+      input.IsActionActive(std::string(constants::input::kActionCancel));
   if (pause_toggle && !pause_toggle_pressed_) {
-    app_.OnGameResume();
+    context_.OnGameResume();
   }
   pause_toggle_pressed_ = pause_toggle;
 
-  const bool confirm_pressed = input.IsActionActive("Confirm");
+  const bool confirm_pressed =
+      input.IsActionActive(std::string(constants::input::kActionConfirm));
   if (confirm_pressed && !confirm_pressed_) {
-    app_.OnGameResume();
+    context_.OnGameResume();
   }
   confirm_pressed_ = confirm_pressed;
 }
 
 void PauseScene::Draw(engine::render::Renderer2D& renderer) {
-  const auto window_size = app_.GetEngine().Window().GetSize();
+  const auto window_size = context_.Window().GetSize();
   renderer.DrawRect({0.0f, 0.0f, static_cast<float>(window_size.x),
                      static_cast<float>(window_size.y)},
-                    engine::render::Color::FromBytes(6, 10, 22, 210));
+                    constants::ui::Pause::kOverlayColor);
 
-  renderer.SetFont(kBodyFont);
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
   canvas_.Draw(renderer);
   for (auto& button : menu_buttons_) {
     button->Draw(renderer);
@@ -111,8 +115,9 @@ void PauseScene::BuildUi() {
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  root->SetPadding(engine::ui::Insets::Uniform(28.0f));
-  root->SetSpacing(14.0f);
+  root->SetPadding(
+      engine::ui::Insets::Uniform(constants::ui::Pause::kRootPadding));
+  root->SetSpacing(constants::ui::Pause::kRootSpacing);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
@@ -121,7 +126,7 @@ void PauseScene::BuildUi() {
 
   auto button_column =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
-  button_column->SetSpacing(10.0f);
+  button_column->SetSpacing(constants::ui::Pause::kButtonColumnSpacing);
   button_column->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
@@ -129,14 +134,18 @@ void PauseScene::BuildUi() {
     auto slot = std::make_shared<engine::ui::BoxElement>();
     slot->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kCenter;
-    slot->Layout().size.width = engine::ui::LayoutValue::Pixels(kButtonWidth);
-    slot->Layout().size.height =
-        engine::ui::LayoutValue::Pixels(kButtonHeight + 8.0f);
+    slot->Layout().size.width =
+        engine::ui::LayoutValue::Pixels(constants::ui::Pause::kButtonWidth);
+    slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+        constants::ui::Pause::kButtonHeight +
+        constants::ui::Pause::kButtonSlotPadding);
     slot->SetLayoutCallback([button](const engine::math::RectF& rect) {
       const float x = rect.top_left_x_;
-      const float y = rect.top_left_y_ + (rect.height_ - kButtonHeight) * 0.5f;
+      const float y =
+          rect.top_left_y_ +
+          (rect.height_ - constants::ui::Pause::kButtonHeight) * 0.5f;
       button->SetPosition({x, y});
-      button->SetSize({rect.width_, kButtonHeight});
+      button->SetSize({rect.width_, constants::ui::Pause::kButtonHeight});
     });
     button_column->AddChild(slot);
   };
@@ -151,8 +160,8 @@ void PauseScene::BuildUi() {
 }
 
 void PauseScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = app_.GetEngine().Window().GetSize();
-  renderer.SetFont(kBodyFont);
+  const auto window_size = context_.Window().GetSize();
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);
