@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include "input_buffer.h"
+#include "input/input_buffer.h"
 
 TEST(InputBufferTest, CapturesPressAndReleaseInOrder) {
   client::InputBuffer buffer;
