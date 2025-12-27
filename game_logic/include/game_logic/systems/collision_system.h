@@ -10,6 +10,7 @@
 #include "engine/data_structures/spatial_grid.h"
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/system.h"
+#include "engine/event.h"
 #include "engine/math/rect.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/components/damageable_component.h"
@@ -28,12 +29,20 @@ namespace game_logic::systems {
  * - PlayerProjectile <-> Enemy
  * - EnemyProjectile <-> Player
  */
+/**
+ * @brief Event emitted when two entities overlap
+ */
+struct EntityCollisionEvent {
+  engine::ecs::EntityId entity_a;
+  engine::ecs::EntityId entity_b;
+};
+
 class CollisionSystem : public engine::ecs::ISystem {
  public:
   static constexpr std::string_view kPlayerTag = "Player";
   static constexpr std::string_view kEnemyTag = "Enemy";
 
-  CollisionSystem(float cell_size = 100.0f);
+  CollisionSystem(engine::event::EventBus& event_bus, float cell_size = 100.0f);
   ~CollisionSystem() override = default;
 
   /**
@@ -43,6 +52,7 @@ class CollisionSystem : public engine::ecs::ISystem {
               engine::time::TimeDelta dt) override;
 
  private:
+  engine::event::EventBus& event_bus_;
   engine::data_structures::SpatialGrid<engine::ecs::EntityId> grid_;
 
   /**
