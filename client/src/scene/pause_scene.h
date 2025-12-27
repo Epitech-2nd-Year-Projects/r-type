@@ -8,15 +8,15 @@
 #include "engine/ui/canvas.h"
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
-#include "ui/button.h"
+#include "engine/ui/button.h"
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class PauseScene : public Scene {
  public:
-  explicit PauseScene(Application& app);
+  explicit PauseScene(ClientContext& context);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
@@ -31,13 +31,13 @@ class PauseScene : public Scene {
    */
   void LayoutUi(engine::render::Renderer2D& renderer);
 
-  Application& app_;
+  ClientContext& context_;
   engine::ui::Canvas canvas_;
   std::shared_ptr<engine::ui::TextElement> title_;
-  std::shared_ptr<ui::Button> resume_button_;
-  std::shared_ptr<ui::Button> options_button_;
-  std::shared_ptr<ui::Button> quit_button_;
-  std::vector<std::shared_ptr<ui::Button>> menu_buttons_;
+  std::shared_ptr<engine::ui::Button> resume_button_;
+  std::shared_ptr<engine::ui::Button> options_button_;
+  std::shared_ptr<engine::ui::Button> quit_button_;
+  std::vector<std::shared_ptr<engine::ui::Button>> menu_buttons_;
   bool pause_toggle_pressed_{false};
   bool confirm_pressed_{false};
 };

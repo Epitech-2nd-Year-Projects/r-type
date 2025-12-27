@@ -1,6 +1,7 @@
 #include "game_logic/entities/player_builder.h"
 
 #include "engine/ecs/component.h"
+#include "engine/util/logging.h"
 #include "game_logic/components.h"
 #include "game_logic/game_config.h"
 
@@ -8,6 +9,7 @@ namespace game_logic::entities {
 
 engine::ecs::EntityId PlayerBuilder::Create(engine::ecs::Registry& registry,
                                             const PlayerSpawnContext& ctx) {
+  auto& logger = engine::util::Logger::Default();
   const auto& config = GameConfig::Get().GetPlayer();
 
   engine::ecs::EntityId player = registry.SpawnEntity();
@@ -48,10 +50,12 @@ engine::ecs::EntityId PlayerBuilder::Create(engine::ecs::Registry& registry,
     weapon.projectile_data.speed = m_data.speed;
     weapon.faction = ProjectileFaction::kPlayer;
   } catch (const std::exception& e) {
-    std::cerr << "Error loading player missile config: " << e.what()
-              << std::endl;
+    logger.Error("[game_logic.player] Error loading player missile config: ",
+                 e.what());
   } catch (...) {
-    std::cerr << "Unknown error loading player missile config." << std::endl;
+    logger.Error(
+        "[game_logic.player] Unknown error loading player missile "
+        "config");
   }
 
   registry.AddComponent<components::WeaponComponent>(player, std::move(weapon));

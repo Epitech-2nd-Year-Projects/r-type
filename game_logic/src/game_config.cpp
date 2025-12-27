@@ -2,9 +2,10 @@
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <random>
+
+#include "engine/util/logging.h"
 
 namespace game_logic {
 
@@ -36,6 +37,7 @@ components::PowerupType ParsePowerupType(const std::string &type_str) {
 }  // namespace
 
 bool GameConfig::Load(const std::string &config_dir) {
+  auto &logger = engine::util::Logger::Default();
   std::string found_dir = "../../../../config";
   if (!config_dir.empty() &&
       std::filesystem::exists(config_dir + "/global.json")) {
@@ -43,8 +45,9 @@ bool GameConfig::Load(const std::string &config_dir) {
   }
 
   if (!std::filesystem::exists(found_dir + "/global.json")) {
-    std::cerr << "Config Error: Could not find configuration directory."
-              << std::endl;
+    logger.Error(
+        "[game_logic.config] Config Error: Could not find configuration "
+        "directory");
     return false;
   }
 
@@ -201,7 +204,7 @@ bool GameConfig::Load(const std::string &config_dir) {
 
     return true;
   } catch (const std::exception &e) {
-    std::cerr << "Config Load Error: " << e.what() << std::endl;
+    logger.Error("[game_logic.config] Config Load Error: ", e.what());
     return false;
   }
 }

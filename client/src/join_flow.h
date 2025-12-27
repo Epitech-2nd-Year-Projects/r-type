@@ -44,6 +44,14 @@ class JoinFlow {
   void Begin(NetworkTransport& transport);
 
   /**
+   * @brief Configure retry policy for join attempts
+   * @param max_attempts Max attempts before giving up
+   * @param retry_delay Delay between join attempts
+   */
+  void ConfigureRetryPolicy(int max_attempts,
+                            std::chrono::milliseconds retry_delay);
+
+  /**
    * @brief Progress handshake state and consume inbound packets
    */
   void Update(NetworkTransport& transport);
@@ -87,6 +95,9 @@ class JoinFlow {
   void HandleJoinReject(const protocol::JoinRejectPayload& payload);
   void Fail(std::string_view message);
 
+  static constexpr int kDefaultMaxAttempts = 5;
+  static constexpr std::chrono::milliseconds kDefaultRetryDelay{500};
+
   JoinState state_{JoinState::kIdle};
   std::string player_name_;
   std::string room_code_;
@@ -97,6 +108,8 @@ class JoinFlow {
   std::uint32_t next_sequence_{1};
   int attempts_{0};
   std::chrono::steady_clock::time_point last_send_{};
+  int max_attempts_{kDefaultMaxAttempts};
+  std::chrono::milliseconds retry_delay_{kDefaultRetryDelay};
   protocol::SequenceTracker sequence_tracker_{};
 };
 

@@ -1,6 +1,7 @@
 #include "game_logic/entities/enemy_builder.h"
 
 #include "engine/ecs/component.h"
+#include "engine/util/logging.h"
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
@@ -28,6 +29,7 @@ std::string GetEnemyName(EnemyType type) {
 
 engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
                                            const EnemySpawnConfig &config) {
+  auto &logger = engine::util::Logger::Default();
   const EnemyConfig &data = [&]() -> const EnemyConfig & {
     try {
       return GameConfig::Get().GetEnemy(GetEnemyName(config.type));
@@ -67,9 +69,9 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
   else if (data.behavior_type == "Straight")
     ai.behavior = components::EnemyBehavior::kStraight;
   else {
-    std::cerr << "Warning: Unknown behavior type '" << data.behavior_type
-              << "' for enemy '" << data.name << "'. Defaulting to Straight."
-              << std::endl;
+    logger.Warn("[game_logic.enemy] Unknown behavior type '",
+                data.behavior_type, "' for enemy '", data.name,
+                "' defaulting to Straight");
     ai.behavior = components::EnemyBehavior::kStraight;
   }
 
@@ -137,10 +139,12 @@ engine::ecs::EntityId EnemyBuilder::Create(engine::ecs::Registry &registry,
       registry.AddComponent<components::WeaponComponent>(enemy,
                                                          std::move(weapon));
     } catch (const std::exception &e) {
-      std::cerr << "Error loading enemy missile config: " << e.what()
-                << std::endl;
+      logger.Error("[game_logic.enemy] Error loading enemy missile config: ",
+                   e.what());
     } catch (...) {
-      std::cerr << "Unknown error loading enemy missile config." << std::endl;
+      logger.Error(
+          "[game_logic.enemy] Unknown error loading enemy missile "
+          "config");
     }
   }
 

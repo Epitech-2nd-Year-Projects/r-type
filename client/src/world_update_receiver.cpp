@@ -1,5 +1,6 @@
 #include "world_update_receiver.h"
 
+#include <algorithm>
 #include <chrono>
 #include <optional>
 #include <utility>
@@ -47,8 +48,6 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
   }
 }
 
-constexpr std::chrono::milliseconds kPingInterval{1000};
-
 std::uint32_t NowMilliseconds32() {
   return static_cast<std::uint32_t>(engine::time::NowMilliseconds());
 }
@@ -78,6 +77,19 @@ bool WorldUpdateReceiver::Start(std::shared_ptr<NetworkTransport> transport) {
   running_.store(true, std::memory_order_release);
   worker_ = std::thread(&WorldUpdateReceiver::ReceiveLoop, this);
   return true;
+}
+
+void WorldUpdateReceiver::Configure(std::chrono::milliseconds ping_interval,
+                                    std::size_t queue_depth) {
+  if (running_.load(std::memory_order_acquire)) {
+    return;
+  }
+  if (ping_interval <= std::chrono::milliseconds(0)) {
+    ping_interval_ = std::chrono::milliseconds(1);
+  } else {
+    ping_interval_ = ping_interval;
+  }
+  max_queue_depth_ = std::max<std::size_t>(1, queue_depth);
 }
 
 void WorldUpdateReceiver::Stop() {
@@ -113,7 +125,7 @@ bool WorldUpdateReceiver::TryPop(WorldUpdateMessage& out_message) {
 
 bool WorldUpdateReceiver::Push(WorldUpdateMessage&& message) {
   std::lock_guard<std::mutex> lock(queue_mutex_);
-  if (queue_.size() >= kMaxQueueDepth) {
+  if (queue_.size() >= max_queue_depth_) {
     return false;
   }
   queue_.push_back(std::move(message));
@@ -126,7 +138,7 @@ bool WorldUpdateReceiver::EnqueueInputState(
     return false;
   }
   std::lock_guard<std::mutex> lock(outgoing_mutex_);
-  if (outgoing_queue_.size() >= kMaxQueueDepth) {
+  if (outgoing_queue_.size() >= max_queue_depth_) {
     return false;
   }
   OutgoingMessage message{};
@@ -144,7 +156,7 @@ bool WorldUpdateReceiver::EnqueueCommand(
     return false;
   }
   std::lock_guard<std::mutex> lock(outgoing_mutex_);
-  if (outgoing_queue_.size() >= kMaxQueueDepth) {
+  if (outgoing_queue_.size() >= max_queue_depth_) {
     return false;
   }
   OutgoingMessage message{};
@@ -208,8 +220,8 @@ void WorldUpdateReceiver::ReceiveLoop() {
   while (running_.load(std::memory_order_acquire)) {
     if (!transport_ || !transport_->running()) {
       if (!transport_reported_stopped) {
-        LogLifecycle(engine::util::LogLevel::kWarn,
-                     "Stopping receiver: transport not running");
+        LogNetwork(engine::util::LogLevel::kWarn,
+                   "Stopping receiver: transport not running");
         transport_reported_stopped = true;
       }
       running_.store(false, std::memory_order_release);
@@ -262,7 +274,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
 
     const auto now = std::chrono::steady_clock::now();
     const bool should_ping =
-        !has_sent_initial_ping || now - last_ping_sent >= kPingInterval;
+        !has_sent_initial_ping || now - last_ping_sent >= ping_interval_;
     if (should_ping && SendPing(NowMilliseconds32())) {
       did_work = true;
       has_sent_initial_ping = true;

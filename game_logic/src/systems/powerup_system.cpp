@@ -1,6 +1,5 @@
 #include "game_logic/systems/powerup_system.h"
 
-#include <iostream>
 #include <vector>
 
 #include "engine/ecs/components/bounding_box_component.h"

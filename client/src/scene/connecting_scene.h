@@ -9,17 +9,17 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class ConnectingScene : public Scene {
  public:
-  explicit ConnectingScene(Application& app);
+  explicit ConnectingScene(ClientContext& context);
 
   void Update(engine::time::TimeDelta dt) override;
- void Draw(engine::render::Renderer2D& renderer) override;
+  void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
-  Application& app_;
+  ClientContext& context_;
   engine::ui::Canvas canvas_;
   std::shared_ptr<engine::ui::TextElement> status_text_;
 };

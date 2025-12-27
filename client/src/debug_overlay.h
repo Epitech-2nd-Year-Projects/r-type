@@ -63,8 +63,8 @@ class DebugOverlay {
    * @param renderer Renderer used for drawing text and backgrounds.
    * @param window_size Current window dimensions for positioning.
    */
- void Draw(engine::render::Renderer2D& renderer,
-           const engine::math::Vector2i& window_size) const;
+  void Draw(engine::render::Renderer2D& renderer,
+            const engine::math::Vector2i& window_size) const;
 
  private:
   friend class ::DebugOverlayTestPeer;

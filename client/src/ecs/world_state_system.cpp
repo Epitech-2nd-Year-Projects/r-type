@@ -9,12 +9,13 @@ namespace client::ecs {
 namespace {
 
 constexpr float kQuantizationScale = 1.0f;
-constexpr std::uint16_t kPlayerTypeCode = 1u;
 
 }  // namespace
 
 WorldStateSystem::WorldStateSystem(engine::ecs::Registry& registry)
-    : registry_(registry) {
+    : registry_(registry),
+      archetypes_(ArchetypeRegistry::Get()),
+      animation_factory_(archetypes_) {
   RegisterComponents();
 }
 
@@ -98,6 +99,9 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   net_comp.last_snapshot = snapshot_id;
   net_comp.flags = delta.state.flags;
 
+  UpdateArchetypeTags(entity, delta.state.type);
+  animation_factory_.EnsureAnimation(registry_, entity, delta.state.type);
+
   const auto position = ToVector(delta.state.x, delta.state.y);
   auto& positions = registry_.GetComponents<PositionComponent>();
   positions[entity] = PositionComponent(position, position);
@@ -118,39 +122,9 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
   }
 
   auto& player_states = registry_.GetComponents<PlayerStateComponent>();
-  if (delta.state.type == kPlayerTypeCode) {
+  if (archetypes_.IsPlayer(delta.state.type)) {
     player_states[entity] = PlayerStateComponent(
         delta.state.player_id, delta.state.score, delta.state.lives);
-
-    std::vector<engine::math::RectF> frames;
-    frames.emplace_back(0.0f, 0.0f, 26.0f, 21.0f);
-    frames.emplace_back(0.0f, 21.0f, 26.0f, 21.0f);
-    frames.emplace_back(0.0f, 42.0f, 26.0f, 21.0f);
-    auto& anims = registry_.GetComponents<AnimationComponent>();
-    if (!anims[entity].has_value()) {
-      anims[entity] = AnimationComponent(std::move(frames), 0.1f);
-    }
-  }
-
-  if (delta.state.type == 2u) {
-    std::vector<engine::math::RectF> frames;
-    for (int i = 0; i < 5; ++i) {
-      frames.emplace_back(0.0f, static_cast<float>(i * 29), 29.0f, 29.0f);
-    }
-    auto& anims = registry_.GetComponents<AnimationComponent>();
-    if (!anims[entity].has_value()) {
-      anims[entity] = AnimationComponent(std::move(frames), 0.1f);
-    }
-  }
-
-  if (delta.state.type == 3u) {
-    std::vector<engine::math::RectF> frames;
-    frames.emplace_back(0.0f, 0.0f, 19.0f, 6.0f);
-    frames.emplace_back(0.0f, 6.0f, 19.0f, 6.0f);
-    auto& anims = registry_.GetComponents<AnimationComponent>();
-    if (!anims[entity].has_value()) {
-      anims[entity] = AnimationComponent(std::move(frames), 0.1f);
-    }
   }
 
   auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
@@ -188,10 +162,15 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
   }
   net_comp->last_snapshot = snapshot_id;
 
-  const bool is_player_type =
+  if (created || (delta.field_mask & protocol::EntityFieldMask::kFieldType)) {
+    UpdateArchetypeTags(entity, net_comp->type_code);
+    animation_factory_.EnsureAnimation(registry_, entity, net_comp->type_code);
+  }
+
+  const bool is_player_type = archetypes_.IsPlayer(
       (delta.field_mask & protocol::EntityFieldMask::kFieldType)
-          ? delta.state.type == kPlayerTypeCode
-          : net_comp->type_code == kPlayerTypeCode;
+          ? delta.state.type
+          : net_comp->type_code);
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldX ||
       delta.field_mask & protocol::EntityFieldMask::kFieldY) {
@@ -302,6 +281,35 @@ engine::ecs::EntityId WorldStateSystem::ResolveOrCreateEntity(
                                                        type_code, snapshot_id);
   network_to_entity_.emplace(network_id, entity);
   return entity;
+}
+
+void WorldStateSystem::UpdateArchetypeTags(engine::ecs::EntityId entity,
+                                           std::uint16_t type_code) {
+  const auto kind = archetypes_.KindOf(type_code);
+
+  auto& players = registry_.GetComponents<PlayerTag>();
+  auto& enemies = registry_.GetComponents<EnemyTag>();
+  auto& missiles = registry_.GetComponents<MissileTag>();
+
+  const bool is_player = kind == ArchetypeKind::kPlayer;
+  const bool is_enemy = kind == ArchetypeKind::kEnemy;
+  const bool is_missile = kind == ArchetypeKind::kMissile;
+
+  if (is_player) {
+    players[entity] = PlayerTag{};
+  } else if (players[entity].has_value()) {
+    players[entity].reset();
+  }
+  if (is_enemy) {
+    enemies[entity] = EnemyTag{};
+  } else if (enemies[entity].has_value()) {
+    enemies[entity].reset();
+  }
+  if (is_missile) {
+    missiles[entity] = MissileTag{};
+  } else if (missiles[entity].has_value()) {
+    missiles[entity].reset();
+  }
 }
 
 engine::math::Vector2f WorldStateSystem::ToVector(std::int16_t x,

@@ -1,0 +1,15 @@
+{
+  "client.debug": false,
+  "client.host": "127.0.0.1",
+  "client.join_max_attempts": 5,
+  "client.join_retry_ms": 500,
+  "client.lobby_max_attempts": 4,
+  "client.lobby_retry_ms": 400,
+  "client.log_level": "debug",
+  "client.ping_interval_ms": 1000,
+  "client.player_name": "Pilot",
+  "client.port": 4242,
+  "client.queue_size": 256,
+  "client.room_code": "default",
+  "client.timeout_ms": 7000
+}

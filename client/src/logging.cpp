@@ -12,6 +12,12 @@ void EnsureLoggerName(engine::util::Logger& logger) {
   std::call_once(once, [&logger]() { logger.SetName("client"); });
 }
 
+template <typename... Args>
+void LogTagged(engine::util::LogLevel level, std::string_view tag,
+               Args&&... args) {
+  ClientLogger().Log(level, "[", tag, "] ", std::forward<Args>(args)...);
+}
+
 }  // namespace
 
 engine::util::Logger& ClientLogger() {
@@ -25,17 +31,26 @@ void ConfigureClientLogging(engine::util::LogLevel level) {
 }
 
 void LogLifecycle(engine::util::LogLevel level, std::string_view message) {
-  ClientLogger().Log(level, message);
+  LogTagged(level, "lifecycle", message);
+}
+
+void LogNetwork(engine::util::LogLevel level, std::string_view message) {
+  LogTagged(level, "network", message);
+}
+
+void LogLobby(engine::util::LogLevel level, std::string_view message) {
+  LogTagged(level, "lobby", message);
 }
 
 void LogConnectionStatus(engine::util::LogLevel level, std::string_view host,
                          std::uint16_t port, std::string_view detail) {
-  ClientLogger().Log(level, "Connection ", detail, " [", host, ":", port, "]");
+  LogTagged(level, "network", "Connection ", detail, " [", host, ":", port,
+            "]");
 }
 
 void LogPacketError(std::string_view stage, std::string_view detail) {
-  ClientLogger().Log(engine::util::LogLevel::kError, "Packet error during ",
-                     stage, ": ", detail);
+  LogTagged(engine::util::LogLevel::kError, "network", "Packet error during ",
+            stage, ": ", detail);
 }
 
 }  // namespace client

@@ -8,10 +8,8 @@
 
 namespace client {
 
-class Application;
-
 /**
- * @brief Abstract base class for all game screens (scenes)
+ * @brief Abstract base class for all game screens
  */
 class Scene {
  public:
@@ -31,8 +29,8 @@ class Scene {
 
   /**
    * @brief Check if the scene is currently capturing text input
-   * @return true if text input is active (e.g. typing in a field), preventing
-   * global hotkeys
+   * @return True when text input is active such as typing in a field and global
+   * hotkeys should be suppressed
    */
   virtual bool IsInputCaptured() const { return false; }
 };
