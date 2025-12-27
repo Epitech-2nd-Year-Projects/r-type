@@ -105,8 +105,6 @@ class LobbyController {
   void RefreshRoomList();
   void UpdateBannerFromCreation();
   void SetBanner(std::string message);
-  bool ParsePort(const std::string& port_text, std::uint16_t& port,
-                 std::string& error, bool include_exception) const;
 
   ClientContext& context_;
   std::function<void()> open_create_modal_;
