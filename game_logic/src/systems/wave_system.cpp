@@ -2,9 +2,11 @@
 
 #include <vector>
 
+#include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/tag_component.h"
+#include "engine/scripting/script_engine.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
-#include "game_logic/entities/enemy_builder.h"
 #include "game_logic/game_config.h"
 #include "game_logic/game_instance.h"
 
@@ -27,20 +29,9 @@ void WaveSystem::LoadLevel(int level_id) {
   try {
     const LevelConfig &level = GameConfig::Get().GetLevel(level_id);
     for (const auto &spawn : level.waves) {
-      entities::EnemyType type = entities::EnemyType::kScout;
-      if (spawn.enemy_type == "Bomber")
-        type = entities::EnemyType::kBomber;
-      else if (spawn.enemy_type == "Tank")
-        type = entities::EnemyType::kTank;
-      else if (spawn.enemy_type == "Interceptor")
-        type = entities::EnemyType::kInterceptor;
-      else if (spawn.enemy_type != "Scout") {
-        std::cerr << "Warning: Unknown enemy type '" << spawn.enemy_type
-                  << "' in wave config. Defaulting to Scout." << std::endl;
-      }
       WaveEntry entry;
       entry.spawn_time = spawn.time;
-      entry.type = type;
+      entry.type = spawn.enemy_type;
       entry.position = {spawn.x, spawn.y};
       entry.random_y = spawn.random_y;
       entry.drops_powerup = spawn.drops_powerup;
@@ -69,12 +60,20 @@ void WaveSystem::Update(engine::ecs::Registry &registry,
         spawn_pos.y = dist(rng_);
       }
 
-      game_logic::entities::EnemySpawnConfig enemy_config;
-      enemy_config.type = next_spawn.type;
-      enemy_config.spawn_position = spawn_pos;
-      enemy_config.drops_powerup = next_spawn.drops_powerup;
+      auto opt_entity = game_instance_.ScriptEngine().GetPrefabFactory().Spawn(
+          registry, next_spawn.type);
 
-      game_logic::entities::EnemyBuilder::Create(registry, enemy_config);
+      if (opt_entity) {
+        engine::ecs::EntityId entity = *opt_entity;
+
+        registry.EmplaceComponent<engine::ecs::PositionComponent>(
+            entity, spawn_pos.x, spawn_pos.y);
+
+        if (next_spawn.drops_powerup) {
+          registry.EmplaceComponent<components::DropsPowerupComponent>(entity);
+        }
+      }
+
       pending_spawns_.pop_front();
 
     } else {
