@@ -30,7 +30,6 @@ enum class ClientState {
 struct GameOverStats {
   std::uint32_t score{0};
   std::uint32_t wave{1};
-  std::uint32_t level{1};
 };
 
 }  // namespace client
