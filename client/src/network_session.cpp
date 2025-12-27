@@ -11,13 +11,13 @@
 #include "ecs/world_state_system.h"
 #include "engine/net/packet_buffer.h"
 #include "engine/time/monotonic_time.h"
+#include "lobby_service.h"
 #include "local_prediction.h"
 #include "logging.h"
 #include "network_transport.h"
 #include "protocol/command.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
-#include "lobby_service.h"
 #include "world_update_receiver.h"
 
 namespace client {
@@ -168,9 +168,7 @@ std::optional<std::string> NetworkSession::StartConnection() {
   return std::nullopt;
 }
 
-void NetworkSession::Stop() {
-  Disconnect(DisconnectMode::kNotifyServer);
-}
+void NetworkSession::Stop() { Disconnect(DisconnectMode::kNotifyServer); }
 
 void NetworkSession::Disconnect(DisconnectMode mode) {
   const bool should_notify = mode == DisconnectMode::kNotifyServer &&
