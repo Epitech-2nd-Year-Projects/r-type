@@ -263,12 +263,15 @@ void Application::StopNetworkSession() {
 }
 
 void Application::HandleNetworkEvents(const NetworkEvents& events) {
-  if (events.connection_failed.has_value()) {
+  const bool should_stop = events.connection_failed.has_value() ||
+                           events.disconnected.has_value();
+  if (should_stop) {
     StopNetworkSession();
+  }
+  if (events.connection_failed.has_value()) {
     scene_manager_->OnConnectionFailed(*events.connection_failed);
   }
   if (events.disconnected.has_value()) {
-    StopNetworkSession();
     scene_manager_->OnDisconnect(*events.disconnected);
   }
   if (events.connected) {
@@ -296,6 +299,21 @@ void Application::UpdateRuntimeConfig() {
                            config_.room_code);
   runtime_config_store.Set(std::string(constants::config::kClientTimeoutMs),
                            std::to_string(config_.timeout_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientPingIntervalMs),
+      std::to_string(config_.ping_interval_ms));
+  runtime_config_store.Set(std::string(constants::config::kClientQueueSize),
+                           std::to_string(config_.network_queue_size));
+  runtime_config_store.Set(std::string(constants::config::kClientJoinRetryMs),
+                           std::to_string(config_.join_retry_delay_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientJoinMaxAttempts),
+      std::to_string(config_.join_max_attempts));
+  runtime_config_store.Set(std::string(constants::config::kClientLobbyRetryMs),
+                           std::to_string(config_.lobby_retry_delay_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientLobbyMaxAttempts),
+      std::to_string(config_.lobby_max_attempts));
 }
 
 }  // namespace client
