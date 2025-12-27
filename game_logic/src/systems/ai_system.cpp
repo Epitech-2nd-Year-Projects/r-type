@@ -80,7 +80,8 @@ void AISystem::Update(engine::ecs::Registry &registry,
             vel->velocity = {dir.x * ai->speed, dir.y * ai->speed};
           }
         } else {
-          vel->velocity = {0.0f, 0.0f};
+          vel->velocity.x = -ai->speed;
+          vel->velocity.y = 0.0f;
         }
         break;
       }
