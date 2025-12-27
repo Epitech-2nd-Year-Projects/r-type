@@ -30,6 +30,18 @@ struct ClientConfig {
 };
 
 /**
+ * @struct ConnectionValidationResult
+ * @brief Result for connection input validation
+ */
+struct ConnectionValidationResult {
+  bool valid{false};
+  std::string message{};
+  std::string host{};
+  std::uint16_t port{0};
+  std::string player_name{};
+};
+
+/**
  * @brief Load client configuration using environment overrides.
  *
  * Environment overrides:
@@ -48,6 +60,21 @@ struct ClientConfig {
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
 ClientConfig LoadClientConfig();
+
+/**
+ * @brief Persist client configuration to disk
+ */
+bool SaveClientConfig(const ClientConfig& config);
+
+/**
+ * @brief Validate host port and name inputs
+ * @param host Input host
+ * @param port_text Input port text
+ * @param player_name Input name
+ */
+ConnectionValidationResult ValidateConnectionFields(
+    std::string_view host, std::string_view port_text,
+    std::string_view player_name);
 
 }  // namespace client
 
