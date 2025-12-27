@@ -1,49 +1,23 @@
 #include "application.h"
 
-#include <cstdint>
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <optional>
-#include <sstream>
 #include <string>
-#include <thread>
+#include <string_view>
 #include <utility>
-#include <vector>
 
-#include "ecs/components.h"
-#include "ecs/render_system.h"
-#include "engine/math/vector2.h"
-#include "engine/net/packet_buffer.h"
-#include "engine/render.h"
+#include "audio_controller.h"
+#include "client_runtime.h"
+#include "constants/client_constants.h"
+#include "constants/config_keys.h"
 #include "engine/time/game_loop.h"
-#include "engine/time/monotonic_time.h"
-#include "input_sender.h"
+#include "input_coordinator.h"
 #include "logging.h"
-#include "protocol/command.h"
-#include "protocol/message_type.h"
-#include "protocol/packet.h"
-#include "render/parallax_background.h"
-#include "scene/connecting_scene.h"
-#include "scene/disconnected_scene.h"
-#include "scene/game_over_scene.h"
-#include "scene/in_game_scene.h"
-#include "scene/lobby_scene.h"
-#include "scene/main_menu_scene.h"
-#include "scene/options_menu_scene.h"
-#include "scene/pause_scene.h"
+#include "network_session.h"
+#include "scene_manager.h"
 
 namespace client {
-
 namespace {
 
-constexpr float kDisconnectFadeSeconds = 1.25f;
-constexpr float kGameOverFadeSeconds = 1.5f;
-const engine::math::Vector2i kBaseResolution{1600, 900};
-constexpr engine::render::Color kClearColor =
-    engine::render::Color::FromBytes(12, 12, 16);
-
-const char* ToString(ClientState state) {
+std::string_view ToString(ClientState state) {
   switch (state) {
     case ClientState::kMainMenu:
       return "MainMenu";
@@ -69,20 +43,13 @@ const char* ToString(ClientState state) {
 
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
-      transport_(std::make_shared<NetworkTransport>()),
-      lobby_transport_(std::make_shared<NetworkTransport>()),
-      join_flow_(config_.player_name, config_.room_code),
-      room_directory_(std::make_unique<RoomDirectoryClient>(lobby_transport_)),
-      world_registry_(std::make_unique<engine::ecs::Registry>()),
-      world_state_system_(
-          std::make_unique<ecs::WorldStateSystem>(*world_registry_)),
-      animation_system_(
-          std::make_unique<ecs::AnimationSystem>(*world_registry_)),
-      interpolation_system_(
-          std::make_unique<ecs::InterpolationSystem>(*world_registry_)) {
-  local_prediction_ =
-      std::make_unique<LocalPrediction>(*world_registry_, join_flow_);
-}
+      runtime_(std::make_unique<ClientRuntime>()),
+      scene_manager_(std::make_unique<SceneManager>(*this)),
+      audio_(std::make_unique<AudioController>()),
+      network_(std::make_unique<NetworkSession>(config_)),
+      input_(std::make_unique<InputCoordinator>()) {}
+
+Application::~Application() = default;
 
 int Application::Run() {
   ConfigureClientLogging(config_.log_level);
@@ -90,369 +57,94 @@ int Application::Run() {
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "target configured");
 
-  engine::app::EngineRuntimeConfig runtime_config;
-  runtime_config.window_config.title = "R-Type Client";
-  runtime_config.window_config.size = kBaseResolution;
-  runtime_config.window_config.resizable = false;
-  runtime_config.window_config.vsync = true;
-  runtime_config.window_config.target_fps = 60;
-  runtime_config.log_level = config_.log_level;
-  runtime_config.window_backend_factory = engine::render::CreateRaylibBackend;
-
-  const float aspect_ratio =
-      static_cast<float>(runtime_config.window_config.size.x) /
-      static_cast<float>(runtime_config.window_config.size.y);
-  std::ostringstream window_info;
-  window_info << "Window " << runtime_config.window_config.size.x << 'x'
-              << runtime_config.window_config.size.y << " (" << std::fixed
-              << std::setprecision(2) << aspect_ratio << ":1) raylib backend";
-  LogLifecycle(engine::util::LogLevel::kInfo, window_info.str());
-
-  engine_ = engine::app::EngineRuntime::Create(runtime_config);
-  if (!engine_) {
-    LogLifecycle(engine::util::LogLevel::kCritical,
-                 "Failed to initialize engine runtime");
+  if (!runtime_->Initialize(config_)) {
     return 1;
   }
-  render_system_ = std::make_unique<ecs::RenderSystem>(*world_registry_,
-                                                       engine_->Renderer());
-  background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
 
-  input_layer_ = std::make_unique<InputLayer>(engine_->Input());
-  LoadKeyBindings();
-  input_sender_ =
-      std::make_unique<InputSender>(*input_layer_, world_update_receiver_);
-
-  if (engine_->Audio()) {
-    auto& audio_engine = *engine_->Audio();
-    audio_manager_ = std::make_unique<AudioManager>(audio_engine);
-    audio_manager_->LoadAssets();
-    sound_effects_ = std::make_unique<SoundEffects>(audio_engine);
-    sound_effects_->LoadAssets();
-    LogLifecycle(engine::util::LogLevel::kInfo, "Audio manager initialized");
+  runtime_->AttachWorld(network_->World());
+  input_->Initialize(runtime_->Input(), network_->UpdateReceiver());
+  auto audio_engine = runtime_->Audio();
+  if (audio_engine) {
+    audio_->Initialize(*audio_engine);
   }
 
-  auto& input = engine_->Input();
-  input.BindKey("Confirm", engine::input::Key::kEnter);
-  input.BindKey("Cancel", engine::input::Key::kEscape);
-  input.BindKey("Pause", engine::input::Key::kP);
-  input.BindKey("ToggleReady", engine::input::Key::kR);
+  UpdateRuntimeConfig();
+  scene_manager_->Initialize(ClientState::kMainMenu);
 
-  auto& runtime_config_store = engine_->Config();
-  runtime_config_store.Set("client.host", config_.host);
-  runtime_config_store.Set("client.port", std::to_string(config_.port));
-  runtime_config_store.Set("client.debug", config_.debug ? "true" : "false");
-  runtime_config_store.Set(
-      "client.log_level",
-      std::string(engine::util::ToString(config_.log_level)));
-  runtime_config_store.Set("client.player_name", config_.player_name);
-  runtime_config_store.Set("client.room_code", config_.room_code);
-  runtime_config_store.Set("client.timeout_ms",
-                           std::to_string(config_.timeout_ms));
-
-  LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
-  ApplyState(ClientState::kMainMenu);
-  CommitSceneChange();
-
-  engine::time::VariableTimestepLoop loop(
-      static_cast<float>(runtime_config.window_config.target_fps));
-
+  engine::time::VariableTimestepLoop loop(constants::client::kTargetFps);
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });
-  if (audio_manager_) {
-    audio_manager_->StopMusic();
-  }
-  world_update_receiver_.Stop();
-  transport_->Stop();
-  if (room_directory_) {
-    room_directory_->Disconnect();
-  }
+
+  audio_->StopMusic();
+  network_->Shutdown();
   LogLifecycle(engine::util::LogLevel::kInfo, "Client shutdown complete");
   return 0;
 }
 
-void Application::SwitchScene(std::unique_ptr<Scene> scene) {
-  pending_scene_ = std::move(scene);
+engine::render::Renderer2D& Application::Renderer() {
+  return runtime_->Renderer();
 }
 
-void Application::CommitSceneChange() {
-  if (pending_scene_) {
-    current_scene_ = std::move(pending_scene_);
-  }
+engine::input::InputManager& Application::Input() { return runtime_->Input(); }
+
+const KeyBindings& Application::KeyBindingSet() const {
+  return input_->key_bindings();
 }
 
-void Application::OnConnected() { TransitionTo(ClientState::kInGame); }
+bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
+  return input_->UpdateKeyBinding(action, key);
+}
 
-void Application::OnPlay() { TransitionTo(ClientState::kLobby); }
+engine::render::Window& Application::Window() { return runtime_->Window(); }
 
-void Application::OnConnectionFailed(const std::string& reason) {
+std::shared_ptr<engine::audio::AudioEngine> Application::Audio() {
+  return runtime_->Audio();
+}
+
+engine::util::Configuration& Application::Config() {
+  return runtime_->Config();
+}
+
+void Application::OnPlay() { scene_manager_->OnPlay(); }
+
+void Application::OnOpenSettings() { scene_manager_->OnOpenSettings(); }
+
+void Application::OnCloseSettings() { scene_manager_->OnCloseSettings(); }
+
+void Application::OnQuitApplication() {
   StopNetworkSession();
-  TransitionTo(ClientState::kDisconnected, reason);
-}
-
-void Application::OnGameStart() { TransitionTo(ClientState::kInGame); }
-
-void Application::OnGamePause() { TransitionTo(ClientState::kPaused); }
-
-void Application::OnGameResume() { TransitionTo(ClientState::kInGame); }
-
-void Application::OnGameOver() { OnGameOver(GameOverStats{}); }
-
-void Application::OnGameOver(const GameOverStats& stats) {
-  if (state_ == ClientState::kGameOver) {
-    return;
-  }
-  last_game_stats_ = stats;
-  if (join_flow_.player_id().has_value()) {
-    const auto local_id = join_flow_.player_id().value();
-    const auto& net =
-        world_registry_
-            ? world_registry_->GetComponents<ecs::NetworkedEntityComponent>()
-            : engine::ecs::SparseArray<ecs::NetworkedEntityComponent>();
-    const auto& player_states =
-        world_registry_
-            ? world_registry_->GetComponents<ecs::PlayerStateComponent>()
-            : engine::ecs::SparseArray<ecs::PlayerStateComponent>();
-    bool found_score = false;
-    for (std::size_t i = 0; i < net.size(); ++i) {
-      if (!net[i].has_value()) {
-        continue;
-      }
-      if (i < player_states.size() && player_states[i].has_value() &&
-          player_states[i]->player_id == local_id) {
-        last_game_stats_.score = player_states[i]->score;
-        found_score = true;
-        break;
-      }
-    }
-    if (!found_score && cached_local_score_.has_value()) {
-      last_game_stats_.score = *cached_local_score_;
-    }
-  }
-  if (last_wave_.has_value()) {
-    last_game_stats_.wave = *last_wave_;
-  }
-  TransitionTo(ClientState::kGameOver);
-}
-
-void Application::UpdateLocalPlayerCache() {
-  if (!world_registry_ || !join_flow_.player_id().has_value()) {
-    return;
-  }
-  const auto local_id = join_flow_.player_id().value();
-  const auto& net =
-      world_registry_->GetComponents<ecs::NetworkedEntityComponent>();
-  const auto& player_states =
-      world_registry_->GetComponents<ecs::PlayerStateComponent>();
-  for (std::size_t i = 0; i < net.size(); ++i) {
-    if (!net[i].has_value()) {
-      continue;
-    }
-    if (i >= player_states.size() || !player_states[i].has_value()) {
-      continue;
-    }
-    if (player_states[i]->player_id != local_id) {
-      continue;
-    }
-    cached_local_score_ = player_states[i]->score;
-    return;
-  }
-}
-
-void Application::OnDisconnect(std::string reason) {
-  StopNetworkSession();
-  TransitionTo(ClientState::kDisconnected, std::move(reason));
+  runtime_->RequestClose();
 }
 
 void Application::OnQuitToMenu() {
   StopNetworkSession();
-  StopNetworkSession();
-  join_flow_.Reset();
-  reconnect_requested_ = false;
-  TransitionTo(ClientState::kMainMenu);
+  network_->Reset();
+  input_->ResetReconnect();
+  scene_manager_->OnQuitToMenu();
 }
 
-void Application::OnOpenSettings() {
-  if (state_ == ClientState::kSettings) {
-    return;
-  }
-  settings_return_state_ = state_;
-  TransitionTo(ClientState::kSettings);
-}
+void Application::OnGamePause() { scene_manager_->OnGamePause(); }
 
-void Application::OnCloseSettings() {
-  const ClientState target =
-      settings_return_state_.value_or(ClientState::kMainMenu);
-  settings_return_state_.reset();
-  if (IsTransitionAllowed(target)) {
-    TransitionTo(target);
-    return;
-  }
-  TransitionTo(ClientState::kMainMenu);
-}
+void Application::OnGameResume() { scene_manager_->OnGameResume(); }
 
-void Application::OnQuitApplication() {
-  StopNetworkSession();
-  if (engine_) {
-    engine_->Window().RequestClose();
-  }
-}
+void Application::SetConnectionConfig(std::string host, int port,
+                                      std::string player_name,
+                                      std::string room_code,
+                                      std::string room_password) {
+  config_.host = std::move(host);
+  config_.port = static_cast<std::uint16_t>(port);
+  config_.player_name = std::move(player_name);
+  config_.room_code = std::move(room_code);
 
-bool Application::Tick(engine::time::TimeDelta dt) {
-  if (!engine_->Pump()) {
-    LogLifecycle(engine::util::LogLevel::kError,
-                 "Engine pump stopped the client loop");
-    return false;
-  }
-
-  if (input_layer_) {
-    input_layer_->Update();
-  }
-  UpdateDebugOverlayState();
-  if (room_directory_) {
-    room_directory_->Update();
-  }
-
-  if (transport_) {
-    join_flow_.Update(*transport_);
-  }
-  ProcessJoinState(join_flow_.state());
-  if (current_scene_) {
-    current_scene_->Update(dt);
-  }
-
-  auto join_state = join_flow_.state();
-  if (join_state == JoinState::kConnected &&
-      !world_update_receiver_.running()) {
-    if (!world_update_receiver_.Start(transport_)) {
-      LogLifecycle(engine::util::LogLevel::kError,
-                   "Failed to start world update receiver");
-      return false;
-    }
-  }
-  if (input_sender_) {
-    const bool accepts_input =
-        join_state == JoinState::kConnected && state_ == ClientState::kInGame;
-    input_sender_->Update(dt, accepts_input);
-  }
-  if (world_update_receiver_.running()) {
-    WorldUpdateMessage message;
-    while (world_update_receiver_.TryPop(message)) {
-      if (message.type == protocol::message_type::MessageType::kWorldSnapshot) {
-        if (const auto snapshot =
-                std::get_if<protocol::WorldSnapshotPayload>(&message.payload)) {
-          std::optional<engine::math::Vector2f> predicted_before;
-          // if (local_prediction_) {
-          //   predicted_before = local_prediction_->CapturePredictedPosition();
-          // }
-          const std::uint64_t receipt_ms = engine::time::NowMilliseconds();
-          if (snapshot->current_wave != 0) {
-            last_wave_ = snapshot->current_wave;
-          }
-          world_state_system_->ApplySnapshot(*snapshot, receipt_ms);
-          // if (local_prediction_) {
-          //   local_prediction_->OnSnapshotApplied(predicted_before);
-          // }
-          if (sound_effects_) {
-            sound_effects_->OnSnapshotApplied(*world_registry_);
-          }
-        }
-      }
-      if (message.type == protocol::message_type::MessageType::kPlayerDied) {
-        std::cout << "[Client] Received PlayerDied message!" << std::endl;
-        if (sound_effects_) {
-          sound_effects_->OnPlayerDeath();
-        }
-        HandleGameOverAudio();
-        if (std::holds_alternative<protocol::PlayerDiedPayload>(
-                message.payload)) {
-          const auto& died =
-              std::get<protocol::PlayerDiedPayload>(message.payload);
-          std::cout << "[Client] Player died payload: ID=" << died.player_id
-                    << " Lives=" << (int)died.remaining_lives << std::endl;
-
-          if (died.player_id == join_flow_.player_id() &&
-              died.remaining_lives == 0) {
-            if (state_ == ClientState::kInGame ||
-                state_ == ClientState::kPaused) {
-              GameOverStats stats;
-              stats.score = 0;
-              stats.wave = 1;
-              stats.level = 1;
-              OnGameOver(stats);
-            }
-          }
-        }
-      }
-      if (message.type == protocol::message_type::MessageType::kServerCommand) {
-        if (const auto command =
-                std::get_if<protocol::CommandPayload>(&message.payload)) {
-          HandleServerCommand(*command);
-        }
-      }
-      if (join_flow_.state() != JoinState::kConnected) {
-        break;
-      }
-    }
-  }
-  join_state = join_flow_.state();
-  MonitorConnection(join_state);
-  join_state = join_flow_.state();
-  HandleReconnectInput(join_state);
-  const bool should_predict = local_prediction_ && input_layer_ &&
-                              join_state == JoinState::kConnected &&
-                              state_ == ClientState::kInGame;
-  if (should_predict) {
-    // local_prediction_->Update(dt, input_layer_->state());
-  }
-  if (interpolation_system_) {
-    interpolation_system_->Update(dt);
-  }
-  if (animation_system_) {
-    animation_system_->Update(dt);
-  }
-  UpdateLocalPlayerCache();
-  UpdateAudio(dt, join_state);
-
-  auto& context = engine_->RenderContext();
-  auto& renderer = engine_->Renderer();
-
-  debug_overlay_.UpdateFrameTiming(dt);
-  debug_overlay_.UpdateRenderableCount(RenderableEntityCount());
-  debug_overlay_.UpdateLatency(world_update_receiver_.LatestRttMs());
-
-  context.BeginFrame();
-  context.Clear(kClearColor);
-
-  const bool render_gameplay =
-      state_ == ClientState::kInGame || state_ == ClientState::kGameOver;
-
-  if (background_ && render_gameplay) {
-    const auto window_size = engine_->Window().GetSize();
-    background_->Update(dt, {static_cast<float>(window_size.x),
-                             static_cast<float>(window_size.y)});
-    background_->Draw();
-  }
-
-  if (render_system_ && render_gameplay) {
-    render_system_->Render();
-  }
-
-  if (current_scene_) {
-    current_scene_->Draw(renderer);
-  }
-
-  debug_overlay_.Draw(renderer, engine_->Window().GetSize());
-
-  context.EndFrame();
-  CommitSceneChange();
-  return true;
+  network_->SetConnectionConfig(config_.host, config_.port, config_.player_name,
+                                config_.room_code, std::move(room_password));
+  UpdateRuntimeConfig();
 }
 
 bool Application::StartConnection() {
-  if (!IsTransitionAllowed(ClientState::kConnecting)) {
+  if (!scene_manager_->CanTransitionTo(ClientState::kConnecting)) {
     LogLifecycle(engine::util::LogLevel::kWarn,
                  "Ignoring connection attempt in state " +
-                     std::string(ToString(state_)));
+                     std::string(ToString(scene_manager_->state())));
     return false;
   }
 
@@ -461,451 +153,149 @@ bool Application::StartConnection() {
 
   StopNetworkSession();
 
-  const auto transport_error = transport_->Start(config_.host, config_.port);
-  if (transport_error) {
-    const std::string reason =
-        std::string("Failed to start network transport: ") +
-        transport_error.message();
-    LogLifecycle(engine::util::LogLevel::kError, reason);
-    join_flow_.MarkDisconnected(reason);
-    OnDisconnect(reason);
+  if (const auto error = network_->StartConnection()) {
+    LogLifecycle(engine::util::LogLevel::kError, *error);
+    scene_manager_->OnDisconnect(*error);
     return false;
   }
 
-  reconnect_requested_ = false;
-  join_flow_.Begin(*transport_);
-  ApplyState(ClientState::kConnecting);
+  input_->ResetReconnect();
+  scene_manager_->TransitionTo(ClientState::kConnecting);
   return true;
 }
 
-void Application::SetConnectionConfig(std::string host, int port,
-                                      std::string player_name,
-                                      std::string room_code,
-                                      std::string room_password) {
-  config_.host = std::move(host);
-  config_.port = port;
-  config_.player_name = std::move(player_name);
-  config_.room_code = std::move(room_code);
-
-  auto& runtime_config_store = engine_->Config();
-  runtime_config_store.Set("client.host", config_.host);
-  runtime_config_store.Set("client.port", std::to_string(config_.port));
-  runtime_config_store.Set("client.player_name", config_.player_name);
-  runtime_config_store.Set("client.room_code", config_.room_code);
-
-  join_flow_ = JoinFlow(config_.player_name, config_.room_code);
-  join_flow_.SetRoomPassword(std::move(room_password));
-}
-
 void Application::RefreshRoomList(std::string host, std::uint16_t port) {
-  if (!room_directory_) {
-    return;
-  }
-  if (!room_directory_->Connect(std::move(host), port)) {
-    return;
-  }
-  room_directory_->RequestRoomList();
+  network_->RefreshRoomList(std::move(host), port);
 }
 
 void Application::CreateRoom(std::string host, std::uint16_t port,
                              const std::string& room_name, bool is_private,
                              std::string room_password,
                              std::uint16_t max_players) {
-  if (!room_directory_) {
-    return;
-  }
-  if (!room_directory_->Connect(std::move(host), port)) {
-    return;
-  }
-  room_directory_->RequestCreateRoom(room_name, is_private,
-                                     std::move(room_password), max_players);
+  network_->CreateRoom(std::move(host), port, room_name, is_private,
+                       std::move(room_password), max_players);
 }
 
 const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()
     const {
-  static const std::vector<protocol::RoomSummary> kEmpty;
-  return room_directory_ ? room_directory_->rooms() : kEmpty;
+  return network_->RoomDirectoryRooms();
 }
 
 std::string Application::RoomDirectoryStatus() const {
-  return room_directory_ ? room_directory_->status() : "Lobby unavailable";
+  return network_->RoomDirectoryStatus();
 }
 
 std::optional<protocol::CreateRoomResponsePayload>
 Application::ConsumeLastRoomCreation() {
-  if (!room_directory_) {
-    return std::nullopt;
-  }
-  return room_directory_->ConsumeCreateResponse();
+  return network_->ConsumeLastRoomCreation();
 }
 
-void Application::HandleServerCommand(const protocol::CommandPayload& payload) {
-  if (payload.command_id ==
-      static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice)) {
-    const std::string reason =
-        payload.payload.empty() ? "Disconnected by server" : payload.payload;
-    LogLifecycle(engine::util::LogLevel::kWarn, reason);
-    HandleConnectionLost(reason);
-  }
+engine::ecs::Registry& Application::World() { return network_->World(); }
+
+const engine::ecs::Registry& Application::World() const {
+  return network_->World();
 }
 
-void Application::MonitorConnection(JoinState join_state) {
-  if (join_state != JoinState::kConnected) {
-    return;
-  }
-
-  if (!transport_ || !transport_->running()) {
-    HandleConnectionLost("Connection closed");
-    return;
-  }
-
-  const auto last_receive = transport_->last_receive_ms();
-  if (last_receive == 0) {
-    return;
-  }
-
-  const auto now_ms = engine::time::NowMilliseconds();
-  const auto silence_ms = now_ms >= last_receive ? now_ms - last_receive : 0;
-  if (silence_ms > config_.timeout_ms) {
-    HandleConnectionLost("Timed out waiting for server");
-  }
+bool Application::EnqueueCommand(const protocol::CommandPayload& payload) {
+  return network_->EnqueueCommand(payload);
 }
 
-void Application::HandleConnectionLost(std::string_view reason) {
-  if (join_flow_.state() == JoinState::kDisconnected) {
-    return;
-  }
-
-  StopNetworkSession();
-  join_flow_.MarkDisconnected(reason);
-  OnDisconnect(std::string(reason));
-}
-
-bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
-  key_bindings_.Set(action, key);
-  if (input_layer_) {
-    input_layer_->ApplyBindings(key_bindings_);
-  }
-  return SaveKeyBindings();
-}
-
-void Application::LoadKeyBindings() {
-  KeyBindings bindings = KeyBindings::Default();
-  if (!bindings.LoadFromFile(keybindings_path_)) {
-    LogLifecycle(engine::util::LogLevel::kDebug,
-                 "Key bindings config not found, applying defaults");
-  }
-  key_bindings_ = std::move(bindings);
-  if (input_layer_) {
-    input_layer_->ApplyBindings(key_bindings_);
-  }
-}
-
-bool Application::SaveKeyBindings() {
-  if (!key_bindings_.SaveToFile(keybindings_path_)) {
-    LogLifecycle(
-        engine::util::LogLevel::kWarn,
-        "Failed to persist key bindings to " + keybindings_path_.string());
-    return false;
-  }
-  return true;
-}
-
-void Application::HandleReconnectInput(JoinState join_state) {
-  const bool request =
-      input_layer_ ? input_layer_->ConsumeReconnectRequest() : false;
-
-  if (current_scene_ && current_scene_->IsInputCaptured()) {
-    return;
-  }
-
-  if (request) {
-    reconnect_requested_ = true;
-  }
-
-  const bool can_retry = join_state != JoinState::kConnected &&
-                         join_state != JoinState::kConnecting;
-  if (reconnect_requested_ && can_retry) {
-    reconnect_requested_ = false;
-    StartConnection();
-  }
-}
-
-void Application::UpdateAudio(engine::time::TimeDelta dt,
-                              JoinState join_state) {
-  if (!audio_manager_) {
-    return;
-  }
-
-  const bool settings_from_gameplay =
-      state_ == ClientState::kSettings && settings_return_state_.has_value() &&
-      (*settings_return_state_ == ClientState::kInGame ||
-       *settings_return_state_ == ClientState::kPaused);
-
-  const bool in_menu =
-      state_ == ClientState::kMainMenu || state_ == ClientState::kLobby ||
-      (state_ == ClientState::kSettings && !settings_from_gameplay);
-  const auto active_music = audio_manager_->ActiveMusic();
-  const bool menu_music_active =
-      active_music.has_value() && active_music.value() == MusicType::kMainMenu;
-
-  if (in_menu) {
-    music_allowed_ = false;
-    music_blocked_ = false;
-    if (!menu_music_active) {
-      audio_manager_->PlayMusic(MusicType::kMainMenu);
-    }
-    audio_manager_->Update(dt.as_seconds());
-    last_join_state_ = join_state;
-    return;
-  }
-
-  if (menu_music_active) {
-    audio_manager_->StopMusic();
-  }
-
-  const bool connected = join_state == JoinState::kConnected;
-  const bool was_connected = last_join_state_ == JoinState::kConnected;
-  const bool transport_running = transport_ ? transport_->running() : false;
-
-  if (connected && !music_blocked_) {
-    music_allowed_ = true;
-  }
-
-  const bool lost_connection =
-      (!connected && was_connected) || !transport_running;
-  if (lost_connection) {
-    music_allowed_ = false;
-    music_blocked_ = false;
-    if (audio_manager_->MusicActive()) {
-      audio_manager_->FadeOutMusic(kDisconnectFadeSeconds);
-    }
-  }
-
-  if (music_allowed_ && !music_blocked_ && !audio_manager_->MusicActive()) {
-    audio_manager_->PlayMusic(MusicType::kBackground);
-  }
-
-  audio_manager_->Update(dt.as_seconds());
-  last_join_state_ = join_state;
-}
-
-void Application::HandleGameOverAudio() {
-  if (!audio_manager_) {
-    return;
-  }
-  music_allowed_ = false;
-  music_blocked_ = true;
-  audio_manager_->FadeOutMusic(kGameOverFadeSeconds);
-}
-
-void Application::ProcessJoinState(JoinState join_state) {
-  if (state_ == ClientState::kConnecting &&
-      join_state == JoinState::kConnected) {
-    OnConnected();
-    return;
-  }
-
-  if (state_ == ClientState::kConnecting && join_state == JoinState::kRefused) {
-    OnConnectionFailed(join_flow_.status());
-  }
-}
-
-void Application::ApplyState(ClientState next_state, std::string reason) {
-  if (next_state == ClientState::kDisconnected) {
-    disconnect_reason_ =
-        reason.empty() ? "Disconnected from server" : std::move(reason);
-  } else {
-    disconnect_reason_.clear();
-  }
-
-  const bool scene_missing = !current_scene_;
-  const bool state_changed = state_ != next_state;
-  state_ = next_state;
-
-  const bool refresh_scene =
-      scene_missing || state_changed || state_ == ClientState::kDisconnected;
-  if (!refresh_scene) {
-    return;
-  }
-
-  switch (state_) {
-    case ClientState::kMainMenu:
-      SwitchScene(std::make_unique<MainMenuScene>(*this));
-      break;
-    case ClientState::kLobby:
-      SwitchScene(std::make_unique<LobbyScene>(*this));
-      break;
-    case ClientState::kSettings:
-      SwitchScene(std::make_unique<OptionsMenuScene>(*this));
-      break;
-    case ClientState::kConnecting:
-      SwitchScene(std::make_unique<ConnectingScene>(*this));
-      break;
-    case ClientState::kInGame:
-      SwitchScene(std::make_unique<InGameScene>(*this));
-      break;
-    case ClientState::kPaused:
-      SwitchScene(std::make_unique<PauseScene>(*this));
-      break;
-    case ClientState::kGameOver: {
-      GameOverScene::Stats scene_stats;
-      scene_stats.score = last_game_stats_.score;
-      scene_stats.wave = last_game_stats_.wave;
-      scene_stats.level = last_game_stats_.level;
-      SwitchScene(std::make_unique<GameOverScene>(*this, scene_stats));
-      break;
-    }
-    case ClientState::kDisconnected:
-      SwitchScene(
-          std::make_unique<DisconnectedScene>(*this, disconnect_reason_));
-      break;
-  }
-}
-
-bool Application::TransitionTo(ClientState next_state, std::string reason) {
-  if (!IsTransitionAllowed(next_state)) {
-    LogLifecycle(engine::util::LogLevel::kWarn,
-                 "Rejected state transition " + std::string(ToString(state_)) +
-                     " -> " + std::string(ToString(next_state)));
-    return false;
-  }
-
-  ApplyState(next_state, std::move(reason));
-  return true;
-}
-
-bool Application::IsTransitionAllowed(ClientState next_state) const {
-  switch (state_) {
-    case ClientState::kMainMenu:
-      return next_state == ClientState::kConnecting ||
-             next_state == ClientState::kLobby ||
-             next_state == ClientState::kSettings ||
-             next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kDisconnected;
-    case ClientState::kLobby:
-      return next_state == ClientState::kConnecting ||
-             next_state == ClientState::kSettings ||
-             next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kDisconnected;
-    case ClientState::kSettings:
-      if (settings_return_state_) {
-        return next_state == *settings_return_state_ ||
-               next_state == ClientState::kMainMenu ||
-               next_state == ClientState::kLobby ||
-               next_state == ClientState::kPaused ||
-               next_state == ClientState::kInGame;
-      }
-      return next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kLobby ||
-             next_state == ClientState::kPaused ||
-             next_state == ClientState::kInGame;
-    case ClientState::kConnecting:
-      return next_state == ClientState::kInGame ||
-             next_state == ClientState::kDisconnected ||
-             next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kLobby;
-    case ClientState::kInGame:
-      return next_state == ClientState::kPaused ||
-             next_state == ClientState::kGameOver ||
-             next_state == ClientState::kDisconnected;
-    case ClientState::kPaused:
-      return next_state == ClientState::kInGame ||
-             next_state == ClientState::kSettings ||
-             next_state == ClientState::kGameOver ||
-             next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kDisconnected;
-    case ClientState::kGameOver:
-      return next_state == ClientState::kMainMenu ||
-             next_state == ClientState::kDisconnected;
-    case ClientState::kDisconnected:
-      return next_state == ClientState::kConnecting ||
-             next_state == ClientState::kMainMenu;
-  }
-  return false;
-}
-
-void Application::StopNetworkSession() {
-  if (transport_ && transport_->running() &&
-      join_flow_.state() == JoinState::kConnected) {
-    protocol::CommandPayload disconnect{};
-    disconnect.command_id =
-        static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice);
-    const bool queued = world_update_receiver_.EnqueueCommand(disconnect);
-    if (!queued) {
-      protocol::Packet packet{};
-      packet.header.version = protocol::kProtocolVersion;
-      packet.header.message_type = static_cast<std::uint8_t>(
-          protocol::message_type::MessageType::kClientCommand);
-      packet.header.flags = 0;
-      packet.header.sequence = 0;
-      packet.header.ack = 0;
-      packet.header.ack_bits = 0;
-      packet.header.timestamp_ms =
-          static_cast<std::uint32_t>(engine::time::NowMilliseconds());
-      packet.payload = disconnect;
-      engine::net::PacketBuffer buffer;
-      buffer.reserve(64);
-      if (protocol::EncodePacket(packet, buffer)) {
-        (void)transport_->Send(std::move(buffer));
-      }
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
-  world_update_receiver_.Stop();
-  if (transport_) {
-    transport_->Stop();
-  }
-  if (world_state_system_) {
-    world_state_system_->Reset();
-  }
-  if (render_system_) {
-    render_system_->Reset();
-  }
-  if (sound_effects_) {
-    sound_effects_->Reset();
-  }
-  if (input_sender_) {
-    input_sender_->Reset();
-  }
-  if (local_prediction_) {
-    local_prediction_->Reset();
-  }
+std::optional<std::uint32_t> Application::CurrentWave() const {
+  return network_->CurrentWave();
 }
 
 std::optional<float> Application::LatestLatencyMs() const {
-  return world_update_receiver_.LatestRttMs();
+  return network_->LatestLatencyMs();
 }
 
-void Application::UpdateDebugOverlayState() {
-  if (!engine_) {
-    return;
-  }
-
-  auto& input = engine_->Input();
-  const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
-  if (pressed && !debug_toggle_pressed_) {
-    debug_overlay_.Toggle();
-    if (render_system_) {
-      render_system_->SetDebugHitboxes(debug_overlay_.enabled());
-    }
-  }
-  debug_toggle_pressed_ = pressed;
+std::optional<std::uint32_t> Application::LocalPlayerId() const {
+  return network_->LocalPlayerId();
 }
 
-std::size_t Application::RenderableEntityCount() const {
-  if (!world_registry_) {
-    return 0;
+std::string_view Application::ConnectionStatus() const {
+  return network_->JoinStatus();
+}
+
+bool Application::ConnectionActive() const {
+  return network_->join_state() == JoinState::kConnected &&
+         network_->TransportRunning();
+}
+
+bool Application::Tick(engine::time::TimeDelta dt) {
+  if (!runtime_->Pump()) {
+    LogLifecycle(engine::util::LogLevel::kError,
+                 "Engine pump stopped the client loop");
+    return false;
   }
 
-  const auto& sprites = world_registry_->GetComponents<ecs::SpriteComponent>();
-  std::size_t count = 0;
-  for (const auto& sprite : sprites) {
-    if (sprite.has_value() && sprite->visible) {
-      ++count;
-    }
+  const auto events = network_->Update(dt, *audio_);
+  if (events.stop_requested) {
+    return false;
   }
-  return count;
+  HandleNetworkEvents(events);
+
+  scene_manager_->Update(dt);
+
+  input_->Update(dt, network_->join_state(), scene_manager_->state());
+  if (input_->ShouldReconnect(network_->join_state(),
+                              scene_manager_->IsInputCaptured())) {
+    StartConnection();
+  }
+
+  const bool connected = network_->join_state() == JoinState::kConnected;
+  audio_->Update(dt, scene_manager_->state(),
+                 scene_manager_->settings_return_state(), connected,
+                 network_->TransportRunning());
+
+  runtime_->RenderFrame(dt, scene_manager_->state(),
+                        scene_manager_->CurrentScene(), network_->World(),
+                        network_->LatestLatencyMs());
+
+  scene_manager_->CommitSceneChange();
+  return true;
+}
+
+void Application::StopNetworkSession() {
+  network_->Stop();
+  runtime_->ResetWorld();
+  audio_->Reset();
+  input_->ResetSender();
+}
+
+void Application::HandleNetworkEvents(const NetworkEvents& events) {
+  if (events.connection_failed.has_value()) {
+    StopNetworkSession();
+    scene_manager_->OnConnectionFailed(*events.connection_failed);
+  }
+  if (events.disconnected.has_value()) {
+    StopNetworkSession();
+    scene_manager_->OnDisconnect(*events.disconnected);
+  }
+  if (events.connected) {
+    scene_manager_->OnConnected();
+  }
+  if (events.game_over.has_value()) {
+    scene_manager_->OnGameOver(*events.game_over);
+  }
+}
+
+void Application::UpdateRuntimeConfig() {
+  auto& runtime_config_store = runtime_->Config();
+  runtime_config_store.Set(std::string(constants::config::kClientHost),
+                           config_.host);
+  runtime_config_store.Set(std::string(constants::config::kClientPort),
+                           std::to_string(config_.port));
+  runtime_config_store.Set(std::string(constants::config::kClientDebug),
+                           config_.debug ? "true" : "false");
+  runtime_config_store.Set(
+      std::string(constants::config::kClientLogLevel),
+      std::string(engine::util::ToString(config_.log_level)));
+  runtime_config_store.Set(std::string(constants::config::kClientPlayerName),
+                           config_.player_name);
+  runtime_config_store.Set(std::string(constants::config::kClientRoomCode),
+                           config_.room_code);
+  runtime_config_store.Set(std::string(constants::config::kClientTimeoutMs),
+                           std::to_string(config_.timeout_ms));
 }
 
 }  // namespace client
