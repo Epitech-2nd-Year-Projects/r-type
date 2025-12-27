@@ -183,13 +183,9 @@ class GameConfig {
    * @throw std::runtime_error if not found
    */
   const LevelConfig &GetLevel(int id) const;
-
-  /**
-   * @brief Get a random powerup configuration based on drop probabilities
-   * @return Constant reference to a selected PowerupConfig
-   * @throw std::runtime_error if no powerups defined
-   */
   const PowerupConfig &GetRandomPowerup() const;
+
+  const std::string &GetConfigDirectory() const { return config_dir_; }
 
  private:
   GameConfig() = default;
@@ -198,6 +194,7 @@ class GameConfig {
   GameConfig(const GameConfig &) = delete;
   GameConfig &operator=(const GameConfig &) = delete;
 
+  std::string config_dir_;
   WorldConfig world_config_;
   PlayerConfig player_config_;
   std::unordered_map<std::string, EnemyConfig> enemies_;
