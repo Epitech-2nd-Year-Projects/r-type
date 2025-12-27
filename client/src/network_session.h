@@ -1,5 +1,5 @@
 /**
- * @file network_session
+ * @file network_session.h
  * @brief Network session management for the client
  */
 
