@@ -8,18 +8,11 @@
 #include <utility>
 
 #include "audio_paths.h"
+#include "ecs/archetype_registry.h"
 #include "ecs/components.h"
 #include "logging.h"
 
 namespace client {
-namespace {
-
-constexpr std::uint16_t kPlayerTypeCode = 1u;
-constexpr std::uint16_t kEnemyTypeCode = 2u;
-constexpr std::uint16_t kMissileTypeCode = 3u;
-constexpr std::uint16_t kObstacleTypeCode = 4u;
-
-}  // namespace
 
 SoundEffects::SoundEffects(engine::audio::AudioEngine& engine)
     : engine_(engine) {
@@ -128,25 +121,25 @@ SoundEffects::EntityStateMap SoundEffects::SnapshotEntities(
 }
 
 bool SoundEffects::IsPlayer(std::uint16_t type_code) {
-  return type_code == kPlayerTypeCode;
+  return ecs::ArchetypeRegistry::Get().IsPlayer(type_code);
 }
 
 bool SoundEffects::IsEnemy(std::uint16_t type_code) {
-  return type_code == kEnemyTypeCode;
+  return ecs::ArchetypeRegistry::Get().IsEnemy(type_code);
 }
 
 bool SoundEffects::IsMissile(std::uint16_t type_code) {
-  return type_code == kMissileTypeCode;
+  return ecs::ArchetypeRegistry::Get().IsMissile(type_code);
 }
 
 bool SoundEffects::IsDamageable(const EntityAudioState& state) {
   return state.has_health &&
-         (IsPlayer(state.type_code) || IsEnemy(state.type_code) ||
-          state.type_code == kObstacleTypeCode);
+         ecs::ArchetypeRegistry::Get().IsDamageable(state.type_code);
 }
 
 bool SoundEffects::IsExplosive(const EntityAudioState& state) {
-  return IsMissile(state.type_code) || state.has_health;
+  return state.has_health ||
+         ecs::ArchetypeRegistry::Get().IsExplosive(state.type_code);
 }
 
 }  // namespace client
