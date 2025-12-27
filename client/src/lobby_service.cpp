@@ -122,7 +122,7 @@ void LobbyService::Update() {
     if (!protocol::DecodePacket(incoming.buffer, packet, error)) {
       LogLobby(engine::util::LogLevel::kWarn,
                std::string("Dropped lobby packet: ") +
-                   protocol::DecodeErrorToString(error));
+                   std::string(protocol::DecodeErrorToString(error)));
       continue;
     }
     sequence_tracker_.OnRemoteSequenceReceived(packet.header.sequence);
