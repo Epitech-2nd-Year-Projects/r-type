@@ -4,8 +4,13 @@
 
 #include "engine/ecs/component.h"
 #include "engine/ecs/indexed_zipper.h"
+#include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
 #include "engine/ecs/systems/movement_system.h"
+#include "engine/event.h"
+#include "engine/scripting/bindings.h"
+#include "engine/scripting/script_engine.h"
+#include "engine/time/time_delta.h"
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
@@ -28,6 +33,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
     : room_id_(room_id),
       max_players_(max_players),
       registry_(std::make_unique<engine::ecs::Registry>()),
+      script_engine_(std::make_unique<engine::scripting::ScriptEngine>()),
       game_state_(),
       is_started_(false) {
   game_state_.room_id = room_id_;
@@ -37,6 +43,24 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
            "and may cause crashes."
         << std::endl;
   }
+
+  script_engine_->Initialize();
+  engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
+  engine::scripting::BindEventBus(script_engine_->LuaState(), event_bus_);
+
+  event_bus_.Subscribe<systems::EntityCollisionEvent>(
+      [this](const systems::EntityCollisionEvent &e) {
+        if (!script_engine_) {
+          return;
+        }
+        auto &lua = script_engine_->LuaState();
+        sol::table data = lua.create_table();
+        data["entity_a"] = e.entity_a;
+        data["entity_b"] = e.entity_b;
+        event_bus_.Publish(
+            engine::scripting::LuaEvent{"OnCollision", std::move(data)});
+      });
+
   RegisterComponents();
   RegisterSystems();
 }
@@ -201,6 +225,12 @@ const GameState &GameInstance::State() const { return game_state_; }
 
 GameState &GameInstance::State() { return game_state_; }
 
+engine::scripting::ScriptEngine &GameInstance::ScriptEngine() {
+  return *script_engine_;
+}
+
+engine::event::EventBus &GameInstance::EventBus() { return event_bus_; }
+
 bool GameInstance::IsRunning() const { return game_state_.is_running; }
 
 bool GameInstance::IsFinished() const { return game_state_.is_game_over; }
@@ -256,9 +286,9 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::CollisionSystem>(),
-                            engine::ecs::SystemType::Fixed,
-                            engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::CollisionSystem>(event_bus_),
+      engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::AnimationSystem>(),
                             engine::ecs::SystemType::Variable,
