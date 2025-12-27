@@ -15,7 +15,8 @@
 
 #include "engine/render/window.h"
 #include "engine/util/config.h"
-#include "input_layer.h"
+#include "input/key_binding_service.h"
+#include "input/input_layer.h"
 #include "protocol/command.h"
 #include "protocol/lobby.h"
 
@@ -42,8 +43,6 @@ class Configuration;
 
 namespace client {
 
-class KeyBindings;
-
 /**
  * @brief Service container for client scenes
  */
@@ -67,11 +66,17 @@ class ClientContext {
   virtual const KeyBindings& KeyBindingSet() const = 0;
 
   /**
+   * @brief Access key binding service
+   */
+  virtual const KeyBindingService& KeyBindingServiceRef() const = 0;
+
+  /**
    * @brief Update a key binding and persist it
    * @param action Gameplay action
    * @param key Input key
    */
-  virtual bool UpdateKeyBinding(GameAction action, engine::input::Key key) = 0;
+  virtual KeyBindingUpdateResult UpdateKeyBinding(
+      GameAction action, engine::input::Key key) = 0;
 
   /**
    * @brief Access the active window
