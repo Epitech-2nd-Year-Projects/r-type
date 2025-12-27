@@ -10,8 +10,18 @@
 #include <vector>
 
 #include "engine/ecs/registry.h"
+#include "engine/event.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/game_state.h"
+
+namespace engine::ecs {
+class Registry;
+}
+
+namespace engine::scripting {
+class ScriptEngine;
+struct LuaEvent;
+}  // namespace engine::scripting
 
 namespace game_logic {
 
@@ -245,7 +255,27 @@ class GameInstance {
    * - Add/remove components
    * - Query component data
    */
+  /**
+   * @brief Get mutable access to ECS Registry
+   * @return Reference to internal registry
+   *
+   * @details
+   * Use this to:
+   * - Spawn entities
+   * - Add/remove components
+   * - Query component data
+   */
   engine::ecs::Registry &World();
+
+  /**
+   * @brief Get internal EventBus
+   */
+  engine::event::EventBus &EventBus();
+
+  /**
+   * @brief Get internal ScriptEngine
+   */
+  engine::scripting::ScriptEngine &ScriptEngine();
 
   /**
    * @brief Get const access to ECS Registry
@@ -355,6 +385,12 @@ class GameInstance {
 
   /// @brief Owned ECS registry
   std::unique_ptr<engine::ecs::Registry> registry_;
+
+  /// @brief Owned ScriptEngine
+  std::unique_ptr<engine::scripting::ScriptEngine> script_engine_;
+
+  /// @brief Owned EventBus
+  engine::event::EventBus event_bus_;
 
   /// @brief Current game state snapshot
   GameState game_state_;
