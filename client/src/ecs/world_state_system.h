@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include "ecs/animation_factory.h"
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
 #include "protocol/world_snapshot.h"
@@ -65,9 +66,13 @@ class WorldStateSystem {
   engine::ecs::EntityId ResolveOrCreateEntity(std::uint32_t network_id,
                                               std::uint32_t snapshot_id,
                                               std::uint16_t type_code);
+  void UpdateArchetypeTags(engine::ecs::EntityId entity,
+                           std::uint16_t type_code);
   static engine::math::Vector2f ToVector(std::int16_t x, std::int16_t y);
 
   engine::ecs::Registry& registry_;
+  const ArchetypeRegistry& archetypes_;
+  AnimationFactory animation_factory_;
   std::unordered_map<std::uint32_t, engine::ecs::EntityId> network_to_entity_;
   std::uint32_t last_snapshot_id_{0};
 };
