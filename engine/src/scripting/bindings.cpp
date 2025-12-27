@@ -2,11 +2,13 @@
 
 #include <sol/sol.hpp>
 
+#include "engine/audio/audio_engine.h"
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
 #include "engine/event.h"
+#include "engine/input.h"
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/color.h"
@@ -185,6 +187,46 @@ void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
 
   lua["event_bus"] = std::ref(event_bus);
   ENGINE_LOG_INFO("Lua global 'event_bus' bound");
+}
+
+void BindInput(sol::state& lua, engine::input::InputManager& input_manager) {
+  lua.new_enum("Key", "Space", engine::input::Key::kSpace, "Escape",
+               engine::input::Key::kEscape, "Up", engine::input::Key::kUp,
+               "Down", engine::input::Key::kDown, "Left",
+               engine::input::Key::kLeft, "Right", engine::input::Key::kRight,
+               "A", engine::input::Key::kA, "Z", engine::input::Key::kZ, "E",
+               engine::input::Key::kE, "R", engine::input::Key::kR, "T",
+               engine::input::Key::kT, "Y", engine::input::Key::kY);
+
+  lua.new_enum("MouseButton", "Left", engine::input::MouseButton::kLeft,
+               "Right", engine::input::MouseButton::kRight, "Middle",
+               engine::input::MouseButton::kMiddle);
+
+  lua.new_usertype<engine::input::InputManager>(
+      "InputManager", sol::no_constructor,
+
+      "is_key_down", &engine::input::InputManager::IsKeyDown,
+      "is_mouse_button_down", &engine::input::InputManager::IsMouseButtonDown,
+      "is_action_active", &engine::input::InputManager::IsActionActive,
+      "get_mouse_position", &engine::input::InputManager::GetMousePosition);
+
+  lua["Input"] = std::ref(input_manager);
+  ENGINE_LOG_INFO("Lua global 'Input' bound");
+}
+
+void BindAudio(sol::state& lua, engine::audio::AudioEngine& audio_engine) {
+  lua.new_usertype<engine::audio::AudioEngine>(
+      "AudioEngine", sol::no_constructor,
+
+      "play_sound", &engine::audio::AudioEngine::PlaySoundEffect, "play_music",
+      &engine::audio::AudioEngine::PlayMusic, "stop_music",
+      &engine::audio::AudioEngine::StopMusic, "set_master_volume",
+      &engine::audio::AudioEngine::SetMasterVolume, "set_music_volume",
+      &engine::audio::AudioEngine::SetMusicVolume, "set_sfx_volume",
+      &engine::audio::AudioEngine::SetSfxVolume);
+
+  lua["Audio"] = std::ref(audio_engine);
+  ENGINE_LOG_INFO("Lua global 'Audio' bound");
 }
 
 }  // namespace engine::scripting
