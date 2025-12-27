@@ -29,6 +29,8 @@ namespace engine::audio {
 class AudioEngine;
 }
 
+#include "engine/scripting/prefab_factory.h"
+
 namespace engine::scripting {
 
 /**
@@ -98,6 +100,11 @@ class ScriptEngine {
   sol::state& LuaState();
 
   /**
+   * @brief Get the PrefabFactory instance.
+   */
+  PrefabFactory& GetPrefabFactory();
+
+  /**
    * @brief Load and execute a script file, then monitor it for changes
    * (hot-reload).
    * @param path Absolute or relative path to the .lua file.
@@ -125,6 +132,7 @@ class ScriptEngine {
   };
 
   std::unique_ptr<sol::state> lua_;
+  std::unique_ptr<PrefabFactory> prefab_factory_;
   std::vector<WatchedScript> watched_scripts_;
   std::chrono::steady_clock::time_point last_check_time_;
   std::chrono::milliseconds check_interval_{1000};  // Default 1s polling
