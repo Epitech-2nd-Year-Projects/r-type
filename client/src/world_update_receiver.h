@@ -6,13 +6,14 @@
  */
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
+#include <condition_variable>
 #include <deque>
 #include <memory>
 #include <mutex>
-#include <thread>
-#include <condition_variable>
 #include <optional>
+#include <thread>
 #include <variant>
 
 #include "network_transport.h"
@@ -83,6 +84,14 @@ class WorldUpdateReceiver {
   bool Start(std::shared_ptr<NetworkTransport> transport);
 
   /**
+   * @brief Configure ping interval and queue depth
+   * @param ping_interval Interval between ping packets
+   * @param queue_depth Maximum queued message count
+   */
+  void Configure(std::chrono::milliseconds ping_interval,
+                 std::size_t queue_depth);
+
+  /**
    * @brief Stop the receive loop and clear queued messages
    */
   void Stop();
@@ -139,8 +148,6 @@ class WorldUpdateReceiver {
    */
   void HandlePong(const protocol::PongPayload& pong, std::uint32_t now_ms);
 
-  static constexpr std::size_t kMaxQueueDepth = 256;
-
   std::shared_ptr<NetworkTransport> transport_{};
   protocol::SequenceTracker sequence_tracker_{};
   std::condition_variable outgoing_cv_;
@@ -152,6 +159,8 @@ class WorldUpdateReceiver {
   std::mutex queue_mutex_;
   std::deque<WorldUpdateMessage> queue_;
 
+  std::size_t max_queue_depth_{256};
+  std::chrono::milliseconds ping_interval_{1000};
   protocol::LatencyEstimator latency_estimator_{};
   std::atomic<bool> has_latency_estimate_{false};
   std::atomic<float> latest_rtt_ms_{0.0f};
