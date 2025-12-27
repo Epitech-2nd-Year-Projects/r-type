@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/ui_constants.h"
 
@@ -30,18 +31,18 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context)
                     constants::ui::kMenuHoverSfxPath,
                     constants::ui::kMenuClickSfxPath) {
   auto& renderer = context_.Renderer();
-  renderer.LoadFont(std::string(constants::ui::kTitleFont),
-                    std::string(constants::ui::kTitleFontPath));
+  auto& assets = context_.Assets();
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
 
-  menu_effects_.Load(renderer);
+  menu_effects_.Load();
 
   for (int i = 0; i < constants::ui::OptionsMenu::kWarningFrameCount; ++i) {
     std::ostringstream path;
     path << constants::ui::OptionsMenu::kWarningFramePrefix << std::setw(4)
          << std::setfill('0') << i
          << constants::ui::OptionsMenu::kWarningFrameExtension;
-    auto tex = renderer.LoadTextureFromFile(path.str());
+    auto tex = assets.GetTexture(path.str());
     if (tex) {
       warning_frames_.push_back(tex);
     }
