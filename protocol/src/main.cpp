@@ -1,6 +1,6 @@
-#include <iostream>
+#include "engine/util/logging.h"
 
 int main() {
-  std::cout << "hello world!" << std::endl;
+  engine::util::Logger::Default().Info("[protocol] hello world");
   return 0;
 }
