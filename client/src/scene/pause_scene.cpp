@@ -27,17 +27,17 @@ PauseScene::PauseScene(ClientContext& context) : context_(context) {
   const auto hover = constants::ui::kButtonHoverColor;
   const auto press = constants::ui::kButtonPressColor;
 
-  resume_button_ = std::make_shared<ui::Button>(
+  resume_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
                              constants::ui::Pause::kButtonHeight},
       "Resume", [this]() { context_.OnGameResume(); });
-  options_button_ = std::make_shared<ui::Button>(
+  options_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
                              constants::ui::Pause::kButtonHeight},
       "Options", [this]() { context_.OnOpenSettings(); });
-  quit_button_ = std::make_shared<ui::Button>(
+  quit_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Pause::kButtonWidth,
                              constants::ui::Pause::kButtonHeight},
@@ -130,7 +130,7 @@ void PauseScene::BuildUi() {
   button_column->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
-  auto add_slot = [&](const std::shared_ptr<ui::Button>& button) {
+  auto add_slot = [&](const std::shared_ptr<engine::ui::Button>& button) {
     auto slot = std::make_shared<engine::ui::BoxElement>();
     slot->Layout().alignment.horizontal =
         engine::ui::HorizontalAlignment::kCenter;
