@@ -1,5 +1,5 @@
 /**
- * @file scene_manager
+ * @file scene_manager.h
  * @brief State driven scene switching for the client
  */
 
