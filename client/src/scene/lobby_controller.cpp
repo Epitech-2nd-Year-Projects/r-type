@@ -5,6 +5,7 @@
 #include <exception>
 #include <utility>
 
+#include "client_config.h"
 #include "client_context.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
@@ -28,14 +29,22 @@ LobbyController::LobbyController(ClientContext& context,
                                  std::function<void()> open_create_modal)
     : context_(context), open_create_modal_(std::move(open_create_modal)) {
   auto& runtime_config = context_.Config();
-  lobby_host_ = runtime_config.GetString(
-      std::string(constants::config::kClientHost), "127.0.0.1");
+  const ClientConfig defaults{};
+  const std::string host_value = runtime_config.GetString(
+      std::string(constants::config::kClientHost), defaults.host);
   const std::string port_value = runtime_config.GetString(
-      std::string(constants::config::kClientPort), "4242");
-  try {
-    lobby_port_ = static_cast<std::uint16_t>(std::stoi(port_value));
-  } catch (...) {
-    lobby_port_ = 4242;
+      std::string(constants::config::kClientPort),
+      std::to_string(defaults.port));
+  const std::string name_value = runtime_config.GetString(
+      std::string(constants::config::kClientPlayerName), defaults.player_name);
+  const auto validation =
+      ValidateConnectionFields(host_value, port_value, name_value);
+  if (validation.valid) {
+    lobby_host_ = validation.host;
+    lobby_port_ = validation.port;
+  } else {
+    lobby_host_ = defaults.host;
+    lobby_port_ = defaults.port;
   }
 
   host_input_ = std::make_shared<engine::ui::TextInput>(
@@ -51,8 +60,8 @@ LobbyController::LobbyController(ClientContext& context,
   name_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
   name_input_->SetPlaceholder("Player name");
-  name_input_->SetText(context_.Config().GetString(
-      std::string(constants::config::kClientPlayerName), "Pilot"));
+  name_input_->SetText(validation.valid ? validation.player_name
+                                        : defaults.player_name);
 
   refresh_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
@@ -245,47 +254,34 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
     return false;
   }
 
-  std::string host = host_input_->GetText();
-  std::string port_text = port_input_->GetText();
-  std::string name = name_input_->GetText();
-  if (host.empty()) {
-    host = "127.0.0.1";
-  }
-  if (name.empty()) {
-    name = "Pilot";
-  }
-
-  std::uint16_t port = 0;
-  std::string error;
-  if (!ParsePort(port_text, port, error, false)) {
-    SetBanner(error);
+  const auto validation = ValidateConnectionFields(
+      host_input_->GetText(), port_input_->GetText(),
+      name_input_->GetText());
+  if (!validation.valid) {
+    SetBanner(validation.message);
     return false;
   }
 
-  lobby_host_ = host;
-  lobby_port_ = port;
-  context_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_), name,
-                               room.room_code, password);
+  lobby_host_ = validation.host;
+  lobby_port_ = validation.port;
+  context_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_),
+                               validation.player_name, room.room_code,
+                               password);
   context_.StartConnection();
   return true;
 }
 
 void LobbyController::RefreshRoomList() {
-  std::string host = host_input_->GetText();
-  std::string port_text = port_input_->GetText();
-  if (host.empty()) {
-    host = "127.0.0.1";
-  }
-
-  std::uint16_t port = 0;
-  std::string error;
-  if (!ParsePort(port_text, port, error, true)) {
-    SetBanner(error);
+  const auto validation = ValidateConnectionFields(
+      host_input_->GetText(), port_input_->GetText(),
+      name_input_->GetText());
+  if (!validation.valid) {
+    SetBanner(validation.message);
     return;
   }
 
-  lobby_host_ = host;
-  lobby_port_ = port;
+  lobby_host_ = validation.host;
+  lobby_port_ = validation.port;
   context_.RefreshRoomList(lobby_host_, lobby_port_);
 }
 
@@ -308,28 +304,6 @@ void LobbyController::SetBanner(std::string message) {
   banner_text_ = std::move(message);
   banner_expiry_ =
       std::chrono::steady_clock::now() + constants::ui::Lobby::kBannerDuration;
-}
-
-bool LobbyController::ParsePort(const std::string& port_text,
-                                std::uint16_t& port, std::string& error,
-                                bool include_exception) const {
-  std::string text = port_text;
-  if (text.empty()) {
-    text = "4242";
-  }
-  try {
-    int value = std::stoi(text);
-    if (value < 1 || value > 65535) {
-      error = "Port must be between 1 and 65535";
-      return false;
-    }
-    port = static_cast<std::uint16_t>(value);
-    return true;
-  } catch (const std::exception& e) {
-    error = include_exception ? std::string("Invalid port: ") + e.what()
-                              : "Invalid port";
-    return false;
-  }
 }
 
 }  // namespace client
