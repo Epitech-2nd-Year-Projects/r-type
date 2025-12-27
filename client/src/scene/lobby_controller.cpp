@@ -32,9 +32,9 @@ LobbyController::LobbyController(ClientContext& context,
   const ClientConfig defaults{};
   const std::string host_value = runtime_config.GetString(
       std::string(constants::config::kClientHost), defaults.host);
-  const std::string port_value = runtime_config.GetString(
-      std::string(constants::config::kClientPort),
-      std::to_string(defaults.port));
+  const std::string port_value =
+      runtime_config.GetString(std::string(constants::config::kClientPort),
+                               std::to_string(defaults.port));
   const std::string name_value = runtime_config.GetString(
       std::string(constants::config::kClientPlayerName), defaults.player_name);
   const auto validation =
@@ -255,8 +255,7 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
   }
 
   const auto validation = ValidateConnectionFields(
-      host_input_->GetText(), port_input_->GetText(),
-      name_input_->GetText());
+      host_input_->GetText(), port_input_->GetText(), name_input_->GetText());
   if (!validation.valid) {
     SetBanner(validation.message);
     return false;
@@ -273,8 +272,7 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
 
 void LobbyController::RefreshRoomList() {
   const auto validation = ValidateConnectionFields(
-      host_input_->GetText(), port_input_->GetText(),
-      name_input_->GetText());
+      host_input_->GetText(), port_input_->GetText(), name_input_->GetText());
   if (!validation.valid) {
     SetBanner(validation.message);
     return;

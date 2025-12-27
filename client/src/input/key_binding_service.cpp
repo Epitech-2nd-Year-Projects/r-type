@@ -34,14 +34,12 @@ std::string KeyBindingService::CancelMessage() const {
 KeyBindingUpdateResult KeyBindingService::UpdateBinding(
     GameAction action, engine::input::Key key) {
   if (const auto conflict = FindConflict(action, key)) {
-    return {KeyBindingUpdateStatus::kConflict,
-            BuildConflictMessage(*conflict)};
+    return {KeyBindingUpdateStatus::kConflict, BuildConflictMessage(*conflict)};
   }
 
   bindings_.Set(action, key);
   if (!Save()) {
-    return {KeyBindingUpdateStatus::kSaveFailed,
-            "Failed to save key bindings"};
+    return {KeyBindingUpdateStatus::kSaveFailed, "Failed to save key bindings"};
   }
 
   return {KeyBindingUpdateStatus::kUpdated, BuildUpdateMessage(action, key)};
@@ -49,9 +47,8 @@ KeyBindingUpdateResult KeyBindingService::UpdateBinding(
 
 bool KeyBindingService::Save() {
   if (!bindings_.SaveToFile(path_)) {
-    LogLifecycle(
-        engine::util::LogLevel::kWarn,
-        "Failed to persist key bindings to " + path_.string());
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist key bindings to " + path_.string());
     return false;
   }
   return true;
@@ -70,8 +67,7 @@ std::optional<GameAction> KeyBindingService::FindConflict(
   return std::nullopt;
 }
 
-std::string KeyBindingService::BuildConflictMessage(
-    GameAction conflict) const {
+std::string KeyBindingService::BuildConflictMessage(GameAction conflict) const {
   return "Key already bound to " + ActionLabel(conflict);
 }
 

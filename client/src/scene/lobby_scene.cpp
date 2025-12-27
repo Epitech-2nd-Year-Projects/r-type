@@ -54,8 +54,7 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
   room_list_view_.Update(dt, input);
   modal_.Update(dt, input);
 
-  if (!IsInputCaptured() &&
-      input.IsKeyDown(engine::input::Key::kEscape)) {
+  if (!IsInputCaptured() && input.IsKeyDown(engine::input::Key::kEscape)) {
     context_.OnQuitToMenu();
   }
 }

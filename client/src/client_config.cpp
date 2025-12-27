@@ -7,11 +7,10 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <type_traits>
-
-#include <nlohmann/json.hpp>
 
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
@@ -134,9 +133,8 @@ bool TryParseHost(std::string_view value, std::string& out_host) {
     return false;
   }
   const bool has_space =
-      std::any_of(trimmed.begin(), trimmed.end(), [](unsigned char c) {
-        return std::isspace(c) != 0;
-      });
+      std::any_of(trimmed.begin(), trimmed.end(),
+                  [](unsigned char c) { return std::isspace(c) != 0; });
   if (has_space) {
     return false;
   }
@@ -168,8 +166,7 @@ bool TryParseRoomCode(std::string_view value, std::string& out_room) {
   return true;
 }
 
-bool TryParsePortValue(const nlohmann::json& value,
-                       std::uint16_t& out_port) {
+bool TryParsePortValue(const nlohmann::json& value, std::uint16_t& out_port) {
   if (value.is_number_integer() || value.is_number_unsigned()) {
     const auto parsed = value.get<long long>();
     if (parsed < kMinPort || parsed > kMaxPort) {
@@ -337,8 +334,7 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
     }
   }
 
-  if (const auto it =
-          doc.find(std::string(constants::config::kClientLogLevel));
+  if (const auto it = doc.find(std::string(constants::config::kClientLogLevel));
       it != doc.end() && it->is_string()) {
     engine::util::LogLevel parsed{};
     if (TryParseLogLevel(it->get<std::string>(), parsed)) {
