@@ -9,7 +9,7 @@
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "engine/time/game_loop.h"
-#include "input_coordinator.h"
+#include "input/input_coordinator.h"
 #include "logging.h"
 #include "network_session.h"
 #include "scene_manager.h"
@@ -90,7 +90,12 @@ const KeyBindings& Application::KeyBindingSet() const {
   return input_->key_bindings();
 }
 
-bool Application::UpdateKeyBinding(GameAction action, engine::input::Key key) {
+const KeyBindingService& Application::KeyBindingServiceRef() const {
+  return input_->key_binding_service();
+}
+
+KeyBindingUpdateResult Application::UpdateKeyBinding(GameAction action,
+                                                     engine::input::Key key) {
   return input_->UpdateKeyBinding(action, key);
 }
 
@@ -236,9 +241,11 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   scene_manager_->Update(dt);
 
+  const bool input_captured = scene_manager_->IsInputCaptured();
+  runtime_->Input().SetActionsEnabled(!input_captured);
+
   input_->Update(dt, network_->join_state(), scene_manager_->state());
-  if (input_->ShouldReconnect(network_->join_state(),
-                              scene_manager_->IsInputCaptured())) {
+  if (input_->ShouldReconnect(network_->join_state(), input_captured)) {
     StartConnection();
   }
 
@@ -314,6 +321,11 @@ void Application::UpdateRuntimeConfig() {
   runtime_config_store.Set(
       std::string(constants::config::kClientLobbyMaxAttempts),
       std::to_string(config_.lobby_max_attempts));
+
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 }  // namespace client
