@@ -38,21 +38,18 @@ LobbyController::LobbyController(ClientContext& context,
     lobby_port_ = 4242;
   }
 
-  host_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  host_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   host_input_->SetPlaceholder("127.0.0.1");
   host_input_->SetText(lobby_host_);
 
-  port_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  port_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   port_input_->SetPlaceholder("4242");
   port_input_->SetText(std::to_string(lobby_port_));
 
-  name_input_ =
-      std::make_shared<engine::ui::TextInput>(engine::math::Vector2f{},
-                                              engine::math::Vector2f{});
+  name_input_ = std::make_shared<engine::ui::TextInput>(
+      engine::math::Vector2f{}, engine::math::Vector2f{});
   name_input_->SetPlaceholder("Player name");
   name_input_->SetText(context_.Config().GetString(
       std::string(constants::config::kClientPlayerName), "Pilot"));
@@ -132,8 +129,7 @@ void LobbyController::Layout(const engine::math::Vector2f& window_size) {
                                     constants::ui::Lobby::kRefreshCreateSpacing,
                                 controls_y});
 
-  host_label_pos_ = {margin,
-                     controls_y - constants::ui::Lobby::kLabelOffsetY};
+  host_label_pos_ = {margin, controls_y - constants::ui::Lobby::kLabelOffsetY};
   port_label_pos_ = {host_input_->GetPosition().x + host_input_->GetSize().x +
                          constants::ui::Lobby::kHostPortSpacing,
                      controls_y - constants::ui::Lobby::kLabelOffsetY};
@@ -303,8 +299,8 @@ void LobbyController::UpdateBannerFromCreation() {
       }
     }
     banner_text_ = message;
-    banner_expiry_ =
-        std::chrono::steady_clock::now() + constants::ui::Lobby::kBannerDuration;
+    banner_expiry_ = std::chrono::steady_clock::now() +
+                     constants::ui::Lobby::kBannerDuration;
   }
 }
 
