@@ -59,12 +59,12 @@ class KeyBindings {
   /**
    * @brief All keys bound to the provided action
    */
- const std::vector<engine::input::Key>& KeysFor(GameAction action) const;
+  const std::vector<engine::input::Key>& KeysFor(GameAction action) const;
 
   /**
    * @brief Enumerate actions in display order
    */
- std::vector<GameAction> Actions() const;
+  std::vector<GameAction> Actions() const;
 
  private:
   std::array<std::vector<engine::input::Key>, kGameActionCount> bindings_{};
