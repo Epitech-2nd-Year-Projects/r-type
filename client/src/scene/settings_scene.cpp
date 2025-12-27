@@ -5,6 +5,7 @@
 #include <cmath>
 #include <string>
 
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/input_constants.h"
 #include "constants/ui_constants.h"
@@ -43,10 +44,9 @@ void RefreshKeyStateBuffer(engine::input::InputManager& input,
 
 SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   auto& renderer = context_.Renderer();
-  renderer.LoadFont(std::string(constants::ui::kTitleFont),
-                    std::string(constants::ui::kTitleFontPath));
-  renderer.LoadFont(std::string(constants::ui::kBodyFont),
-                    std::string(constants::ui::kBodyFontPath));
+  auto& assets = context_.Assets();
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
+  assets.LoadFont(constants::ui::kBodyFont, constants::ui::kBodyFontPath);
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
   const auto white = constants::ui::kButtonBaseColor;
@@ -86,10 +86,8 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   float current_music_vol = audio ? audio->GetMusicVolume() : 0.0f;
   float current_sfx_vol = audio ? audio->GetSfxVolume() : 0.0f;
 
-  auto btn_tex = renderer.LoadTextureFromFile(
-      std::string(constants::ui::kButtonTextureLargePath));
-  auto small_btn_tex = renderer.LoadTextureFromFile(
-      std::string(constants::ui::kButtonTextureSmallPath));
+  auto btn_tex = assets.GetTexture(constants::ui::kButtonTextureLargePath);
+  auto small_btn_tex = assets.GetTexture(constants::ui::kButtonTextureSmallPath);
   const auto hover = constants::ui::kButtonHoverColor;
   const auto press = constants::ui::kButtonPressColor;
 
