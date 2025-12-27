@@ -1,5 +1,5 @@
 /**
- * @file client_context
+ * @file client_context.h
  * @brief Client service access for scenes
  */
 
