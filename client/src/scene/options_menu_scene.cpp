@@ -3,47 +3,37 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-
-#include "audio_paths.h"
 #include "client_context.h"
 #include "constants/ui_constants.h"
-#include "engine/audio/audio_engine.h"
-#include "engine/input.h"
-#include "engine/math/rect.h"
 
 namespace client {
 
 namespace {
 
-void PlayUiSound(ClientContext& context, const std::string& path) {
-  if (path.empty()) {
-    return;
-  }
-  if (auto audio = context.Audio()) {
-    audio->PlaySoundEffect(path);
-  }
+ui::MenuPointerConfig OptionsMenuPointerConfig() {
+  return ui::MenuPointerConfig{
+      constants::ui::kMenuPointerFramePrefix,
+      constants::ui::kMenuPointerFrameExtension,
+      constants::ui::OptionsMenu::kPointerFrameCount,
+      constants::ui::OptionsMenu::kPointerFrameDuration,
+      constants::ui::OptionsMenu::kPointerHeightFactor,
+      constants::ui::OptionsMenu::kPointerSpacing,
+      constants::ui::OptionsMenu::kPointerScaleFactor};
 }
 
 }  // namespace
 
-OptionsMenuScene::OptionsMenuScene(ClientContext& context) : context_(context) {
+OptionsMenuScene::OptionsMenuScene(ClientContext& context)
+    : context_(context),
+      menu_effects_(context, OptionsMenuPointerConfig(),
+                    constants::ui::kMenuHoverSfxPath,
+                    constants::ui::kMenuClickSfxPath) {
   auto& renderer = context_.Renderer();
   renderer.LoadFont(std::string(constants::ui::kTitleFont),
                     std::string(constants::ui::kTitleFontPath));
   renderer.SetFont(std::string(constants::ui::kTitleFont));
 
-  hover_sfx_path_ = ResolveAssetPath(constants::ui::kMenuHoverSfxPath);
-  click_sfx_path_ = ResolveAssetPath(constants::ui::kMenuClickSfxPath);
-
-  for (int i = 0; i < constants::ui::OptionsMenu::kPointerFrameCount; ++i) {
-    std::ostringstream path;
-    path << constants::ui::kMenuPointerFramePrefix << std::setw(4)
-         << std::setfill('0') << i << constants::ui::kMenuPointerFrameExtension;
-    auto tex = renderer.LoadTextureFromFile(path.str());
-    if (tex) {
-      pointer_frames_.push_back(tex);
-    }
-  }
+  menu_effects_.Load(renderer);
 
   for (int i = 0; i < constants::ui::OptionsMenu::kWarningFrameCount; ++i) {
     std::ostringstream path;
@@ -103,7 +93,7 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context) : context_(context) {
   button_column->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
 
-  auto add_slot = [&](const std::shared_ptr<ui::Button>& button) {
+  auto add_slot = [&](const std::shared_ptr<engine::ui::Button>& button) {
     buttons_.push_back(button);
     auto slot = std::make_shared<engine::ui::BoxElement>();
     slot->Layout().alignment.horizontal =
@@ -122,29 +112,27 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context) : context_(context) {
     button_column->AddChild(slot);
   };
 
-  auto audio_button = std::make_shared<ui::Button>(
+  auto audio_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Audio", [this]() { PlayUiSound(context_, click_sfx_path_); });
-  auto video_button = std::make_shared<ui::Button>(
+      "Audio", menu_effects_.WrapClick({}));
+  auto video_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Video", [this]() { PlayUiSound(context_, click_sfx_path_); });
-  auto keyboard_button = std::make_shared<ui::Button>(
+      "Video", menu_effects_.WrapClick({}));
+  auto keyboard_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Keyboard", [this]() { PlayUiSound(context_, click_sfx_path_); });
-  auto back_button = std::make_shared<ui::Button>(
+      "Keyboard", menu_effects_.WrapClick({}));
+  auto back_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Back", [this]() {
-        PlayUiSound(context_, click_sfx_path_);
-        context_.OnCloseSettings();
-      });
+      "Back",
+      menu_effects_.WrapClick([this]() { context_.OnCloseSettings(); }));
 
   add_slot(audio_button);
   add_slot(video_button);
@@ -196,39 +184,7 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
   }
 
   auto& input = context_.Input();
-  const auto mouse_pos = input.GetMousePosition();
-  const float max_elapsed =
-      pointer_frames_.empty()
-          ? 0.0f
-          : (static_cast<float>(pointer_frames_.size() - 1) *
-             constants::ui::OptionsMenu::kPointerFrameDuration);
-  for (std::size_t i = 0; i < buttons_.size(); ++i) {
-    auto& button = buttons_[i];
-    if (!button) {
-      continue;
-    }
-    auto& state = pointer_states_[i];
-    state.was_hovered = state.hovered;
-    state.hovered =
-        engine::math::RectF{button->GetPosition(), button->GetSize()}.Contains(
-            mouse_pos);
-    if (state.hovered && !state.was_hovered) {
-      state.elapsed = 0.0f;
-      state.animating = true;
-      PlayUiSound(context_, hover_sfx_path_);
-    }
-    if (state.hovered && state.animating && max_elapsed > 0.0f) {
-      state.elapsed += dt.as_seconds();
-      if (state.elapsed >= max_elapsed) {
-        state.elapsed = max_elapsed;
-        state.animating = false;
-      }
-    }
-    if (!state.hovered) {
-      state.animating = false;
-      state.elapsed = 0.0f;
-    }
-  }
+  menu_effects_.Update(dt, input, buttons_);
 
   for (auto& button : buttons_) {
     button->Update(dt, input);
@@ -245,7 +201,7 @@ void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
   for (auto& button : buttons_) {
     button->Draw(renderer);
   }
-  DrawPointers(renderer);
+  menu_effects_.DrawPointers(renderer, buttons_);
 }
 
 void OptionsMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
@@ -253,60 +209,6 @@ void OptionsMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
   canvas_.Layout(renderer);
-}
-
-void OptionsMenuScene::DrawPointers(engine::render::Renderer2D& renderer) {
-  if (pointer_frames_.empty()) {
-    return;
-  }
-  const std::size_t frame_count = pointer_frames_.size();
-  for (std::size_t i = 0; i < buttons_.size(); ++i) {
-    auto& button = buttons_[i];
-    const auto& state = pointer_states_[i];
-    if (!button || !state.hovered) {
-      continue;
-    }
-
-    const float frame_pos =
-        state.elapsed / constants::ui::OptionsMenu::kPointerFrameDuration;
-    const std::size_t frame_index =
-        std::min(frame_count - 1, static_cast<std::size_t>(frame_pos));
-    auto texture = pointer_frames_[frame_index];
-    if (!texture) {
-      continue;
-    }
-    const auto tex_size = texture->GetSize();
-    if (tex_size.y == 0) {
-      continue;
-    }
-
-    const float scale = (constants::ui::OptionsMenu::kButtonHeight *
-                         constants::ui::OptionsMenu::kPointerHeightFactor *
-                         constants::ui::OptionsMenu::kPointerScaleFactor) /
-                        static_cast<float>(tex_size.y);
-    const float scaled_width = static_cast<float>(tex_size.x) * scale;
-    const float scaled_height = static_cast<float>(tex_size.y) * scale;
-    const auto pos = button->GetPosition();
-    const auto size = button->GetSize();
-    const float y = pos.y + (size.y - scaled_height) * 0.5f;
-    const float left_x =
-        pos.x - scaled_width - constants::ui::OptionsMenu::kPointerSpacing;
-    const float right_x =
-        pos.x + size.x + constants::ui::OptionsMenu::kPointerSpacing;
-
-    engine::render::SpriteDrawParams left_params;
-    left_params.position = {left_x, y};
-    left_params.scale = {scale, scale};
-    renderer.DrawTexture(*texture, left_params);
-
-    engine::render::SpriteDrawParams right_params;
-    right_params.position = {right_x, y};
-    right_params.scale = {scale, scale};
-    right_params.source = engine::math::RectF{
-        static_cast<float>(tex_size.x), 0.0f, -static_cast<float>(tex_size.x),
-        static_cast<float>(tex_size.y)};
-    renderer.DrawTexture(*texture, right_params);
-  }
 }
 
 void OptionsMenuScene::DrawWarning(engine::render::Renderer2D& renderer) {
