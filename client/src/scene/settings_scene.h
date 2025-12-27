@@ -11,7 +11,7 @@
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
 #include "engine/ui/button.h"
-#include "../input_layer.h"
+#include "input/input_layer.h"
 #include "engine/ui/types.h"
 
 namespace client {
