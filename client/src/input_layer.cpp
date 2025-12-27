@@ -3,18 +3,11 @@
 #include <array>
 #include <string>
 
+#include "constants/input_constants.h"
 #include "key_bindings.h"
 
 namespace client {
 namespace {
-
-constexpr std::string_view kMoveUpAction = "MoveUp";
-constexpr std::string_view kMoveDownAction = "MoveDown";
-constexpr std::string_view kMoveLeftAction = "MoveLeft";
-constexpr std::string_view kMoveRightAction = "MoveRight";
-constexpr std::string_view kShootAction = "Shoot";
-constexpr std::string_view kBigShootAction = "BigShoot";
-constexpr std::string_view kReconnectAction = "Reconnect";
 
 enum MappingIndex : std::size_t {
   kMoveUpIndex = 0,
@@ -32,13 +25,19 @@ struct Mapping {
 };
 
 constexpr std::array<Mapping, 7> kMappings{
-    Mapping{GameAction::kMoveUp, kMoveUpAction},        // kMoveUpIndex
-    Mapping{GameAction::kMoveDown, kMoveDownAction},    // kMoveDownIndex
-    Mapping{GameAction::kMoveLeft, kMoveLeftAction},    // kMoveLeftIndex
-    Mapping{GameAction::kMoveRight, kMoveRightAction},  // kMoveRightIndex
-    Mapping{GameAction::kShoot, kShootAction},          // kShootIndex
-    Mapping{GameAction::kBigShoot, kBigShootAction},    // kBigShootIndex
-    Mapping{GameAction::kReconnect, kReconnectAction}   // kReconnectIndex
+    Mapping{GameAction::kMoveUp,
+            constants::input::kActionMoveUp},  // kMoveUpIndex
+    Mapping{GameAction::kMoveDown,
+            constants::input::kActionMoveDown},  // kMoveDownIndex
+    Mapping{GameAction::kMoveLeft,
+            constants::input::kActionMoveLeft},  // kMoveLeftIndex
+    Mapping{GameAction::kMoveRight,
+            constants::input::kActionMoveRight},  // kMoveRightIndex
+    Mapping{GameAction::kShoot, constants::input::kActionShoot},  // kShootIndex
+    Mapping{GameAction::kBigShoot,
+            constants::input::kActionBigShoot},  // kBigShootIndex
+    Mapping{GameAction::kReconnect,
+            constants::input::kActionReconnect}  // kReconnectIndex
 };
 
 constexpr GameActionEventType ToGameActionEventType(
