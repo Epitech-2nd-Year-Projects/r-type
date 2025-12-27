@@ -93,8 +93,7 @@ void LobbyService::RequestRoomList() {
 }
 
 void LobbyService::RequestCreateRoom(const std::string& room_name,
-                                     bool is_private,
-                                     std::string room_password,
+                                     bool is_private, std::string room_password,
                                      std::uint16_t max_players) {
   pending_list_.reset();
   protocol::CreateRoomRequestPayload request{};
