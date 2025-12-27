@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 
 #include "engine/audio/audio_engine.h"
+#include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
@@ -40,6 +41,14 @@ void BindTypes(sol::state& lua) {
       "h",
       sol::property([](math::RectF& r) { return r.height_; },
                     [](math::RectF& r, float v) { r.height_ = v; }));
+
+  lua.new_usertype<ecs::BoundingBoxComponent>(
+      "BoundingBoxComponent",
+      sol::constructors<ecs::BoundingBoxComponent(),
+                        ecs::BoundingBoxComponent(float, float, float, float),
+                        ecs::BoundingBoxComponent(const math::RectF&)>(),
+      "bounds", &ecs::BoundingBoxComponent::bounds, "is_trigger",
+      &ecs::BoundingBoxComponent::is_trigger);
 
   lua.new_usertype<render::Color>(
       "Color",
@@ -83,6 +92,11 @@ void BindTypes(sol::state& lua) {
       [](ecs::Registry& r, ecs::EntityId e, float x, float y) {
         return r.EmplaceComponent<ecs::VelocityComponent>(e, x, y);
       },
+      "add_bounding_box",
+      [](ecs::Registry& r, ecs::EntityId e, float x, float y, float w,
+         float h) {
+        return r.EmplaceComponent<ecs::BoundingBoxComponent>(e, x, y, w, h);
+      },
 
       "get_position",
       [](ecs::Registry& r,
@@ -96,6 +110,18 @@ void BindTypes(sol::state& lua) {
           ENGINE_LOG_ERROR("Lua get_position error: {}", ex.what());
         } catch (...) {
           ENGINE_LOG_ERROR("Lua get_position error: Unknown exception");
+        }
+        return std::nullopt;
+      },
+      "get_bounding_box",
+      [](ecs::Registry& r,
+         ecs::EntityId e) -> std::optional<ecs::BoundingBoxComponent> {
+        try {
+          auto& sparse = r.GetComponents<ecs::BoundingBoxComponent>();
+          if (e < sparse.size() && sparse[e].has_value()) {
+            return sparse[e].value();
+          }
+        } catch (...) {
         }
         return std::nullopt;
       },
