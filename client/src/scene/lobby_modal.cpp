@@ -2,9 +2,40 @@
 
 #include <utility>
 
+#include "constants/client_constants.h"
 #include "constants/ui_constants.h"
 
 namespace client {
+
+namespace {
+
+std::string PasswordDigitsText() {
+  return std::to_string(constants::client::kLobbyPasswordLength);
+}
+
+std::string DefaultMaxPlayersText() {
+  return std::to_string(constants::client::kLobbyDefaultMaxPlayers);
+}
+
+std::string MaxPlayersPlaceholder() {
+  return "Max players (" +
+         std::to_string(constants::client::kLobbyMaxPlayersMin) + "-" +
+         std::to_string(constants::client::kLobbyMaxPlayersMax) + ")";
+}
+
+std::string PasswordLabel() {
+  return "Password (" + PasswordDigitsText() + " digits)";
+}
+
+std::string PasswordPlaceholder() {
+  return PasswordDigitsText() + "-digit password";
+}
+
+std::string PasswordPrompt() {
+  return "Enter " + PasswordDigitsText() + "-digit password";
+}
+
+}  // namespace
 
 LobbyModal::LobbyModal(
     std::function<bool(const std::string& room_name,
@@ -143,7 +174,7 @@ void LobbyModal::Draw(engine::render::Renderer2D& renderer) const {
                       constants::ui::Lobby::kModalLabelFontSize,
                       constants::ui::Lobby::kSoftTextColor);
     if (modal_private_) {
-      renderer.DrawText("Password (4 digits)",
+      renderer.DrawText(PasswordLabel(),
                         {x + constants::ui::Lobby::kModalPaddingX,
                          y + constants::ui::Lobby::kModalPrivateLabelY},
                         constants::ui::Lobby::kModalLabelFontSize,
@@ -194,7 +225,7 @@ void LobbyModal::OpenCreate() {
   primary_button_->SetText("Create");
   privacy_button_->SetText("Public");
   room_name_input_->SetText("");
-  max_players_input_->SetText("4");
+  max_players_input_->SetText(DefaultMaxPlayersText());
   password_input_->SetPlaceholder("Private password (optional)");
   password_input_->SetText("");
   show_modal_ = true;
@@ -205,7 +236,7 @@ void LobbyModal::OpenJoin(const protocol::RoomSummary& room) {
   pending_join_room_code_ = room.room_code;
   pending_join_room_name_ = room.room_name;
   primary_button_->SetText("Join");
-  password_input_->SetPlaceholder("Enter 4-digit password");
+  password_input_->SetPlaceholder(PasswordPrompt());
   password_input_->SetText("");
   show_modal_ = true;
 }
@@ -239,8 +270,8 @@ void LobbyModal::BuildModal() {
 
   max_players_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
-  max_players_input_->SetPlaceholder("Max players (1-255)");
-  max_players_input_->SetText("4");
+  max_players_input_->SetPlaceholder(MaxPlayersPlaceholder());
+  max_players_input_->SetText(DefaultMaxPlayersText());
 
   privacy_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
@@ -256,7 +287,7 @@ void LobbyModal::BuildModal() {
 
   password_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
-  password_input_->SetPlaceholder("4-digit password");
+  password_input_->SetPlaceholder(PasswordPlaceholder());
 
   primary_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
