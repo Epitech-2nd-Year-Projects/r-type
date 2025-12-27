@@ -16,6 +16,14 @@ namespace engine::event {
 class EventBus;
 }
 
+namespace engine::input {
+class InputManager;
+}
+
+namespace engine::audio {
+class AudioEngine;
+}
+
 namespace engine::scripting {
 
 /**
@@ -45,6 +53,20 @@ struct LuaEvent {
  * @param event_bus The global event bus.
  */
 void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus);
+
+/**
+ * @brief Bind the InputManager instance to Lua.
+ * @param lua The Lua state.
+ * @param input_manager The global input manager.
+ */
+void BindInput(sol::state& lua, engine::input::InputManager& input_manager);
+
+/**
+ * @brief Bind the AudioEngine instance to Lua.
+ * @param lua The Lua state.
+ * @param audio_engine The global audio engine.
+ */
+void BindAudio(sol::state& lua, engine::audio::AudioEngine& audio_engine);
 
 }  // namespace engine::scripting
 
