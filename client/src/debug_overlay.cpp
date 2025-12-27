@@ -6,22 +6,10 @@
 #include <string>
 #include <vector>
 
+#include "constants/ui_constants.h"
 #include "engine/math/rect.h"
 
 namespace client {
-
-namespace {
-
-constexpr float kFontSize = 18.0f;
-constexpr float kLineSpacing = 6.0f;
-constexpr float kPadding = 12.0f;
-constexpr float kCornerOffset = 16.0f;
-const engine::render::Color kBackgroundColor =
-    engine::render::Color::FromBytes(12, 14, 18, 190);
-const engine::render::Color kTextColor =
-    engine::render::Color::FromBytes(220, 225, 232);
-
-}  // namespace
 
 void DebugOverlay::Toggle() { enabled_ = !enabled_; }
 
@@ -88,26 +76,32 @@ void DebugOverlay::Draw(engine::render::Renderer2D& renderer,
 
   float max_width = 0.0f;
   for (const auto& line : lines) {
-    const float width = renderer.MeasureText(line, kFontSize).x;
+    const float width =
+        renderer.MeasureText(line, constants::ui::DebugOverlay::kFontSize).x;
     max_width = std::max(max_width, width);
   }
 
-  const float line_height = kFontSize + kLineSpacing;
-  const float box_width = max_width + kPadding * 2.0f;
-  const float box_height =
-      static_cast<float>(lines.size()) * line_height + kPadding * 2.0f;
+  const float line_height = constants::ui::DebugOverlay::kFontSize +
+                            constants::ui::DebugOverlay::kLineSpacing;
+  const float box_width =
+      max_width + constants::ui::DebugOverlay::kPadding * 2.0f;
+  const float box_height = static_cast<float>(lines.size()) * line_height +
+                           constants::ui::DebugOverlay::kPadding * 2.0f;
   const float origin_x =
-      std::max(kCornerOffset,
-               static_cast<float>(window_size.x) - box_width - kCornerOffset);
-  const float origin_y = kCornerOffset;
+      std::max(constants::ui::DebugOverlay::kCornerOffset,
+               static_cast<float>(window_size.x) - box_width -
+                   constants::ui::DebugOverlay::kCornerOffset);
+  const float origin_y = constants::ui::DebugOverlay::kCornerOffset;
   const engine::math::RectF background{origin_x, origin_y, box_width,
                                        box_height};
-  renderer.DrawRect(background, kBackgroundColor);
+  renderer.DrawRect(background, constants::ui::DebugOverlay::kBackgroundColor);
 
-  float y = background.top_left_y_ + kPadding;
-  const float x = background.top_left_x_ + kPadding;
+  float y = background.top_left_y_ + constants::ui::DebugOverlay::kPadding;
+  const float x =
+      background.top_left_x_ + constants::ui::DebugOverlay::kPadding;
   for (const auto& line : lines) {
-    renderer.DrawText(line, {x, y}, kFontSize, kTextColor);
+    renderer.DrawText(line, {x, y}, constants::ui::DebugOverlay::kFontSize,
+                      constants::ui::DebugOverlay::kTextColor);
     y += line_height;
   }
 }
