@@ -41,6 +41,7 @@ bool GameConfig::Load(const std::string &config_dir) {
       std::filesystem::exists(config_dir + "/global.json")) {
     found_dir = config_dir;
   }
+  config_dir_ = found_dir;
 
   if (!std::filesystem::exists(found_dir + "/global.json")) {
     std::cerr << "Config Error: Could not find configuration directory."
@@ -82,31 +83,6 @@ bool GameConfig::Load(const std::string &config_dir) {
       player_config_.sprite_width = p.value("sprite_width", 32.0f);
       player_config_.sprite_height = p.value("sprite_height", 16.0f);
       player_config_.texture_path = p.value("texture_path", "");
-    }
-
-    std::ifstream enemies_file(found_dir + "/enemies.json");
-    if (enemies_file.is_open()) {
-      json enemies_j;
-      enemies_file >> enemies_j;
-      for (auto &[key, val] : enemies_j.items()) {
-        EnemyConfig c;
-        c.name = val.value("name", key);
-        c.health = val.value("health", 10);
-        c.speed = val.value("speed", 100.0f);
-        c.behavior_type = val.value("behavior", "Straight");
-        c.score = val.value("score", 0);
-        c.sprite_width = val.value("sprite_width", 32.0f);
-        c.sprite_height = val.value("sprite_height", 32.0f);
-        c.hitbox_width = val.value("hitbox_width", 32.0f);
-        c.hitbox_height = val.value("hitbox_height", 32.0f);
-        c.texture_path = val.value("texture_path", "");
-        c.wave_amplitude = val.value("wave_amplitude", 0.0f);
-        c.wave_frequency = val.value("wave_frequency", 0.0f);
-        c.detection_range = val.value("detection_range", 0.0f);
-        c.can_shoot = val.value("can_shoot", false);
-        c.fire_rate = val.value("fire_rate", 0.0f);
-        enemies_[key] = c;
-      }
     }
 
     std::ifstream missiles_file(found_dir + "/missiles.json");
