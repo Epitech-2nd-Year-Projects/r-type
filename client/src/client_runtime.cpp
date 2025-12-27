@@ -6,6 +6,7 @@
 
 #include "constants/client_constants.h"
 #include "ecs/components.h"
+#include "ecs/render_debug.h"
 #include "ecs/render_system.h"
 #include "engine/app/engine_runtime.h"
 #include "engine/input.h"
@@ -59,6 +60,8 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
   }
   render_system_ =
       std::make_unique<ecs::RenderSystem>(registry, engine_->Renderer());
+  render_debug_ =
+      std::make_unique<ecs::RenderDebug>(registry, engine_->Renderer());
 }
 
 bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
@@ -92,6 +95,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   if (render_system_ && render_gameplay) {
     render_system_->Render();
+  }
+  if (render_debug_ && render_gameplay) {
+    render_debug_->Draw();
   }
 
   if (scene) {
@@ -154,8 +160,8 @@ void ClientRuntime::UpdateDebugToggle() {
   const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
   if (pressed && !debug_toggle_pressed_) {
     debug_overlay_.Toggle();
-    if (render_system_) {
-      render_system_->SetDebugHitboxes(debug_overlay_.enabled());
+    if (render_debug_) {
+      render_debug_->SetEnabled(debug_overlay_.enabled());
     }
   }
   debug_toggle_pressed_ = pressed;
