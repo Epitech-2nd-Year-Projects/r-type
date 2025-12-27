@@ -5,7 +5,7 @@
 #include <sstream>
 #include <utility>
 
-#include "audio_paths.h"
+#include "client_asset_manager.h"
 #include "client_context.h"
 #include "engine/audio/audio_engine.h"
 #include "engine/math/rect.h"
@@ -17,14 +17,14 @@ MenuEffects::MenuEffects(ClientContext& context, MenuPointerConfig config,
                          std::string_view click_sfx_path)
     : context_(context), config_(config) {
   if (!hover_sfx_path.empty()) {
-    hover_sfx_path_ = ResolveAssetPath(hover_sfx_path);
+    hover_sfx_path_ = context_.Assets().GetSfxPath(hover_sfx_path);
   }
   if (!click_sfx_path.empty()) {
-    click_sfx_path_ = ResolveAssetPath(click_sfx_path);
+    click_sfx_path_ = context_.Assets().GetSfxPath(click_sfx_path);
   }
 }
 
-void MenuEffects::Load(engine::render::Renderer2D& renderer) {
+void MenuEffects::Load() {
   pointer_frames_.clear();
   if (config_.frame_count <= 0) {
     return;
@@ -34,7 +34,7 @@ void MenuEffects::Load(engine::render::Renderer2D& renderer) {
     std::ostringstream path;
     path << config_.frame_prefix << std::setw(4) << std::setfill('0') << i
          << config_.frame_extension;
-    auto tex = renderer.LoadTextureFromFile(path.str());
+    auto tex = context_.Assets().GetTexture(path.str());
     if (tex) {
       pointer_frames_.push_back(tex);
     }

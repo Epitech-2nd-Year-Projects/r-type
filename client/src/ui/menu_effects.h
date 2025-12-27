@@ -65,9 +65,8 @@ class MenuEffects {
 
   /**
    * @brief Load pointer animation textures
-   * @param renderer Renderer instance
    */
-  void Load(engine::render::Renderer2D& renderer);
+  void Load();
 
   /**
    * @brief Update hover and animation state
