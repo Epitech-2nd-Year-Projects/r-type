@@ -17,6 +17,15 @@ inline constexpr std::string_view kClientLogLevel = "client.log_level";
 inline constexpr std::string_view kClientPlayerName = "client.player_name";
 inline constexpr std::string_view kClientRoomCode = "client.room_code";
 inline constexpr std::string_view kClientTimeoutMs = "client.timeout_ms";
+inline constexpr std::string_view kClientPingIntervalMs =
+    "client.ping_interval_ms";
+inline constexpr std::string_view kClientQueueSize = "client.queue_size";
+inline constexpr std::string_view kClientJoinRetryMs = "client.join_retry_ms";
+inline constexpr std::string_view kClientJoinMaxAttempts =
+    "client.join_max_attempts";
+inline constexpr std::string_view kClientLobbyRetryMs = "client.lobby_retry_ms";
+inline constexpr std::string_view kClientLobbyMaxAttempts =
+    "client.lobby_max_attempts";
 
 }  // namespace client::constants::config
 
