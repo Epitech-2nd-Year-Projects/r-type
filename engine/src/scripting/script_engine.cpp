@@ -45,6 +45,18 @@ void ScriptEngine::SetEventBus(engine::event::EventBus& event_bus) {
   }
 }
 
+void ScriptEngine::SetInputManager(engine::input::InputManager& input_manager) {
+  if (lua_) {
+    BindInput(*lua_, input_manager);
+  }
+}
+
+void ScriptEngine::SetAudioEngine(engine::audio::AudioEngine& audio_engine) {
+  if (lua_) {
+    BindAudio(*lua_, audio_engine);
+  }
+}
+
 sol::state& ScriptEngine::LuaState() { return *lua_; }
 
 void ScriptEngine::LoadScript(const std::string& path) {
