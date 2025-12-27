@@ -56,10 +56,10 @@ void MenuEffects::Update(
     const auto& button = buttons[i];
     auto& state = pointer_states_[i];
     state.was_hovered = state.hovered;
-    state.hovered = button &&
-                    engine::math::RectF{button->GetPosition(),
-                                        button->GetSize()}
-                        .Contains(mouse_pos);
+    state.hovered =
+        button &&
+        engine::math::RectF{button->GetPosition(), button->GetSize()}.Contains(
+            mouse_pos);
     if (state.hovered && !state.was_hovered) {
       state.elapsed = 0.0f;
       state.animating = true;
@@ -86,8 +86,7 @@ void MenuEffects::DrawPointers(
     return;
   }
   const std::size_t frame_count = pointer_frames_.size();
-  const std::size_t count =
-      std::min(pointer_states_.size(), buttons.size());
+  const std::size_t count = std::min(pointer_states_.size(), buttons.size());
   for (std::size_t i = 0; i < count; ++i) {
     const auto& button = buttons[i];
     const auto& state = pointer_states_[i];
