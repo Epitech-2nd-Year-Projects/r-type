@@ -15,7 +15,7 @@
 #include "engine/ui/layouts.h"
 #include "engine/ui/text.h"
 #include "engine/ui/types.h"
-#include "key_bindings.h"
+#include "input/key_bindings.h"
 
 namespace client {
 
@@ -198,7 +198,7 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   content->AddChild(controls_title);
 
   rebind_status_label_ = std::make_shared<engine::ui::TextElement>(
-      "Click a binding to remap",
+      context_.KeyBindingServiceRef().IdleMessage(),
       engine::ui::FontSize::Pixels(
           constants::ui::Settings::kRebindStatusFontSize),
       constants::ui::Settings::kRebindStatusColor);
@@ -210,7 +210,8 @@ SettingsScene::SettingsScene(ClientContext& context) : context_(context) {
   auto begin_rebind = [this](GameAction action) {
     pending_rebind_ = action;
     if (rebind_status_label_) {
-      rebind_status_label_->SetText("Press a key for " + ActionLabel(action));
+      rebind_status_label_->SetText(
+          context_.KeyBindingServiceRef().PromptMessage(action));
     }
     if (auto row = FindRow(action)) {
       if (row->get().button) {
@@ -343,8 +344,10 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
 
   if (pending_rebind_) {
     if (input.IsKeyDown(engine::input::Key::kEscape)) {
-      if (rebind_status_label_)
-        rebind_status_label_->SetText("Rebind canceled");
+      if (rebind_status_label_) {
+        rebind_status_label_->SetText(
+            context_.KeyBindingServiceRef().CancelMessage());
+      }
       if (auto row = FindRow(*pending_rebind_)) {
         if (row->get().button) {
           row->get().button->SetText(KeyDisplayName(
@@ -366,24 +369,15 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
       const bool was_down = key_state_buffer_[i];
       if (down && !was_down) {
         const GameAction action = *pending_rebind_;
-        bool conflict = false;
-        for (GameAction other : context_.KeyBindingSet().Actions()) {
-          if (other == action) continue;
-          if (context_.KeyBindingSet().Primary(other) == keys[i]) {
-            conflict = true;
-            if (rebind_status_label_) {
-              rebind_status_label_->SetText("Key already bound to " +
-                                            ActionLabel(other));
-            }
-            break;
+        const auto result = context_.UpdateKeyBinding(action, keys[i]);
+        if (result.status == KeyBindingUpdateStatus::kConflict) {
+          if (rebind_status_label_) {
+            rebind_status_label_->SetText(result.message);
           }
-        }
-        if (conflict) {
           RefreshKeyStateBuffer(input, key_state_buffer_);
           break;
         }
 
-        const bool saved = context_.UpdateKeyBinding(action, keys[i]);
         if (auto row = FindRow(action)) {
           if (row->get().button) {
             row->get().button->SetText(
@@ -391,11 +385,7 @@ void SettingsScene::Update(engine::time::TimeDelta dt) {
           }
         }
         if (rebind_status_label_) {
-          const std::string status = saved
-                                         ? "Bound " + ActionLabel(action) +
-                                               " to " + KeyDisplayName(keys[i])
-                                         : "Failed to save key bindings";
-          rebind_status_label_->SetText(status);
+          rebind_status_label_->SetText(result.message);
         }
         pending_rebind_.reset();
         RefreshKeyStateBuffer(input, key_state_buffer_);
