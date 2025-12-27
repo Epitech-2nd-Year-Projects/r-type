@@ -1,5 +1,5 @@
 /**
- * @file audio_controller
+ * @file audio_controller.h
  * @brief Client audio orchestration
  */
 
