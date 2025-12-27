@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "constants/input_constants.h"
 #include "logging.h"
 
 namespace client {
@@ -216,19 +217,19 @@ std::string ActionLabel(GameAction action) {
 std::string_view ActionToken(GameAction action) {
   switch (action) {
     case GameAction::kMoveUp:
-      return "MoveUp";
+      return constants::input::kActionMoveUp;
     case GameAction::kMoveDown:
-      return "MoveDown";
+      return constants::input::kActionMoveDown;
     case GameAction::kMoveLeft:
-      return "MoveLeft";
+      return constants::input::kActionMoveLeft;
     case GameAction::kMoveRight:
-      return "MoveRight";
+      return constants::input::kActionMoveRight;
     case GameAction::kShoot:
-      return "Shoot";
+      return constants::input::kActionShoot;
     case GameAction::kBigShoot:
-      return "BigShoot";
+      return constants::input::kActionBigShoot;
     case GameAction::kReconnect:
-      return "Reconnect";
+      return constants::input::kActionReconnect;
   }
   return "Unknown";
 }
