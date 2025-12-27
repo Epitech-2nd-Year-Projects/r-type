@@ -16,7 +16,7 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 /**
  * @brief Options menu scene
@@ -27,9 +27,9 @@ class OptionsMenuScene : public Scene {
  public:
   /**
    * @brief Build the options menu scene
-   * @param app Application owner
+   * @param context Client context reference
    */
-  explicit OptionsMenuScene(Application& app);
+  explicit OptionsMenuScene(ClientContext& context);
 
   /**
    * @brief Update scene state
@@ -48,7 +48,7 @@ class OptionsMenuScene : public Scene {
   void DrawPointers(engine::render::Renderer2D& renderer);
   void DrawWarning(engine::render::Renderer2D& renderer);
 
-  Application& app_;
+  ClientContext& context_;
   engine::ui::Canvas canvas_;
   std::vector<std::shared_ptr<ui::Button>> buttons_;
   std::vector<std::shared_ptr<engine::render::Texture2D>> pointer_frames_;
