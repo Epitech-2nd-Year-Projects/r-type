@@ -51,35 +51,6 @@ struct EnemyConfig {
 };
 
 /**
- * @struct ObstacleConfig
- * @brief Data structure for obstacle configuration
- */
-struct ObstacleConfig {
-  std::string name;
-  bool destructible;
-  std::uint32_t health;
-  std::uint32_t score_value;
-  float hitbox_scale;
-  std::string texture_path;
-  engine::render::Color tint_color;
-};
-
-/**
- * @struct PowerupConfig
- * @brief Data structure for powerup configuration
- */
-struct PowerupConfig {
-  std::string name;
-  components::PowerupType type;
-  int value;
-  float duration;
-  float drop_probability;
-  float sprite_width;
-  float sprite_height;
-  std::string texture_path;
-};
-
-/**
  * @struct WaveSpawnConfig
  * @brief Definition of a single spawn in a wave
  */
@@ -130,21 +101,12 @@ class GameConfig {
   const EnemyConfig &GetEnemy(const std::string &name) const;
 
   /**
-   * @brief Get obstacle configuration by name
-   * @param name Obstacle type name
-   * @return Constant reference to ObstacleConfig
-   * @throw std::runtime_error if not found
-   */
-  const ObstacleConfig &GetObstacle(const std::string &name) const;
-
-  /**
    * @brief Get level configuration by ID
    * @param id Level ID
    * @return Constant reference to LevelConfig
    * @throw std::runtime_error if not found
    */
   const LevelConfig &GetLevel(int id) const;
-  const PowerupConfig &GetRandomPowerup() const;
 
   const std::string &GetConfigDirectory() const { return config_dir_; }
 
@@ -158,8 +120,6 @@ class GameConfig {
   std::string config_dir_;
   WorldConfig world_config_;
   std::unordered_map<std::string, EnemyConfig> enemies_;
-  std::unordered_map<std::string, ObstacleConfig> obstacles_;
-  std::vector<PowerupConfig> powerups_;
   std::unordered_map<int, LevelConfig> levels_;
 };
 
