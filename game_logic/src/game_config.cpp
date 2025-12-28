@@ -16,25 +16,7 @@ GameConfig &GameConfig::Get() {
   return instance;
 }
 
-namespace {
-engine::render::Color ParseColor(const json &j) {
-  if (j.is_array() && j.size() == 4) {
-    return engine::render::Color::FromBytes(j[0], j[1], j[2], j[3]);
-  }
-  return engine::render::Color::White();
-}
-
-components::PowerupType ParsePowerupType(const std::string &type_str) {
-  if (type_str == "Health") return components::PowerupType::kHealth;
-  if (type_str == "WeaponUpgrade")
-    return components::PowerupType::kWeaponUpgrade;
-  if (type_str == "SpeedBoost") return components::PowerupType::kSpeedBoost;
-  if (type_str == "Shield") return components::PowerupType::kShield;
-  if (type_str == "ExtraLife") return components::PowerupType::kExtraLife;
-  if (type_str == "Score") return components::PowerupType::kScore;
-  return components::PowerupType::kHealth;
-}
-}  // namespace
+namespace {}  // namespace
 
 bool GameConfig::Load(const std::string &config_dir) {
   auto &logger = engine::util::Logger::Default();
@@ -73,45 +55,6 @@ bool GameConfig::Load(const std::string &config_dir) {
     world_config_.patrol_max_x = b.value("patrol_max_x", 800.0f);
     world_config_.patrol_max_y = b.value("patrol_max_y", 500.0f);
 
-    std::ifstream obstacles_file(found_dir + "/obstacles.json");
-    if (obstacles_file.is_open()) {
-      json obstacles_j;
-      obstacles_file >> obstacles_j;
-      for (auto &[key, val] : obstacles_j.items()) {
-        ObstacleConfig c;
-        c.name = val.value("name", key);
-        c.destructible = val.value("destructible", false);
-        c.health = val.value("health", 0);
-        c.score_value = val.value("score_value", 0);
-        c.hitbox_scale = val.value("hitbox_scale", 1.0f);
-        c.texture_path = val.value("texture_path", "");
-        if (val.contains("tint")) {
-          c.tint_color = ParseColor(val["tint"]);
-        } else {
-          c.tint_color = engine::render::Color::White();
-        }
-        obstacles_[key] = c;
-      }
-    }
-
-    std::ifstream powerups_file(found_dir + "/powerups.json");
-    if (powerups_file.is_open()) {
-      json powerups_j;
-      powerups_file >> powerups_j;
-      for (auto &[key, val] : powerups_j.items()) {
-        PowerupConfig c;
-        c.name = key;
-        c.type = ParsePowerupType(val.value("type", "Health"));
-        c.value = val.value("value", 0);
-        c.duration = val.value("duration", 0.0f);
-        c.drop_probability = val.value("drop_probability", 1.0f);
-        c.sprite_width = val.value("sprite_width", 16.0f);
-        c.sprite_height = val.value("sprite_height", 16.0f);
-        c.texture_path = val.value("texture_path", "");
-        powerups_.push_back(c);
-      }
-    }
-
     if (std::filesystem::exists(found_dir + "/levels")) {
       for (const auto &entry :
            std::filesystem::directory_iterator(found_dir + "/levels")) {
@@ -147,50 +90,11 @@ bool GameConfig::Load(const std::string &config_dir) {
   }
 }
 
-const EnemyConfig &GameConfig::GetEnemy(const std::string &name) const {
-  auto it = enemies_.find(name);
-  if (it != enemies_.end()) return it->second;
-  throw std::runtime_error("Config Error: Enemy '" + name + "' not found");
-}
-
-const ObstacleConfig &GameConfig::GetObstacle(const std::string &name) const {
-  auto it = obstacles_.find(name);
-  if (it != obstacles_.end()) return it->second;
-  throw std::runtime_error("Config Error: Obstacle '" + name + "' not found");
-}
-
 const LevelConfig &GameConfig::GetLevel(int id) const {
   auto it = levels_.find(id);
   if (it != levels_.end()) return it->second;
   throw std::runtime_error("Config Error: Level " + std::to_string(id) +
                            " not found");
-}
-
-const PowerupConfig &GameConfig::GetRandomPowerup() const {
-  if (powerups_.empty()) {
-    throw std::runtime_error("No powerups defined in config");
-  }
-
-  thread_local std::random_device rd;
-  thread_local std::mt19937 gen(rd());
-
-  float total_weight = 0.0f;
-  for (const auto &p : powerups_) {
-    total_weight += p.drop_probability;
-  }
-
-  std::uniform_real_distribution<float> dist(0.0f, total_weight);
-  float r = dist(gen);
-
-  float cumulative_weight = 0.0f;
-  for (const auto &p : powerups_) {
-    cumulative_weight += p.drop_probability;
-    if (r <= cumulative_weight) {
-      return p;
-    }
-  }
-
-  return powerups_.back();
 }
 
 }  // namespace game_logic
