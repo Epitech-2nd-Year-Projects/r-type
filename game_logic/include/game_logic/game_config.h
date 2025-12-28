@@ -29,20 +29,6 @@ struct WorldConfig {
 };
 
 /**
- * @brief Default player configuration
- */
-struct PlayerConfig {
-  std::uint32_t health;
-  std::uint32_t lives;
-  float speed;
-  float hitbox_width;
-  float hitbox_height;
-  float sprite_width;
-  float sprite_height;
-  std::string texture_path;
-};
-
-/**
  * @struct EnemyConfig
  * @brief Data structure for enemy archetype configuration
  */
@@ -62,22 +48,6 @@ struct EnemyConfig {
   float detection_range{0.0f};
   bool can_shoot{false};
   float fire_rate{0.0f};
-};
-
-/**
- * @struct MissileConfig
- * @brief Data structure for projectile configuration
- */
-struct MissileConfig {
-  std::string name;
-  std::uint32_t damage;
-  float speed;
-  float lifetime_seconds;
-  float sprite_width;
-  float sprite_height;
-  float hitbox_scale;
-  std::string texture_path;
-  engine::render::Color tint_color;
 };
 
 /**
@@ -150,7 +120,6 @@ class GameConfig {
   bool Load(const std::string &config_dir);
 
   const WorldConfig &GetWorld() const { return world_config_; }
-  const PlayerConfig &GetPlayer() const { return player_config_; }
 
   /**
    * @brief Get enemy configuration by name
@@ -159,14 +128,6 @@ class GameConfig {
    * @throw std::runtime_error if not found
    */
   const EnemyConfig &GetEnemy(const std::string &name) const;
-
-  /**
-   * @brief Get missile configuration by name
-   * @param name Missile type name
-   * @return Constant reference to MissileConfig
-   * @throw std::runtime_error if not found
-   */
-  const MissileConfig &GetMissile(const std::string &name) const;
 
   /**
    * @brief Get obstacle configuration by name
@@ -196,9 +157,7 @@ class GameConfig {
 
   std::string config_dir_;
   WorldConfig world_config_;
-  PlayerConfig player_config_;
   std::unordered_map<std::string, EnemyConfig> enemies_;
-  std::unordered_map<std::string, MissileConfig> missiles_;
   std::unordered_map<std::string, ObstacleConfig> obstacles_;
   std::vector<PowerupConfig> powerups_;
   std::unordered_map<int, LevelConfig> levels_;
