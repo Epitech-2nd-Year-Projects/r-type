@@ -3,6 +3,7 @@
 
 #include "engine/ecs/component.h"
 #include "engine/ecs/registry.h"
+#include "engine/scripting/prefab_factory.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/components.h"
 
@@ -30,7 +31,8 @@ class WeaponSystem {
           &weapons,
       engine::ecs::SparseArray<game_logic::components::SpriteComponent>
           &sprites,
-      engine::time::TimeDelta dt);
+      engine::time::TimeDelta dt,
+      engine::scripting::PrefabFactory &prefab_factory);
 };
 
 }  // namespace game_logic::systems
