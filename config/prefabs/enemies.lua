@@ -13,7 +13,7 @@ Prefabs.Scout = {
     },
     BoundingBox = { width = 33, height = 33 },
     AI = {
-        type = "Straight",
+        behavior = "Straight",
         speed = 150,
         detection_range = 0,
     },
@@ -40,7 +40,7 @@ Prefabs.Bomber = {
     },
     BoundingBox = { width = 33, height = 33 },
     AI = {
-        type = "WavePattern",
+        behavior = "WavePattern",
         speed = 100,
         wave_amplitude = 50,
         wave_frequency = 2,
@@ -60,7 +60,7 @@ Prefabs.Tank = {
     },
     BoundingBox = { width = 33, height = 33 },
     AI = {
-        type = "Patrol",
+        behavior = "Patrol",
         speed = 50,
     }
 }
@@ -78,7 +78,7 @@ Prefabs.Interceptor = {
     },
     BoundingBox = { width = 33, height = 33 },
     AI = {
-        type = "ChasePlayer",
+        behavior = "ChasePlayer",
         speed = 150,
         detection_range = 2000,
     }
