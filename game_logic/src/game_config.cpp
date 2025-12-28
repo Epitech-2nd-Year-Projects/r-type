@@ -73,44 +73,6 @@ bool GameConfig::Load(const std::string &config_dir) {
     world_config_.patrol_max_x = b.value("patrol_max_x", 800.0f);
     world_config_.patrol_max_y = b.value("patrol_max_y", 500.0f);
 
-    std::ifstream player_file(found_dir + "/player.json");
-    if (player_file.is_open()) {
-      json player_j;
-      player_file >> player_j;
-      auto &p = player_j["default"];
-      player_config_.health = p.value("health", 100);
-      player_config_.lives = p.value("lives", 3);
-      player_config_.speed = p.value("speed", 200.0f);
-      player_config_.hitbox_width = p.value("hitbox_width", 32.0f);
-      player_config_.hitbox_height = p.value("hitbox_height", 16.0f);
-      player_config_.sprite_width = p.value("sprite_width", 32.0f);
-      player_config_.sprite_height = p.value("sprite_height", 16.0f);
-      player_config_.texture_path = p.value("texture_path", "");
-    }
-
-    std::ifstream missiles_file(found_dir + "/missiles.json");
-    if (missiles_file.is_open()) {
-      json missiles_j;
-      missiles_file >> missiles_j;
-      for (auto &[key, val] : missiles_j.items()) {
-        MissileConfig c;
-        c.name = val.value("name", key);
-        c.damage = val.value("damage", 10);
-        c.speed = val.value("speed", 300.0f);
-        c.lifetime_seconds = val.value("lifetime", 5.0f);
-        c.sprite_width = val.value("sprite_width", 16.0f);
-        c.sprite_height = val.value("sprite_height", 8.0f);
-        c.hitbox_scale = val.value("hitbox_scale", 1.0f);
-        c.texture_path = val.value("texture_path", "");
-        if (val.contains("tint")) {
-          c.tint_color = ParseColor(val["tint"]);
-        } else {
-          c.tint_color = engine::render::Color::White();
-        }
-        missiles_[key] = c;
-      }
-    }
-
     std::ifstream obstacles_file(found_dir + "/obstacles.json");
     if (obstacles_file.is_open()) {
       json obstacles_j;
@@ -191,12 +153,6 @@ const EnemyConfig &GameConfig::GetEnemy(const std::string &name) const {
   throw std::runtime_error("Config Error: Enemy '" + name + "' not found");
 }
 
-const MissileConfig &GameConfig::GetMissile(const std::string &name) const {
-  auto it = missiles_.find(name);
-  if (it != missiles_.end()) return it->second;
-  throw std::runtime_error("Config Error: Missile '" + name + "' not found");
-}
-
 const ObstacleConfig &GameConfig::GetObstacle(const std::string &name) const {
   auto it = obstacles_.find(name);
   if (it != obstacles_.end()) return it->second;
@@ -215,7 +171,6 @@ const PowerupConfig &GameConfig::GetRandomPowerup() const {
     throw std::runtime_error("No powerups defined in config");
   }
 
-  // Use thread_local to avoid race conditions if called from multiple threads
   thread_local std::random_device rd;
   thread_local std::mt19937 gen(rd());
 
@@ -235,9 +190,6 @@ const PowerupConfig &GameConfig::GetRandomPowerup() const {
     }
   }
 
-  // Fallback: should technically not be reached unless float precision issues
-  // occur Return the last element to ensure a valid reference is always
-  // returned.
   return powerups_.back();
 }
 
