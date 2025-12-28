@@ -44,7 +44,7 @@ TEST(PrefabTest, SpawnScout) {
   auto& ais = registry.GetComponents<components::AIComponent>();
   ASSERT_LT(static_cast<size_t>(entity), ais.size());
   ASSERT_TRUE(ais[entity].has_value());
-  EXPECT_EQ(ais[entity]->behavior, components::EnemyBehavior::kStraight);
+  EXPECT_EQ(ais[entity]->behavior_name, "Straight");
 }
 
 TEST(PrefabTest, SpawnBomber) {
@@ -62,7 +62,7 @@ TEST(PrefabTest, SpawnBomber) {
 
   auto& ais = registry.GetComponents<components::AIComponent>();
   ASSERT_TRUE(ais[entity].has_value());
-  EXPECT_EQ(ais[entity]->behavior, components::EnemyBehavior::kWavePattern);
+  EXPECT_EQ(ais[entity]->behavior_name, "WavePattern");
 
   auto& healths = registry.GetComponents<components::HealthComponent>();
   ASSERT_TRUE(healths[entity].has_value());
@@ -120,5 +120,5 @@ TEST(PrefabTest, SpawnPlayerMissile) {
   auto& damageables = registry.GetComponents<components::DamageableComponent>();
   ASSERT_TRUE(damageables[entity].has_value());
   EXPECT_EQ(damageables[entity]->damage, 10);
-  EXPECT_EQ(damageables[entity]->faction, 0);  // Player faction
+  EXPECT_EQ(damageables[entity]->faction, 0);
 }
