@@ -6,12 +6,12 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/zipper.h"
+#include "engine/scripting/prefab_factory.h"
 #include "engine/util/logging.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
-#include "game_logic/entities/powerup_builder.h"
 #include "game_logic/game_config.h"
 #include "game_logic/game_instance.h"
 
@@ -84,12 +84,14 @@ void HealthSystem::Update(engine::ecs::Registry &registry,
     if (static_cast<size_t>(entity) < drops.size() &&
         drops[static_cast<size_t>(entity)].has_value()) {
       try {
-        const auto &powerup_conf = GameConfig::Get().GetRandomPowerup();
         if (static_cast<size_t>(entity) < positions.size() &&
             positions[static_cast<size_t>(entity)].has_value()) {
           auto &pos = positions[static_cast<size_t>(entity)].value();
-          entities::PowerupBuilder::Create(registry, pos.position,
-                                           powerup_conf);
+          auto powerup_entity = prefab_factory_.Spawn(registry, "HealthPotion");
+          if (powerup_entity) {
+            registry.EmplaceComponent<engine::ecs::PositionComponent>(
+                *powerup_entity, pos.position.x, pos.position.y);
+          }
         }
       } catch (const std::exception &e) {
         logger.Error("[game_logic.health] Failed to spawn powerup: ", e.what());
