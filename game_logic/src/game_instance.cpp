@@ -15,7 +15,6 @@
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
-#include "game_logic/entities/player_builder.h"
 #include "game_logic/game_config.h"
 #include "game_logic/prefab_binder.h"
 #include "game_logic/systems/ai_system.h"
@@ -51,9 +50,10 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
 
   BindGameComponents(script_engine_->GetPrefabFactory());
 
-  std::string script_path =
-      GameConfig::Get().GetConfigDirectory() + "/prefabs/enemies.lua";
-  script_engine_->LoadScript(script_path);
+  std::string config_dir = GameConfig::Get().GetConfigDirectory();
+  script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -172,8 +172,25 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
       kPlayerSpawnBaseX + kPlayerSpawnOffsetX * static_cast<float>(player_slot),
       kPlayerSpawnY);
 
-  engine::ecs::EntityId entity = entities::PlayerBuilder::Create(
-      *registry_, player_id, room_id_, player_slot, spawn_position);
+  auto opt_entity =
+      script_engine_->GetPrefabFactory().Spawn(*registry_, "Player");
+  if (!opt_entity) {
+    engine::util::Logger::Default().Error(
+        "[GameInstance] Failed to spawn Player prefab");
+    return std::nullopt;
+  }
+  engine::ecs::EntityId entity = *opt_entity;
+  registry_->EmplaceComponent<engine::ecs::PositionComponent>(
+      entity, spawn_position.x, spawn_position.y);
+
+  auto &players = registry_->GetComponents<components::PlayerComponent>();
+  if (static_cast<std::size_t>(entity) < players.size() &&
+      players[entity].has_value()) {
+    auto &pc = players[entity].value();
+    pc.player_id = player_id;
+    pc.room_id = room_id_;
+    pc.player_slot = player_slot;
+  }
 
   player_entities_.insert_or_assign(player_id, entity);
   player_input_states_.insert_or_assign(player_id, InputState{});
@@ -282,7 +299,8 @@ void GameInstance::RegisterSystems() {
       ->AddSystem<engine::ecs::PositionComponent, components::WeaponComponent,
                   components::SpriteComponent>(
           systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
-          engine::ecs::kDefaultPriority);
+          engine::ecs::kDefaultPriority,
+          std::ref(script_engine_->GetPrefabFactory()));
 
   registry_->AddSystem<engine::ecs::PositionComponent,
                        engine::ecs::VelocityComponent>(
