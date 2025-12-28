@@ -1,9 +1,10 @@
 #include "game_logic/systems/weapon_system.h"
 
+#include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/math/vector2.h"
-#include "game_logic/entities/missile_builder.h"
-#include "game_logic/entities/missile_data.h"
+#include "game_logic/components.h"
 
 namespace game_logic::systems {
 
@@ -12,7 +13,8 @@ void WeaponSystem::Update(
     engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
     engine::ecs::SparseArray<components::WeaponComponent> &weapons,
     engine::ecs::SparseArray<components::SpriteComponent> &sprites,
-    engine::time::TimeDelta dt) {
+    engine::time::TimeDelta dt,
+    engine::scripting::PrefabFactory &prefab_factory) {
   for (auto &&[idx, position_opt, weapon_opt, sprite_opt] :
        engine::ecs::IndexedZipper(positions, weapons, sprites)) {
     if (!position_opt.has_value() || !weapon_opt.has_value()) {
@@ -53,21 +55,58 @@ void WeaponSystem::Update(
     }
 
     if (weapon.is_big_trigger_held && weapon.can_fire_big()) {
-      weapon.fire_big(entities::kBigPlayerMissileData.fire_rate);
-      engine::math::Vector2f missile_velocity(
-          entities::kBigPlayerMissileData.speed * speed_multiplier, 0.0f);
-      entities::MissileBuilder::CreateMissile(
-          registry, static_cast<std::uint32_t>(idx), spawn_position,
-          missile_velocity, entities::kBigPlayerMissileData, weapon.faction);
+      if (!weapon.big_projectile_prefab.empty()) {
+        weapon.fire_big(1.0f);
+        auto opt_missile =
+            prefab_factory.Spawn(registry, weapon.big_projectile_prefab);
+        if (opt_missile) {
+          engine::ecs::EntityId missile = *opt_missile;
+          registry.EmplaceComponent<engine::ecs::PositionComponent>(
+              missile, spawn_position.x, spawn_position.y);
+          if (weapon.big_projectile_speed > 0.0f) {
+            registry.EmplaceComponent<engine::ecs::VelocityComponent>(
+                missile, weapon.big_projectile_speed * speed_multiplier, 0.0f);
+          }
+          try {
+            auto &damageables =
+                registry.GetComponents<components::DamageableComponent>();
+            if (static_cast<size_t>(missile) < damageables.size() &&
+                damageables[missile].has_value()) {
+              damageables[missile]->owner_id = static_cast<std::uint32_t>(idx);
+            }
+          } catch (...) {
+          }
+        }
+      }
     }
 
     if (weapon.is_trigger_held && weapon.can_fire()) {
-      weapon.fire(weapon.projectile_data.fire_rate);
-      engine::math::Vector2f missile_velocity(
-          weapon.projectile_data.speed * speed_multiplier, 0.0f);
-      entities::MissileBuilder::CreateMissile(
-          registry, static_cast<std::uint32_t>(idx), spawn_position,
-          missile_velocity, weapon.projectile_data, weapon.faction);
+      if (!weapon.projectile_prefab.empty()) {
+        weapon.fire(weapon.fire_rate);
+        auto opt_missile =
+            prefab_factory.Spawn(registry, weapon.projectile_prefab);
+        if (opt_missile) {
+          engine::ecs::EntityId missile = *opt_missile;
+          registry.EmplaceComponent<engine::ecs::PositionComponent>(
+              missile, spawn_position.x, spawn_position.y);
+
+          float speed = weapon.projectile_speed;
+          if (speed <= 0.0f) speed = 300.0f;
+
+          registry.EmplaceComponent<engine::ecs::VelocityComponent>(
+              missile, speed * speed_multiplier, 0.0f);
+
+          try {
+            auto &damageables =
+                registry.GetComponents<components::DamageableComponent>();
+            if (static_cast<size_t>(missile) < damageables.size() &&
+                damageables[missile].has_value()) {
+              damageables[missile]->owner_id = static_cast<std::uint32_t>(idx);
+            }
+          } catch (...) {
+          }
+        }
+      }
     }
   }
 }
