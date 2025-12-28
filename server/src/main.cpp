@@ -1,5 +1,4 @@
-#include <iostream>
-
+#include "engine/util/logging.h"
 #include "server_config.h"
 #include "server_runtime.h"
 
@@ -10,7 +9,8 @@ int main(int argc, char** argv) {
   server::ServerConfig config = server::LoadServerConfig();
   server::ServerRuntime runtime(config);
   if (const auto start_error = runtime.Start(); start_error) {
-    std::cerr << "Failed to start server: " << start_error.message() << '\n';
+    engine::util::Logger::Default().Error("[server] Failed to start server: ",
+                                          start_error.message());
     return 1;
   }
 

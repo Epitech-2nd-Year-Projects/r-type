@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "ecs/render_debug.h"
 #include "ecs/render_system.h"
 #include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/registry.h"
@@ -119,10 +120,10 @@ TEST(RenderSystemTest, OrdersByLayer) {
   EXPECT_EQ(renderer.calls[1].texture, "assets/sprites/player.png");
 }
 
-TEST(RenderSystemTest, DrawsHitboxesWhenEnabled) {
+TEST(RenderDebugTest, DrawsHitboxesWhenEnabled) {
   engine::ecs::Registry registry;
   FakeRenderer renderer;
-  client::ecs::RenderSystem render_system(registry, renderer);
+  client::ecs::RenderDebug render_debug(registry, renderer);
 
   const auto entity = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f,
@@ -132,8 +133,8 @@ TEST(RenderSystemTest, DrawsHitboxesWhenEnabled) {
   registry.EmplaceComponent<engine::ecs::BoundingBoxComponent>(
       entity, 1.0f, 2.0f, 5.0f, 7.0f);
 
-  render_system.SetDebugHitboxes(true);
-  render_system.Render();
+  render_debug.SetEnabled(true);
+  render_debug.Draw();
 
   ASSERT_EQ(renderer.rects.size(), 1u);
   EXPECT_FLOAT_EQ(renderer.rects.front().top_left_x_, 3.0f);

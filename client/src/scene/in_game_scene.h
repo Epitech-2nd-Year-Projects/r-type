@@ -6,17 +6,17 @@
 
 namespace client {
 
-class Application;
+class ClientContext;
 
 class InGameScene : public Scene {
  public:
-  explicit InGameScene(Application& app);
+  explicit InGameScene(ClientContext& context);
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
  private:
-  Application& app_;
+  ClientContext& context_;
   HudOverlay hud_;
   bool is_ready_{false};
   bool toggle_pressed_{false};

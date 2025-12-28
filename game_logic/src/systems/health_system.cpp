@@ -1,12 +1,12 @@
 #include "game_logic/systems/health_system.h"
 
-#include <iostream>
 #include <vector>
 
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/zipper.h"
+#include "engine/util/logging.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_drop_component.h"
@@ -19,6 +19,7 @@ namespace game_logic::systems {
 
 void HealthSystem::Update(engine::ecs::Registry &registry,
                           engine::time::TimeDelta) {
+  auto &logger = engine::util::Logger::Default();
   auto &healths = registry.GetComponents<components::HealthComponent>();
   auto &players = registry.GetComponents<components::PlayerComponent>();
   auto &scores_values =
@@ -40,10 +41,9 @@ void HealthSystem::Update(engine::ecs::Registry &registry,
       if (player_comp.lives > 0) {
         player_comp.lives--;
         game_instance_.OnPlayerDeath(player_comp.player_id, player_comp.lives);
-        std::cout << "[HealthSystem] Player " << player_comp.player_id
-                  << " died, lives remaining: "
-                  << static_cast<int>(player_comp.lives) << ". Respawning."
-                  << std::endl;
+        logger.Info("[game_logic.health] Player ", player_comp.player_id,
+                    " died, lives remaining: ",
+                    static_cast<int>(player_comp.lives), " respawning");
         hp->current_health = hp->max_health;
         if (static_cast<size_t>(entity) < positions.size() &&
             positions[static_cast<size_t>(entity)].has_value()) {
@@ -56,8 +56,8 @@ void HealthSystem::Update(engine::ecs::Registry &registry,
         }
       } else {
         game_instance_.OnPlayerDeath(player_comp.player_id, 0);
-        std::cout << "[HealthSystem] Player " << player_comp.player_id
-                  << " died permanently (Game Over)." << std::endl;
+        logger.Info("[game_logic.health] Player ", player_comp.player_id,
+                    " died permanently game over");
         entities_to_kill.push_back(entity);
       }
       continue;
@@ -92,7 +92,7 @@ void HealthSystem::Update(engine::ecs::Registry &registry,
                                            powerup_conf);
         }
       } catch (const std::exception &e) {
-        std::cerr << "Failed to spawn powerup: " << e.what() << std::endl;
+        logger.Error("[game_logic.health] Failed to spawn powerup: ", e.what());
       }
     }
   }

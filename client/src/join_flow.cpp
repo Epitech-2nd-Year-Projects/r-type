@@ -1,5 +1,6 @@
 #include "join_flow.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "engine/time/monotonic_time.h"
@@ -9,13 +10,6 @@
 #include "protocol/sequence_tracker.h"
 
 namespace client {
-
-namespace {
-
-constexpr int kMaxJoinAttempts = 5;
-constexpr auto kJoinRetryDelay = std::chrono::milliseconds(500);
-
-}  // namespace
 
 JoinFlow::JoinFlow(std::string player_name, std::string room_code)
     : player_name_(std::move(player_name)), room_code_(std::move(room_code)) {
@@ -31,6 +25,16 @@ void JoinFlow::Begin(NetworkTransport& transport) {
   status_text_ = "Connecting to server";
   sequence_tracker_.Reset();
   SendJoinRequest(transport);
+}
+
+void JoinFlow::ConfigureRetryPolicy(int max_attempts,
+                                    std::chrono::milliseconds retry_delay) {
+  max_attempts_ = std::max(1, max_attempts);
+  if (retry_delay <= std::chrono::milliseconds(0)) {
+    retry_delay_ = std::chrono::milliseconds(1);
+  } else {
+    retry_delay_ = retry_delay;
+  }
 }
 
 void JoinFlow::Update(NetworkTransport& transport) {
@@ -62,12 +66,12 @@ void JoinFlow::Update(NetworkTransport& transport) {
   }
 
   const auto now = std::chrono::steady_clock::now();
-  if (attempts_ < kMaxJoinAttempts && now - last_send_ >= kJoinRetryDelay) {
+  if (attempts_ < max_attempts_ && now - last_send_ >= retry_delay_) {
     SendJoinRequest(transport);
     return;
   }
 
-  if (attempts_ >= kMaxJoinAttempts && now - last_send_ >= kJoinRetryDelay) {
+  if (attempts_ >= max_attempts_ && now - last_send_ >= retry_delay_) {
     Fail("Join timed out");
   }
 }
@@ -153,8 +157,8 @@ void JoinFlow::HandleJoinAccept(const protocol::JoinAcceptPayload& payload) {
   last_reject_.reset();
   state_ = JoinState::kConnected;
   status_text_ = "Connected as player " + std::to_string(payload.player_id);
-  LogLifecycle(engine::util::LogLevel::kInfo,
-               "Join accepted player id " + std::to_string(payload.player_id));
+  LogNetwork(engine::util::LogLevel::kInfo,
+             "Join accepted player id " + std::to_string(payload.player_id));
 }
 
 void JoinFlow::HandleJoinReject(const protocol::JoinRejectPayload& payload) {
@@ -162,10 +166,10 @@ void JoinFlow::HandleJoinReject(const protocol::JoinRejectPayload& payload) {
   player_id_.reset();
   state_ = JoinState::kRefused;
   status_text_ = payload.message.empty() ? "Join rejected" : payload.message;
-  LogLifecycle(engine::util::LogLevel::kError,
-               "Join rejected reason " +
-                   std::to_string(static_cast<int>(payload.reason)) + ": " +
-                   payload.message);
+  LogNetwork(engine::util::LogLevel::kError,
+             "Join rejected reason " +
+                 std::to_string(static_cast<int>(payload.reason)) + ": " +
+                 payload.message);
 }
 
 void JoinFlow::MarkDisconnected(std::string_view reason) {
@@ -176,7 +180,7 @@ void JoinFlow::MarkDisconnected(std::string_view reason) {
   last_reject_.reset();
   state_ = JoinState::kDisconnected;
   status_text_.assign(reason.begin(), reason.end());
-  LogLifecycle(engine::util::LogLevel::kWarn, status_text_);
+  LogNetwork(engine::util::LogLevel::kWarn, status_text_);
 }
 
 void JoinFlow::Reset() {
@@ -193,7 +197,7 @@ void JoinFlow::Reset() {
 void JoinFlow::Fail(std::string_view message) {
   state_ = JoinState::kRefused;
   status_text_.assign(message.begin(), message.end());
-  LogLifecycle(engine::util::LogLevel::kError, status_text_);
+  LogNetwork(engine::util::LogLevel::kError, status_text_);
 }
 
 }  // namespace client

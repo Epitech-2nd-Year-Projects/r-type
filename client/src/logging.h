@@ -24,6 +24,16 @@ void ConfigureClientLogging(engine::util::LogLevel level);
 void LogLifecycle(engine::util::LogLevel level, std::string_view message);
 
 /**
+ * @brief Log network subsystem messages
+ */
+void LogNetwork(engine::util::LogLevel level, std::string_view message);
+
+/**
+ * @brief Log lobby subsystem messages
+ */
+void LogLobby(engine::util::LogLevel level, std::string_view message);
+
+/**
  * @brief Log connection status for the configured endpoint
  */
 void LogConnectionStatus(engine::util::LogLevel level, std::string_view host,

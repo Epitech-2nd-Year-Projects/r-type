@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include "input_layer.h"
+#include "input/input_layer.h"
 #include "engine/input.h"
 #include "protocol/input_state.h"
 #include "protocol/world_snapshot.h"
