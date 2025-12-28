@@ -9,6 +9,7 @@
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/scripting/prefab_factory.h"
 #include "game_logic/components.h"
+#include "game_logic/components/powerup_component.h"
 #include "game_logic/game_config.h"
 
 namespace game_logic {
@@ -206,6 +207,32 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
                          const sol::object& value) {
         if (value.is<bool>() && value.as<bool>()) {
           r.EmplaceComponent<components::DropsPowerupComponent>(e);
+        }
+      });
+
+  factory.RegisterComponent(
+      "Powerup", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
+                    const sol::object& value) {
+        if (value.is<sol::table>()) {
+          sol::table t = value;
+          components::PowerupComponent powerup;
+          std::string type = t["type"].get_or(std::string("Health"));
+
+          if (type == "Health")
+            powerup.type = components::PowerupType::kHealth;
+          else if (type == "WeaponUpgrade")
+            powerup.type = components::PowerupType::kWeaponUpgrade;
+          else if (type == "SpeedBoost")
+            powerup.type = components::PowerupType::kSpeedBoost;
+          else if (type == "Shield")
+            powerup.type = components::PowerupType::kShield;
+          else if (type == "ExtraLife")
+            powerup.type = components::PowerupType::kExtraLife;
+          else if (type == "Score")
+            powerup.type = components::PowerupType::kScore;
+
+          powerup.value = t["value"].get_or(0);
+          r.AddComponent<components::PowerupComponent>(e, std::move(powerup));
         }
       });
 }
