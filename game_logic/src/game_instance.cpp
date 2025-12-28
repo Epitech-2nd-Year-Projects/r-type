@@ -54,6 +54,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/powerups.lua");
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -323,7 +325,8 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(*this),
+  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(
+                                *this, script_engine_->GetPrefabFactory()),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
