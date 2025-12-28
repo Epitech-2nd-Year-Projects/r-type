@@ -16,10 +16,8 @@ TEST(GameConfigTest, VerifyGlobalConfig) {
 }
 
 TEST(GameConfigTest, VerifyLevelConfig) {
-  ASSERT_NO_THROW({
-    const auto& level1 = game_logic::GameConfig::Get().GetLevel(1);
-    EXPECT_EQ(level1.id, 1);
-    EXPECT_FALSE(level1.waves.empty());
-    EXPECT_EQ(level1.waves[0].time, 2.0f);
-  });
+  const auto& level1 = game_logic::GameConfig::Get().GetLevel(1);
+  EXPECT_EQ(level1.id, 1);
+  EXPECT_FALSE(level1.waves.empty());
+  EXPECT_EQ(level1.waves[0].time, 2.0f);
 }
