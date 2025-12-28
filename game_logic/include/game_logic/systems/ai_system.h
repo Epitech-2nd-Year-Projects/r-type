@@ -3,6 +3,7 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
+#include "engine/scripting/script_engine.h"
 #include "engine/time/time_delta.h"
 
 namespace game_logic::systems {
@@ -20,7 +21,7 @@ namespace game_logic::systems {
  */
 class AISystem : public engine::ecs::ISystem {
  public:
-  AISystem() = default;
+  explicit AISystem(engine::scripting::ScriptEngine& script_engine);
   ~AISystem() override = default;
 
   /**
@@ -31,6 +32,9 @@ class AISystem : public engine::ecs::ISystem {
    */
   void Update(engine::ecs::Registry& registry,
               engine::time::TimeDelta dt) override;
+
+ private:
+  engine::scripting::ScriptEngine& script_engine_;
 };
 
 }  // namespace game_logic::systems
