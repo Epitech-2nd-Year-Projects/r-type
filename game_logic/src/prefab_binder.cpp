@@ -136,32 +136,24 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
                const sol::object& value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
-          components::AIComponent ai;
-          std::string type = t["type"].get_or(std::string("Straight"));
-          if (type == "Patrol")
-            ai.behavior = components::EnemyBehavior::kPatrol;
-          else if (type == "WavePattern")
-            ai.behavior = components::EnemyBehavior::kWavePattern;
-          else if (type == "ChasePlayer")
-            ai.behavior = components::EnemyBehavior::kChasePlayer;
-          else
-            ai.behavior = components::EnemyBehavior::kStraight;
+          std::string behavior = t["behavior"].get_or(std::string("Straight"));
+          float speed = t["speed"].get_or(100.0f);
 
-          ai.speed = t["speed"].get_or(100.0f);
+          components::AIComponent ai(std::move(behavior), speed);
+
+          if (t["patrol_min_x"].valid()) {
+            ai.patrol_min = engine::math::Vector2f{
+                t["patrol_min_x"], t["patrol_min_y"].get_or(0.0f)};
+          }
+
+          if (t["patrol_max_x"].valid()) {
+            ai.patrol_max = engine::math::Vector2f{
+                t["patrol_max_x"], t["patrol_max_y"].get_or(0.0f)};
+          }
+
           ai.detection_range = t["detection_range"].get_or(0.0f);
           ai.wave_amplitude = t["wave_amplitude"].get_or(0.0f);
           ai.wave_frequency = t["wave_frequency"].get_or(0.0f);
-
-          if (ai.behavior == components::EnemyBehavior::kPatrol) {
-            try {
-              auto& w = GameConfig::Get().GetWorld();
-              ai.patrol_min =
-                  engine::math::Vector2f{w.patrol_min_x, w.patrol_min_y};
-              ai.patrol_max =
-                  engine::math::Vector2f{w.patrol_max_x, w.patrol_max_y};
-            } catch (...) {
-            }
-          }
 
           r.AddComponent<components::AIComponent>(e, std::move(ai));
         }
