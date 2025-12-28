@@ -1,25 +1,11 @@
 #ifndef GAME_LOGIC_COMPONENTS_AI_COMPONENT_H_
 #define GAME_LOGIC_COMPONENTS_AI_COMPONENT_H_
 
-#include <cstdint>
+#include <string>
 
 #include "engine/math/vector2.h"
 
 namespace game_logic::components {
-
-/**
- * @enum EnemyBehavior
- * @brief Enemy AI behavior patterns
- */
-enum class EnemyBehavior : std::uint8_t {
-  kIdle = 0,         ///< Stationary
-  kStraight = 1,     ///< Move in straight line
-  kPatrol = 2,       ///< Patrol between two points
-  kWavePattern = 3,  ///< Sine wave movement
-  kChasePlayer = 4,  ///< Follow nearest player
-  kCircle = 5,       ///< Circular pattern
-  kZigZag = 6        ///< Zigzag pattern
-};
 
 /**
  * @brief Enemy AI behavior configuration
@@ -29,8 +15,8 @@ enum class EnemyBehavior : std::uint8_t {
  * and targeting behavior. AISystem interprets this data.
  */
 struct AIComponent {
-  /// @brief Current behavior pattern
-  EnemyBehavior behavior{EnemyBehavior::kStraight};
+  /// @brief Current behavior pattern name (maps to Lua function)
+  std::string behavior_name{"Straight"};
 
   /// @brief Movement speed (pixels/second)
   float speed{50.0f};
@@ -54,8 +40,9 @@ struct AIComponent {
   float wave_frequency{2.0f};
 
   AIComponent() = default;
-  explicit AIComponent(EnemyBehavior b) : behavior(b) {}
-  AIComponent(EnemyBehavior b, float spd) : behavior(b), speed(spd) {}
+  explicit AIComponent(std::string b) : behavior_name(std::move(b)) {}
+  AIComponent(std::string b, float spd)
+      : behavior_name(std::move(b)), speed(spd) {}
 };
 
 }  // namespace game_logic::components
