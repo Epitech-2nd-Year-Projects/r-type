@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 
 #include "engine/ecs/components/bounding_box_component.h"
+#include "engine/ecs/components/lifetime_component.h"
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/components/velocity_component.h"
@@ -32,6 +33,15 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
           float x = t["x"].get_or(0.0f);
           float y = t["y"].get_or(0.0f);
           r.EmplaceComponent<engine::ecs::VelocityComponent>(e, x, y);
+        }
+      });
+
+  factory.RegisterComponent(
+      "Lifetime", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
+                     const sol::object& value) {
+        if (value.is<double>()) {
+          r.EmplaceComponent<engine::ecs::LifetimeComponent>(
+              e, engine::time::TimeDelta::from_seconds(value.as<double>()));
         }
       });
 
@@ -72,7 +82,19 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
   factory.RegisterComponent(
       "Damageable", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
                        const sol::object& value) {
-        r.EmplaceComponent<components::DamageableComponent>(e);
+        if (value.is<sol::table>()) {
+          sol::table t = value;
+          std::uint32_t damage = t["damage"].get_or(10);
+          std::uint8_t faction = t["faction"].get_or(0);
+          bool friendly_fire = t["friendly_fire"].get_or(false);
+          std::uint32_t owner_id = t["owner_id"].get_or(0);
+          r.EmplaceComponent<components::DamageableComponent>(e, owner_id,
+                                                              damage, faction);
+          r.GetComponents<components::DamageableComponent>()[e]->friendly_fire =
+              friendly_fire;
+        } else {
+          r.EmplaceComponent<components::DamageableComponent>(e);
+        }
       });
 
   factory.RegisterComponent("ScoreValue", [](engine::ecs::Registry& r,
@@ -95,6 +117,15 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
           sprite.source_rect = engine::math::RectF(0.0f, 0.0f, w, h);
           sprite.layer = t["layer"].get_or(0);
           sprite.visible = true;
+
+          if (t["tint"].valid()) {
+            sol::table tint = t["tint"];
+            sprite.tint.r = tint["r"].get_or(255);
+            sprite.tint.g = tint["g"].get_or(255);
+            sprite.tint.b = tint["b"].get_or(255);
+            sprite.tint.a = tint["a"].get_or(255);
+          }
+
           r.AddComponent<components::SpriteComponent>(e, std::move(sprite));
         }
       });
@@ -141,17 +172,32 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::WeaponComponent weapon;
-          weapon.projectile_data.name =
-              t["projectile_name"].get_or(std::string("EnemyMissile"));
-          weapon.projectile_data.damage = t["damage"].get_or(10);
-          weapon.projectile_data.speed = t["projectile_speed"].get_or(300.0f);
-          weapon.projectile_data.fire_rate = t["fire_rate"].get_or(1.0f);
+          weapon.projectile_prefab =
+              t["projectile_name"].get_or(std::string("PlayerMissile"));
+          weapon.projectile_speed = t["projectile_speed"].get_or(400.0f);
+          weapon.fire_rate = t["fire_rate"].get_or(2.0f);
+          weapon.big_projectile_prefab =
+              t["big_projectile_name"].get_or(std::string(""));
+          weapon.big_projectile_speed = t["big_projectile_speed"].get_or(0.0f);
 
           weapon.set_unlimited_ammo();
-          weapon.is_trigger_held = true;
-          weapon.faction = entities::ProjectileFaction::kEnemy;
+          weapon.is_trigger_held = t["trigger_held"].get_or(false);
+          weapon.faction =
+              static_cast<entities::ProjectileFaction>(t["faction"].get_or(0));
 
           r.AddComponent<components::WeaponComponent>(e, std::move(weapon));
+        }
+      });
+
+  factory.RegisterComponent(
+      "PlayerValue", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
+                        const sol::object& value) {
+        if (value.is<sol::table>()) {
+          sol::table t = value;
+          components::PlayerComponent player;
+          player.lives = t["lives"].get_or(3);
+          player.score = t["score"].get_or(0);
+          r.AddComponent<components::PlayerComponent>(e, std::move(player));
         }
       });
 
