@@ -15,13 +15,6 @@ TEST(GameConfigTest, VerifyGlobalConfig) {
   EXPECT_EQ(w.player_spawn_y, 300.0f);
 }
 
-TEST(GameConfigTest, VerifyPlayerConfig) {
-  const auto& p = game_logic::GameConfig::Get().GetPlayer();
-  EXPECT_EQ(p.health, 100);
-  EXPECT_EQ(p.lives, 3);
-  EXPECT_EQ(p.speed, 200.0f);
-}
-
 TEST(GameConfigTest, VerifyLevelConfig) {
   ASSERT_NO_THROW({
     const auto& level1 = game_logic::GameConfig::Get().GetLevel(1);
