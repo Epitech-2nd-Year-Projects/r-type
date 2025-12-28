@@ -35,7 +35,7 @@ class LuaAITest : public ::testing::Test {
 TEST_F(LuaAITest, StraightBehavior) {
   std::string config_dir = game_logic::GameConfig::Get().GetConfigDirectory();
 
-  script_engine_->LoadScript("config/behaviors/ai.lua");
+  script_engine_->LoadScript("../../../../config/behaviors/ai.lua");
 
   sol::table ai_behaviors = script_engine_->LuaState()["AIBehaviors"];
   ASSERT_TRUE(ai_behaviors.valid());
