@@ -2,6 +2,7 @@
 #define GAME_LOGIC_COMPONENTS_WEAPON_COMPONENT_H_
 
 #include <cstdint>
+#include <string>
 
 #include "engine/time/time_delta.h"
 #include "game_logic/entities/projectile_faction.h"
@@ -142,6 +143,9 @@ struct WeaponComponent {
 
   /// @brief Faction of the projectile
   entities::ProjectileFaction faction{entities::ProjectileFaction::kPlayer};
+
+  /// @brief Lua script function name for custom weapon logic
+  std::string weapon_script;
 };
 
 }  // namespace game_logic::components
