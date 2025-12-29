@@ -19,6 +19,7 @@
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
 #include "scene_manager.h"
+#include "ui/menu_background.h"
 
 namespace {
 
@@ -147,6 +148,10 @@ class FakeClientContext final : public client::ClientContext {
 
   client::ClientAssetManager& Assets() override { return assets_; }
 
+  client::ui::MenuBackground& MenuBackground() override {
+    return menu_background_;
+  }
+
   engine::util::Configuration& Config() override { return config_; }
 
   void OnPlay() override { ++play_calls_; }
@@ -225,6 +230,7 @@ class FakeClientContext final : public client::ClientContext {
   engine::input::InputManager input_;
   client::KeyBindingService key_binding_service_{};
   client::ClientAssetManager assets_;
+  client::ui::MenuBackground menu_background_{""};
   engine::util::Configuration config_{};
   engine::ecs::Registry registry_{};
   std::vector<protocol::RoomSummary> rooms_{};
