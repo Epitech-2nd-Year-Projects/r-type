@@ -9,11 +9,13 @@
 #include "client_runtime.h"
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
+#include "constants/ui_constants.h"
 #include "engine/time/game_loop.h"
 #include "input/input_coordinator.h"
 #include "logging.h"
 #include "network_session.h"
 #include "scene_manager.h"
+#include "ui/menu_background.h"
 
 namespace client {
 namespace {
@@ -72,6 +74,8 @@ int Application::Run() {
   assets_ = std::make_unique<ClientAssetManager>(runtime_->Renderer());
   assets_->SetAudioEngine(audio_engine);
   assets_->PreloadMenuAssets();
+  menu_background_ = std::make_unique<ui::MenuBackground>(
+      constants::ui::MainMenu::kBackgroundVideoPath);
 
   UpdateRuntimeConfig();
   scene_manager_->Initialize(ClientState::kMainMenu);
@@ -111,6 +115,8 @@ std::shared_ptr<engine::audio::AudioEngine> Application::Audio() {
 }
 
 ClientAssetManager& Application::Assets() { return *assets_; }
+
+ui::MenuBackground& Application::MenuBackground() { return *menu_background_; }
 
 engine::util::Configuration& Application::Config() {
   return runtime_->Config();

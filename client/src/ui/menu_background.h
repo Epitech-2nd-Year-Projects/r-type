@@ -1,0 +1,63 @@
+/**
+ * @file menu_background_h
+ * @brief Menu background video
+ *
+ * @details
+ * Keeps a shared looping background video for menu scenes
+ */
+
+#ifndef CLIENT_UI_MENU_BACKGROUND_H_
+#define CLIENT_UI_MENU_BACKGROUND_H_
+
+#include <string>
+#include <string_view>
+
+#include <raymedia.h>
+
+#include "engine/render/window.h"
+#include "engine/time/time_delta.h"
+
+namespace client::ui {
+
+/**
+ * @brief Shared menu background video
+ */
+class MenuBackground {
+ public:
+  /**
+   * @brief Create menu background
+   * @param video_path Background video path
+   */
+  explicit MenuBackground(std::string_view video_path);
+
+  /**
+   * @brief Destroy menu background
+   */
+  ~MenuBackground();
+
+  MenuBackground(const MenuBackground&) = delete;
+  MenuBackground& operator=(const MenuBackground&) = delete;
+  MenuBackground(MenuBackground&&) = delete;
+  MenuBackground& operator=(MenuBackground&&) = delete;
+
+  /**
+   * @brief Update background playback
+   * @param dt Frame time delta
+   */
+  void Update(engine::time::TimeDelta dt);
+
+  /**
+   * @brief Draw background video
+   * @param window Window reference
+   */
+  void Draw(const engine::render::Window& window) const;
+
+ private:
+  std::string video_path_;
+  MediaStream media_{};
+  bool media_loaded_{false};
+};
+
+}  // namespace client::ui
+
+#endif  // CLIENT_UI_MENU_BACKGROUND_H_

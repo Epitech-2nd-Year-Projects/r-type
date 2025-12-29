@@ -25,6 +25,7 @@
 namespace client {
 
 class ClientAssetManager;
+class ClientContext;
 
 /**
  * @brief View for the lobby room list
@@ -33,9 +34,11 @@ class LobbyRoomListView {
  public:
   /**
    * @brief Create the room list view
+   * @param context Client context reference
    * @param on_room_selected Callback for room selection
    */
   explicit LobbyRoomListView(
+      ClientContext& context,
       std::function<void(const protocol::RoomSummary&)> on_room_selected);
 
   /**
@@ -69,6 +72,7 @@ class LobbyRoomListView {
                     ClientAssetManager& assets);
 
  private:
+  ClientContext& context_;
   std::function<void(const protocol::RoomSummary&)> on_room_selected_;
   std::vector<std::shared_ptr<engine::ui::Button>> room_buttons_;
   std::shared_ptr<engine::render::Texture2D> button_texture_{};
