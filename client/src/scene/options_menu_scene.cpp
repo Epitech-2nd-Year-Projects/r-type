@@ -7,6 +7,7 @@
 #include "client_asset_manager.h"
 #include "client_context.h"
 #include "constants/ui_constants.h"
+#include "ui/menu_background.h"
 
 namespace client {
 
@@ -175,6 +176,8 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
   auto& renderer = context_.Renderer();
   LayoutUi(renderer);
 
+  context_.MenuBackground().Update(dt);
+
   if (!warning_frames_.empty() && warning_animating_) {
     const float max_elapsed = static_cast<float>(warning_frames_.size() - 1) *
                               constants::ui::OptionsMenu::kWarningFrameDuration;
@@ -197,6 +200,7 @@ void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
 
+  context_.MenuBackground().Draw(context_.Window());
   canvas_.Draw(renderer);
   DrawWarning(renderer);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
