@@ -1,32 +1,52 @@
 #include "game_logic/systems/weapon_system.h"
 
+#include <sol/sol.hpp>
+
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/indexed_zipper.h"
-#include "engine/math/vector2.h"
+#include "engine/scripting/script_engine.h"
 #include "game_logic/components.h"
 
 namespace game_logic::systems {
 
-void WeaponSystem::Update(
-    engine::ecs::Registry &registry,
-    engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
-    engine::ecs::SparseArray<components::WeaponComponent> &weapons,
-    engine::ecs::SparseArray<components::SpriteComponent> &sprites,
-    engine::time::TimeDelta dt,
-    engine::scripting::PrefabFactory &prefab_factory) {
-  for (auto &&[idx, position_opt, weapon_opt, sprite_opt] :
-       engine::ecs::IndexedZipper(positions, weapons, sprites)) {
+WeaponSystem::WeaponSystem(engine::scripting::ScriptEngine& script_engine)
+    : script_engine_(script_engine) {}
+
+void WeaponSystem::Update(engine::ecs::Registry& registry,
+                          engine::time::TimeDelta dt) {
+  auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
+  auto& weapons =
+      registry.GetComponents<game_logic::components::WeaponComponent>();
+  auto& sprites =
+      registry.GetComponents<game_logic::components::SpriteComponent>();
+
+  engine::scripting::PrefabFactory& prefab_factory =
+      script_engine_.GetPrefabFactory();
+  sol::state& lua = script_engine_.LuaState();
+  sol::table weapon_logic = lua["WeaponLogic"];
+
+  for (auto&& [idx, position_opt, weapon_opt] :
+       engine::ecs::IndexedZipper(positions, weapons)) {
     if (!position_opt.has_value() || !weapon_opt.has_value()) {
       continue;
     }
 
-    auto &position = position_opt.value();
-    auto &weapon = weapon_opt.value();
+    auto& position = position_opt.value();
+    auto& weapon = weapon_opt.value();
+
+    if (!weapon.weapon_script.empty() && weapon_logic.valid()) {
+      sol::function script_func = weapon_logic[weapon.weapon_script];
+      if (script_func.valid()) {
+        engine::ecs::EntityId entity = registry.EntityFromIndex(idx);
+        script_func(entity, dt.as_seconds(), &weapon, &position);
+        continue;
+      }
+    }
 
     float spawn_offset_x = 16.0f;
-    if (sprite_opt.has_value()) {
-      spawn_offset_x = sprite_opt->source_rect.width_ / 2.0f;
+    if (idx < sprites.size() && sprites[idx].has_value()) {
+      spawn_offset_x = sprites[idx]->source_rect.width_ / 2.0f;
     }
 
     if (weapon.cooldown_remaining > engine::time::TimeDelta::zero()) {
@@ -68,7 +88,7 @@ void WeaponSystem::Update(
                 missile, weapon.big_projectile_speed * speed_multiplier, 0.0f);
           }
           try {
-            auto &damageables =
+            auto& damageables =
                 registry.GetComponents<components::DamageableComponent>();
             if (static_cast<size_t>(missile) < damageables.size() &&
                 damageables[missile].has_value()) {
@@ -97,7 +117,7 @@ void WeaponSystem::Update(
               missile, speed * speed_multiplier, 0.0f);
 
           try {
-            auto &damageables =
+            auto& damageables =
                 registry.GetComponents<components::DamageableComponent>();
             if (static_cast<size_t>(missile) < damageables.size() &&
                 damageables[missile].has_value()) {
