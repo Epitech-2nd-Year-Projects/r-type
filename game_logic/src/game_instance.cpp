@@ -48,7 +48,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
   engine::scripting::BindEventBus(script_engine_->LuaState(), event_bus_);
   BindGameComponents(script_engine_->GetPrefabFactory());
-  BindRuntimeTypes(script_engine_->LuaState());
+  BindRuntimeTypes(script_engine_->LuaState(),
+                   script_engine_->GetPrefabFactory());
 
   BindGameComponents(script_engine_->GetPrefabFactory());
 
@@ -59,6 +60,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/powerups.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/weapon_logic.lua");
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -300,12 +302,9 @@ void GameInstance::RegisterSystems() {
           systems::PlayerInputSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kHighPriority, std::ref(*this));
 
-  registry_
-      ->AddSystem<engine::ecs::PositionComponent, components::WeaponComponent,
-                  components::SpriteComponent>(
-          systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
-          engine::ecs::kDefaultPriority,
-          std::ref(script_engine_->GetPrefabFactory()));
+  registry_->AddSystemClass(
+      std::make_shared<systems::WeaponSystem>(*script_engine_),
+      engine::ecs::SystemType::Variable, engine::ecs::kDefaultPriority);
 
   registry_->AddSystem<engine::ecs::PositionComponent,
                        engine::ecs::VelocityComponent>(
