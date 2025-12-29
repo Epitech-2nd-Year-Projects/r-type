@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <raymedia.h>
-
 #include "scene.h"
 #include "ui/menu_effects.h"
 #include "engine/ui/button.h"
@@ -21,10 +19,6 @@ class ClientContext;
 class MainMenuScene : public Scene {
  public:
   explicit MainMenuScene(ClientContext& context);
-  /**
-   * @brief Release main menu video background resources
-   */
-  ~MainMenuScene() override;
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
@@ -44,8 +38,6 @@ class MainMenuScene : public Scene {
   engine::math::RectF title_rect_{};
   ui::MenuEffects menu_effects_;
   std::string version_text_;
-  MediaStream background_media_{};
-  bool background_media_loaded_{false};
 };
 
 }  // namespace client
