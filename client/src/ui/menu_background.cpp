@@ -4,6 +4,9 @@ namespace client::ui {
 
 MenuBackground::MenuBackground(std::string_view video_path)
     : video_path_(video_path) {
+  if (video_path_.empty()) {
+    return;
+  }
   media_ =
       LoadMediaEx(video_path_.c_str(), MEDIA_LOAD_NO_AUDIO | MEDIA_FLAG_LOOP);
   media_loaded_ = IsMediaValid(media_);
