@@ -18,6 +18,7 @@ Prefabs.Player = {
         damage = 10,
         big_projectile_name = "BigPlayerMissile",
         big_projectile_speed = 250.0,
+        weapon_script = "BasicPlayerWeapon",
     },
     PlayerValue = {
         lives = 3,
