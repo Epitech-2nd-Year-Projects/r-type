@@ -2,6 +2,7 @@
 #define CLIENT_SCENE_MAIN_MENU_SCENE_H_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "scene.h"
@@ -24,6 +25,7 @@ class MainMenuScene : public Scene {
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
   void DrawTitle(engine::render::Renderer2D& renderer);
+  void DrawVersion(engine::render::Renderer2D& renderer);
 
   ClientContext& context_;
   std::vector<std::shared_ptr<engine::ui::Button>> ui_elements_;
@@ -34,6 +36,7 @@ class MainMenuScene : public Scene {
   std::shared_ptr<engine::render::Texture2D> title_texture_;
   engine::math::RectF title_rect_{};
   ui::MenuEffects menu_effects_;
+  std::string version_text_;
 };
 
 }  // namespace client

@@ -26,6 +26,7 @@ inline constexpr bool kWindowVsync = true;
 inline constexpr std::string_view kWindowTitle = "R-Type Client";
 inline constexpr std::string_view kClientConfigPath = "config/client.json";
 inline constexpr std::string_view kKeyBindingsPath = "config/keybindings.json";
+inline constexpr std::string_view kVersionConfigPath = "config/version.json";
 inline constexpr std::size_t kLobbyPasswordLength = 4;
 inline constexpr int kLobbyDefaultMaxPlayers = 4;
 inline constexpr int kLobbyMaxPlayersMin = 1;

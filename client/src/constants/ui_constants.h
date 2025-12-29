@@ -58,6 +58,11 @@ struct MainMenu {
   static constexpr float kPointerSpacing = 28.0f;
   static constexpr float kPointerScaleFactor = 0.6f;
   static constexpr float kTitleScaleFactor = 1.3f;
+  static constexpr float kVersionFontSize = 18.0f;
+  static constexpr float kVersionPaddingX = 24.0f;
+  static constexpr float kVersionPaddingBottom = 18.0f;
+  static constexpr engine::render::Color kVersionColor =
+      engine::render::Color::FromBytes(180, 190, 210);
   static constexpr int kPointerFrameCount = 11;
   static constexpr std::string_view kTitleTexturePath =
       "assets/ui/main_menu_title.png";
