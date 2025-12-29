@@ -11,6 +11,7 @@ class PrefabFactory;
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
 #include "engine/time/time_delta.h"
+#include "engine/scripting/script_engine.h"
 
 namespace game_logic::systems {
 
@@ -21,9 +22,8 @@ namespace game_logic::systems {
  * @details
  * Performs the following:
  * 1. Checks for entities with <= 0 health.
- * 2. Handles Player death (lives--, respawn, invulnerability).
- * 3. Handles Enemy death (awards score to attacker, destroys entity).
- * 4. Cleans up dead entities.
+ * 2. Delegates death handling to Lua ("GameEvents.HandleDeath").
+ * 3. Cleans up dead entities.
  */
 class HealthSystem : public engine::ecs::ISystem {
  public:
@@ -32,8 +32,11 @@ class HealthSystem : public engine::ecs::ISystem {
   static constexpr float kRespawnY = 300.0f;
 
   HealthSystem(GameInstance& game_instance,
-               engine::scripting::PrefabFactory& prefab_factory)
-      : game_instance_(game_instance), prefab_factory_(prefab_factory) {}
+               engine::scripting::PrefabFactory& prefab_factory,
+               engine::scripting::ScriptEngine& script_engine)
+      : game_instance_(game_instance),
+        prefab_factory_(prefab_factory),
+        script_engine_(script_engine) {}
   ~HealthSystem() override = default;
 
   /**
@@ -48,6 +51,7 @@ class HealthSystem : public engine::ecs::ISystem {
  private:
   GameInstance& game_instance_;
   engine::scripting::PrefabFactory& prefab_factory_;
+  engine::scripting::ScriptEngine& script_engine_;
 };
 
 }  // namespace game_logic::systems

@@ -51,6 +51,12 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   BindRuntimeTypes(script_engine_->LuaState(),
                    script_engine_->GetPrefabFactory());
 
+  script_engine_->LuaState().set_function(
+      "NotifyPlayerDeath",
+      [this](std::uint32_t player_id, std::uint8_t remaining_lives) {
+        this->OnPlayerDeath(player_id, remaining_lives);
+      });
+
   BindGameComponents(script_engine_->GetPrefabFactory());
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
@@ -61,6 +67,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->LoadScript(config_dir + "/prefabs/powerups.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/weapon_logic.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/game_events.lua");
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -316,7 +323,7 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(
-      std::make_shared<systems::CollisionSystem>(event_bus_),
+      std::make_shared<systems::CollisionSystem>(event_bus_, *script_engine_),
       engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::AnimationSystem>(),
@@ -327,10 +334,11 @@ void GameInstance::RegisterSystems() {
       std::make_shared<systems::AISystem>(*script_engine_),
       engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(
-                                *this, script_engine_->GetPrefabFactory()),
-                            engine::ecs::SystemType::Fixed,
-                            engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::HealthSystem>(*this,
+                                              script_engine_->GetPrefabFactory(),
+                                              *script_engine_),
+      engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::WaveSystem>(*this),
                             engine::ecs::SystemType::Fixed,

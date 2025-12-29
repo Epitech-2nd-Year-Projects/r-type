@@ -7,11 +7,15 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/zipper.h"
 #include "game_logic/components/ai_component.h"
+#include "engine/ecs/components/tag_component.h"
+#include "game_logic/components/damageable_component.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/score_value_component.h"
 #include "game_logic/components/sprite_component.h"
 #include "game_logic/components/weapon_component.h"
+#include "engine/ecs/components/position_component.h"
 #include "game_logic/game_instance.h"
 
 namespace game_logic {
@@ -28,10 +32,44 @@ void BindRuntimeTypes(sol::state& lua,
       &components::AIComponent::wave_amplitude, "wave_frequency",
       &components::AIComponent::wave_frequency);
 
-  lua.new_usertype<components::HealthComponent>(
-      "HealthComponent", "health", &components::HealthComponent::current_health,
-      "max_health", &components::HealthComponent::max_health);
 
+  // HealthComponent
+  lua.new_usertype<components::HealthComponent>(
+      "HealthComponent", "current_health",
+      &components::HealthComponent::current_health, "max_health",
+      &components::HealthComponent::max_health, "invulnerable",
+      &components::HealthComponent::invulnerable, "last_attacker_id",
+      &components::HealthComponent::last_attacker_id, "take_damage",
+      &components::HealthComponent::take_damage, "is_alive",
+      &components::HealthComponent::is_alive);
+
+  // DamageableComponent
+  lua.new_usertype<components::DamageableComponent>(
+      "DamageableComponent", "damage", &components::DamageableComponent::damage,
+      "faction", &components::DamageableComponent::faction, "owner_id",
+      &components::DamageableComponent::owner_id);
+
+  // PlayerComponent
+  lua.new_usertype<components::PlayerComponent>(
+      "PlayerComponent", "player_id", &components::PlayerComponent::player_id,
+      "score", &components::PlayerComponent::score, "lives",
+      &components::PlayerComponent::lives, "player_slot",
+      &components::PlayerComponent::player_slot);
+
+  // ScoreValueComponent
+  lua.new_usertype<components::ScoreValueComponent>(
+      "ScoreValueComponent", "points",
+      &components::ScoreValueComponent::points, "claimed",
+      &components::ScoreValueComponent::claimed);
+
+  // DropsPowerupComponent
+  lua.new_usertype<components::DropsPowerupComponent>("DropsPowerupComponent");
+
+  // TagComponent (Engine)
+  lua.new_usertype<engine::ecs::TagComponent>(
+      "TagComponent", "tag", &engine::ecs::TagComponent::tag);
+
+  // WeaponComponent
   lua.new_usertype<components::WeaponComponent>(
       "WeaponComponent", "weapon_script",
       &components::WeaponComponent::weapon_script, "is_trigger_held",
@@ -65,6 +103,70 @@ void BindRuntimeTypes(sol::state& lua,
       &components::WeaponComponent::fire, "can_fire_big",
       &components::WeaponComponent::can_fire_big, "fire_big",
       &components::WeaponComponent::fire_big);
+
+  // --- Helper Getters ---
+
+  lua.set_function("GetHealth",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> components::HealthComponent* {
+                     auto& pool =
+                         r.GetComponents<components::HealthComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetDamageable",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> components::DamageableComponent* {
+                     auto& pool =
+                         r.GetComponents<components::DamageableComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetPlayer",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> components::PlayerComponent* {
+                     auto& pool =
+                         r.GetComponents<components::PlayerComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetTag",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> engine::ecs::TagComponent* {
+                     auto& pool = r.GetComponents<engine::ecs::TagComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetScoreValue",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> components::ScoreValueComponent* {
+                     auto& pool =
+                         r.GetComponents<components::ScoreValueComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetDropsPowerup",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> components::DropsPowerupComponent* {
+                     auto& pool =
+                         r.GetComponents<components::DropsPowerupComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
+
+  lua.set_function("GetPosition",
+                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
+                       -> engine::ecs::PositionComponent* {
+                     auto& pool =
+                         r.GetComponents<engine::ecs::PositionComponent>();
+                     if (e < pool.size() && pool[e]) return &pool[e].value();
+                     return nullptr;
+                   });
 
   lua.set_function(
       "GetNearestPlayerPosition",

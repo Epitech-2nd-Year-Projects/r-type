@@ -15,6 +15,10 @@
 #include "engine/time/time_delta.h"
 #include "game_logic/components/damageable_component.h"
 
+namespace engine::scripting {
+class ScriptEngine;
+}
+
 namespace game_logic::systems {
 
 /**
@@ -42,7 +46,9 @@ class CollisionSystem : public engine::ecs::ISystem {
   static constexpr std::string_view kPlayerTag = "Player";
   static constexpr std::string_view kEnemyTag = "Enemy";
 
-  CollisionSystem(engine::event::EventBus& event_bus, float cell_size = 100.0f);
+  CollisionSystem(engine::event::EventBus& event_bus,
+                  engine::scripting::ScriptEngine& script_engine,
+                  float cell_size = 100.0f);
   ~CollisionSystem() override = default;
 
   /**
@@ -53,6 +59,7 @@ class CollisionSystem : public engine::ecs::ISystem {
 
  private:
   engine::event::EventBus& event_bus_;
+  engine::scripting::ScriptEngine& script_engine_;
   engine::data_structures::SpatialGrid<engine::ecs::EntityId> grid_;
 
   /**
