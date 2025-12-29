@@ -240,7 +240,6 @@ void MainMenuScene::DrawVersion(engine::render::Renderer2D& renderer) {
   if (version_text_.empty()) {
     return;
   }
-  renderer.SetFont(std::string(constants::ui::kBodyFont));
   const float font_size = constants::ui::MainMenu::kVersionFontSize;
   const auto text_size = renderer.MeasureText(version_text_, font_size);
   const auto window_size = context_.Window().GetSize();
