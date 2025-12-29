@@ -10,7 +10,6 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
-#include "engine/scripting/script_engine.h"
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/constants.h"
@@ -20,35 +19,19 @@ namespace game_logic::systems {
 CollisionSystem::CollisionSystem(engine::event::EventBus& event_bus,
                                  engine::scripting::ScriptEngine& script_engine,
                                  float cell_size)
-    : event_bus_(event_bus),
-      script_engine_(script_engine),
-      grid_(cell_size) {}
+    : event_bus_(event_bus), script_engine_(script_engine), grid_(cell_size) {}
 
 bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
                                            const engine::math::RectF& b) {
   return a.Intersects(b);
 }
 
-void CollisionSystem::ResolveCollision(engine::ecs::Registry&,
+void CollisionSystem::ResolveCollision(engine::ecs::Registry& registry,
                                        engine::ecs::EntityId e1,
                                        engine::ecs::EntityId e2) {
-  sol::state& lua = script_engine_.LuaState();
-  sol::table game_events = lua["GameEvents"];
-  if (game_events.valid()) {
-    sol::function handle_collision = game_events["HandleCollision"];
-    if (handle_collision.valid()) {
-      handle_collision(e1, e2);
-    }
-  }
-
-  // Still publish event for other systems (Audio etc.)
+  script_engine_.OnCollision(e1, e2);
   event_bus_.Publish(EntityCollisionEvent{e1, e2});
 }
-
-// Deprecated / Unused logic removed
-void CollisionSystem::ResolveProjectile(
-    engine::ecs::Registry&, engine::ecs::EntityId, engine::ecs::EntityId,
-    const game_logic::components::DamageableComponent&) {}
 
 void CollisionSystem::Update(engine::ecs::Registry& registry,
                              engine::time::TimeDelta) {
