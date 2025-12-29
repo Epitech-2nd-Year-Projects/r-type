@@ -175,6 +175,7 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
 
           weapon.set_unlimited_ammo();
           weapon.is_trigger_held = t["trigger_held"].get_or(false);
+          weapon.weapon_script = t["weapon_script"].get_or(std::string(""));
           weapon.faction =
               static_cast<entities::ProjectileFaction>(t["faction"].get_or(0));
 
