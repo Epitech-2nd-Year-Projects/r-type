@@ -19,7 +19,7 @@ namespace {
 constexpr const char kFallbackVersion[] = "v0.0.0";
 
 std::string LoadVersionValue() {
-  std::ifstream file(std::string(constants::client::kVersionConfigPath));
+  std::ifstream file(std::string{constants::client::kVersionConfigPath});
   if (!file.is_open()) {
     return kFallbackVersion;
   }
