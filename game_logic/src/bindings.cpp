@@ -7,15 +7,13 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/zipper.h"
 #include "game_logic/components/ai_component.h"
-#include "engine/ecs/components/tag_component.h"
 #include "game_logic/components/damageable_component.h"
-#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
+#include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
 #include "game_logic/components/sprite_component.h"
 #include "game_logic/components/weapon_component.h"
-#include "engine/ecs/components/position_component.h"
 #include "game_logic/game_instance.h"
 
 namespace game_logic {
@@ -32,44 +30,36 @@ void BindRuntimeTypes(sol::state& lua,
       &components::AIComponent::wave_amplitude, "wave_frequency",
       &components::AIComponent::wave_frequency);
 
-
-  // HealthComponent
   lua.new_usertype<components::HealthComponent>(
       "HealthComponent", "current_health",
       &components::HealthComponent::current_health, "max_health",
-      &components::HealthComponent::max_health, "invulnerable",
-      &components::HealthComponent::invulnerable, "last_attacker_id",
-      &components::HealthComponent::last_attacker_id, "take_damage",
-      &components::HealthComponent::take_damage, "is_alive",
-      &components::HealthComponent::is_alive);
+      &components::HealthComponent::max_health, "is_alive",
+      &components::HealthComponent::is_alive, "take_damage",
+      &components::HealthComponent::take_damage);
 
-  // DamageableComponent
   lua.new_usertype<components::DamageableComponent>(
       "DamageableComponent", "damage", &components::DamageableComponent::damage,
-      "faction", &components::DamageableComponent::faction, "owner_id",
-      &components::DamageableComponent::owner_id);
+      "faction", &components::DamageableComponent::faction);
 
-  // PlayerComponent
-  lua.new_usertype<components::PlayerComponent>(
-      "PlayerComponent", "player_id", &components::PlayerComponent::player_id,
-      "score", &components::PlayerComponent::score, "lives",
-      &components::PlayerComponent::lives, "player_slot",
-      &components::PlayerComponent::player_slot);
-
-  // ScoreValueComponent
-  lua.new_usertype<components::ScoreValueComponent>(
-      "ScoreValueComponent", "points",
-      &components::ScoreValueComponent::points, "claimed",
-      &components::ScoreValueComponent::claimed);
-
-  // DropsPowerupComponent
   lua.new_usertype<components::DropsPowerupComponent>("DropsPowerupComponent");
 
-  // TagComponent (Engine)
-  lua.new_usertype<engine::ecs::TagComponent>(
-      "TagComponent", "tag", &engine::ecs::TagComponent::tag);
+  lua.new_usertype<components::PlayerComponent>(
+      "PlayerComponent", "player_id", &components::PlayerComponent::player_id,
+      "room_id", &components::PlayerComponent::room_id, "player_slot",
+      sol::property(
+          [](components::PlayerComponent& p) {
+            return static_cast<uint32_t>(p.player_slot);
+          },
+          [](components::PlayerComponent& p, uint32_t v) {
+            p.player_slot = static_cast<uint8_t>(v);
+          }),
+      "lives", &components::PlayerComponent::lives, "score",
+      &components::PlayerComponent::score);
 
-  // WeaponComponent
+  lua.new_usertype<components::ScoreValueComponent>(
+      "ScoreValueComponent", "points", &components::ScoreValueComponent::points,
+      "claimed", &components::ScoreValueComponent::claimed);
+
   lua.new_usertype<components::WeaponComponent>(
       "WeaponComponent", "weapon_script",
       &components::WeaponComponent::weapon_script, "is_trigger_held",
@@ -104,69 +94,71 @@ void BindRuntimeTypes(sol::state& lua,
       &components::WeaponComponent::can_fire_big, "fire_big",
       &components::WeaponComponent::fire_big);
 
-  // --- Helper Getters ---
+  sol::usertype<engine::ecs::Registry> registry_type = lua["Registry"];
+  registry_type["get_health"] = [](engine::ecs::Registry& r,
+                                   engine::ecs::EntityId e)
+      -> std::optional<components::HealthComponent*> {
+    try {
+      auto& sparse = r.GetComponents<components::HealthComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
 
-  lua.set_function("GetHealth",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> components::HealthComponent* {
-                     auto& pool =
-                         r.GetComponents<components::HealthComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
+  registry_type["get_damageable"] = [](engine::ecs::Registry& r,
+                                       engine::ecs::EntityId e)
+      -> std::optional<components::DamageableComponent> {
+    try {
+      auto& sparse = r.GetComponents<components::DamageableComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
 
-  lua.set_function("GetDamageable",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> components::DamageableComponent* {
-                     auto& pool =
-                         r.GetComponents<components::DamageableComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
+  registry_type["get_player"] = [](engine::ecs::Registry& r,
+                                   engine::ecs::EntityId e)
+      -> std::optional<components::PlayerComponent*> {
+    try {
+      auto& sparse = r.GetComponents<components::PlayerComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
 
-  lua.set_function("GetPlayer",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> components::PlayerComponent* {
-                     auto& pool =
-                         r.GetComponents<components::PlayerComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
+  registry_type["get_score_value"] = [](engine::ecs::Registry& r,
+                                        engine::ecs::EntityId e)
+      -> std::optional<components::ScoreValueComponent*> {
+    try {
+      auto& sparse = r.GetComponents<components::ScoreValueComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
 
-  lua.set_function("GetTag",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> engine::ecs::TagComponent* {
-                     auto& pool = r.GetComponents<engine::ecs::TagComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
-
-  lua.set_function("GetScoreValue",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> components::ScoreValueComponent* {
-                     auto& pool =
-                         r.GetComponents<components::ScoreValueComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
-
-  lua.set_function("GetDropsPowerup",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> components::DropsPowerupComponent* {
-                     auto& pool =
-                         r.GetComponents<components::DropsPowerupComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
-
-  lua.set_function("GetPosition",
-                   [](engine::ecs::Registry& r, engine::ecs::EntityId e)
-                       -> engine::ecs::PositionComponent* {
-                     auto& pool =
-                         r.GetComponents<engine::ecs::PositionComponent>();
-                     if (e < pool.size() && pool[e]) return &pool[e].value();
-                     return nullptr;
-                   });
+  registry_type["get_drops_powerup"] = [](engine::ecs::Registry& r,
+                                          engine::ecs::EntityId e)
+      -> std::optional<components::DropsPowerupComponent*> {
+    try {
+      auto& sparse = r.GetComponents<components::DropsPowerupComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
 
   lua.set_function(
       "GetNearestPlayerPosition",
@@ -193,6 +185,41 @@ void BindRuntimeTypes(sol::state& lua,
           }
         }
         return std::make_tuple(found, target_x, target_y);
+      });
+
+  lua.set_function(
+      "AwardScoreToNearestPlayer",
+      [](engine::ecs::Registry& registry, const engine::math::Vector2f& pos,
+         std::uint32_t points) -> bool {
+        float min_dist_sq = std::numeric_limits<float>::max();
+        std::size_t nearest_entity = 0;
+        bool found = false;
+
+        auto& players = registry.GetComponents<components::PlayerComponent>();
+        auto& positions =
+            registry.GetComponents<engine::ecs::PositionComponent>();
+
+        for (auto [id, player, p] :
+             engine::ecs::IndexedZipper(players, positions)) {
+          float dx = p->position.x - pos.x;
+          float dy = p->position.y - pos.y;
+          float dist_sq = dx * dx + dy * dy;
+          if (dist_sq < min_dist_sq) {
+            min_dist_sq = dist_sq;
+            nearest_entity = id;
+            found = true;
+          }
+        }
+        if (found) {
+          auto& player_sparse =
+              registry.GetComponents<components::PlayerComponent>();
+          if (nearest_entity < player_sparse.size() &&
+              player_sparse[nearest_entity].has_value()) {
+            player_sparse[nearest_entity]->score += points;
+            return true;
+          }
+        }
+        return false;
       });
 
   lua.set_function(
