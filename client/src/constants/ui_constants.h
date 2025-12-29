@@ -66,6 +66,8 @@ struct MainMenu {
   static constexpr int kPointerFrameCount = 11;
   static constexpr std::string_view kTitleTexturePath =
       "assets/ui/main_menu_title.png";
+  static constexpr std::string_view kBackgroundVideoPath =
+      "assets/ui/main_menu_background.mp4";
 };
 
 /**
