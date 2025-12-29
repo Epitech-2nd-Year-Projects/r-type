@@ -80,6 +80,11 @@ MainMenuScene::MainMenuScene(ClientContext& context)
   menu_effects_.Load();
   title_texture_ =
       assets.GetTexture(constants::ui::MainMenu::kTitleTexturePath);
+  const std::string background_path{
+      constants::ui::MainMenu::kBackgroundVideoPath};
+  background_media_ = LoadMediaEx(background_path.c_str(),
+                                  MEDIA_LOAD_NO_AUDIO | MEDIA_FLAG_LOOP);
+  background_media_loaded_ = IsMediaValid(background_media_);
 
   const auto white = engine::render::Color::White();
 
@@ -175,10 +180,20 @@ MainMenuScene::MainMenuScene(ClientContext& context)
   quit_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
 }
 
+MainMenuScene::~MainMenuScene() {
+  if (background_media_loaded_) {
+    UnloadMedia(&background_media_);
+  }
+}
+
 void MainMenuScene::Update(engine::time::TimeDelta dt) {
   auto& renderer = context_.Renderer();
   LayoutUi(renderer);
   auto& input = context_.Input();
+
+  if (background_media_loaded_) {
+    UpdateMediaEx(&background_media_, static_cast<double>(dt.as_seconds()));
+  }
 
   menu_effects_.Update(dt, input, ui_elements_);
 
@@ -190,6 +205,7 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
 void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
   LayoutUi(renderer);
 
+  DrawBackground();
   canvas_.Draw(renderer);
   DrawTitle(renderer);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
@@ -199,6 +215,45 @@ void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kBodyFont));
   menu_effects_.DrawPointers(renderer, ui_elements_);
   DrawVersion(renderer);
+}
+
+void MainMenuScene::DrawBackground() {
+  if (!background_media_loaded_) {
+    return;
+  }
+  if (background_media_.videoTexture.id == 0) {
+    return;
+  }
+  const auto window_size = context_.Window().GetSize();
+  const float window_width = static_cast<float>(window_size.x);
+  const float window_height = static_cast<float>(window_size.y);
+  if (window_width <= 0.0f || window_height <= 0.0f) {
+    return;
+  }
+  const float texture_width =
+      static_cast<float>(background_media_.videoTexture.width);
+  const float texture_height =
+      static_cast<float>(background_media_.videoTexture.height);
+  if (texture_width <= 0.0f || texture_height <= 0.0f) {
+    return;
+  }
+
+  Rectangle source{0.0f, 0.0f, texture_width, texture_height};
+  const float window_ratio = window_width / window_height;
+  const float texture_ratio = texture_width / texture_height;
+  if (texture_ratio > window_ratio) {
+    const float crop_width = texture_height * window_ratio;
+    source.x = (texture_width - crop_width) * 0.5f;
+    source.width = crop_width;
+  } else if (texture_ratio < window_ratio) {
+    const float crop_height = texture_width / window_ratio;
+    source.y = (texture_height - crop_height) * 0.5f;
+    source.height = crop_height;
+  }
+
+  Rectangle dest{0.0f, 0.0f, window_width, window_height};
+  DrawTexturePro(background_media_.videoTexture, source, dest, {0.0f, 0.0f},
+                 0.0f, WHITE);
 }
 
 void MainMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {

@@ -7,7 +7,18 @@ target("client_tests")
     add_defines("RTYPE_TESTING")
     add_files("client/*.cpp")
     add_files("../client/src/**.cpp|main.cpp")
-    add_includedirs("../client/src")
+    add_files("../third_party/raylib-media/src/rmedia.c")
+    add_includedirs("../client/src", "../third_party/raylib-media/src")
+    if is_plat("windows") then
+        local ffmpeg_dir = os.getenv("FFMPEG_DIR")
+        if ffmpeg_dir then
+            add_includedirs(path.join(ffmpeg_dir, "include"))
+            add_linkdirs(path.join(ffmpeg_dir, "lib"))
+        end
+        add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
+    else
+        add_syslinks("avcodec", "avformat", "avutil", "swresample", "swscale")
+    end
     add_deps("protocol", "engine", "game_logic")
     add_tests("client_tests")
 
