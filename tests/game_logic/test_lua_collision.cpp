@@ -1,143 +1,177 @@
 #include <gtest/gtest.h>
+
+#include <memory>
+
+#include "engine/ecs/components/position_component.h"
 #include "engine/ecs/registry.h"
 #include "engine/scripting/bindings.h"
 #include "engine/scripting/script_engine.h"
 #include "game_logic/bindings.h"
 #include "game_logic/components.h"
-#include "game_logic/components/health_component.h"
-#include "game_logic/components/damageable_component.h"
 #include "game_logic/components/player_component.h"
-#include "engine/ecs/components/tag_component.h"
+#include "game_logic/components/powerup_drop_component.h"
+#include "game_logic/systems/collision_system.h"
+
+using namespace engine::ecs;
+using namespace game_logic::components;
 
 class LuaCollisionTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    script_engine_ = std::make_unique<engine::scripting::ScriptEngine>();
-    script_engine_->Initialize();
-    registry_ = std::make_unique<engine::ecs::Registry>();
+    registry = std::make_unique<Registry>();
+    script_engine = std::make_unique<engine::scripting::ScriptEngine>();
 
-    engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
-    game_logic::BindRuntimeTypes(script_engine_->LuaState(), script_engine_->GetPrefabFactory());
-    
-    // Bind mock NotifyPlayerDeath
-    script_engine_->LuaState().set_function("NotifyPlayerDeath", 
-        [this](std::uint32_t id, std::uint8_t lives) {
-            last_death_id_ = id;
-            last_death_lives_ = lives;
-        });
+    script_engine->Initialize();
 
-    // Load game_events.lua manually since we don't have GameInstance/Config
-    // Assuming relative path from test runner... logic usually loads from absolute path or config
-    // Use absolute path for test stability
-    script_engine_->LoadScript("/Users/enzogallini/delivery/Tek3/R-TYPE/project/config/behaviors/game_events.lua");
-    
-#include "game_logic/components/score_value_component.h"
-#include "game_logic/components/powerup_drop_component.h"
-#include "engine/ecs/components/position_component.h"
+    script_engine->LuaState().set_function("SignalPlayerDeath",
+                                           [](uint32_t, uint32_t) {});
 
-// ... (existing includes)
+    engine::scripting::BindRegistry(script_engine->LuaState(), *registry);
+    game_logic::BindRuntimeTypes(script_engine->LuaState(),
+                                 script_engine->GetPrefabFactory());
 
-    registry_->RegisterComponent<game_logic::components::HealthComponent>();
-    registry_->RegisterComponent<game_logic::components::DamageableComponent>();
-    registry_->RegisterComponent<game_logic::components::PlayerComponent>();
-    registry_->RegisterComponent<engine::ecs::TagComponent>();
-    registry_->RegisterComponent<engine::ecs::PositionComponent>();
-    registry_->RegisterComponent<game_logic::components::ScoreValueComponent>();
-    registry_->RegisterComponent<game_logic::components::DropsPowerupComponent>();
+    registry->RegisterComponent<TagComponent>();
+    registry->RegisterComponent<HealthComponent>();
+    registry->RegisterComponent<DamageableComponent>();
+    registry->RegisterComponent<game_logic::components::PlayerComponent>();
+    registry
+        ->RegisterComponent<game_logic::components::DropsPowerupComponent>();
+    registry->RegisterComponent<engine::ecs::PositionComponent>();
+
+    script_engine->LoadScript(
+        "../../../../config/behaviors/collision_logic.lua");
+    script_engine->LoadScript("../../../../config/prefabs/powerups.lua");
   }
 
-  std::unique_ptr<engine::scripting::ScriptEngine> script_engine_;
-  std::unique_ptr<engine::ecs::Registry> registry_;
-  
-  std::uint32_t last_death_id_ = 0;
-  std::uint8_t last_death_lives_ = 0;
+  std::unique_ptr<Registry> registry;
+  std::unique_ptr<engine::scripting::ScriptEngine> script_engine;
 };
 
-TEST_F(LuaCollisionTest, CollisionDamageAndDeath) {
-    sol::state& lua = script_engine_->LuaState();
-    sol::table game_events = lua["GameEvents"];
-    ASSERT_TRUE(game_events.valid());
-    sol::function handle_collision = game_events["HandleCollision"];
-    ASSERT_TRUE(handle_collision.valid());
+TEST_F(LuaCollisionTest, PlayerCrashEnemyReducesHealth) {
+  auto player = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(player, "Player");
+  registry->EmplaceComponent<HealthComponent>(player, 100, 100);
+  registry->EmplaceComponent<game_logic::components::PlayerComponent>(player, 1,
+                                                                      0, 0);
 
-    // 1. Create Enemy
-    auto enemy = registry_->SpawnEntity();
-    registry_->EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");
-    registry_->EmplaceComponent<game_logic::components::HealthComponent>(enemy, 100);
+  auto enemy = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(enemy, "Enemy");
+  registry->EmplaceComponent<HealthComponent>(enemy, 50, 50);
 
-    // 2. Create Projectile (Player Faction)
-    auto projectile = registry_->SpawnEntity();
-    registry_->EmplaceComponent<game_logic::components::DamageableComponent>(projectile, 0, 50); // owner=0, damage=50
-    // Fix: DamageableComponent constructor(owner, damage) is (uint32, uint32).
-    // Constructor(owner, damage, faction) is (uint32, uint32, uint8).
-    // We want faction=0.
-    // game_logic::components::DamageableComponent has:
-    // DamageableComponent(std::uint32_t owner, std::uint32_t dmg) : owner_id(owner), damage(dmg) {}
-    // DamageableComponent(std::uint32_t owner, std::uint32_t dmg, std::uint8_t fac) ...
-    // Let's use explicit values: owner=0, damage=50, faction=0.
-    auto& dmg_comp = registry_->GetComponents<game_logic::components::DamageableComponent>()[projectile];
-    dmg_comp->faction = 0; // Explicitly set if constructor signature is tricky, but Emplace handles args.
-    // Actually, explicit constructor likely: EmplaceComponent<T>(entity, 0, 50, 0);
+  script_engine->OnCollision(player, enemy);
+  auto* p_health =
+      registry->GetComponents<HealthComponent>()[player].has_value()
+          ? &registry->GetComponents<HealthComponent>()[player].value()
+          : nullptr;
+  auto* e_health =
+      registry->GetComponents<HealthComponent>()[enemy].has_value()
+          ? &registry->GetComponents<HealthComponent>()[enemy].value()
+          : nullptr;
+  auto* p_comp =
+      registry->GetComponents<game_logic::components::PlayerComponent>()[player]
+              .has_value()
+          ? &registry
+                 ->GetComponents<
+                     game_logic::components::PlayerComponent>()[player]
+                 .value()
+          : nullptr;
 
-    // 3. Simulate Collision
-    handle_collision(projectile, enemy);
+  ASSERT_NE(p_health, nullptr);
+  ASSERT_NE(p_comp, nullptr);
 
-    // 4. Verify Enemy took damage
-    auto& healths = registry_->GetComponents<game_logic::components::HealthComponent>();
-    ASSERT_TRUE(static_cast<size_t>(enemy) < healths.size() && healths[enemy].has_value());
-    EXPECT_EQ(healths[enemy]->current_health, 50);
+  EXPECT_EQ(p_health->current_health, 100);
+  EXPECT_EQ(p_comp->lives, 2);
 
-    // 5. Verify Projectile is killed
-    // Registry::KillEntity doesn't remove component immediately in some ECS? 
-    // Assuming R-Type custom ECS removes it from SparseArray or marks it.
-    // If implementation is deferred, we can't check immediately.
-    // But `KillEntity` in `registry.h` calls `component_deleters_`.
-    // Deleter calls `components.Erase`.
-    // `SparseArray::Erase` sets optional to nullopt.
-    // So checking `has_value()` should return false.
-    auto& damageables = registry_->GetComponents<game_logic::components::DamageableComponent>();
-    EXPECT_FALSE(static_cast<size_t>(projectile) < damageables.size() && damageables[projectile].has_value());
-
-    // 6. Projectile hits again to kill
-    auto projectile2 = registry_->SpawnEntity();
-    registry_->EmplaceComponent<game_logic::components::DamageableComponent>(projectile2, 0, 50, 0);
-    
-    handle_collision(projectile2, enemy);
-    
-    EXPECT_EQ(healths[enemy]->current_health, 0);
-    EXPECT_FALSE(healths[enemy]->is_alive());
-
-    // 7. Handle Death Logic
-    sol::function handle_death = game_events["HandleDeath"];
-    ASSERT_TRUE(handle_death.valid());
-    
-    handle_death(enemy);
-    
-    // Enemy should be killed
-    EXPECT_FALSE(static_cast<size_t>(enemy) < healths.size() && healths[enemy].has_value());
+  EXPECT_EQ(e_health, nullptr);
 }
 
-TEST_F(LuaCollisionTest, PlayerCrash) {
-    sol::state& lua = script_engine_->LuaState();
-    sol::table game_events = lua["GameEvents"];
-    sol::function handle_collision = game_events["HandleCollision"];
+TEST_F(LuaCollisionTest, ProjectileHitsTarget) {
+  auto enemy = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(enemy, "Enemy");
+  registry->EmplaceComponent<HealthComponent>(enemy, 50, 50);
 
-    auto player = registry_->SpawnEntity();
-    registry_->EmplaceComponent<engine::ecs::TagComponent>(player, "Player");
-    registry_->EmplaceComponent<game_logic::components::HealthComponent>(player, 100);
-    registry_->EmplaceComponent<game_logic::components::PlayerComponent>(player);
+  auto projectile = registry->SpawnEntity();
+  registry->EmplaceComponent<DamageableComponent>(projectile, 0, 25, 0);
 
-    auto enemy = registry_->SpawnEntity();
-    registry_->EmplaceComponent<engine::ecs::TagComponent>(enemy, "Enemy");
-    registry_->EmplaceComponent<game_logic::components::HealthComponent>(enemy, 100);
+  script_engine->OnCollision(projectile, enemy);
 
-    // Crash
-    handle_collision(player, enemy);
+  auto* e_health =
+      registry->GetComponents<HealthComponent>()[enemy].has_value()
+          ? &registry->GetComponents<HealthComponent>()[enemy].value()
+          : nullptr;
+  ASSERT_NE(e_health, nullptr);
+  EXPECT_EQ(e_health->current_health, 25);
+}
 
-    auto& healths = registry_->GetComponents<game_logic::components::HealthComponent>();
-    ASSERT_TRUE(static_cast<size_t>(player) < healths.size() && healths[player].has_value());
-    ASSERT_TRUE(static_cast<size_t>(enemy) < healths.size() && healths[enemy].has_value());
+TEST_F(LuaCollisionTest, PlayerRespawnInsteadOfDeath) {
+  auto player = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(player, "Player");
+  registry->EmplaceComponent<HealthComponent>(player, 100, 10);
+  registry->EmplaceComponent<game_logic::components::PlayerComponent>(player, 1,
+                                                                      0, 1);
+  registry->EmplaceComponent<engine::ecs::PositionComponent>(player, 0.0f,
+                                                             0.0f);
 
-    EXPECT_EQ(healths[player]->current_health, 0);
-    EXPECT_EQ(healths[enemy]->current_health, 0);
+  auto enemy = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(enemy, "Enemy");
+  registry->EmplaceComponent<HealthComponent>(enemy, 50, 50);
+
+  script_engine->OnCollision(player, enemy);
+
+  auto* p_health =
+      registry->GetComponents<HealthComponent>()[player].has_value()
+          ? &registry->GetComponents<HealthComponent>()[player].value()
+          : nullptr;
+  auto* p_comp =
+      registry->GetComponents<game_logic::components::PlayerComponent>()[player]
+              .has_value()
+          ? &registry
+                 ->GetComponents<
+                     game_logic::components::PlayerComponent>()[player]
+                 .value()
+          : nullptr;
+
+  ASSERT_NE(p_health, nullptr);
+  ASSERT_NE(p_comp, nullptr);
+
+  EXPECT_EQ(p_health->current_health, 100);
+  EXPECT_EQ(p_comp->lives, 2);
+
+  auto* p_pos =
+      registry->GetComponents<engine::ecs::PositionComponent>()[player]
+              .has_value()
+          ? &registry->GetComponents<engine::ecs::PositionComponent>()[player]
+                 .value()
+          : nullptr;
+  ASSERT_NE(p_pos, nullptr);
+  EXPECT_EQ(p_pos->position.x, 150.0f);
+  EXPECT_EQ(p_pos->position.y, 300.0f);
+}
+
+TEST_F(LuaCollisionTest, EnemyDropsPowerupOnDeath) {
+  auto enemy = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(enemy, "Enemy");
+  registry->EmplaceComponent<HealthComponent>(enemy, 50, 10);
+  registry->EmplaceComponent<game_logic::components::DropsPowerupComponent>(
+      enemy);
+  registry->EmplaceComponent<engine::ecs::PositionComponent>(enemy, 100.0f,
+                                                             200.0f);
+
+  auto projectile = registry->SpawnEntity();
+  registry->EmplaceComponent<DamageableComponent>(projectile, 0, 25, 0);
+
+  script_engine->OnCollision(projectile, enemy);
+
+  bool powerup_found = false;
+  auto& positions = registry->GetComponents<engine::ecs::PositionComponent>();
+  for (size_t i = 0; i < positions.size(); ++i) {
+    if (positions[i].has_value()) {
+      auto pos = positions[i]->position;
+      if (i != enemy && i != projectile && pos.x == 100.0f && pos.y == 200.0f) {
+        powerup_found = true;
+        break;
+      }
+    }
+  }
+  EXPECT_TRUE(powerup_found);
 }
