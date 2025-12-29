@@ -3,7 +3,8 @@
 
 #include "engine/ecs/component.h"
 #include "engine/ecs/registry.h"
-#include "engine/scripting/prefab_factory.h"
+#include "engine/ecs/system.h"
+#include "engine/scripting/script_engine.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/components.h"
 
@@ -13,26 +14,16 @@ namespace game_logic::systems {
  * @class WeaponSystem
  * @brief Handles weapon cooldowns and projectile spawning.
  */
-class WeaponSystem {
+class WeaponSystem : public engine::ecs::ISystem {
  public:
-  /**
-   * @brief ECS system update entry point.
-   *
-   * @param registry ECS registry
-   * @param positions Position components array
-   * @param weapons Weapon components array
-   * @param sprites Sprite components array
-   * @param dt Frame delta time
-   */
-  static void Update(
-      engine::ecs::Registry &registry,
-      engine::ecs::SparseArray<engine::ecs::PositionComponent> &positions,
-      engine::ecs::SparseArray<game_logic::components::WeaponComponent>
-          &weapons,
-      engine::ecs::SparseArray<game_logic::components::SpriteComponent>
-          &sprites,
-      engine::time::TimeDelta dt,
-      engine::scripting::PrefabFactory &prefab_factory);
+  explicit WeaponSystem(engine::scripting::ScriptEngine &script_engine);
+  ~WeaponSystem() override = default;
+
+  void Update(engine::ecs::Registry &registry,
+              engine::time::TimeDelta dt) override;
+
+ private:
+  engine::scripting::ScriptEngine &script_engine_;
 };
 
 }  // namespace game_logic::systems
