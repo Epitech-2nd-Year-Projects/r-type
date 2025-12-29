@@ -16,7 +16,8 @@
 
 namespace game_logic {
 
-void BindRuntimeTypes(sol::state& lua) {
+void BindRuntimeTypes(sol::state& lua,
+                      engine::scripting::PrefabFactory& factory) {
   lua.new_usertype<components::AIComponent>(
       "AIComponent", "behavior_name", &components::AIComponent::behavior_name,
       "speed", &components::AIComponent::speed, "patrol_min",
@@ -30,6 +31,40 @@ void BindRuntimeTypes(sol::state& lua) {
   lua.new_usertype<components::HealthComponent>(
       "HealthComponent", "health", &components::HealthComponent::current_health,
       "max_health", &components::HealthComponent::max_health);
+
+  lua.new_usertype<components::WeaponComponent>(
+      "WeaponComponent", "weapon_script",
+      &components::WeaponComponent::weapon_script, "is_trigger_held",
+      &components::WeaponComponent::is_trigger_held, "fire_rate",
+      &components::WeaponComponent::fire_rate, "cooldown_remaining",
+      sol::property(
+          [](components::WeaponComponent& w) {
+            return w.cooldown_remaining.as_seconds();
+          },
+          [](components::WeaponComponent& w, float v) {
+            w.cooldown_remaining = engine::time::TimeDelta::from_seconds(v);
+          }),
+      "is_big_trigger_held", &components::WeaponComponent::is_big_trigger_held,
+      "big_shot_cooldown_remaining",
+      sol::property(
+          [](components::WeaponComponent& w) {
+            return w.big_shot_cooldown_remaining.as_seconds();
+          },
+          [](components::WeaponComponent& w, float v) {
+            w.big_shot_cooldown_remaining =
+                engine::time::TimeDelta::from_seconds(v);
+          }),
+      "projectile_prefab", &components::WeaponComponent::projectile_prefab,
+      "projectile_speed", &components::WeaponComponent::projectile_speed,
+      "big_projectile_prefab",
+      &components::WeaponComponent::big_projectile_prefab,
+      "big_projectile_speed",
+      &components::WeaponComponent::big_projectile_speed, "faction",
+      &components::WeaponComponent::faction, "can_fire",
+      &components::WeaponComponent::can_fire, "fire",
+      &components::WeaponComponent::fire, "can_fire_big",
+      &components::WeaponComponent::can_fire_big, "fire_big",
+      &components::WeaponComponent::fire_big);
 
   lua.set_function(
       "GetNearestPlayerPosition",
@@ -56,6 +91,20 @@ void BindRuntimeTypes(sol::state& lua) {
           }
         }
         return std::make_tuple(found, target_x, target_y);
+      });
+
+  lua.set_function(
+      "Spawn",
+      [&factory](engine::ecs::Registry& registry,
+                 const std::string& prefab_name, float x,
+                 float y) -> std::optional<engine::ecs::EntityId> {
+        auto opt_ent = factory.Spawn(registry, prefab_name);
+        if (opt_ent) {
+          registry.EmplaceComponent<engine::ecs::PositionComponent>(*opt_ent, x,
+                                                                    y);
+          return *opt_ent;
+        }
+        return std::nullopt;
       });
 }
 
