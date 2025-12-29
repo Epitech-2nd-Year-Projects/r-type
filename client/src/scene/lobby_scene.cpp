@@ -14,9 +14,10 @@ namespace client {
 LobbyScene::LobbyScene(ClientContext& context)
     : context_(context),
       controller_(context, [this]() { modal_.OpenCreate(); }),
-      room_list_view_([this](const protocol::RoomSummary& room) {
-        HandleRoomSelected(room);
-      }),
+      room_list_view_(context,
+                      [this](const protocol::RoomSummary& room) {
+                        HandleRoomSelected(room);
+                      }),
       modal_(
           [this](const std::string& room_name,
                  const std::string& max_players_text, bool is_private,
