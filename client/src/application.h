@@ -13,6 +13,9 @@ class AudioController;
 class ClientAssetManager;
 class ClientRuntime;
 class InputCoordinator;
+namespace ui {
+class MenuBackground;
+}
 struct NetworkEvents;
 class NetworkSession;
 class SceneManager;
@@ -51,6 +54,10 @@ class Application : public ClientContext {
    * @brief Access the asset manager
    */
   ClientAssetManager& Assets() override;
+  /**
+   * @brief Access shared menu background
+   */
+  ui::MenuBackground& MenuBackground() override;
   engine::util::Configuration& Config() override;
   void OnPlay() override;
   void OnOpenSettings() override;
@@ -89,6 +96,7 @@ class Application : public ClientContext {
 
   ClientConfig config_{};
   std::unique_ptr<ClientRuntime> runtime_;
+  std::unique_ptr<ui::MenuBackground> menu_background_;
   std::unique_ptr<SceneManager> scene_manager_;
   std::unique_ptr<AudioController> audio_;
   std::unique_ptr<ClientAssetManager> assets_;
