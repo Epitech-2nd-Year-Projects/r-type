@@ -24,6 +24,7 @@ Prefabs.Scout = {
         damage = 35,
         faction = 1,
         trigger_held = true,
+        weapon_script = "BasicEnemyWeapon",
     }
 }
 
