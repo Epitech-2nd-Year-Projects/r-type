@@ -82,8 +82,8 @@ MainMenuScene::MainMenuScene(ClientContext& context)
       assets.GetTexture(constants::ui::MainMenu::kTitleTexturePath);
   const std::string background_path{
       constants::ui::MainMenu::kBackgroundVideoPath};
-  background_media_ = LoadMediaEx(
-      background_path.c_str(), MEDIA_LOAD_NO_AUDIO | MEDIA_FLAG_LOOP);
+  background_media_ = LoadMediaEx(background_path.c_str(),
+                                  MEDIA_LOAD_NO_AUDIO | MEDIA_FLAG_LOOP);
   background_media_loaded_ = IsMediaValid(background_media_);
 
   const auto white = engine::render::Color::White();
@@ -192,8 +192,7 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
   auto& input = context_.Input();
 
   if (background_media_loaded_) {
-    UpdateMediaEx(&background_media_,
-                  static_cast<double>(dt.as_seconds()));
+    UpdateMediaEx(&background_media_, static_cast<double>(dt.as_seconds()));
   }
 
   menu_effects_.Update(dt, input, ui_elements_);
