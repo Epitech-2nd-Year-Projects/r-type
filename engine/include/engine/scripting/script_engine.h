@@ -142,6 +142,14 @@ class ScriptEngine {
    * @param path Path to the script.
    */
   void ReloadScript(const std::string& path);
+
+ public:
+  /**
+   * @brief Check if OnCollision function exists in Lua and call it.
+   * @param e1 First entity involved in collision.
+   * @param e2 Second entity involved in collision.
+   */
+  void OnCollision(ecs::EntityId e1, ecs::EntityId e2);
 };
 
 }  // namespace engine::scripting
