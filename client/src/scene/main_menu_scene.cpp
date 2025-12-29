@@ -1,10 +1,13 @@
 #include "main_menu_scene.h"
 
 #include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <string>
 
 #include "client_asset_manager.h"
 #include "client_context.h"
+#include "constants/client_constants.h"
 #include "constants/ui_constants.h"
 #include "engine/math/rect.h"
 #include "engine/render/renderer2d.h"
@@ -12,6 +15,42 @@
 namespace client {
 
 namespace {
+
+constexpr const char kFallbackVersion[] = "v0.0.0";
+
+std::string LoadVersionValue() {
+  std::ifstream file(std::string(constants::client::kVersionConfigPath));
+  if (!file.is_open()) {
+    return kFallbackVersion;
+  }
+
+  nlohmann::json doc;
+  try {
+    file >> doc;
+  } catch (const std::exception&) {
+    return kFallbackVersion;
+  }
+
+  if (!doc.is_object() || !doc.contains("version")) {
+    return kFallbackVersion;
+  }
+
+  const auto& version_value = doc["version"];
+  if (!version_value.is_string()) {
+    return kFallbackVersion;
+  }
+
+  const auto version = version_value.get<std::string>();
+  if (version.empty()) {
+    return kFallbackVersion;
+  }
+
+  return version;
+}
+
+std::string BuildVersionLabel() {
+  return std::string("Version ") + LoadVersionValue();
+}
 
 ui::MenuPointerConfig MainMenuPointerConfig() {
   return ui::MenuPointerConfig{constants::ui::kMenuPointerFramePrefix,
@@ -29,7 +68,8 @@ MainMenuScene::MainMenuScene(ClientContext& context)
     : context_(context),
       menu_effects_(context, MainMenuPointerConfig(),
                     constants::ui::kMenuHoverSfxPath,
-                    constants::ui::kMenuClickSfxPath) {
+                    constants::ui::kMenuClickSfxPath),
+      version_text_(BuildVersionLabel()) {
   auto& renderer = context_.Renderer();
   auto& assets = context_.Assets();
 
@@ -158,6 +198,7 @@ void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
   }
   renderer.SetFont(std::string(constants::ui::kBodyFont));
   menu_effects_.DrawPointers(renderer, ui_elements_);
+  DrawVersion(renderer);
 }
 
 void MainMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
@@ -193,6 +234,21 @@ void MainMenuScene::DrawTitle(engine::render::Renderer2D& renderer) {
   params.position = {x, y};
   params.scale = {draw_scale, draw_scale};
   renderer.DrawTexture(*title_texture_, params);
+}
+
+void MainMenuScene::DrawVersion(engine::render::Renderer2D& renderer) {
+  if (version_text_.empty()) {
+    return;
+  }
+  renderer.SetFont(std::string(constants::ui::kBodyFont));
+  const float font_size = constants::ui::MainMenu::kVersionFontSize;
+  const auto text_size = renderer.MeasureText(version_text_, font_size);
+  const auto window_size = context_.Window().GetSize();
+  const float x = constants::ui::MainMenu::kVersionPaddingX;
+  const float y = static_cast<float>(window_size.y) -
+                  constants::ui::MainMenu::kVersionPaddingBottom - text_size.y;
+  renderer.DrawText(version_text_, {x, y}, font_size,
+                    constants::ui::MainMenu::kVersionColor);
 }
 
 }  // namespace client
