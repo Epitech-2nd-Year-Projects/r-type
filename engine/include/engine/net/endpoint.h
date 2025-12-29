@@ -15,6 +15,9 @@
 #ifndef NOGDI
 #define NOGDI
 #endif
+#ifndef NOUSER
+#define NOUSER
+#endif
 #endif
 
 #include <asio.hpp>
