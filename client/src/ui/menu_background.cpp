@@ -1,0 +1,61 @@
+#include "ui/menu_background.h"
+
+namespace client::ui {
+
+MenuBackground::MenuBackground(std::string_view video_path)
+    : video_path_(video_path) {
+  media_ =
+      LoadMediaEx(video_path_.c_str(), MEDIA_LOAD_NO_AUDIO | MEDIA_FLAG_LOOP);
+  media_loaded_ = IsMediaValid(media_);
+}
+
+MenuBackground::~MenuBackground() {
+  if (media_loaded_) {
+    UnloadMedia(&media_);
+  }
+}
+
+void MenuBackground::Update(engine::time::TimeDelta dt) {
+  if (!media_loaded_) {
+    return;
+  }
+  UpdateMediaEx(&media_, static_cast<double>(dt.as_seconds()));
+}
+
+void MenuBackground::Draw(const engine::render::Window& window) const {
+  if (!media_loaded_) {
+    return;
+  }
+  if (media_.videoTexture.id == 0) {
+    return;
+  }
+  const auto window_size = window.GetSize();
+  const float window_width = static_cast<float>(window_size.x);
+  const float window_height = static_cast<float>(window_size.y);
+  if (window_width <= 0.0f || window_height <= 0.0f) {
+    return;
+  }
+  const float texture_width = static_cast<float>(media_.videoTexture.width);
+  const float texture_height = static_cast<float>(media_.videoTexture.height);
+  if (texture_width <= 0.0f || texture_height <= 0.0f) {
+    return;
+  }
+
+  Rectangle source{0.0f, 0.0f, texture_width, texture_height};
+  const float window_ratio = window_width / window_height;
+  const float texture_ratio = texture_width / texture_height;
+  if (texture_ratio > window_ratio) {
+    const float crop_width = texture_height * window_ratio;
+    source.x = (texture_width - crop_width) * 0.5f;
+    source.width = crop_width;
+  } else if (texture_ratio < window_ratio) {
+    const float crop_height = texture_width / window_ratio;
+    source.y = (texture_height - crop_height) * 0.5f;
+    source.height = crop_height;
+  }
+
+  Rectangle dest{0.0f, 0.0f, window_width, window_height};
+  DrawTexturePro(media_.videoTexture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+}  // namespace client::ui
