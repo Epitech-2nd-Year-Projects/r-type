@@ -17,7 +17,8 @@ class LuaAITest : public ::testing::Test {
     script_engine_->Initialize();
 
     engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
-    game_logic::BindRuntimeTypes(script_engine_->LuaState());
+    game_logic::BindRuntimeTypes(script_engine_->LuaState(),
+                                 script_engine_->GetPrefabFactory());
 
     registry_->RegisterComponent<engine::ecs::PositionComponent>();
     registry_->RegisterComponent<engine::ecs::VelocityComponent>();
