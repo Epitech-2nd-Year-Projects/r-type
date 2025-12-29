@@ -44,6 +44,9 @@ class Configuration;
 namespace client {
 
 class ClientAssetManager;
+namespace ui {
+class MenuBackground;
+}
 
 /**
  * @brief Service container for client scenes
@@ -94,6 +97,11 @@ class ClientContext {
    * @brief Access the asset manager
    */
   virtual ClientAssetManager& Assets() = 0;
+
+  /**
+   * @brief Access shared menu background
+   */
+  virtual ui::MenuBackground& MenuBackground() = 0;
 
   /**
    * @brief Access runtime configuration
