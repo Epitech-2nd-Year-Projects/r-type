@@ -5,7 +5,9 @@
 #include <utility>
 
 #include "client_asset_manager.h"
+#include "client_context.h"
 #include "constants/ui_constants.h"
+#include "ui/menu_background.h"
 
 namespace client {
 
@@ -33,11 +35,13 @@ std::size_t HashRooms(const std::vector<protocol::RoomSummary>& rooms) {
 }  // namespace
 
 LobbyRoomListView::LobbyRoomListView(
+    ClientContext& context,
     std::function<void(const protocol::RoomSummary&)> on_room_selected)
-    : on_room_selected_(std::move(on_room_selected)) {}
+    : context_(context), on_room_selected_(std::move(on_room_selected)) {}
 
 void LobbyRoomListView::Update(engine::time::TimeDelta dt,
                                engine::input::InputManager& input) {
+  context_.MenuBackground().Update(dt);
   for (auto& button : room_buttons_) {
     button->Update(dt, input);
   }
@@ -63,6 +67,7 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
 
 void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
                              std::string_view status_text) const {
+  context_.MenuBackground().Draw(context_.Window());
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   renderer.DrawText("Available rooms", title_pos_,
                     constants::ui::Lobby::kListTitleFontSize,
