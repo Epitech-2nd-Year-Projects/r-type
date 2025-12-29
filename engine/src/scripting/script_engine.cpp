@@ -127,4 +127,17 @@ void ScriptEngine::ReloadScript(const std::string& path) {
   }
 }
 
+void ScriptEngine::OnCollision(ecs::EntityId e1, ecs::EntityId e2) {
+  if (!lua_) return;
+
+  sol::protected_function on_collision = (*lua_)["OnCollision"];
+  if (on_collision.valid()) {
+    auto result = on_collision(e1, e2);
+    if (!result.valid()) {
+      sol::error err = result;
+      ENGINE_LOG_ERROR("Lua OnCollision Error: {}", err.what());
+    }
+  }
+}
+
 }  // namespace engine::scripting
