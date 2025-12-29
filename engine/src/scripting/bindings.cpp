@@ -5,6 +5,7 @@
 #include "engine/audio/audio_engine.h"
 #include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
@@ -65,6 +66,9 @@ void BindTypes(sol::state& lua) {
 
   lua.new_usertype<ecs::EntityId>("EntityId");
 
+  lua.new_usertype<ecs::TagComponent>("TagComponent", "tag",
+                                      &ecs::TagComponent::tag);
+
   lua.new_usertype<ecs::PositionComponent>(
       "PositionComponent",
       sol::constructors<ecs::PositionComponent(float, float),
@@ -83,6 +87,18 @@ void BindTypes(sol::state& lua) {
   lua.new_usertype<ecs::Registry>(
       "Registry", sol::no_constructor, "create_entity",
       &ecs::Registry::SpawnEntity, "kill_entity", &ecs::Registry::KillEntity,
+
+      "get_tag",
+      [](ecs::Registry& r, ecs::EntityId e) -> std::optional<std::string> {
+        try {
+          auto& sparse = r.GetComponents<ecs::TagComponent>();
+          if (e < sparse.size() && sparse[e].has_value()) {
+            return sparse[e]->tag;
+          }
+        } catch (...) {
+        }
+        return std::nullopt;
+      },
 
       "add_position",
       [](ecs::Registry& r, ecs::EntityId e, float x, float y) {
