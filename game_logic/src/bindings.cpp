@@ -250,6 +250,11 @@ void BindRuntimeTypes(sol::state& lua,
         return false;
       });
 
+  lua.set_function("AddDropsPowerup", [](engine::ecs::Registry& registry,
+                                         engine::ecs::EntityId entity) {
+    registry.EmplaceComponent<components::DropsPowerupComponent>(entity);
+  });
+
   lua.set_function(
       "Spawn",
       [&factory](engine::ecs::Registry& registry,
