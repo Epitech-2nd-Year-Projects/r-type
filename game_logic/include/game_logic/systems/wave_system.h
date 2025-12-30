@@ -18,18 +18,6 @@ namespace game_logic::systems {
 /**
  * @brief Defines a single enemy spawn event
  */
-struct WaveEntry {
-  float spawn_time{0.0f};
-  std::string type{"Scout"};
-  engine::math::Vector2f position{0.0f, 0.0f};
-  bool random_y{false};
-  bool drops_powerup{false};
-};
-
-/**
- * @class WaveSystem
- * @brief Manages timed spawning of enemy waves.
- */
 class WaveSystem : public engine::ecs::ISystem {
  public:
   explicit WaveSystem(GameInstance &game_instance);
@@ -48,15 +36,7 @@ class WaveSystem : public engine::ecs::ISystem {
   void LoadLevel(int level_id);
 
  private:
-  float current_wave_time_{0.0f};
-  std::deque<WaveEntry> pending_spawns_;
-  int current_level_{1};
-  bool waiting_for_next_level_{false};
-  float level_finished_timer_{0.0f};
-
   GameInstance &game_instance_;
-
-  // Random Number Generation
   std::mt19937 rng_;
 };
 
