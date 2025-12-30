@@ -209,20 +209,25 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::PowerupComponent powerup;
-          std::string type = t["type"].get_or(std::string("Health"));
 
-          if (type == "Health")
-            powerup.type = components::PowerupType::kHealth;
-          else if (type == "WeaponUpgrade")
-            powerup.type = components::PowerupType::kWeaponUpgrade;
-          else if (type == "SpeedBoost")
-            powerup.type = components::PowerupType::kSpeedBoost;
-          else if (type == "Shield")
-            powerup.type = components::PowerupType::kShield;
-          else if (type == "ExtraLife")
-            powerup.type = components::PowerupType::kExtraLife;
-          else if (type == "Score")
-            powerup.type = components::PowerupType::kScore;
+          if (t["type"].valid() && t["type"].is<components::PowerupType>()) {
+            powerup.type = t["type"].get<components::PowerupType>();
+          } else {
+            std::string type = t["type"].get_or(std::string("Health"));
+
+            if (type == "Health")
+              powerup.type = components::PowerupType::kHealth;
+            else if (type == "WeaponUpgrade")
+              powerup.type = components::PowerupType::kWeaponUpgrade;
+            else if (type == "SpeedBoost")
+              powerup.type = components::PowerupType::kSpeedBoost;
+            else if (type == "Shield")
+              powerup.type = components::PowerupType::kShield;
+            else if (type == "ExtraLife")
+              powerup.type = components::PowerupType::kExtraLife;
+            else if (type == "Score")
+              powerup.type = components::PowerupType::kScore;
+          }
 
           powerup.value = t["value"].get_or(0);
           r.AddComponent<components::PowerupComponent>(e, std::move(powerup));
