@@ -4,8 +4,10 @@
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
-#include <psapi.h>
+// clang-format off
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 #elif defined(__linux__)
 #include <sys/resource.h>
 #include <unistd.h>
