@@ -10,7 +10,9 @@
 #include "engine/data_structures/spatial_grid.h"
 #include "engine/ecs/entity_id.h"
 #include "engine/ecs/system.h"
+#include "engine/event.h"
 #include "engine/math/rect.h"
+#include "engine/scripting/script_engine.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/components/damageable_component.h"
 
@@ -28,12 +30,22 @@ namespace game_logic::systems {
  * - PlayerProjectile <-> Enemy
  * - EnemyProjectile <-> Player
  */
+/**
+ * @brief Event emitted when two entities overlap
+ */
+struct EntityCollisionEvent {
+  engine::ecs::EntityId entity_a;
+  engine::ecs::EntityId entity_b;
+};
+
 class CollisionSystem : public engine::ecs::ISystem {
  public:
   static constexpr std::string_view kPlayerTag = "Player";
   static constexpr std::string_view kEnemyTag = "Enemy";
 
-  CollisionSystem(float cell_size = 100.0f);
+  CollisionSystem(engine::event::EventBus& event_bus,
+                  engine::scripting::ScriptEngine& script_engine,
+                  float cell_size = 100.0f);
   ~CollisionSystem() override = default;
 
   /**
@@ -43,6 +55,8 @@ class CollisionSystem : public engine::ecs::ISystem {
               engine::time::TimeDelta dt) override;
 
  private:
+  engine::event::EventBus& event_bus_;
+  engine::scripting::ScriptEngine& script_engine_;
   engine::data_structures::SpatialGrid<engine::ecs::EntityId> grid_;
 
   /**
@@ -60,19 +74,6 @@ class CollisionSystem : public engine::ecs::ISystem {
    */
   void ResolveCollision(engine::ecs::Registry& registry,
                         engine::ecs::EntityId e1, engine::ecs::EntityId e2);
-
-  /**
-   * @brief Resolves collision involving a projectile.
-   * Handles applying damage and destroying the projectile.
-   * @param registry The ECS registry.
-   * @param proj projectil entity ID.
-   * @param target Target entity ID.
-   * @param damageable Damage attributes of the projectile owner/faction.
-   */
-  void ResolveProjectile(
-      engine::ecs::Registry& registry, engine::ecs::EntityId proj,
-      engine::ecs::EntityId target,
-      const game_logic::components::DamageableComponent& damageable);
 };
 
 }  // namespace game_logic::systems

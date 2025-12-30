@@ -9,13 +9,17 @@
 #include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
+#include "engine/event.h"
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/constants.h"
 
 namespace game_logic::systems {
 
-CollisionSystem::CollisionSystem(float cell_size) : grid_(cell_size) {}
+CollisionSystem::CollisionSystem(engine::event::EventBus& event_bus,
+                                 engine::scripting::ScriptEngine& script_engine,
+                                 float cell_size)
+    : event_bus_(event_bus), script_engine_(script_engine), grid_(cell_size) {}
 
 bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
                                            const engine::math::RectF& b) {
@@ -25,77 +29,8 @@ bool CollisionSystem::CheckOneWayCollision(const engine::math::RectF& a,
 void CollisionSystem::ResolveCollision(engine::ecs::Registry& registry,
                                        engine::ecs::EntityId e1,
                                        engine::ecs::EntityId e2) {
-  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
-  auto& damageables =
-      registry.GetComponents<game_logic::components::DamageableComponent>();
-  auto& healths =
-      registry.GetComponents<game_logic::components::HealthComponent>();
-
-  if (e1 >= tags.size() || e2 >= tags.size()) return;
-
-  auto& tag1 = tags[e1];
-  auto& tag2 = tags[e2];
-
-  if (!tag1.has_value() || !tag2.has_value()) return;
-
-  const std::string& t1 = tag1->tag;
-  const std::string& t2 = tag2->tag;
-
-  bool e1_is_player = (t1 == kPlayerTag);
-  bool e2_is_player = (t2 == kPlayerTag);
-  bool e1_is_enemy = (t1 == kEnemyTag);
-  bool e2_is_enemy = (t2 == kEnemyTag);
-
-  if ((e1_is_player && e2_is_enemy) || (e1_is_enemy && e2_is_player)) {
-    auto apply_crash = [&](engine::ecs::EntityId victim,
-                           engine::ecs::EntityId attacker) {
-      if (victim < healths.size() && healths[victim].has_value()) {
-        healths[victim]->take_damage(game_logic::kCrashDamage);
-        healths[victim]->last_attacker_id = attacker;
-      }
-    };
-    apply_crash(e1, e2);
-    apply_crash(e2, e1);
-  }
-
-  bool has_dmg1 = (e1 < damageables.size() && damageables[e1].has_value());
-  bool has_dmg2 = (e2 < damageables.size() && damageables[e2].has_value());
-
-  if (has_dmg1 && !has_dmg2) {
-    ResolveProjectile(registry, e1, e2, damageables[e1].value());
-  } else if (!has_dmg1 && has_dmg2) {
-    ResolveProjectile(registry, e2, e1, damageables[e2].value());
-  }
-}
-
-void CollisionSystem::ResolveProjectile(
-    engine::ecs::Registry& registry, engine::ecs::EntityId proj,
-    engine::ecs::EntityId target,
-    const game_logic::components::DamageableComponent& dmg_comp) {
-  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
-  auto& healths =
-      registry.GetComponents<game_logic::components::HealthComponent>();
-
-  if (target >= tags.size()) return;
-  auto& target_tag = tags[target];
-  if (!target_tag.has_value()) return;
-
-  bool hit = false;
-
-  if (dmg_comp.faction == 0 && target_tag->tag == kEnemyTag) {
-    hit = true;
-  }
-  if (dmg_comp.faction == 1 && target_tag->tag == kPlayerTag) {
-    hit = true;
-  }
-
-  if (hit) {
-    if (target < healths.size() && healths[target].has_value()) {
-      healths[target]->take_damage(dmg_comp.damage);
-      healths[target]->last_attacker_id = dmg_comp.owner_id;
-    }
-    registry.KillEntity(proj);
-  }
+  script_engine_.OnCollision(e1, e2);
+  event_bus_.Publish(EntityCollisionEvent{e1, e2});
 }
 
 void CollisionSystem::Update(engine::ecs::Registry& registry,

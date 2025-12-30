@@ -4,14 +4,20 @@
 
 #include "engine/ecs/component.h"
 #include "engine/ecs/indexed_zipper.h"
+#include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
 #include "engine/ecs/systems/movement_system.h"
+#include "engine/event.h"
+#include "engine/scripting/bindings.h"
+#include "engine/scripting/script_engine.h"
+#include "engine/time/time_delta.h"
 #include "engine/util/logging.h"
+#include "game_logic/bindings.h"
 #include "game_logic/components.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/constants.h"
-#include "game_logic/entities/player_builder.h"
 #include "game_logic/game_config.h"
+#include "game_logic/prefab_binder.h"
 #include "game_logic/systems/ai_system.h"
 #include "game_logic/systems/animation_system.h"
 #include "game_logic/systems/boundary_system.h"
@@ -29,6 +35,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
     : room_id_(room_id),
       max_players_(max_players),
       registry_(std::make_unique<engine::ecs::Registry>()),
+      script_engine_(std::make_unique<engine::scripting::ScriptEngine>()),
       game_state_(),
       is_started_(false) {
   game_state_.room_id = room_id_;
@@ -36,6 +43,46 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
     engine::util::Logger::Default().Error(
         "[game_logic] Failed to load game config defaults may cause crashes");
   }
+
+  script_engine_->Initialize();
+  engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
+  engine::scripting::BindEventBus(script_engine_->LuaState(), event_bus_);
+  BindGameComponents(script_engine_->GetPrefabFactory());
+  BindRuntimeTypes(script_engine_->LuaState(),
+                   script_engine_->GetPrefabFactory());
+
+  script_engine_->LuaState().set_function(
+      "SignalPlayerDeath",
+      [this](std::uint32_t player_id, std::uint32_t lives) {
+        this->OnPlayerDeath(player_id, static_cast<std::uint8_t>(lives));
+      });
+
+  BindGameComponents(script_engine_->GetPrefabFactory());
+
+  std::string config_dir = GameConfig::Get().GetConfigDirectory();
+  script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/powerups.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/weapon_logic.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/collision_logic.lua");
+
+  event_bus_.Subscribe<systems::EntityCollisionEvent>(
+      [this](const systems::EntityCollisionEvent &e) {
+        if (!script_engine_) {
+          return;
+        }
+        auto &lua = script_engine_->LuaState();
+        sol::table data = lua.create_table();
+        data["entity_a"] = e.entity_a;
+        data["entity_b"] = e.entity_b;
+        event_bus_.Publish(
+            engine::scripting::LuaEvent{"OnCollision", std::move(data)});
+      });
+
   RegisterComponents();
   RegisterSystems();
 }
@@ -140,8 +187,25 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
       kPlayerSpawnBaseX + kPlayerSpawnOffsetX * static_cast<float>(player_slot),
       kPlayerSpawnY);
 
-  engine::ecs::EntityId entity = entities::PlayerBuilder::Create(
-      *registry_, player_id, room_id_, player_slot, spawn_position);
+  auto opt_entity =
+      script_engine_->GetPrefabFactory().Spawn(*registry_, "Player");
+  if (!opt_entity) {
+    engine::util::Logger::Default().Error(
+        "[GameInstance] Failed to spawn Player prefab");
+    return std::nullopt;
+  }
+  engine::ecs::EntityId entity = *opt_entity;
+  registry_->EmplaceComponent<engine::ecs::PositionComponent>(
+      entity, spawn_position.x, spawn_position.y);
+
+  auto &players = registry_->GetComponents<components::PlayerComponent>();
+  if (static_cast<std::size_t>(entity) < players.size() &&
+      players[entity].has_value()) {
+    auto &pc = players[entity].value();
+    pc.player_id = player_id;
+    pc.room_id = room_id_;
+    pc.player_slot = player_slot;
+  }
 
   player_entities_.insert_or_assign(player_id, entity);
   player_input_states_.insert_or_assign(player_id, InputState{});
@@ -200,6 +264,12 @@ const GameState &GameInstance::State() const { return game_state_; }
 
 GameState &GameInstance::State() { return game_state_; }
 
+engine::scripting::ScriptEngine &GameInstance::ScriptEngine() {
+  return *script_engine_;
+}
+
+engine::event::EventBus &GameInstance::EventBus() { return event_bus_; }
+
 bool GameInstance::IsRunning() const { return game_state_.is_running; }
 
 bool GameInstance::IsFinished() const { return game_state_.is_game_over; }
@@ -240,11 +310,9 @@ void GameInstance::RegisterSystems() {
           systems::PlayerInputSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kHighPriority, std::ref(*this));
 
-  registry_
-      ->AddSystem<engine::ecs::PositionComponent, components::WeaponComponent,
-                  components::SpriteComponent>(
-          systems::WeaponSystem::Update, engine::ecs::SystemType::Variable,
-          engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::WeaponSystem>(*script_engine_),
+      engine::ecs::SystemType::Variable, engine::ecs::kDefaultPriority);
 
   registry_->AddSystem<engine::ecs::PositionComponent,
                        engine::ecs::VelocityComponent>(
@@ -255,19 +323,19 @@ void GameInstance::RegisterSystems() {
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::CollisionSystem>(),
-                            engine::ecs::SystemType::Fixed,
-                            engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::CollisionSystem>(event_bus_, *script_engine_),
+      engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(std::make_shared<systems::AnimationSystem>(),
                             engine::ecs::SystemType::Variable,
                             engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::AISystem>(),
-                            engine::ecs::SystemType::Fixed,
-                            engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::AISystem>(*script_engine_),
+      engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(*this),
+  registry_->AddSystemClass(std::make_shared<systems::HealthSystem>(),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 

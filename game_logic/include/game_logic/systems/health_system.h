@@ -4,6 +4,9 @@
 namespace game_logic {
 class GameInstance;
 }
+namespace engine::scripting {
+class PrefabFactory;
+}
 
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
@@ -28,8 +31,7 @@ class HealthSystem : public engine::ecs::ISystem {
   static constexpr float kRespawnSlotOffsetX = 50.0f;
   static constexpr float kRespawnY = 300.0f;
 
-  explicit HealthSystem(GameInstance& game_instance)
-      : game_instance_(game_instance) {}
+  HealthSystem() = default;
   ~HealthSystem() override = default;
 
   /**
@@ -40,9 +42,6 @@ class HealthSystem : public engine::ecs::ISystem {
    */
   void Update(engine::ecs::Registry& registry,
               engine::time::TimeDelta dt) override;
-
- private:
-  GameInstance& game_instance_;
 };
 
 }  // namespace game_logic::systems

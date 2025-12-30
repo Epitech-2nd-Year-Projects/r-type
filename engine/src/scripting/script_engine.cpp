@@ -20,7 +20,7 @@ void ScriptEngine::Initialize() {
   }
 
   lua_->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math,
-                       sol::lib::string, sol::lib::table);
+                       sol::lib::string, sol::lib::table, sol::lib::coroutine);
 
   lua_->set_function("log_info",
                      [](std::string msg) { ENGINE_LOG_INFO("Lua: {}", msg); });
@@ -29,6 +29,8 @@ void ScriptEngine::Initialize() {
                      [](std::string msg) { ENGINE_LOG_ERROR("Lua: {}", msg); });
 
   BindTypes(*lua_);
+
+  prefab_factory_ = std::make_unique<PrefabFactory>(*lua_);
 
   ENGINE_LOG_INFO("ScriptEngine initialized with Lua 5.4");
 }
@@ -45,7 +47,21 @@ void ScriptEngine::SetEventBus(engine::event::EventBus& event_bus) {
   }
 }
 
+void ScriptEngine::SetInputManager(engine::input::InputManager& input_manager) {
+  if (lua_) {
+    BindInput(*lua_, input_manager);
+  }
+}
+
+void ScriptEngine::SetAudioEngine(engine::audio::AudioEngine& audio_engine) {
+  if (lua_) {
+    BindAudio(*lua_, audio_engine);
+  }
+}
+
 sol::state& ScriptEngine::LuaState() { return *lua_; }
+
+PrefabFactory& ScriptEngine::GetPrefabFactory() { return *prefab_factory_; }
 
 void ScriptEngine::LoadScript(const std::string& path) {
   ReloadScript(path);
@@ -108,6 +124,19 @@ void ScriptEngine::ReloadScript(const std::string& path) {
                      err.what());
   } else {
     ENGINE_LOG_INFO("Successfully loaded script '{}'", path);
+  }
+}
+
+void ScriptEngine::OnCollision(ecs::EntityId e1, ecs::EntityId e2) {
+  if (!lua_) return;
+
+  sol::protected_function on_collision = (*lua_)["OnCollision"];
+  if (on_collision.valid()) {
+    auto result = on_collision(e1, e2);
+    if (!result.valid()) {
+      sol::error err = result;
+      ENGINE_LOG_ERROR("Lua OnCollision Error: {}", err.what());
+    }
   }
 }
 

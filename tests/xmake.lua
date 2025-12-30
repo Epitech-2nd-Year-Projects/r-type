@@ -37,6 +37,7 @@ target("game_logic_tests")
     add_files("game_logic/*.cpp")
     add_packages("gtest")
     add_deps("engine", "game_logic")
+    add_files("game_logic/*.cpp")
     add_tests("game_logic_tests")
 
 target("protocol_tests")

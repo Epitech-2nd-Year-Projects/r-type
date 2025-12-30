@@ -2,11 +2,15 @@
 
 #include <sol/sol.hpp>
 
+#include "engine/audio/audio_engine.h"
+#include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
 #include "engine/event.h"
+#include "engine/input.h"
 #include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/color.h"
@@ -39,6 +43,14 @@ void BindTypes(sol::state& lua) {
       sol::property([](math::RectF& r) { return r.height_; },
                     [](math::RectF& r, float v) { r.height_ = v; }));
 
+  lua.new_usertype<ecs::BoundingBoxComponent>(
+      "BoundingBoxComponent",
+      sol::constructors<ecs::BoundingBoxComponent(),
+                        ecs::BoundingBoxComponent(float, float, float, float),
+                        ecs::BoundingBoxComponent(const math::RectF&)>(),
+      "bounds", &ecs::BoundingBoxComponent::bounds, "is_trigger",
+      &ecs::BoundingBoxComponent::is_trigger);
+
   lua.new_usertype<render::Color>(
       "Color",
       sol::factories(
@@ -53,6 +65,9 @@ void BindTypes(sol::state& lua) {
       "a", &render::Color::a);
 
   lua.new_usertype<ecs::EntityId>("EntityId");
+
+  lua.new_usertype<ecs::TagComponent>("TagComponent", "tag",
+                                      &ecs::TagComponent::tag);
 
   lua.new_usertype<ecs::PositionComponent>(
       "PositionComponent",
@@ -73,6 +88,18 @@ void BindTypes(sol::state& lua) {
       "Registry", sol::no_constructor, "create_entity",
       &ecs::Registry::SpawnEntity, "kill_entity", &ecs::Registry::KillEntity,
 
+      "get_tag",
+      [](ecs::Registry& r, ecs::EntityId e) -> std::optional<std::string> {
+        try {
+          auto& sparse = r.GetComponents<ecs::TagComponent>();
+          if (e < sparse.size() && sparse[e].has_value()) {
+            return sparse[e]->tag;
+          }
+        } catch (...) {
+        }
+        return std::nullopt;
+      },
+
       "add_position",
       [](ecs::Registry& r, ecs::EntityId e, float x, float y) {
         return r.EmplaceComponent<ecs::PositionComponent>(e, x, y);
@@ -80,6 +107,11 @@ void BindTypes(sol::state& lua) {
       "add_velocity",
       [](ecs::Registry& r, ecs::EntityId e, float x, float y) {
         return r.EmplaceComponent<ecs::VelocityComponent>(e, x, y);
+      },
+      "add_bounding_box",
+      [](ecs::Registry& r, ecs::EntityId e, float x, float y, float w,
+         float h) {
+        return r.EmplaceComponent<ecs::BoundingBoxComponent>(e, x, y, w, h);
       },
 
       "get_position",
@@ -94,6 +126,21 @@ void BindTypes(sol::state& lua) {
           ENGINE_LOG_ERROR("Lua get_position error: {}", ex.what());
         } catch (...) {
           ENGINE_LOG_ERROR("Lua get_position error: Unknown exception");
+        }
+        return std::nullopt;
+      },
+      "get_bounding_box",
+      [](ecs::Registry& r,
+         ecs::EntityId e) -> std::optional<ecs::BoundingBoxComponent> {
+        try {
+          auto& sparse = r.GetComponents<ecs::BoundingBoxComponent>();
+          if (e < sparse.size() && sparse[e].has_value()) {
+            return sparse[e].value();
+          }
+        } catch (const std::exception& ex) {
+          ENGINE_LOG_ERROR("Lua get_bounding_box error: {}", ex.what());
+        } catch (...) {
+          ENGINE_LOG_ERROR("Lua get_bounding_box error: Unknown exception");
         }
         return std::nullopt;
       },
@@ -185,6 +232,46 @@ void BindEventBus(sol::state& lua, engine::event::EventBus& event_bus) {
 
   lua["event_bus"] = std::ref(event_bus);
   ENGINE_LOG_INFO("Lua global 'event_bus' bound");
+}
+
+void BindInput(sol::state& lua, engine::input::InputManager& input_manager) {
+  lua.new_enum("Key", "Space", engine::input::Key::kSpace, "Escape",
+               engine::input::Key::kEscape, "Up", engine::input::Key::kUp,
+               "Down", engine::input::Key::kDown, "Left",
+               engine::input::Key::kLeft, "Right", engine::input::Key::kRight,
+               "A", engine::input::Key::kA, "Z", engine::input::Key::kZ, "E",
+               engine::input::Key::kE, "R", engine::input::Key::kR, "T",
+               engine::input::Key::kT, "Y", engine::input::Key::kY);
+
+  lua.new_enum("MouseButton", "Left", engine::input::MouseButton::kLeft,
+               "Right", engine::input::MouseButton::kRight, "Middle",
+               engine::input::MouseButton::kMiddle);
+
+  lua.new_usertype<engine::input::InputManager>(
+      "InputManager", sol::no_constructor,
+
+      "is_key_down", &engine::input::InputManager::IsKeyDown,
+      "is_mouse_button_down", &engine::input::InputManager::IsMouseButtonDown,
+      "is_action_active", &engine::input::InputManager::IsActionActive,
+      "get_mouse_position", &engine::input::InputManager::GetMousePosition);
+
+  lua["Input"] = std::ref(input_manager);
+  ENGINE_LOG_INFO("Lua global 'Input' bound");
+}
+
+void BindAudio(sol::state& lua, engine::audio::AudioEngine& audio_engine) {
+  lua.new_usertype<engine::audio::AudioEngine>(
+      "AudioEngine", sol::no_constructor,
+
+      "play_sound", &engine::audio::AudioEngine::PlaySoundEffect, "play_music",
+      &engine::audio::AudioEngine::PlayMusic, "stop_music",
+      &engine::audio::AudioEngine::StopMusic, "set_master_volume",
+      &engine::audio::AudioEngine::SetMasterVolume, "set_music_volume",
+      &engine::audio::AudioEngine::SetMusicVolume, "set_sfx_volume",
+      &engine::audio::AudioEngine::SetSfxVolume);
+
+  lua["Audio"] = std::ref(audio_engine);
+  ENGINE_LOG_INFO("Lua global 'Audio' bound");
 }
 
 }  // namespace engine::scripting

@@ -2,10 +2,10 @@
 #define GAME_LOGIC_COMPONENTS_WEAPON_COMPONENT_H_
 
 #include <cstdint>
+#include <string>
 
 #include "engine/time/time_delta.h"
-#include "game_logic/entities/missile_config.h"
-#include "game_logic/entities/missile_data.h"
+#include "game_logic/entities/projectile_faction.h"
 
 namespace game_logic::components {
 
@@ -128,11 +128,24 @@ struct WeaponComponent {
         engine::time::TimeDelta::from_seconds(1.0f / rate);
   }
 
-  /// @brief Archetype data for the projectile this weapon fires
-  entities::MissileArchetypeData projectile_data{entities::kPlayerMissileData};
+  /// @brief Prefab name for the standard projectile
+  std::string projectile_prefab{"PlayerMissile"};
+
+  /// @brief Prefab name for the big/charged projectile
+  std::string big_projectile_prefab{"BigPlayerMissile"};
+
+  /// @brief Speed override for standard projectile (optional, prefab has
+  /// default)
+  float projectile_speed{0.0f};
+
+  /// @brief Speed override for big projectile
+  float big_projectile_speed{0.0f};
 
   /// @brief Faction of the projectile
   entities::ProjectileFaction faction{entities::ProjectileFaction::kPlayer};
+
+  /// @brief Lua script function name for custom weapon logic
+  std::string weapon_script;
 };
 
 }  // namespace game_logic::components

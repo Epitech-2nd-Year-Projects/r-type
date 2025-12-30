@@ -269,5 +269,79 @@
             },
             version = "5.5"
         }
+    },
+    ["macosx|x86_64"] = {
+        ["asio#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "6084ba8860999afabb22869cef2931080b7ff884",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "1.36.0"
+        },
+        ["cmake#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "41393fb8a328d34633026b3f60c5403bbd661003",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "4.1.2"
+        },
+        ["gtest#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "6084ba8860999afabb22869cef2931080b7ff884",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v1.17.0"
+        },
+        ["lua#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "41393fb8a328d34633026b3f60c5403bbd661003",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v5.4.7"
+        },
+        ["ninja#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "6084ba8860999afabb22869cef2931080b7ff884",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v1.13.1"
+        },
+        ["nlohmann_json#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "41393fb8a328d34633026b3f60c5403bbd661003",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v3.12.0"
+        },
+        ["opengl#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "41393fb8a328d34633026b3f60c5403bbd661003",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "latest"
+        },
+        ["raylib#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "6084ba8860999afabb22869cef2931080b7ff884",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "5.5"
+        },
+        ["sol2#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "41393fb8a328d34633026b3f60c5403bbd661003",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v3.5.0"
+        }
     }
 }

@@ -4,12 +4,13 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <sol/sol.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
 
-namespace sol {
-class state;
+namespace engine::scripting {
+class ScriptEngine;
 }
 
 namespace engine::ecs {
@@ -19,6 +20,16 @@ class Registry;
 namespace engine::event {
 class EventBus;
 }
+
+namespace engine::input {
+class InputManager;
+}
+
+namespace engine::audio {
+class AudioEngine;
+}
+
+#include "engine/scripting/prefab_factory.h"
 
 namespace engine::scripting {
 
@@ -68,6 +79,18 @@ class ScriptEngine {
   void SetEventBus(engine::event::EventBus& event_bus);
 
   /**
+   * @brief Bind the global input manager.
+   * @param input_manager Reference to the input manager.
+   */
+  void SetInputManager(engine::input::InputManager& input_manager);
+
+  /**
+   * @brief Bind the global audio engine.
+   * @param audio_engine Reference to the audio engine.
+   */
+  void SetAudioEngine(engine::audio::AudioEngine& audio_engine);
+
+  /**
    * @brief Access the underlying Lua state.
    *
    * @warning Exposes raw mutable state. Use with caution.
@@ -75,6 +98,11 @@ class ScriptEngine {
    * assumptions.
    */
   sol::state& LuaState();
+
+  /**
+   * @brief Get the PrefabFactory instance.
+   */
+  PrefabFactory& GetPrefabFactory();
 
   /**
    * @brief Load and execute a script file, then monitor it for changes
@@ -104,6 +132,7 @@ class ScriptEngine {
   };
 
   std::unique_ptr<sol::state> lua_;
+  std::unique_ptr<PrefabFactory> prefab_factory_;
   std::vector<WatchedScript> watched_scripts_;
   std::chrono::steady_clock::time_point last_check_time_;
   std::chrono::milliseconds check_interval_{1000};  // Default 1s polling
@@ -113,6 +142,14 @@ class ScriptEngine {
    * @param path Path to the script.
    */
   void ReloadScript(const std::string& path);
+
+ public:
+  /**
+   * @brief Check if OnCollision function exists in Lua and call it.
+   * @param e1 First entity involved in collision.
+   * @param e2 Second entity involved in collision.
+   */
+  void OnCollision(ecs::EntityId e1, ecs::EntityId e2);
 };
 
 }  // namespace engine::scripting
