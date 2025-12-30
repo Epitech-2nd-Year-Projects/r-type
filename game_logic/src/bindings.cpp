@@ -10,6 +10,7 @@
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
+#include "game_logic/components/powerup_component.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
 #include "game_logic/components/sprite_component.h"
@@ -40,6 +41,20 @@ void BindRuntimeTypes(sol::state& lua,
   lua.new_usertype<components::DamageableComponent>(
       "DamageableComponent", "damage", &components::DamageableComponent::damage,
       "faction", &components::DamageableComponent::faction);
+
+  lua.new_enum<components::PowerupType>(
+      "PowerupType",
+      {{"Health", components::PowerupType::kHealth},
+       {"WeaponUpgrade", components::PowerupType::kWeaponUpgrade},
+       {"SpeedBoost", components::PowerupType::kSpeedBoost},
+       {"Shield", components::PowerupType::kShield},
+       {"ExtraLife", components::PowerupType::kExtraLife},
+       {"Score", components::PowerupType::kScore}});
+
+  lua.new_usertype<components::PowerupComponent>(
+      "PowerupComponent", "type", &components::PowerupComponent::type, "value",
+      &components::PowerupComponent::value, "active",
+      &components::PowerupComponent::active);
 
   lua.new_usertype<components::DropsPowerupComponent>("DropsPowerupComponent");
 
@@ -152,6 +167,19 @@ void BindRuntimeTypes(sol::state& lua,
       -> std::optional<components::DropsPowerupComponent*> {
     try {
       auto& sparse = r.GetComponents<components::DropsPowerupComponent>();
+      if (e < sparse.size() && sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
+
+  registry_type["get_powerup"] = [](engine::ecs::Registry& r,
+                                    engine::ecs::EntityId e)
+      -> std::optional<components::PowerupComponent*> {
+    try {
+      auto& sparse = r.GetComponents<components::PowerupComponent>();
       if (e < sparse.size() && sparse[e].has_value()) {
         return &sparse[e].value();
       }
