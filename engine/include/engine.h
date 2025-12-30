@@ -8,6 +8,7 @@
 #include <engine/input.h>
 #include <engine/math.h>
 #include <engine/net.h>
+#include <engine/profiling.h>
 #include <engine/render.h>
 #include <engine/resource.h>
 #include <engine/time.h>
