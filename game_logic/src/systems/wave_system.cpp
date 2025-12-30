@@ -1,5 +1,6 @@
 #include "game_logic/systems/wave_system.h"
 
+#include <filesystem>
 #include <vector>
 
 #include "engine/ecs/components/position_component.h"
@@ -15,115 +16,60 @@ namespace game_logic::systems {
 
 WaveSystem::WaveSystem(GameInstance &game_instance)
     : game_instance_(game_instance), rng_(std::random_device{}()) {
-  LoadLevel(1);
+  auto &logger = engine::util::Logger::Default();
+  try {
+    std::string config_dir = GameConfig::Get().GetConfigDirectory();
+    sol::state &lua = game_instance_.ScriptEngine().LuaState();
+
+    game_instance_.ScriptEngine().LoadScript(config_dir +
+                                             "/levels/level_manager.lua");
+
+    sol::function init_func = lua["LevelManager"]["Init"];
+    if (init_func.valid()) {
+      init_func(config_dir);
+    }
+
+    sol::function load_func = lua["LevelManager"]["LoadLevel"];
+    if (load_func.valid()) {
+      load_func(1);
+    }
+
+  } catch (const std::exception &e) {
+    logger.Error("[WaveSystem] Failed to init level manager: ", e.what());
+  }
 }
 
 void WaveSystem::LoadLevel(int level_id) {
-  auto &logger = engine::util::Logger::Default();
-  current_level_ = level_id;
-  current_wave_time_ = 0.0f;
-  pending_spawns_.clear();
-  waiting_for_next_level_ = false;
-  level_finished_timer_ = 0.0f;
-  game_instance_.State().current_level = static_cast<std::uint32_t>(level_id);
-  game_instance_.State().current_wave = static_cast<std::uint32_t>(level_id);
-
-  try {
-    const LevelConfig &level = GameConfig::Get().GetLevel(level_id);
-    for (const auto &spawn : level.waves) {
-      WaveEntry entry;
-      entry.spawn_time = spawn.time;
-      entry.type = spawn.enemy_type;
-      entry.position = {spawn.x, spawn.y};
-      entry.random_y = spawn.random_y;
-      entry.drops_powerup = spawn.drops_powerup;
-      pending_spawns_.push_back(entry);
-    }
-  } catch (const std::exception &e) {
-    logger.Error("[game_logic.wave] Error loading level ", level_id, ": ",
-                 e.what());
+  sol::state &lua = game_instance_.ScriptEngine().LuaState();
+  sol::function load_func = lua["LevelManager"]["LoadLevel"];
+  if (load_func.valid()) {
+    load_func(level_id);
   }
 }
 
 void WaveSystem::Update(engine::ecs::Registry &registry,
                         engine::time::TimeDelta dt) {
-  auto &logger = engine::util::Logger::Default();
-  current_wave_time_ += dt.as_seconds();
+  sol::state &lua = game_instance_.ScriptEngine().LuaState();
 
-  const auto &world = GameConfig::Get().GetWorld();
-  std::uniform_real_distribution<float> dist(world.spawn_min_y,
-                                             world.spawn_max_y);
-
-  while (!pending_spawns_.empty()) {
-    const auto &next_spawn = pending_spawns_.front();
-    if (current_wave_time_ >= next_spawn.spawn_time) {
-      engine::math::Vector2f spawn_pos = next_spawn.position;
-
-      if (next_spawn.random_y) {
-        spawn_pos.y = dist(rng_);
-      }
-
-      auto opt_entity = game_instance_.ScriptEngine().GetPrefabFactory().Spawn(
-          registry, next_spawn.type);
-
-      if (opt_entity) {
-        engine::ecs::EntityId entity = *opt_entity;
-
-        registry.EmplaceComponent<engine::ecs::PositionComponent>(
-            entity, spawn_pos.x, spawn_pos.y);
-
-        if (next_spawn.drops_powerup) {
-          registry.EmplaceComponent<components::DropsPowerupComponent>(entity);
-        }
-      }
-
-      pending_spawns_.pop_front();
-
-    } else {
+  bool enemies_alive = false;
+  auto &tags = registry.GetComponents<engine::ecs::TagComponent>();
+  for (const auto &tag : tags) {
+    if (tag.has_value() && tag->tag == "Enemy") {
+      enemies_alive = true;
       break;
     }
   }
 
-  if (pending_spawns_.empty()) {
-    bool enemies_alive = false;
-    auto &tags = registry.GetComponents<engine::ecs::TagComponent>();
-    for (const auto &tag : tags) {
-      if (tag.has_value() && tag->tag == "Enemy") {
-        enemies_alive = true;
-        break;
-      }
-    }
+  sol::function update_func = lua["LevelManager"]["Update"];
+  if (update_func.valid()) {
+    update_func(dt.as_seconds(), enemies_alive);
+  }
 
-    if (!enemies_alive) {
-      if (!waiting_for_next_level_) {
-        waiting_for_next_level_ = true;
-        level_finished_timer_ = 0.0f;
-      } else {
-        level_finished_timer_ += dt.as_seconds();
-        if (level_finished_timer_ >= kLevelTransitionDelay) {
-          int next_level = current_level_ + 1;
-          try {
-            GameConfig::Get().GetLevel(next_level);
-          } catch (...) {
-            logger.Warn("[game_logic.wave] Max level reached ", current_level_,
-                        " looping back to level 1");
-            next_level = 1;
-          }
-          try {
-            LoadLevel(next_level);
-            game_instance_.State().current_level = next_level;
-          } catch (const std::exception &e) {
-            logger.Error("[game_logic.wave] Level transition error: ",
-                         e.what());
-            game_instance_.State().is_game_over = true;
-          } catch (...) {
-            logger.Error(
-                "[game_logic.wave] Unknown error during level transition");
-            game_instance_.State().is_game_over = true;
-          }
-        }
-      }
-    }
+  sol::optional<int> current_id = lua["LevelManager"]["current_id"];
+  if (current_id) {
+    auto &state = game_instance_.State();
+    state.current_level = static_cast<std::uint32_t>(current_id.value());
+    state.current_wave = static_cast<std::uint32_t>(current_id.value());
   }
 }
 
