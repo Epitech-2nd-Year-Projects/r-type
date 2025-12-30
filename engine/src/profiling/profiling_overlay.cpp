@@ -73,6 +73,12 @@ void ProfilingOverlay::Draw(render::Renderer2D& renderer,
        << "ms  Drop: " << net_stats.packets_dropped;
     lines.push_back(ss.str());
   }
+  if (config_.show_world_position && world_position_.has_value()) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(1) << "Pos: (" << world_position_->x
+       << ", " << world_position_->y << ")";
+    lines.push_back(ss.str());
+  }
   {
     std::ostringstream ss;
     ss << "Entities: " << entity_count_;
@@ -121,9 +127,10 @@ void ProfilingOverlay::Draw(render::Renderer2D& renderer,
                       config_.text_color);
     y += config_.font_size;
 
-    DrawGraph(renderer, x, y, content_width, config_.graph_height,
-              frame_profiler_.frame_times(), 50.0f,
-              config_.frame_time_warning_ms, config_.frame_time_critical_ms);
+    DrawGraphImpl(renderer, x, y, content_width, config_.graph_height,
+                  frame_profiler_.frame_times(), 128, 50.0f,
+                  config_.frame_time_warning_ms,
+                  config_.frame_time_critical_ms);
     y += config_.graph_height + 4.0f;
   }
 
@@ -132,28 +139,29 @@ void ProfilingOverlay::Draw(render::Renderer2D& renderer,
                       config_.text_color);
     y += config_.font_size;
 
-    DrawGraph128(renderer, x, y, content_width, config_.graph_height,
-                 network_profiler_.latency_samples(), 200.0f,
-                 config_.latency_warning_ms, config_.latency_critical_ms);
+    DrawGraphImpl(renderer, x, y, content_width, config_.graph_height,
+                  network_profiler_.latency_samples(), 64, 200.0f,
+                  config_.latency_warning_ms, config_.latency_critical_ms);
   }
 }
 
-void ProfilingOverlay::DrawGraph(render::Renderer2D& renderer, float x, float y,
-                                 float width, float height,
-                                 const RingBuffer<float, 256>& samples,
-                                 float max_value, float warning_threshold,
-                                 float critical_threshold) const {
+template <std::size_t N>
+void ProfilingOverlay::DrawGraphImpl(render::Renderer2D& renderer, float x,
+                                     float y, float width, float height,
+                                     const RingBuffer<float, N>& samples,
+                                     std::size_t visible_bars, float max_value,
+                                     float warning_threshold,
+                                     float critical_threshold) const {
   math::RectF bg{x, y, width, height};
   renderer.DrawRect(bg, config_.graph_background);
 
   std::size_t count = samples.size();
   if (count == 0) return;
 
-  constexpr std::size_t kVisibleBars = 128;
-  std::size_t start_idx = (count > kVisibleBars) ? count - kVisibleBars : 0;
+  std::size_t start_idx = (count > visible_bars) ? count - visible_bars : 0;
   std::size_t visible_count = count - start_idx;
 
-  float bar_width = width / static_cast<float>(kVisibleBars);
+  float bar_width = width / static_cast<float>(visible_bars);
   float gap = 1.0f;
 
   for (std::size_t i = 0; i < visible_count; ++i) {
@@ -172,39 +180,12 @@ void ProfilingOverlay::DrawGraph(render::Renderer2D& renderer, float x, float y,
   }
 }
 
-void ProfilingOverlay::DrawGraph128(render::Renderer2D& renderer, float x,
-                                    float y, float width, float height,
-                                    const RingBuffer<float, 128>& samples,
-                                    float max_value, float warning_threshold,
-                                    float critical_threshold) const {
-  math::RectF bg{x, y, width, height};
-  renderer.DrawRect(bg, config_.graph_background);
-
-  std::size_t count = samples.size();
-  if (count == 0) return;
-
-  constexpr std::size_t kVisibleBars = 64;
-  std::size_t start_idx = (count > kVisibleBars) ? count - kVisibleBars : 0;
-  std::size_t visible_count = count - start_idx;
-
-  float bar_width = width / static_cast<float>(kVisibleBars);
-  float gap = 1.0f;
-
-  for (std::size_t i = 0; i < visible_count; ++i) {
-    float value = samples[start_idx + i];
-    float normalized = std::min(value / max_value, 1.0f);
-    float bar_height = std::max(normalized * height, 1.0f);
-
-    float bar_x = x + static_cast<float>(i) * bar_width;
-    float bar_y = y + height - bar_height;
-
-    render::Color color =
-        GetGraphColor(value, warning_threshold, critical_threshold);
-    float actual_bar_width = std::max(bar_width - gap, 1.0f);
-    math::RectF bar{bar_x, bar_y, actual_bar_width, bar_height};
-    renderer.DrawRect(bar, color);
-  }
-}
+template void ProfilingOverlay::DrawGraphImpl<256>(
+    render::Renderer2D&, float, float, float, float,
+    const RingBuffer<float, 256>&, std::size_t, float, float, float) const;
+template void ProfilingOverlay::DrawGraphImpl<128>(
+    render::Renderer2D&, float, float, float, float,
+    const RingBuffer<float, 128>&, std::size_t, float, float, float) const;
 
 render::Color ProfilingOverlay::GetGraphColor(float value, float warning,
                                               float critical) const {

@@ -67,14 +67,12 @@ class ProfilingOverlay {
   ResourceMonitor& resource_monitor() { return resource_monitor_; }
 
  private:
-  void DrawGraph(render::Renderer2D& renderer, float x, float y, float width,
-                 float height, const RingBuffer<float, 256>& samples,
-                 float max_value, float warning_threshold,
-                 float critical_threshold) const;
-  void DrawGraph128(render::Renderer2D& renderer, float x, float y, float width,
-                    float height, const RingBuffer<float, 128>& samples,
-                    float max_value, float warning_threshold,
-                    float critical_threshold) const;
+  template <std::size_t N>
+  void DrawGraphImpl(render::Renderer2D& renderer, float x, float y,
+                     float width, float height,
+                     const RingBuffer<float, N>& samples,
+                     std::size_t visible_bars, float max_value,
+                     float warning_threshold, float critical_threshold) const;
 
   render::Color GetGraphColor(float value, float warning, float critical) const;
 
