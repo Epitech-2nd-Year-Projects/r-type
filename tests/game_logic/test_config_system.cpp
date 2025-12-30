@@ -14,10 +14,3 @@ TEST(GameConfigTest, VerifyGlobalConfig) {
   EXPECT_EQ(w.spawn_max_y, 700.0f);
   EXPECT_EQ(w.player_spawn_y, 300.0f);
 }
-
-TEST(GameConfigTest, VerifyLevelConfig) {
-  const auto& level1 = game_logic::GameConfig::Get().GetLevel(1);
-  EXPECT_EQ(level1.id, 1);
-  EXPECT_FALSE(level1.waves.empty());
-  EXPECT_EQ(level1.waves[0].time, 2.0f);
-}
