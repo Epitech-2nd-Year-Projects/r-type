@@ -23,12 +23,12 @@ void NetworkProfiler::Reset() {
 NetworkStats NetworkProfiler::GetStats() const {
   NetworkStats stats;
   stats.latency_ms = current_latency_ms_;
-  stats.avg_latency_ms = avg_latency_ms();
   stats.min_latency_ms = latency_samples_.Min();
   stats.max_latency_ms = latency_samples_.Max();
-  stats.jitter_ms = jitter_ms();
   stats.packets_received = packets_received_;
   stats.packets_dropped = packets_dropped_;
+
+  ComputeAvgAndJitter(stats.avg_latency_ms, stats.jitter_ms);
 
   std::uint64_t total = packets_received_ + packets_dropped_;
   if (total > 0) {
@@ -45,22 +45,37 @@ float NetworkProfiler::avg_latency_ms() const {
   return latency_samples_.Average();
 }
 
-float NetworkProfiler::jitter_ms() const { return ComputeJitter(); }
+float NetworkProfiler::jitter_ms() const {
+  float avg = 0.0f, jitter = 0.0f;
+  ComputeAvgAndJitter(avg, jitter);
+  return jitter;
+}
 
-float NetworkProfiler::ComputeJitter() const {
-  if (latency_samples_.size() < 2) return 0.0f;
-
-  float avg = latency_samples_.Average();
-  float variance = 0.0f;
+void NetworkProfiler::ComputeAvgAndJitter(float& avg, float& jitter) const {
   std::size_t count = latency_samples_.size();
-
-  for (std::size_t i = 0; i < count; ++i) {
-    float diff = latency_samples_[i] - avg;
-    variance += diff * diff;
+  if (count == 0) {
+    avg = 0.0f;
+    jitter = 0.0f;
+    return;
   }
 
-  variance /= static_cast<float>(count);
-  return std::sqrt(variance);
+  float sum = 0.0f;
+  float sum_sq = 0.0f;
+  for (std::size_t i = 0; i < count; ++i) {
+    float val = latency_samples_[i];
+    sum += val;
+    sum_sq += val * val;
+  }
+
+  avg = sum / static_cast<float>(count);
+
+  if (count < 2) {
+    jitter = 0.0f;
+    return;
+  }
+
+  float variance = (sum_sq / static_cast<float>(count)) - (avg * avg);
+  jitter = std::sqrt(std::max(variance, 0.0f));
 }
 
 }  // namespace engine::profiling
