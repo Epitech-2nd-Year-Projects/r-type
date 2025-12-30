@@ -12,7 +12,7 @@
 
 #include "client_config.h"
 #include "client_state.h"
-#include "debug_overlay.h"
+#include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
 namespace engine::app {
@@ -144,9 +144,9 @@ class ClientRuntime {
   void ResetWorld();
 
  private:
-  void UpdateDebugOverlay(engine::time::TimeDelta dt,
-                          const engine::ecs::Registry& registry,
-                          std::optional<float> latency_ms);
+  void UpdateProfilingOverlay(engine::time::TimeDelta dt,
+                              const engine::ecs::Registry& registry,
+                              std::optional<float> latency_ms);
   void UpdateDebugToggle();
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
@@ -155,7 +155,7 @@ class ClientRuntime {
   std::unique_ptr<ecs::RenderSystem> render_system_;
   std::unique_ptr<ecs::RenderDebug> render_debug_;
   std::unique_ptr<ParallaxBackground> background_;
-  DebugOverlay debug_overlay_{};
+  engine::profiling::ProfilingOverlay profiling_overlay_{};
   bool debug_toggle_pressed_{false};
 };
 

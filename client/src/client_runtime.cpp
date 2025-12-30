@@ -75,7 +75,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   }
 
   UpdateDebugToggle();
-  UpdateDebugOverlay(dt, registry, latency_ms);
+  UpdateProfilingOverlay(dt, registry, latency_ms);
 
   auto& context = engine_->RenderContext();
   auto& renderer = engine_->Renderer();
@@ -104,7 +104,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     scene->Draw(renderer);
   }
 
-  debug_overlay_.Draw(renderer, engine_->Window().GetSize());
+  profiling_overlay_.Draw(renderer, engine_->Window().GetSize());
   context.EndFrame();
 }
 
@@ -143,12 +143,15 @@ void ClientRuntime::ResetWorld() {
   }
 }
 
-void ClientRuntime::UpdateDebugOverlay(engine::time::TimeDelta dt,
-                                       const engine::ecs::Registry& registry,
-                                       std::optional<float> latency_ms) {
-  debug_overlay_.UpdateFrameTiming(dt);
-  debug_overlay_.UpdateRenderableCount(RenderableEntityCount(registry));
-  debug_overlay_.UpdateLatency(latency_ms);
+void ClientRuntime::UpdateProfilingOverlay(
+    engine::time::TimeDelta dt, const engine::ecs::Registry& registry,
+    std::optional<float> latency_ms) {
+  profiling_overlay_.Update(dt);
+  profiling_overlay_.UpdateEntityCount(RenderableEntityCount(registry));
+  if (latency_ms.has_value()) {
+    profiling_overlay_.UpdateLatency(*latency_ms);
+    profiling_overlay_.UpdatePacketReceived();
+  }
 }
 
 void ClientRuntime::UpdateDebugToggle() {
@@ -159,9 +162,9 @@ void ClientRuntime::UpdateDebugToggle() {
   auto& input = engine_->Input();
   const bool pressed = input.IsKeyDown(engine::input::Key::kF3);
   if (pressed && !debug_toggle_pressed_) {
-    debug_overlay_.Toggle();
+    profiling_overlay_.Toggle();
     if (render_debug_) {
-      render_debug_->SetEnabled(debug_overlay_.enabled());
+      render_debug_->SetEnabled(profiling_overlay_.enabled());
     }
   }
   debug_toggle_pressed_ = pressed;
