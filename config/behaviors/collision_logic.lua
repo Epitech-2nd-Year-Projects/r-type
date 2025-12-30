@@ -2,6 +2,51 @@ function OnCollision(e1, e2)
     local tag1 = registry:get_tag(e1)
     local tag2 = registry:get_tag(e2)
 
+    local function GetRandomPowerup()
+        if not Prefabs or not Prefabs.PowerupDropTable then
+             return "HealthPotion"
+        end
+        local total_weight = 0
+        for _, entry in ipairs(Prefabs.PowerupDropTable) do
+            total_weight = total_weight + (entry.weight or 0)
+        end
+        
+        local roll = math.random() * total_weight
+        local current = 0
+        for _, entry in ipairs(Prefabs.PowerupDropTable) do
+            current = current + (entry.weight or 0)
+            if roll <= current then
+                return entry.name
+            end
+        end
+        return "HealthPotion"
+    end
+
+    local function HandlePowerupCollection(player_entity, powerup_entity)
+        local p_comp = registry:get_powerup(powerup_entity)
+        local hp_comp = registry:get_health(player_entity)
+        local player_comp = registry:get_player(player_entity)
+        
+        if p_comp and p_comp.active then
+            if p_comp.type == PowerupType.Health then
+                 if hp_comp and hp_comp:is_alive() then
+                      hp_comp.current_health = math.min(hp_comp.current_health + p_comp.value, hp_comp.max_health)
+                      print("Powerup: Restored " .. p_comp.value .. " Health")
+                 end
+            elseif p_comp.type == PowerupType.Score then
+                 if player_comp then
+                      player_comp.score = player_comp.score + p_comp.value
+                      print("Powerup: Bonus Score " .. p_comp.value)
+                 end
+            elseif p_comp.type == PowerupType.WeaponUpgrade then
+                 print("Powerup: Weapon Upgrade Collected")
+            end
+            
+            p_comp.active = false
+            registry:kill_entity(powerup_entity)
+        end
+    end
+
     local function HandleDeath(entity, hp_comp)
         if hp_comp.current_health <= 0 then
              local player = registry:get_player(entity)
@@ -35,7 +80,8 @@ function OnCollision(e1, e2)
              if drops then
                  local pos_comp = registry:get_position(entity)
                  if pos_comp then
-                      Spawn(registry, "HealthPotion", pos_comp.position.x, pos_comp.position.y)
+                      local prefab_name = GetRandomPowerup()
+                      Spawn(registry, prefab_name, pos_comp.position.x, pos_comp.position.y)
                  end
              end
 
@@ -84,6 +130,14 @@ function OnCollision(e1, e2)
             end
             registry:kill_entity(proj_id)
         end
+    end
+
+    if (tag1 == "Player" and tag2 == "Powerup") then
+        HandlePowerupCollection(e1, e2)
+        return
+    elseif (tag2 == "Player" and tag1 == "Powerup") then
+        HandlePowerupCollection(e2, e1)
+        return
     end
 
     if (tag1 == "Player" and tag2 == "Enemy") or (tag1 == "Enemy" and tag2 == "Player") then
