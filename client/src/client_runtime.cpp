@@ -150,7 +150,6 @@ void ClientRuntime::UpdateProfilingOverlay(
   profiling_overlay_.UpdateEntityCount(RenderableEntityCount(registry));
   if (latency_ms.has_value()) {
     profiling_overlay_.UpdateLatency(*latency_ms);
-    profiling_overlay_.UpdatePacketReceived();
   }
 }
 
