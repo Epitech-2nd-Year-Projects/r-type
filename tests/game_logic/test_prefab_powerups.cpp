@@ -8,6 +8,8 @@
 #include "engine/scripting/bindings.h"
 #include "engine/scripting/prefab_factory.h"
 #include "engine/scripting/script_engine.h"
+#include "game_logic/bindings.h"
+#include "game_logic/components.h"
 #include "game_logic/components/powerup_component.h"
 #include "game_logic/components/sprite_component.h"
 #include "game_logic/game_config.h"
@@ -22,6 +24,8 @@ class PowerupPrefabTest : public ::testing::Test {
 
     engine::scripting::BindRegistry(script_engine_->LuaState(), *registry_);
     game_logic::BindGameComponents(script_engine_->GetPrefabFactory());
+    game_logic::BindRuntimeTypes(script_engine_->LuaState(),
+                                 script_engine_->GetPrefabFactory());
 
     registry_->RegisterComponent<engine::ecs::TagComponent>();
     registry_->RegisterComponent<engine::ecs::VelocityComponent>();
