@@ -93,7 +93,8 @@ struct OptionsMenu {
   static constexpr float kWarningSlotHeight = 50.0f;
   static constexpr int kWarningFrameCount = 9;
   static constexpr int kPointerFrameCount = 11;
-  static constexpr std::string_view kWarningFramePrefix = "assets/ui/Warning_Fleur";
+  static constexpr std::string_view kWarningFramePrefix =
+      "assets/ui/Warning_Fleur";
   static constexpr std::string_view kWarningFrameExtension = ".png";
 };
 
@@ -102,20 +103,6 @@ struct OptionsMenu {
  */
 struct Connecting {
   static constexpr float kStatusFontScale = 0.04f;
-};
-
-/**
- * @brief Debug overlay layout values
- */
-struct DebugOverlay {
-  static constexpr float kFontSize = 18.0f;
-  static constexpr float kLineSpacing = 6.0f;
-  static constexpr float kPadding = 12.0f;
-  static constexpr float kCornerOffset = 16.0f;
-  static constexpr engine::render::Color kBackgroundColor =
-      engine::render::Color::FromBytes(12, 14, 18, 190);
-  static constexpr engine::render::Color kTextColor =
-      engine::render::Color::FromBytes(220, 225, 232);
 };
 
 /**
