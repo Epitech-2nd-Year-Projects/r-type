@@ -94,7 +94,9 @@ class ResourceMonitorImpl {
     std::string line;
     std::getline(stat, line);
     std::uint64_t utime = 0, stime = 0;
-    ParseProcStatTimes(line, utime, stime);
+    if (!ParseProcStatTimes(line, utime, stime)) {
+      return 0.0f;
+    }
 
     std::uint64_t proc_time = utime + stime;
     std::uint64_t proc_delta = proc_time - last_proc_time_;
@@ -152,25 +154,31 @@ class ResourceMonitorImpl {
   std::uint64_t last_system_kernel_{0};
   std::uint64_t last_system_user_{0};
 #elif defined(__linux__)
+  // In /proc/self/stat, after the command name (field 2 in parentheses),
+  // utime and stime are fields 14 and 15. We skip 11 fields after ')' to reach
+  // them.
+  static constexpr int kProcStatFieldsBeforeUtime = 11;
+
   void ParseProcStat(const std::string& line) {
     std::uint64_t utime = 0, stime = 0;
-    ParseProcStatTimes(line, utime, stime);
-    last_proc_time_ = utime + stime;
+    if (ParseProcStatTimes(line, utime, stime)) {
+      last_proc_time_ = utime + stime;
+    }
   }
 
-  void ParseProcStatTimes(const std::string& line, std::uint64_t& utime,
+  bool ParseProcStatTimes(const std::string& line, std::uint64_t& utime,
                           std::uint64_t& stime) {
     std::size_t pos = line.rfind(')');
-    if (pos == std::string::npos) return;
+    if (pos == std::string::npos) return false;
 
     const char* p = line.c_str() + pos + 2;
     int field = 0;
-    while (*p && field < 12) {
+    while (*p && field < kProcStatFieldsBeforeUtime) {
       while (*p == ' ') ++p;
       while (*p && *p != ' ') ++p;
       ++field;
     }
-    std::sscanf(p, "%lu %lu", &utime, &stime);
+    return std::sscanf(p, "%lu %lu", &utime, &stime) == 2;
   }
 
   void ReadSystemCpuTime(std::uint64_t* total = nullptr,
