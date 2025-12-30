@@ -39,7 +39,7 @@ class NetworkProfiler {
   }
 
  private:
-  float ComputeJitter() const;
+  void ComputeAvgAndJitter(float& avg, float& jitter) const;
 
   RingBuffer<float, kSampleCount> latency_samples_;
   float current_latency_ms_{0.0f};
