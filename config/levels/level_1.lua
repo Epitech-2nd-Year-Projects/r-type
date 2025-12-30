@@ -46,7 +46,7 @@ local Level = {
         Wait(2.0)
         Spawn("Interceptor", 1700.0, 0.0, true, false)
         
-        print("Level 1 Finished")
+        log_info("Level 1 Finished")
     end
 }
 return Level

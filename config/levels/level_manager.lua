@@ -9,7 +9,7 @@ LevelManager.TRANSITION_DELAY = 3.0
 
 function LevelManager.Init(config_path)
     LevelManager.config_path = config_path .. "/levels/"
-    print("LevelManager initialized with path: " .. LevelManager.config_path)
+    log_info("LevelManager initialized with path: " .. LevelManager.config_path)
 end
 
 function LevelManager.Update(dt, enemies_alive)
@@ -17,12 +17,12 @@ function LevelManager.Update(dt, enemies_alive)
         LevelManager.state = "RUNNING"
         local success, err = coroutine.resume(LevelManager.current_co, dt)
         if not success then
-            print("Error in Level Coroutine: " .. err)
+            log_error("Error in Level Coroutine: " .. err)
         end
     elseif LevelManager.current_co and coroutine.status(LevelManager.current_co) == "dead" then
         if LevelManager.state == "RUNNING" then
             LevelManager.state = "WAITING_CLEAR"
-            print("Level Script Finished. Waiting for enemies to clear...")
+            log_info("Level Script Finished. Waiting for enemies to clear...")
         end
     end
 
@@ -30,7 +30,7 @@ function LevelManager.Update(dt, enemies_alive)
         if not enemies_alive then
             LevelManager.state = "TRANSITION"
             LevelManager.transition_timer = 0
-            print("Area clear. Transitioning in " .. LevelManager.TRANSITION_DELAY .. "s")
+            log_info("Area clear. Transitioning in " .. LevelManager.TRANSITION_DELAY .. "s")
         end
     elseif LevelManager.state == "TRANSITION" then
         LevelManager.transition_timer = LevelManager.transition_timer + dt
@@ -44,7 +44,7 @@ function LevelManager.LoadNextLevel()
     local next_id = LevelManager.current_id + 1
     local success = LevelManager.LoadLevel(next_id)
     if not success then
-        print("Next level not found (" .. next_id .. "), looping back to Level 1")
+        log_info("Next level not found (" .. next_id .. "), looping back to Level 1")
         LevelManager.LoadLevel(1)
     end
 end
@@ -81,7 +81,7 @@ function LevelManager.LoadLevel(id)
     local level_chunk, err = loadfile(path, "t", level_env)
     
     if not level_chunk then
-        print("Failed to load level: " .. path .. " Error: " .. (err or "unknown"))
+        log_error("Failed to load level: " .. path .. " Error: " .. (err or "unknown"))
         return false
     end
     
@@ -97,6 +97,6 @@ function LevelManager.LoadLevel(id)
     end
     
     LevelManager.state = "RUNNING"
-    print("Loaded Level " .. id .. ": " .. (level_table.info.name or "Unknown"))
+    log_info("Loaded Level " .. id .. ": " .. (level_table.info.name or "Unknown"))
     return true
 end

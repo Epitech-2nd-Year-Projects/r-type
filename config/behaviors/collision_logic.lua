@@ -31,15 +31,15 @@ function OnCollision(e1, e2)
             if p_comp.type == PowerupType.Health then
                  if hp_comp and hp_comp:is_alive() then
                       hp_comp.current_health = math.min(hp_comp.current_health + p_comp.value, hp_comp.max_health)
-                      print("Powerup: Restored " .. p_comp.value .. " Health")
+                      log_info("Powerup: Restored " .. p_comp.value .. " Health")
                  end
             elseif p_comp.type == PowerupType.Score then
                  if player_comp then
                       player_comp.score = player_comp.score + p_comp.value
-                      print("Powerup: Bonus Score " .. p_comp.value)
+                      log_info("Powerup: Bonus Score " .. p_comp.value)
                  end
             elseif p_comp.type == PowerupType.WeaponUpgrade then
-                 print("Powerup: Weapon Upgrade Collected")
+                 log_info("Powerup: Weapon Upgrade Collected")
             end
             
             p_comp.active = false
@@ -52,7 +52,7 @@ function OnCollision(e1, e2)
              local player = registry:get_player(entity)
              if player then
                  if player.lives > 0 then
-                     print("Player died! Lives remaining: " .. player.lives .. " -> " .. (player.lives - 1))
+                     log_info("Player died! Lives remaining: " .. player.lives .. " -> " .. (player.lives - 1))
                      player.lives = player.lives - 1
                      hp_comp.current_health = hp_comp.max_health
                      
@@ -69,7 +69,7 @@ function OnCollision(e1, e2)
                      end
                      return
                  else
-                     print("Player Game Over!")
+                     log_info("Player Game Over!")
                      if SignalPlayerDeath then
                         SignalPlayerDeath(player.player_id, 0)
                      end
