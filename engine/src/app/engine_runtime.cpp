@@ -61,9 +61,7 @@ scripting::ScriptEngine& EngineRuntime::ScriptEngine() {
   return *script_engine_;
 }
 
-console::Console& EngineRuntime::Console() {
-  return *console_;
-}
+console::Console& EngineRuntime::Console() { return *console_; }
 
 console::ConsoleOverlay& EngineRuntime::ConsoleOverlay() {
   return *console_overlay_;
