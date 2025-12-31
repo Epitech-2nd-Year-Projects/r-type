@@ -21,11 +21,6 @@ namespace engine::scripting {
 class ScriptEngine;
 }
 
-namespace engine::console {
-class Console;
-class ConsoleOverlay;
-}
-
 namespace engine::app {
 
 /**

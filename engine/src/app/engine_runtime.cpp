@@ -125,6 +125,7 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
 
   console_ = std::make_unique<console::Console>();
   console_->SetScriptEngine(script_engine_.get());
+  console_->SetQuitCallback([this]() { window_->RequestClose(); });
   console_overlay_ = std::make_unique<console::ConsoleOverlay>(*console_);
 
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
