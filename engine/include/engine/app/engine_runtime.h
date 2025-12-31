@@ -5,6 +5,8 @@
 #include <memory>
 
 #include "engine/audio/audio_engine.h"
+#include "engine/console/console.h"
+#include "engine/console/console_overlay.h"
 #include "engine/input.h"
 #include "engine/render/window.h"
 #include "engine/util/config.h"
@@ -91,6 +93,16 @@ class EngineRuntime {
   [[nodiscard]] scripting::ScriptEngine& ScriptEngine();
 
   /**
+   * @brief Access the developer console
+   */
+  [[nodiscard]] console::Console& Console();
+
+  /**
+   * @brief Access the console overlay for rendering
+   */
+  [[nodiscard]] console::ConsoleOverlay& ConsoleOverlay();
+
+  /**
    * @brief Pump OS events and update streaming subsystems
    * @return false when shutdown is requested
    */
@@ -108,6 +120,8 @@ class EngineRuntime {
   std::unique_ptr<render::Window> window_;
   std::shared_ptr<audio::AudioEngine> audio_;
   std::unique_ptr<scripting::ScriptEngine> script_engine_;
+  std::unique_ptr<console::Console> console_;
+  std::unique_ptr<console::ConsoleOverlay> console_overlay_;
 };
 
 }  // namespace engine::app

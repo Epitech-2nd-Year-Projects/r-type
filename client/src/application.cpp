@@ -7,6 +7,7 @@
 #include "audio_controller.h"
 #include "client_asset_manager.h"
 #include "client_runtime.h"
+#include "console_commands.h"
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
@@ -76,6 +77,8 @@ int Application::Run() {
   assets_->PreloadMenuAssets();
   menu_background_ = std::make_unique<ui::MenuBackground>(
       constants::ui::MainMenu::kBackgroundVideoPath);
+
+  RegisterConsoleCommands(*this);
 
   UpdateRuntimeConfig();
   scene_manager_->Initialize(ClientState::kMainMenu);
@@ -254,7 +257,8 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   scene_manager_->Update(dt);
 
-  const bool input_captured = scene_manager_->IsInputCaptured();
+  const bool console_open = runtime_->IsConsoleOpen();
+  const bool input_captured = scene_manager_->IsInputCaptured() || console_open;
   runtime_->Input().SetActionsEnabled(!input_captured);
 
   input_->Update(dt, network_->join_state(), scene_manager_->state());

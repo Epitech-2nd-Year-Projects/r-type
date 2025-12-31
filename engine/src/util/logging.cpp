@@ -181,6 +181,12 @@ void Logger::AddSink(std::shared_ptr<LogSink> sink) {
   sinks_.push_back(std::move(sink));
 }
 
+void Logger::RemoveSink(const std::shared_ptr<LogSink>& sink) {
+  if (!sink) return;
+  std::lock_guard lock(sinks_mutex_);
+  sinks_.erase(std::remove(sinks_.begin(), sinks_.end(), sink), sinks_.end());
+}
+
 void Logger::ClearSinks() {
   std::lock_guard lock(sinks_mutex_);
   sinks_.clear();

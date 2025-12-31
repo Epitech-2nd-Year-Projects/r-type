@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "engine/audio/raylib_audio_engine.h"
+#include "engine/console/console.h"
+#include "engine/console/console_overlay.h"
 #include "engine/render.h"
 #include "engine/render/raylib_backend.h"
 #include "engine/scripting/script_engine.h"
@@ -57,6 +59,12 @@ std::shared_ptr<audio::AudioEngine> EngineRuntime::Audio() { return audio_; }
 
 scripting::ScriptEngine& EngineRuntime::ScriptEngine() {
   return *script_engine_;
+}
+
+console::Console& EngineRuntime::Console() { return *console_; }
+
+console::ConsoleOverlay& EngineRuntime::ConsoleOverlay() {
+  return *console_overlay_;
 }
 
 bool EngineRuntime::Pump() {
@@ -112,6 +120,11 @@ void EngineRuntime::Initialize(const EngineRuntimeConfig& config) {
   if (audio_) {
     script_engine_->SetAudioEngine(*audio_);
   }
+
+  console_ = std::make_unique<console::Console>();
+  console_->SetScriptEngine(script_engine_.get());
+  console_->SetQuitCallback([this]() { window_->RequestClose(); });
+  console_overlay_ = std::make_unique<console::ConsoleOverlay>(*console_);
 
   logger_.get().Info("Engine ready using backend ", window_backend_->Name());
 }
