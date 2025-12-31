@@ -1,9 +1,8 @@
 #include "engine/console/console.h"
 
 #include <algorithm>
-#include <sstream>
-
 #include <sol/sol.hpp>
+#include <sstream>
 
 #include "engine/console/cvar.h"
 #include "engine/scripting/script_engine.h"
@@ -69,22 +68,21 @@ void Console::SetScriptEngine(scripting::ScriptEngine* script_engine) {
       return CVarRegistry::Instance().GetString(name);
     });
 
-    lua.set_function("cvar_set", [](const std::string& name,
-                                    const std::string& value) -> bool {
-      return CVarRegistry::Instance().SetFromString(name, value);
-    });
+    lua.set_function(
+        "cvar_set",
+        [](const std::string& name, const std::string& value) -> bool {
+          return CVarRegistry::Instance().SetFromString(name, value);
+        });
 
     lua.set_function("cvar_exists", [](const std::string& name) -> bool {
       return CVarRegistry::Instance().Exists(name);
     });
 
-    lua.set_function("console_exec", [this](const std::string& cmd) {
-      Execute(cmd);
-    });
+    lua.set_function("console_exec",
+                     [this](const std::string& cmd) { Execute(cmd); });
 
-    lua.set_function("console_print", [this](const std::string& text) {
-      Print(text);
-    });
+    lua.set_function("console_print",
+                     [this](const std::string& text) { Print(text); });
   }
 }
 
@@ -182,7 +180,10 @@ void Console::ExecuteLua(std::string_view code) {
       } else if (obj.is<bool>()) {
         oss << (obj.as<bool>() ? "true" : "false");
       } else {
-        oss << "[" << lua_typename(lua.lua_state(), static_cast<int>(result.get_type())) << "]";
+        oss << "["
+            << lua_typename(lua.lua_state(),
+                            static_cast<int>(result.get_type()))
+            << "]";
       }
 
       Print(oss.str());
@@ -236,8 +237,10 @@ std::vector<std::string> Console::Autocomplete(std::string_view partial) const {
   results.insert(results.end(), cmd_completions.begin(), cmd_completions.end());
 
   if (partial.find(' ') == std::string_view::npos) {
-    auto cvar_completions = CVarRegistry::Instance().GetNamesWithPrefix(partial);
-    results.insert(results.end(), cvar_completions.begin(), cvar_completions.end());
+    auto cvar_completions =
+        CVarRegistry::Instance().GetNamesWithPrefix(partial);
+    results.insert(results.end(), cvar_completions.begin(),
+                   cvar_completions.end());
   }
 
   std::sort(results.begin(), results.end());
@@ -342,4 +345,3 @@ Console& Console::Instance() {
 }
 
 }  // namespace engine::console
-

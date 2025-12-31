@@ -89,7 +89,8 @@ void ConsoleOverlay::HandleInput(input::InputManager& input) {
     return;
   }
 
-  bool shift_held = input.IsKeyDown(Key::kLeftShift) || input.IsKeyDown(Key::kRightShift);
+  bool shift_held =
+      input.IsKeyDown(Key::kLeftShift) || input.IsKeyDown(Key::kRightShift);
 
   if (check_key(Key::kUp)) {
     if (shift_held) {
@@ -120,7 +121,8 @@ void ConsoleOverlay::HandleInput(input::InputManager& input) {
     return;
   }
 
-  bool ctrl_held = input.IsKeyDown(Key::kLeftControl) || input.IsKeyDown(Key::kRightControl);
+  bool ctrl_held =
+      input.IsKeyDown(Key::kLeftControl) || input.IsKeyDown(Key::kRightControl);
   if (ctrl_held && check_key(Key::kSpace)) {
     UpdateAutocomplete();
     return;
@@ -151,7 +153,8 @@ void ConsoleOverlay::HandleTextInput(input::InputManager& input) {
     return;
   }
 
-  bool shift = input.IsKeyDown(Key::kLeftShift) || input.IsKeyDown(Key::kRightShift);
+  bool shift =
+      input.IsKeyDown(Key::kLeftShift) || input.IsKeyDown(Key::kRightShift);
 
   for (const auto& mapping : input::KeyMappings()) {
     if (check_key(mapping.key)) {
@@ -194,7 +197,8 @@ void ConsoleOverlay::UpdateAutocomplete() {
 
 void ConsoleOverlay::ApplyAutocomplete() {
   if (autocomplete_index_ >= 0 &&
-      autocomplete_index_ < static_cast<int>(autocomplete_suggestions_.size())) {
+      autocomplete_index_ <
+          static_cast<int>(autocomplete_suggestions_.size())) {
     input_text_ = autocomplete_suggestions_[autocomplete_index_];
   }
   show_autocomplete_ = false;
@@ -290,7 +294,8 @@ void ConsoleOverlay::Draw(render::Renderer2D& renderer,
   renderer.DrawRect(input_rect, config_.input_background);
 
   float text_x = config_.padding + 4.0f;
-  float input_text_y = input_y + (config_.input_height - config_.font_size) * 0.5f;
+  float input_text_y =
+      input_y + (config_.input_height - config_.font_size) * 0.5f;
 
   renderer.DrawText(">", {text_x, input_text_y}, config_.font_size,
                     config_.prompt_color);
@@ -300,15 +305,16 @@ void ConsoleOverlay::Draw(render::Renderer2D& renderer,
 
   std::string visible_input = input_text_;
   float input_width = renderer.MeasureText(visible_input, config_.font_size).x;
-  float max_input_width = console_width - input_start_x - config_.padding - 20.0f;
+  float max_input_width =
+      console_width - input_start_x - config_.padding - 20.0f;
 
   while (input_width > max_input_width && !visible_input.empty()) {
     visible_input = visible_input.substr(1);
     input_width = renderer.MeasureText(visible_input, config_.font_size).x;
   }
 
-  renderer.DrawText(visible_input, {input_start_x, input_text_y}, config_.font_size,
-                    config_.input_color);
+  renderer.DrawText(visible_input, {input_start_x, input_text_y},
+                    config_.font_size, config_.input_color);
 
   if (show_cursor_) {
     float cursor_x = input_start_x + input_width;
@@ -343,7 +349,8 @@ void ConsoleOverlay::Draw(render::Renderer2D& renderer,
     int start_line = std::max(0, end_line - visible_count);
 
     float y = output_top;
-    for (int i = start_line; i < end_line && y + line_height <= output_bottom; ++i) {
+    for (int i = start_line; i < end_line && y + line_height <= output_bottom;
+         ++i) {
       const auto& [text, type] = display_lines[i];
       render::Color color = GetLineColor(type);
       renderer.DrawText(text, {text_x, y}, config_.font_size, color);
@@ -381,12 +388,11 @@ void ConsoleOverlay::Draw(render::Renderer2D& renderer,
         suggestion = suggestion.substr(0, 27) + "...";
       }
 
-      renderer.DrawText(suggestion, {ac_x + 4.0f, item_y},
-                        config_.font_size, config_.text_color);
+      renderer.DrawText(suggestion, {ac_x + 4.0f, item_y}, config_.font_size,
+                        config_.text_color);
       item_y += ac_line_height;
     }
   }
 }
 
 }  // namespace engine::console
-

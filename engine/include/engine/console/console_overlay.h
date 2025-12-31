@@ -91,4 +91,3 @@ class ConsoleOverlay {
 }  // namespace engine::console
 
 #endif  // ENGINE_CONSOLE_CONSOLE_OVERLAY_H_
-

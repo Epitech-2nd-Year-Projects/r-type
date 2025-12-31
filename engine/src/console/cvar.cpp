@@ -112,7 +112,8 @@ bool CVar<bool>::SetFromString(std::string_view value) {
 template <>
 bool CVar<int>::SetFromString(std::string_view value) {
   int result = 0;
-  auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), result);
+  auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), result);
   if (ec != std::errc{} || ptr != value.data() + value.size()) {
     return false;
   }
@@ -173,21 +174,27 @@ CVar<T>& CVarRegistry::Register(std::string name, T default_value, T min_value,
     return *static_cast<CVar<T>*>(it->second.get());
   }
 
-  auto cvar = std::make_unique<CVar<T>>(name, std::move(default_value),
-                                        std::move(min_value), std::move(max_value),
-                                        std::move(description), flags);
+  auto cvar = std::make_unique<CVar<T>>(
+      name, std::move(default_value), std::move(min_value),
+      std::move(max_value), std::move(description), flags);
   auto* ptr = cvar.get();
   cvars_[std::move(name)] = std::move(cvar);
   return *ptr;
 }
 
-template CVar<bool>& CVarRegistry::Register(std::string, bool, std::string, CVarFlags);
-template CVar<int>& CVarRegistry::Register(std::string, int, std::string, CVarFlags);
-template CVar<float>& CVarRegistry::Register(std::string, float, std::string, CVarFlags);
-template CVar<std::string>& CVarRegistry::Register(std::string, std::string, std::string, CVarFlags);
+template CVar<bool>& CVarRegistry::Register(std::string, bool, std::string,
+                                            CVarFlags);
+template CVar<int>& CVarRegistry::Register(std::string, int, std::string,
+                                           CVarFlags);
+template CVar<float>& CVarRegistry::Register(std::string, float, std::string,
+                                             CVarFlags);
+template CVar<std::string>& CVarRegistry::Register(std::string, std::string,
+                                                   std::string, CVarFlags);
 
-template CVar<int>& CVarRegistry::Register(std::string, int, int, int, std::string, CVarFlags);
-template CVar<float>& CVarRegistry::Register(std::string, float, float, float, std::string, CVarFlags);
+template CVar<int>& CVarRegistry::Register(std::string, int, int, int,
+                                           std::string, CVarFlags);
+template CVar<float>& CVarRegistry::Register(std::string, float, float, float,
+                                             std::string, CVarFlags);
 
 CVarBase* CVarRegistry::Find(std::string_view name) {
   std::lock_guard lock(mutex_);
@@ -209,7 +216,8 @@ CVar<T>* CVarRegistry::FindTyped(std::string_view name) {
 template CVar<bool>* CVarRegistry::FindTyped<bool>(std::string_view);
 template CVar<int>* CVarRegistry::FindTyped<int>(std::string_view);
 template CVar<float>* CVarRegistry::FindTyped<float>(std::string_view);
-template CVar<std::string>* CVarRegistry::FindTyped<std::string>(std::string_view);
+template CVar<std::string>* CVarRegistry::FindTyped<std::string>(
+    std::string_view);
 
 bool CVarRegistry::Exists(std::string_view name) const {
   std::lock_guard lock(mutex_);
@@ -221,7 +229,8 @@ std::string CVarRegistry::GetString(std::string_view name) const {
   return cvar ? cvar->GetString() : "";
 }
 
-bool CVarRegistry::SetFromString(std::string_view name, std::string_view value) {
+bool CVarRegistry::SetFromString(std::string_view name,
+                                 std::string_view value) {
   auto* cvar = Find(name);
   return cvar ? cvar->SetFromString(value) : false;
 }
@@ -237,7 +246,8 @@ std::vector<std::string> CVarRegistry::GetAllNames() const {
   return names;
 }
 
-std::vector<std::string> CVarRegistry::GetNamesWithPrefix(std::string_view prefix) const {
+std::vector<std::string> CVarRegistry::GetNamesWithPrefix(
+    std::string_view prefix) const {
   std::lock_guard lock(mutex_);
   std::vector<std::string> names;
   for (const auto& [name, _] : cvars_) {
@@ -256,4 +266,3 @@ void CVarRegistry::Clear() {
 }
 
 }  // namespace engine::console
-

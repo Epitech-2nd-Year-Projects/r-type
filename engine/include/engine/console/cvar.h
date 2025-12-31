@@ -65,7 +65,8 @@ class CVarBase {
 template <typename T>
 class CVar : public CVarBase {
  public:
-  using ChangeCallback = std::function<void(const T& old_value, const T& new_value)>;
+  using ChangeCallback =
+      std::function<void(const T& old_value, const T& new_value)>;
 
   CVar(std::string name, T default_value, std::string description = "",
        CVarFlags flags = CVarFlags::kNone);
@@ -159,4 +160,3 @@ extern template class CVar<std::string>;
 }  // namespace engine::console
 
 #endif  // ENGINE_CONSOLE_CVAR_H_
-

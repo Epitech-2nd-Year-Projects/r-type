@@ -33,7 +33,8 @@ struct ConsoleConfig {
 
 class ConsoleSink : public util::LogSink {
  public:
-  using OutputCallback = std::function<void(const std::string&, ConsoleLine::Type)>;
+  using OutputCallback =
+      std::function<void(const std::string&, ConsoleLine::Type)>;
 
   explicit ConsoleSink(OutputCallback callback,
                        util::LogLevel min_level = util::LogLevel::kInfo);
@@ -61,11 +62,14 @@ class Console {
   void SetScriptEngine(scripting::ScriptEngine* script_engine);
 
   using QuitCallback = std::function<void()>;
-  void SetQuitCallback(QuitCallback callback) { quit_callback_ = std::move(callback); }
+  void SetQuitCallback(QuitCallback callback) {
+    quit_callback_ = std::move(callback);
+  }
 
   void Execute(std::string_view input);
 
-  void Print(std::string_view text, ConsoleLine::Type type = ConsoleLine::Type::kOutput);
+  void Print(std::string_view text,
+             ConsoleLine::Type type = ConsoleLine::Type::kOutput);
   void PrintInfo(std::string_view text);
   void PrintError(std::string_view text);
 
@@ -74,7 +78,9 @@ class Console {
   const std::deque<ConsoleLine>& GetHistory() const { return output_history_; }
   std::size_t GetHistorySize() const { return output_history_.size(); }
 
-  const std::vector<std::string>& GetInputHistory() const { return input_history_; }
+  const std::vector<std::string>& GetInputHistory() const {
+    return input_history_;
+  }
   void AddToInputHistory(std::string_view input);
 
   std::vector<std::string> Autocomplete(std::string_view partial) const;
@@ -110,4 +116,3 @@ class Console {
 }  // namespace engine::console
 
 #endif  // ENGINE_CONSOLE_CONSOLE_H_
-
