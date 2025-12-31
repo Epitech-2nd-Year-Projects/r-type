@@ -41,7 +41,7 @@ Console::Console(const ConsoleConfig& config) : config_(config) {
 
 Console::~Console() {
   if (console_sink_) {
-    util::Logger::Default().ClearSinks();
+    util::Logger::Default().RemoveSink(console_sink_);
   }
 }
 
@@ -251,7 +251,8 @@ std::vector<std::string_view> Console::Tokenize(std::string_view input) const {
 
   std::size_t i = 0;
   while (i < input.size()) {
-    while (i < input.size() && std::isspace(input[i])) {
+    while (i < input.size() &&
+           std::isspace(static_cast<unsigned char>(input[i]))) {
       ++i;
     }
 
@@ -271,7 +272,8 @@ std::vector<std::string_view> Console::Tokenize(std::string_view input) const {
       }
     } else {
       std::size_t start = i;
-      while (i < input.size() && !std::isspace(input[i])) {
+      while (i < input.size() &&
+             !std::isspace(static_cast<unsigned char>(input[i]))) {
         ++i;
       }
       tokens.push_back(input.substr(start, i - start));
@@ -292,7 +294,11 @@ void Console::RegisterConsoleCommands() {
 
   CommandRegistry::Instance().Register(
       "quit",
-      [](std::span<const std::string_view>) -> CommandResult {
+      [this](std::span<const std::string_view>) -> CommandResult {
+        if (quit_callback_) {
+          quit_callback_();
+          return CommandResult::Ok();
+        }
         std::exit(0);
         return CommandResult::Ok();
       },

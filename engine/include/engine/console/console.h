@@ -60,6 +60,9 @@ class Console {
 
   void SetScriptEngine(scripting::ScriptEngine* script_engine);
 
+  using QuitCallback = std::function<void()>;
+  void SetQuitCallback(QuitCallback callback) { quit_callback_ = std::move(callback); }
+
   void Execute(std::string_view input);
 
   void Print(std::string_view text, ConsoleLine::Type type = ConsoleLine::Type::kOutput);
@@ -100,6 +103,7 @@ class Console {
   std::vector<std::string> input_history_;
   scripting::ScriptEngine* script_engine_{nullptr};
   std::shared_ptr<ConsoleSink> console_sink_;
+  QuitCallback quit_callback_;
   mutable std::mutex mutex_;
 };
 
