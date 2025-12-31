@@ -14,4 +14,3 @@ void RegisterConsoleCommands(Application& app);
 }  // namespace client
 
 #endif  // CLIENT_CONSOLE_COMMANDS_H_
-

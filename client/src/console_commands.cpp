@@ -38,8 +38,8 @@ void RegisterConsoleCommands(Application& app) {
 
   cmd_registry.Register(
       "commands",
-      [&cmd_registry](std::span<const std::string_view>)
-          -> engine::console::CommandResult {
+      [&cmd_registry](
+          std::span<const std::string_view>) -> engine::console::CommandResult {
         auto names = cmd_registry.GetAllNames();
         std::ostringstream oss;
         oss << "Registered commands (" << names.size() << "):\n";
@@ -62,16 +62,18 @@ void RegisterConsoleCommands(Application& app) {
         const auto& registry = app.World();
         const auto& networked =
             registry.GetComponents<ecs::NetworkedEntityComponent>();
-        const auto& positions = registry.GetComponents<ecs::PositionComponent>();
+        const auto& positions =
+            registry.GetComponents<ecs::PositionComponent>();
         const auto& health = registry.GetComponents<ecs::HealthComponent>();
 
         std::optional<std::uint32_t> filter_id;
         if (!args.empty()) {
           try {
-            filter_id = static_cast<std::uint32_t>(std::stoul(std::string(args[0])));
+            filter_id =
+                static_cast<std::uint32_t>(std::stoul(std::string(args[0])));
           } catch (...) {
-            return engine::console::CommandResult::Error(
-                "Invalid entity ID: " + std::string(args[0]));
+            return engine::console::CommandResult::Error("Invalid entity ID: " +
+                                                         std::string(args[0]));
           }
         }
 
@@ -126,8 +128,8 @@ void RegisterConsoleCommands(Application& app) {
           const auto& bindings = app.KeyBindingSet();
           for (auto action : bindings.Actions()) {
             auto key = bindings.Primary(action);
-            oss << "  " << ActionLabel(action) << " = "
-                << KeyDisplayName(key) << "\n";
+            oss << "  " << ActionLabel(action) << " = " << KeyDisplayName(key)
+                << "\n";
           }
           oss << "\nUsage: bind <action> <key>\n";
           oss << "Actions: move_up, move_down, move_left, move_right, shoot, "
@@ -154,14 +156,14 @@ void RegisterConsoleCommands(Application& app) {
         } else if (action_str == "reconnect") {
           action = GameAction::kReconnect;
         } else {
-          return engine::console::CommandResult::Error(
-              "Unknown action: " + action_str);
+          return engine::console::CommandResult::Error("Unknown action: " +
+                                                       action_str);
         }
 
         auto key = ParseKeyToken(key_str);
         if (!key.has_value()) {
-          return engine::console::CommandResult::Error(
-              "Unknown key: " + key_str);
+          return engine::console::CommandResult::Error("Unknown key: " +
+                                                       key_str);
         }
 
         auto result = app.UpdateKeyBinding(action, *key);
@@ -172,10 +174,9 @@ void RegisterConsoleCommands(Application& app) {
       },
       [](std::string_view partial) -> std::vector<std::string> {
         std::vector<std::string> suggestions;
-        std::vector<std::string> actions = {"move_up",   "move_down",
-                                            "move_left", "move_right",
-                                            "shoot",     "big_shoot",
-                                            "reconnect"};
+        std::vector<std::string> actions = {
+            "move_up", "move_down", "move_left", "move_right",
+            "shoot",   "big_shoot", "reconnect"};
         for (const auto& action : actions) {
           if (action.find(partial) == 0) {
             suggestions.push_back(action);
@@ -187,8 +188,8 @@ void RegisterConsoleCommands(Application& app) {
 
   cmd_registry.Register(
       "player",
-      [&app](std::span<const std::string_view>)
-          -> engine::console::CommandResult {
+      [&app](
+          std::span<const std::string_view>) -> engine::console::CommandResult {
         auto player_id = app.LocalPlayerId();
         if (!player_id.has_value()) {
           return engine::console::CommandResult::Error("Not connected");
@@ -197,7 +198,8 @@ void RegisterConsoleCommands(Application& app) {
         const auto& registry = app.World();
         const auto& networked =
             registry.GetComponents<ecs::NetworkedEntityComponent>();
-        const auto& positions = registry.GetComponents<ecs::PositionComponent>();
+        const auto& positions =
+            registry.GetComponents<ecs::PositionComponent>();
         const auto& health = registry.GetComponents<ecs::HealthComponent>();
         const auto& player_states =
             registry.GetComponents<ecs::PlayerStateComponent>();
@@ -236,8 +238,8 @@ void RegisterConsoleCommands(Application& app) {
 
   cmd_registry.Register(
       "wave",
-      [&app](std::span<const std::string_view>)
-          -> engine::console::CommandResult {
+      [&app](
+          std::span<const std::string_view>) -> engine::console::CommandResult {
         auto wave = app.CurrentWave();
         if (!wave.has_value()) {
           return engine::console::CommandResult::Error("Not in game");
@@ -249,8 +251,8 @@ void RegisterConsoleCommands(Application& app) {
 
   cmd_registry.Register(
       "ping",
-      [&app](std::span<const std::string_view>)
-          -> engine::console::CommandResult {
+      [&app](
+          std::span<const std::string_view>) -> engine::console::CommandResult {
         auto latency = app.LatestLatencyMs();
         if (!latency.has_value()) {
           return engine::console::CommandResult::Error("Not connected");
@@ -264,8 +266,8 @@ void RegisterConsoleCommands(Application& app) {
 
   cmd_registry.Register(
       "disconnect",
-      [&app](std::span<const std::string_view>)
-          -> engine::console::CommandResult {
+      [&app](
+          std::span<const std::string_view>) -> engine::console::CommandResult {
         if (!app.ConnectionActive()) {
           return engine::console::CommandResult::Error("Not connected");
         }
@@ -276,4 +278,3 @@ void RegisterConsoleCommands(Application& app) {
 }
 
 }  // namespace client
-
