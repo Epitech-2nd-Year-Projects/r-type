@@ -2,6 +2,7 @@
 #define ENGINE_ENGINE_H_
 
 #include <engine/audio.h>
+#include <engine/console.h>
 #include <engine/core.h>
 #include <engine/ecs.h>
 #include <engine/event.h>
