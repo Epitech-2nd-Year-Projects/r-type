@@ -7,4 +7,3 @@
 #include "engine/console/cvar.h"
 
 #endif  // ENGINE_CONSOLE_H_
-
