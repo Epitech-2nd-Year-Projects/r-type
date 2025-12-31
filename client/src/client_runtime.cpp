@@ -9,6 +9,8 @@
 #include "ecs/render_debug.h"
 #include "ecs/render_system.h"
 #include "engine/app/engine_runtime.h"
+#include "engine/console/console.h"
+#include "engine/console/console_overlay.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
@@ -76,6 +78,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   UpdateDebugToggle();
   UpdateProfilingOverlay(dt, registry, latency_ms);
+  UpdateConsoleOverlay(dt);
 
   auto& context = engine_->RenderContext();
   auto& renderer = engine_->Renderer();
@@ -105,6 +108,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   }
 
   profiling_overlay_.Draw(renderer, engine_->Window().GetSize());
+  engine_->ConsoleOverlay().Draw(renderer, engine_->Window().GetSize());
   context.EndFrame();
 }
 
@@ -129,6 +133,18 @@ std::shared_ptr<engine::audio::AudioEngine> ClientRuntime::Audio() {
 
 engine::util::Configuration& ClientRuntime::Config() {
   return engine_->Config();
+}
+
+engine::console::Console& ClientRuntime::Console() {
+  return engine_->Console();
+}
+
+engine::console::ConsoleOverlay& ClientRuntime::ConsoleOverlay() {
+  return engine_->ConsoleOverlay();
+}
+
+bool ClientRuntime::IsConsoleOpen() const {
+  return engine_ && engine_->ConsoleOverlay().IsOpen();
 }
 
 void ClientRuntime::RequestClose() {
@@ -167,6 +183,13 @@ void ClientRuntime::UpdateDebugToggle() {
     }
   }
   debug_toggle_pressed_ = pressed;
+}
+
+void ClientRuntime::UpdateConsoleOverlay(engine::time::TimeDelta dt) {
+  if (!engine_) {
+    return;
+  }
+  engine_->ConsoleOverlay().Update(dt, engine_->Input());
 }
 
 std::size_t ClientRuntime::RenderableEntityCount(

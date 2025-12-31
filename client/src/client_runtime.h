@@ -12,12 +12,17 @@
 
 #include "client_config.h"
 #include "client_state.h"
+#include "engine/console/console_overlay.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
 namespace engine::app {
 class EngineRuntime;
 }  // namespace engine::app
+
+namespace engine::console {
+class Console;
+}  // namespace engine::console
 
 namespace engine::audio {
 class AudioEngine;
@@ -143,11 +148,27 @@ class ClientRuntime {
    */
   void ResetWorld();
 
+  /**
+   * @brief Access the developer console
+   */
+  engine::console::Console& Console();
+
+  /**
+   * @brief Access the console overlay
+   */
+  engine::console::ConsoleOverlay& ConsoleOverlay();
+
+  /**
+   * @brief Check if the console is currently open
+   */
+  bool IsConsoleOpen() const;
+
  private:
   void UpdateProfilingOverlay(engine::time::TimeDelta dt,
                               const engine::ecs::Registry& registry,
                               std::optional<float> latency_ms);
   void UpdateDebugToggle();
+  void UpdateConsoleOverlay(engine::time::TimeDelta dt);
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
 
