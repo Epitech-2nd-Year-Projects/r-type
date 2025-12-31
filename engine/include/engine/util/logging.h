@@ -123,6 +123,7 @@ class Logger {
   [[nodiscard]] LogLevel Level() const noexcept;
 
   void AddSink(std::shared_ptr<LogSink> sink);
+  void RemoveSink(const std::shared_ptr<LogSink>& sink);
   void ClearSinks();
   void SetName(std::string name);
 
