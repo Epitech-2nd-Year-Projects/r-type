@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 add_requires("nlohmann_json")
 add_requires("raylib")
-add_requires("ffmpeg", {configs = {gpl = false, avcodec = true, avformat = true, avutil = true, swresample = true, swscale = true}})
+add_requires("ffmpeg", {configs = {gpl = false, avdevice = false, avcodec = true, avformat = true, avutil = true, swresample = true, swscale = true}})
 
 target("client")
     set_kind("binary")
