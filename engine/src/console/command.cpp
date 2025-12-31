@@ -12,9 +12,7 @@ CommandRegistry& CommandRegistry::Instance() {
   return instance;
 }
 
-CommandRegistry::CommandRegistry() {
-  RegisterBuiltins();
-}
+CommandRegistry::CommandRegistry() { RegisterBuiltins(); }
 
 void CommandRegistry::RegisterBuiltins() {
   Register(
@@ -167,16 +165,15 @@ void CommandRegistry::RegisterBuiltins() {
 void CommandRegistry::Register(std::string name, CommandHandler handler,
                                std::string help) {
   std::lock_guard lock(mutex_);
-  commands_[name] = Command{name, std::move(help),
-                            std::move(handler), nullptr};
+  commands_[name] = Command{name, std::move(help), std::move(handler), nullptr};
 }
 
 void CommandRegistry::Register(std::string name, CommandHandler handler,
                                AutocompleteHandler autocomplete,
                                std::string help) {
   std::lock_guard lock(mutex_);
-  commands_[name] = Command{name, std::move(help),
-                            std::move(handler), std::move(autocomplete)};
+  commands_[name] = Command{name, std::move(help), std::move(handler),
+                            std::move(autocomplete)};
 }
 
 void CommandRegistry::Unregister(std::string_view name) {
@@ -196,7 +193,7 @@ const Command* CommandRegistry::Find(std::string_view name) const {
 }
 
 CommandResult CommandRegistry::Execute(std::string_view name,
-                                        std::span<const std::string_view> args) {
+                                       std::span<const std::string_view> args) {
   const Command* cmd = Find(name);
   if (!cmd) {
     return CommandResult::Error("Unknown command: " + std::string(name));
@@ -264,4 +261,3 @@ void CommandRegistry::Clear() {
 }
 
 }  // namespace engine::console
-

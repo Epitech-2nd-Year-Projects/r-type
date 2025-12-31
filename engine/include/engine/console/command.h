@@ -25,8 +25,10 @@ struct CommandResult {
   }
 };
 
-using CommandHandler = std::function<CommandResult(std::span<const std::string_view> args)>;
-using AutocompleteHandler = std::function<std::vector<std::string>(std::string_view partial)>;
+using CommandHandler =
+    std::function<CommandResult(std::span<const std::string_view> args)>;
+using AutocompleteHandler =
+    std::function<std::vector<std::string>(std::string_view partial)>;
 
 struct Command {
   std::string name;
@@ -74,4 +76,3 @@ class CommandRegistry {
 }  // namespace engine::console
 
 #endif  // ENGINE_CONSOLE_COMMAND_H_
-
