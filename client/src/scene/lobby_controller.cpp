@@ -11,11 +11,22 @@
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
-#include "engine/math/rect.h"
+#include "engine/render/color.h"
 
 namespace client {
 
 namespace {
+
+ui::MenuPointerConfig LobbyPointerConfig() {
+  return ui::MenuPointerConfig{
+      constants::ui::kMenuPointerFramePrefix,
+      constants::ui::kMenuPointerFrameExtension,
+      constants::ui::OptionsMenu::kPointerFrameCount,
+      constants::ui::OptionsMenu::kPointerFrameDuration,
+      constants::ui::OptionsMenu::kPointerHeightFactor,
+      constants::ui::OptionsMenu::kPointerSpacing,
+      constants::ui::OptionsMenu::kPointerScaleFactor};
+}
 
 bool IsFourDigitPassword(const std::string& value) {
   if (value.size() != constants::client::kLobbyPasswordLength) {
@@ -29,7 +40,11 @@ bool IsFourDigitPassword(const std::string& value) {
 
 LobbyController::LobbyController(ClientContext& context,
                                  std::function<void()> open_create_modal)
-    : context_(context), open_create_modal_(std::move(open_create_modal)) {
+    : context_(context),
+      open_create_modal_(std::move(open_create_modal)),
+      menu_effects_(context, LobbyPointerConfig(),
+                    constants::ui::kMenuHoverSfxPath,
+                    constants::ui::kMenuClickSfxPath) {
   auto& runtime_config = context_.Config();
   const ClientConfig defaults{};
   const std::string host_value = runtime_config.GetString(
@@ -44,32 +59,12 @@ LobbyController::LobbyController(ClientContext& context,
   if (validation.valid) {
     lobby_host_ = validation.host;
     lobby_port_ = validation.port;
+    player_name_ = validation.player_name;
   } else {
     lobby_host_ = defaults.host;
     lobby_port_ = defaults.port;
+    player_name_ = defaults.player_name;
   }
-
-  host_input_ = std::make_shared<engine::ui::TextInput>(
-      engine::math::Vector2f{}, engine::math::Vector2f{});
-  host_input_->SetPlaceholder(defaults.host);
-  host_input_->SetText(lobby_host_);
-
-  port_input_ = std::make_shared<engine::ui::TextInput>(
-      engine::math::Vector2f{}, engine::math::Vector2f{});
-  port_input_->SetPlaceholder(std::to_string(defaults.port));
-  port_input_->SetText(std::to_string(lobby_port_));
-
-  name_input_ = std::make_shared<engine::ui::TextInput>(
-      engine::math::Vector2f{}, engine::math::Vector2f{});
-  name_input_->SetPlaceholder("Player name");
-  name_input_->SetText(validation.valid ? validation.player_name
-                                        : defaults.player_name);
-
-  refresh_button_ = std::make_shared<engine::ui::Button>(
-      engine::math::Vector2f{},
-      engine::math::Vector2f{constants::ui::Lobby::kRefreshButtonWidth,
-                             constants::ui::Lobby::kButtonHeight},
-      "Refresh", [this]() { RefreshRoomList(); });
 
   create_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
@@ -81,14 +76,28 @@ LobbyController::LobbyController(ClientContext& context,
         }
       });
 
-  controls_ = {host_input_, port_input_, name_input_, refresh_button_,
-               create_button_};
+  back_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{},
+      engine::math::Vector2f{constants::ui::Lobby::kBackButtonWidth,
+                             constants::ui::Lobby::kBackButtonHeight},
+      "Back", menu_effects_.WrapClick([this]() { context_.OnQuitToMenu(); }));
 
+  const auto white = engine::render::Color::White();
+  const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
+  back_button_->SetColors(transparent, transparent, transparent);
+  back_button_->SetTextColor(white);
+  back_button_->SetTextScale(constants::ui::Lobby::kBackButtonTextScale);
+
+  controls_ = {create_button_, back_button_};
+  pointer_buttons_ = {back_button_};
+
+  menu_effects_.Load();
   RefreshRoomList();
 }
 
 void LobbyController::Update(engine::time::TimeDelta dt,
                              engine::input::InputManager& input) {
+  menu_effects_.Update(dt, input, pointer_buttons_);
   for (auto& elem : controls_) {
     elem->Update(dt, input);
   }
@@ -105,116 +114,44 @@ void LobbyController::Layout(const engine::math::Vector2f& window_size) {
   const float width = window_size.x;
   const float height = window_size.y;
   const float margin = constants::ui::Lobby::kPanelMargin;
-  const float controls_y = constants::ui::Lobby::kControlsY;
-  const float field_y = controls_y + (constants::ui::Lobby::kButtonHeight -
-                                      constants::ui::Lobby::kFieldHeight) /
-                                         2.0f;
 
-  host_input_->SetSize({constants::ui::Lobby::kHostFieldWidth,
-                        constants::ui::Lobby::kFieldHeight});
-  host_input_->SetPosition({margin, field_y});
-
-  port_input_->SetSize({constants::ui::Lobby::kPortFieldWidth,
-                        constants::ui::Lobby::kFieldHeight});
-  port_input_->SetPosition({host_input_->GetPosition().x +
-                                host_input_->GetSize().x +
-                                constants::ui::Lobby::kHostPortSpacing,
-                            field_y});
-
-  name_input_->SetSize({constants::ui::Lobby::kNameFieldWidth,
-                        constants::ui::Lobby::kFieldHeight});
-  name_input_->SetPosition({port_input_->GetPosition().x +
-                                port_input_->GetSize().x +
-                                constants::ui::Lobby::kPortNameSpacing,
-                            field_y});
-
-  refresh_button_->SetSize({constants::ui::Lobby::kRefreshButtonWidth,
-                            constants::ui::Lobby::kButtonHeight});
   create_button_->SetSize({constants::ui::Lobby::kCreateButtonSize,
                            constants::ui::Lobby::kCreateButtonSize});
+  back_button_->SetSize({constants::ui::Lobby::kBackButtonWidth,
+                         constants::ui::Lobby::kBackButtonHeight});
 
-  create_button_->SetPosition(
-      {width - margin - create_button_->GetSize().x, controls_y});
-  refresh_button_->SetPosition({create_button_->GetPosition().x -
-                                    refresh_button_->GetSize().x -
-                                    constants::ui::Lobby::kRefreshCreateSpacing,
-                                controls_y});
-
-  host_label_pos_ = {margin, controls_y - constants::ui::Lobby::kLabelOffsetY};
-  port_label_pos_ = {host_input_->GetPosition().x + host_input_->GetSize().x +
-                         constants::ui::Lobby::kHostPortSpacing,
-                     controls_y - constants::ui::Lobby::kLabelOffsetY};
-  name_label_pos_ = {port_input_->GetPosition().x + port_input_->GetSize().x +
-                         constants::ui::Lobby::kPortNameSpacing,
-                     controls_y - constants::ui::Lobby::kLabelOffsetY};
-
-  banner_pos_ = {constants::ui::Lobby::kBannerOffsetX,
-                 height - constants::ui::Lobby::kBannerOffsetBottom};
+  create_button_->SetPosition({width - margin - create_button_->GetSize().x,
+                               constants::ui::Lobby::kControlsY});
+  back_button_->SetPosition(
+      {(width - back_button_->GetSize().x) * 0.5f,
+       height - constants::ui::Lobby::kBackButtonBottomPadding -
+           back_button_->GetSize().y});
 }
 
 void LobbyController::Draw(engine::render::Renderer2D& renderer) const {
   renderer.SetFont(std::string(constants::ui::kBodyFont));
-  renderer.DrawText("Server address", host_label_pos_,
-                    constants::ui::Lobby::kModalLabelFontSize,
-                    constants::ui::Lobby::kSoftTextColor);
-  renderer.DrawText("Server port", port_label_pos_,
-                    constants::ui::Lobby::kModalLabelFontSize,
-                    constants::ui::Lobby::kSoftTextColor);
-  renderer.DrawText("Player name", name_label_pos_,
-                    constants::ui::Lobby::kModalLabelFontSize,
-                    constants::ui::Lobby::kSoftTextColor);
-
-  for (auto& elem : controls_) {
-    elem->Draw(renderer);
-  }
-
-  if (!banner_text_.empty()) {
-    renderer.DrawText(banner_text_, banner_pos_,
-                      constants::ui::Lobby::kBannerFontSize,
-                      engine::render::Color::White());
-  }
+  create_button_->Draw(renderer);
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
+  back_button_->Draw(renderer);
+  menu_effects_.DrawPointers(renderer, pointer_buttons_);
 }
 
 void LobbyController::ApplyButtonStyle(ClientAssetManager& assets) {
   const auto btn_tex =
       assets.GetTexture(constants::ui::kButtonTextureLargePath);
-  const auto white = constants::ui::kButtonBaseColor;
   if (btn_tex) {
     const auto hover = constants::ui::kButtonHoverColor;
     const auto press = constants::ui::kButtonPressColor;
-    refresh_button_->SetTexture(btn_tex);
     create_button_->SetTexture(btn_tex);
-    refresh_button_->SetColors(white, hover, press);
-    create_button_->SetColors(white, hover, press);
+    create_button_->SetColors(constants::ui::kButtonBaseColor, hover, press);
   }
 }
 
 void LobbyController::HandleFocus(const engine::input::InputManager& input) {
-  const auto pos = input.GetMousePosition();
-  auto set_focus = [&](const std::shared_ptr<engine::ui::TextInput>& field) {
-    if (!field) {
-      return;
-    }
-    engine::math::RectF rect{field->GetPosition(), field->GetSize()};
-    field->SetFocused(rect.Contains(pos));
-  };
-  set_focus(host_input_);
-  set_focus(port_input_);
-  set_focus(name_input_);
+  static_cast<void>(input);
 }
 
-bool LobbyController::IsInputCaptured() const {
-  if (host_input_ && host_input_->IsFocused()) {
-    return true;
-  }
-  if (port_input_ && port_input_->IsFocused()) {
-    return true;
-  }
-  if (name_input_ && name_input_->IsFocused()) {
-    return true;
-  }
-  return false;
-}
+bool LobbyController::IsInputCaptured() const { return false; }
 
 bool LobbyController::TryCreateRoom(const std::string& room_name,
                                     const std::string& max_players_text,
@@ -260,33 +197,13 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
               "-digit password to join");
     return false;
   }
-
-  const auto validation = ValidateConnectionFields(
-      host_input_->GetText(), port_input_->GetText(), name_input_->GetText());
-  if (!validation.valid) {
-    SetBanner(validation.message);
-    return false;
-  }
-
-  lobby_host_ = validation.host;
-  lobby_port_ = validation.port;
   context_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_),
-                               validation.player_name, room.room_code,
-                               password);
+                               player_name_, room.room_code, password);
   context_.StartConnection();
   return true;
 }
 
 void LobbyController::RefreshRoomList() {
-  const auto validation = ValidateConnectionFields(
-      host_input_->GetText(), port_input_->GetText(), name_input_->GetText());
-  if (!validation.valid) {
-    SetBanner(validation.message);
-    return;
-  }
-
-  lobby_host_ = validation.host;
-  lobby_port_ = validation.port;
   context_.RefreshRoomList(lobby_host_, lobby_port_);
 }
 

@@ -83,6 +83,12 @@ void ClientAssetManager::PreloadMenuAssets() {
   PreloadTextureSequence(constants::ui::OptionsMenu::kWarningFramePrefix,
                          constants::ui::OptionsMenu::kWarningFrameExtension,
                          constants::ui::OptionsMenu::kWarningFrameCount);
+  PreloadTextureSequence(constants::ui::Pause::kTopFleurFramePrefix,
+                         constants::ui::Pause::kFleurFrameExtension,
+                         constants::ui::Pause::kFleurFrameCount);
+  PreloadTextureSequence(constants::ui::Pause::kBottomFleurFramePrefix,
+                         constants::ui::Pause::kFleurFrameExtension,
+                         constants::ui::Pause::kFleurFrameCount);
 
   PreloadSfx(constants::ui::kMenuHoverSfxPath);
   PreloadSfx(constants::ui::kMenuClickSfxPath);
