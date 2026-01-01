@@ -12,15 +12,18 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
 #include "engine/input.h"
+#include "engine/math/rect.h"
 #include "engine/math/vector2.h"
 #include "engine/render/renderer2d.h"
 #include "engine/time/time_delta.h"
 #include "engine/ui/button.h"
 #include "protocol/lobby.h"
+#include "ui/menu_effects.h"
 
 namespace client {
 
@@ -72,13 +75,32 @@ class LobbyRoomListView {
                     ClientAssetManager& assets);
 
  private:
+  struct RoomEntry {
+    protocol::RoomSummary room{};
+    std::string left_text;
+    std::string center_text;
+    std::string right_text;
+    std::shared_ptr<engine::render::Texture2D> area_texture;
+  };
+
   ClientContext& context_;
   std::function<void(const protocol::RoomSummary&)> on_room_selected_;
+  ui::MenuEffects menu_effects_;
   std::vector<std::shared_ptr<engine::ui::Button>> room_buttons_;
-  std::shared_ptr<engine::render::Texture2D> button_texture_{};
-  engine::math::Vector2f title_pos_{};
-  engine::math::Vector2f status_pos_{};
+  std::vector<RoomEntry> room_entries_;
+  std::vector<std::shared_ptr<engine::render::Texture2D>> area_textures_;
+  std::vector<std::shared_ptr<engine::render::Texture2D>> header_frames_;
+  std::vector<std::shared_ptr<engine::render::Texture2D>> room_frames_;
+  engine::math::RectF header_frame_rect_{};
+  engine::math::Vector2f title_anchor_{};
+  engine::math::Vector2f room_frame_draw_size_{};
+  engine::math::Vector2f room_list_origin_{};
   std::size_t last_rooms_hash_{0};
+  float header_elapsed_{0.0f};
+  bool header_animating_{true};
+  float room_frame_elapsed_{0.0f};
+  std::size_t room_frame_index_{0};
+  bool room_frame_animating_{true};
 };
 
 }  // namespace client
