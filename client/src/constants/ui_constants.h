@@ -203,17 +203,38 @@ struct Settings {
 struct Lobby {
   static constexpr float kFieldHeight = 52.0f;
   static constexpr float kButtonHeight = 56.0f;
-  static constexpr float kRoomButtonHeight = 64.0f;
+  static constexpr float kRoomButtonHeight = 87.0f;
   static constexpr float kRefreshButtonWidth = 140.0f;
   static constexpr float kCreateButtonSize = 56.0f;
+  static constexpr float kBackButtonWidth = 170.0f;
+  static constexpr float kBackButtonHeight = 72.0f;
+  static constexpr float kBackButtonTextScale = 0.46f;
+  static constexpr float kBackButtonBottomPadding = 40.0f;
   static constexpr float kModalActionButtonWidth = 160.0f;
   static constexpr float kModalMaxPlayersWidth = 180.0f;
   static constexpr float kPanelMargin = 32.0f;
-  static constexpr float kListTop = 220.0f;
-  static constexpr float kListTitleOffset = 44.0f;
-  static constexpr float kListStatusOffset = 14.0f;
-  static constexpr float kListTitleFontSize = 28.0f;
-  static constexpr float kListStatusFontSize = 18.0f;
+  static constexpr float kHeaderTopPadding = 40.0f;
+  static constexpr float kHeaderTitleFontSize =
+      OptionsMenu::kButtonHeight * OptionsMenu::kButtonTextScale *
+      OptionsMenu::kTitleScaleFactor;
+  static constexpr float kHeaderDecorationSpacing = 14.0f;
+  static constexpr float kHeaderDecorationHeight =
+      OptionsMenu::kWarningSlotHeight;
+  static constexpr float kHeaderDecorationBottomSpacing = 30.0f;
+  static constexpr float kHeaderDecorationMaxWidth = 960.0f;
+  static constexpr float kHeaderFrameDefaultWidth = 959.0f;
+  static constexpr float kHeaderFrameDefaultHeight = 80.0f;
+  static constexpr float kRoomFrameMaxWidth = 842.0f;
+  static constexpr float kRoomFrameDefaultWidth = 842.0f;
+  static constexpr float kRoomFrameDefaultHeight = 87.0f;
+  static constexpr float kRoomListSpacing = 18.0f;
+  static constexpr float kRoomListLeftPadding = 128.0f;
+  static constexpr float kRoomTextPadding = 42.0f;
+  static constexpr float kRoomTextGap = 18.0f;
+  static constexpr float kRoomTextScale = 0.32f;
+  static constexpr float kRoomTextMinScale = 0.26f;
+  static constexpr float kRoomAreaOffsetY = 12.0f;
+  static constexpr float kRoomTextOffsetY = 12.0f;
   static constexpr float kBannerOffsetX = 52.0f;
   static constexpr float kBannerOffsetBottom = 50.0f;
   static constexpr float kBannerFontSize = 18.0f;
@@ -225,8 +246,6 @@ struct Lobby {
   static constexpr float kHostPortSpacing = 10.0f;
   static constexpr float kPortNameSpacing = 20.0f;
   static constexpr float kRefreshCreateSpacing = 12.0f;
-  static constexpr float kRoomListTopPadding = 20.0f;
-  static constexpr float kRoomListSpacing = 10.0f;
   static constexpr float kModalPaddingX = 24.0f;
   static constexpr float kModalTitleOffsetY = 34.0f;
   static constexpr float kModalTitleFontSize = 28.0f;
@@ -247,6 +266,15 @@ struct Lobby {
   static constexpr float kModalWidth = 560.0f;
   static constexpr float kModalHeight = 500.0f;
   static constexpr auto kBannerDuration = std::chrono::seconds(6);
+  static constexpr float kHeaderFrameDuration = 0.06f;
+  static constexpr float kRoomFrameDuration = 0.06f;
+  static constexpr int kHeaderFrameCount = 9;
+  static constexpr int kRoomFrameCount = 13;
+  static constexpr std::string_view kHeaderFramePrefix =
+      "assets/ui/Warning_Fleur";
+  static constexpr std::string_view kHeaderFrameExtension = ".png";
+  static constexpr std::string_view kRoomFramePrefix = "assets/ui/profile_fleur";
+  static constexpr std::string_view kRoomFrameExtension = ".png";
   static constexpr engine::render::Color kPanelColor =
       engine::render::Color::FromBytes(18, 24, 40, 230);
   static constexpr engine::render::Color kAccentColor =
@@ -255,6 +283,8 @@ struct Lobby {
       engine::render::Color::FromBytes(180, 190, 210, 255);
   static constexpr engine::render::Color kSoftTextColor =
       engine::render::Color::FromBytes(200, 210, 230, 255);
+  static constexpr engine::render::Color kRoomTextColor =
+      engine::render::Color::FromBytes(225, 232, 244, 255);
   static constexpr engine::render::Color kOverlayColor =
       engine::render::Color::FromBytes(0, 0, 0, 180);
   static constexpr std::size_t kGoldenHashRatio = 0x9e3779b9;
@@ -266,15 +296,22 @@ struct Lobby {
  * @brief Pause menu layout values
  */
 struct Pause {
-  static constexpr float kButtonWidth = 360.0f;
-  static constexpr float kButtonHeight = 64.0f;
-  static constexpr float kRootPadding = 28.0f;
-  static constexpr float kRootSpacing = 14.0f;
-  static constexpr float kButtonColumnSpacing = 10.0f;
-  static constexpr float kButtonSlotPadding = 8.0f;
-  static constexpr float kTitleFontScale = 0.06f;
+  static constexpr float kRootPadding = 24.0f;
+  static constexpr float kRootSpacing = 16.0f;
+  static constexpr float kDecorationSpacing = 16.0f;
+  static constexpr float kListWidth = 426.0f;
+  static constexpr float kTopFleurSlotHeight = 123.0f;
+  static constexpr float kBottomFleurSlotHeight = 66.0f;
+  static constexpr float kPointerSpacingExtra = 24.0f;
+  static constexpr int kFleurFrameCount = 9;
+  static constexpr float kFleurFrameDuration = 0.06f;
+  static constexpr std::string_view kTopFleurFramePrefix =
+      "assets/ui/pause_top_fleur";
+  static constexpr std::string_view kBottomFleurFramePrefix =
+      "assets/ui/bottom_fleur";
+  static constexpr std::string_view kFleurFrameExtension = ".png";
   static constexpr engine::render::Color kOverlayColor =
-      engine::render::Color::FromBytes(6, 10, 22, 210);
+      engine::render::Color::FromBytes(0, 0, 0, 140);
 };
 
 /**
