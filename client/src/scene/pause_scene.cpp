@@ -52,9 +52,8 @@ void AdvanceFleur(
   if (frames.empty() || constants::ui::Pause::kFleurFrameDuration <= 0.0f) {
     return;
   }
-  const float max_elapsed =
-      static_cast<float>(frames.size() - 1) *
-      constants::ui::Pause::kFleurFrameDuration;
+  const float max_elapsed = static_cast<float>(frames.size() - 1) *
+                            constants::ui::Pause::kFleurFrameDuration;
   if (max_elapsed <= 0.0f) {
     return;
   }
@@ -71,10 +70,10 @@ void DrawFleur(
   if (frames.empty() || constants::ui::Pause::kFleurFrameDuration <= 0.0f) {
     return;
   }
-  const std::size_t frame_index = std::min(
-      frames.size() - 1,
-      static_cast<std::size_t>(elapsed /
-                               constants::ui::Pause::kFleurFrameDuration));
+  const std::size_t frame_index =
+      std::min(frames.size() - 1,
+               static_cast<std::size_t>(
+                   elapsed / constants::ui::Pause::kFleurFrameDuration));
   auto texture = frames[frame_index];
   if (!texture) {
     return;
@@ -83,9 +82,8 @@ void DrawFleur(
   if (tex_size.y == 0 || rect.width_ <= 0.0f || rect.height_ <= 0.0f) {
     return;
   }
-  const float scale =
-      std::min(rect.width_ / static_cast<float>(tex_size.x),
-               rect.height_ / static_cast<float>(tex_size.y));
+  const float scale = std::min(rect.width_ / static_cast<float>(tex_size.x),
+                               rect.height_ / static_cast<float>(tex_size.y));
   if (scale <= 0.0f) {
     return;
   }

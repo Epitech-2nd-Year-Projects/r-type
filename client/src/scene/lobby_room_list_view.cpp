@@ -188,9 +188,8 @@ void LobbyRoomListView::Update(engine::time::TimeDelta dt,
   menu_effects_.Update(dt, input, room_buttons_);
 
   if (!header_frames_.empty() && header_animating_) {
-    const float max_elapsed =
-        static_cast<float>(header_frames_.size() - 1) *
-        constants::ui::Lobby::kHeaderFrameDuration;
+    const float max_elapsed = static_cast<float>(header_frames_.size() - 1) *
+                              constants::ui::Lobby::kHeaderFrameDuration;
     header_elapsed_ += dt.as_seconds();
     if (header_elapsed_ >= max_elapsed) {
       header_elapsed_ = max_elapsed;
@@ -199,18 +198,16 @@ void LobbyRoomListView::Update(engine::time::TimeDelta dt,
   }
 
   if (!room_frames_.empty() && room_frame_animating_) {
-    const float max_elapsed =
-        static_cast<float>(room_frames_.size() - 1) *
-        constants::ui::Lobby::kRoomFrameDuration;
+    const float max_elapsed = static_cast<float>(room_frames_.size() - 1) *
+                              constants::ui::Lobby::kRoomFrameDuration;
     room_frame_elapsed_ += dt.as_seconds();
     if (room_frame_elapsed_ >= max_elapsed) {
       room_frame_elapsed_ = max_elapsed;
       room_frame_animating_ = false;
     }
-    const std::size_t frame_index =
-        FrameIndex(room_frame_elapsed_,
-                   constants::ui::Lobby::kRoomFrameDuration,
-                   room_frames_.size());
+    const std::size_t frame_index = FrameIndex(
+        room_frame_elapsed_, constants::ui::Lobby::kRoomFrameDuration,
+        room_frames_.size());
     if (frame_index != room_frame_index_) {
       room_frame_index_ = frame_index;
       ApplyFrameTexture(room_buttons_, room_frames_[room_frame_index_]);
@@ -241,8 +238,8 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
   const auto room_frame_size = TextureSizeOrFallback(
       room_frames_, constants::ui::Lobby::kRoomFrameDefaultWidth,
       constants::ui::Lobby::kRoomFrameDefaultHeight);
-  const float available_room_width = std::max(
-      0.0f, width - constants::ui::Lobby::kRoomListLeftPadding * 2.0f);
+  const float available_room_width =
+      std::max(0.0f, width - constants::ui::Lobby::kRoomListLeftPadding * 2.0f);
   const float room_width =
       std::min(available_room_width, constants::ui::Lobby::kRoomFrameMaxWidth);
   const float room_scale =
@@ -269,10 +266,10 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   const auto title_size =
       renderer.MeasureText(title, constants::ui::Lobby::kHeaderTitleFontSize);
-  renderer.DrawText(
-      title, {title_anchor_.x - title_size.x * 0.5f, title_anchor_.y},
-      constants::ui::Lobby::kHeaderTitleFontSize,
-      engine::render::Color::White());
+  renderer.DrawText(title,
+                    {title_anchor_.x - title_size.x * 0.5f, title_anchor_.y},
+                    constants::ui::Lobby::kHeaderTitleFontSize,
+                    engine::render::Color::White());
 
   if (!header_frames_.empty()) {
     const std::size_t frame_index =
@@ -282,11 +279,9 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
     if (texture) {
       const auto tex_size = texture->GetSize();
       if (tex_size.x > 0 && tex_size.y > 0) {
-        const float scale =
-            std::min(header_frame_rect_.width_ /
-                         static_cast<float>(tex_size.x),
-                     header_frame_rect_.height_ /
-                         static_cast<float>(tex_size.y));
+        const float scale = std::min(
+            header_frame_rect_.width_ / static_cast<float>(tex_size.x),
+            header_frame_rect_.height_ / static_cast<float>(tex_size.y));
         if (scale > 0.0f) {
           const float draw_width = static_cast<float>(tex_size.x) * scale;
           const float draw_height = static_cast<float>(tex_size.y) * scale;
@@ -332,10 +327,11 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
     const auto& entry = room_entries_[i];
     const auto pos = button->GetPosition();
     const auto size = button->GetSize();
-    const float center_y = pos.y + size.y * 0.5f +
-                           constants::ui::Lobby::kRoomTextOffsetY;
+    const float center_y =
+        pos.y + size.y * 0.5f + constants::ui::Lobby::kRoomTextOffsetY;
     renderer.SetFont(std::string(constants::ui::kTitleFont));
-    const auto left_size = renderer.MeasureText(entry.left_text, base_font_size);
+    const auto left_size =
+        renderer.MeasureText(entry.left_text, base_font_size);
     const float padding = constants::ui::Lobby::kRoomTextPadding;
     const float gap = constants::ui::Lobby::kRoomTextGap;
     const float max_right_width =
@@ -345,8 +341,7 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
     auto right_size = renderer.MeasureText(entry.right_text, right_font_size);
     if (max_right_width > 0.0f && right_size.x > max_right_width) {
       const float scale = max_right_width / right_size.x;
-      right_font_size =
-          std::max(min_font_size, base_font_size * scale);
+      right_font_size = std::max(min_font_size, base_font_size * scale);
       right_size = renderer.MeasureText(entry.right_text, right_font_size);
     }
     const float left_bound = pos.x + padding + left_size.x + gap;
@@ -358,10 +353,8 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
     const float max_center_width = std::max(0.0f, right_bound - left_bound);
     if (max_center_width > 0.0f && center_size.x > max_center_width) {
       const float scale = max_center_width / center_size.x;
-      center_font_size =
-          std::max(min_font_size, base_font_size * scale);
-      center_size =
-          renderer.MeasureText(entry.center_text, center_font_size);
+      center_font_size = std::max(min_font_size, base_font_size * scale);
+      center_size = renderer.MeasureText(entry.center_text, center_font_size);
     }
     const float left_y = center_y - left_size.y * 0.5f;
     renderer.SetFont(std::string(constants::ui::kTitleFont));
@@ -369,8 +362,7 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
                       base_font_size, constants::ui::Lobby::kRoomTextColor);
     float center_x = pos.x + (size.x - center_size.x) * 0.5f;
     if (max_center_width > 0.0f) {
-      center_x =
-          std::clamp(center_x, left_bound, right_bound - center_size.x);
+      center_x = std::clamp(center_x, left_bound, right_bound - center_size.x);
     }
     const float center_y_pos = center_y - center_size.y * 0.5f;
     renderer.SetFont(std::string(constants::ui::kBodyFont));
@@ -379,8 +371,8 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
     const float right_x = pos.x + size.x - padding - right_size.x;
     const float right_y = center_y - right_size.y * 0.5f;
     renderer.SetFont(std::string(constants::ui::kTitleFont));
-    renderer.DrawText(entry.right_text, {right_x, right_y},
-                      right_font_size, constants::ui::Lobby::kRoomTextColor);
+    renderer.DrawText(entry.right_text, {right_x, right_y}, right_font_size,
+                      constants::ui::Lobby::kRoomTextColor);
   }
 
   menu_effects_.DrawPointers(renderer, room_buttons_);

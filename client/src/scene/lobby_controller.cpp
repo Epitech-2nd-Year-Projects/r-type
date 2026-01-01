@@ -80,8 +80,7 @@ LobbyController::LobbyController(ClientContext& context,
       engine::math::Vector2f{},
       engine::math::Vector2f{constants::ui::Lobby::kBackButtonWidth,
                              constants::ui::Lobby::kBackButtonHeight},
-      "Back",
-      menu_effects_.WrapClick([this]() { context_.OnQuitToMenu(); }));
+      "Back", menu_effects_.WrapClick([this]() { context_.OnQuitToMenu(); }));
 
   const auto white = engine::render::Color::White();
   const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
@@ -121,9 +120,8 @@ void LobbyController::Layout(const engine::math::Vector2f& window_size) {
   back_button_->SetSize({constants::ui::Lobby::kBackButtonWidth,
                          constants::ui::Lobby::kBackButtonHeight});
 
-  create_button_->SetPosition(
-      {width - margin - create_button_->GetSize().x,
-       constants::ui::Lobby::kControlsY});
+  create_button_->SetPosition({width - margin - create_button_->GetSize().x,
+                               constants::ui::Lobby::kControlsY});
   back_button_->SetPosition(
       {(width - back_button_->GetSize().x) * 0.5f,
        height - constants::ui::Lobby::kBackButtonBottomPadding -
@@ -153,9 +151,7 @@ void LobbyController::HandleFocus(const engine::input::InputManager& input) {
   static_cast<void>(input);
 }
 
-bool LobbyController::IsInputCaptured() const {
-  return false;
-}
+bool LobbyController::IsInputCaptured() const { return false; }
 
 bool LobbyController::TryCreateRoom(const std::string& room_name,
                                     const std::string& max_players_text,
