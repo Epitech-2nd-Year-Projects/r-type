@@ -36,12 +36,7 @@ jobs:
             libxcursor-dev \
             libxxf86vm-dev \
             libasound2-dev \
-            libpulse-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libavutil-dev \
-            libswresample-dev \
-            libswscale-dev
+            libpulse-dev
 
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
