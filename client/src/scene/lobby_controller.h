@@ -21,9 +21,9 @@
 #include "engine/render/renderer2d.h"
 #include "engine/time/time_delta.h"
 #include "engine/ui/button.h"
-#include "engine/ui/text_input.h"
 #include "engine/ui/widget.h"
 #include "protocol/lobby.h"
+#include "ui/menu_effects.h"
 
 namespace client {
 
@@ -58,13 +58,13 @@ class LobbyController {
   void Layout(const engine::math::Vector2f& window_size);
 
   /**
-   * @brief Draw controls and banner
+   * @brief Draw controls
    * @param renderer Renderer instance
    */
   void Draw(engine::render::Renderer2D& renderer) const;
 
   /**
-   * @brief Apply button visuals for refresh and create actions
+   * @brief Apply button visuals for create action
    * @param assets Asset manager reference
    */
   void ApplyButtonStyle(ClientAssetManager& assets);
@@ -76,8 +76,8 @@ class LobbyController {
   void HandleFocus(const engine::input::InputManager& input);
 
   /**
-   * @brief Check if any input field is focused
-   * @return True when an input field is focused
+   * @brief Check if input is captured
+   * @return True when input should be ignored by the scene
    */
   bool IsInputCaptured() const;
 
@@ -109,21 +109,16 @@ class LobbyController {
 
   ClientContext& context_;
   std::function<void()> open_create_modal_;
+  ui::MenuEffects menu_effects_;
 
   std::vector<std::shared_ptr<engine::ui::Widget>> controls_;
-  std::shared_ptr<engine::ui::TextInput> host_input_;
-  std::shared_ptr<engine::ui::TextInput> port_input_;
-  std::shared_ptr<engine::ui::TextInput> name_input_;
-  std::shared_ptr<engine::ui::Button> refresh_button_;
+  std::vector<std::shared_ptr<engine::ui::Button>> pointer_buttons_;
   std::shared_ptr<engine::ui::Button> create_button_;
-
-  engine::math::Vector2f host_label_pos_{};
-  engine::math::Vector2f port_label_pos_{};
-  engine::math::Vector2f name_label_pos_{};
-  engine::math::Vector2f banner_pos_{};
+  std::shared_ptr<engine::ui::Button> back_button_;
 
   std::string lobby_host_;
   std::uint16_t lobby_port_{0};
+  std::string player_name_;
 
   std::string banner_text_;
   std::chrono::steady_clock::time_point banner_expiry_{};
