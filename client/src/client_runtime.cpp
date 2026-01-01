@@ -83,8 +83,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   context.BeginFrame();
   context.Clear(constants::client::kClearColor);
 
-  const bool render_gameplay =
-      state == ClientState::kInGame || state == ClientState::kGameOver;
+  const bool render_gameplay = state == ClientState::kInGame ||
+                               state == ClientState::kPaused ||
+                               state == ClientState::kGameOver;
 
   if (background_ && render_gameplay) {
     const auto window_size = engine_->Window().GetSize();
