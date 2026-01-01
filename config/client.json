@@ -10,6 +10,6 @@
   "client.player_name": "Pilot",
   "client.port": 4242,
   "client.queue_size": 256,
-  "client.room_code": "default",
+  "client.room_code": "room-10259",
   "client.timeout_ms": 7000
 }
