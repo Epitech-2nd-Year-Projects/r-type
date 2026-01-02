@@ -51,6 +51,12 @@ class MenuBackground {
    * @param window Window reference
    */
   void Draw(const engine::render::Window& window) const;
+  /**
+   * @brief Draw background video with alpha
+   * @param window Window reference
+   * @param alpha Opacity from 0 to 1
+   */
+  void Draw(const engine::render::Window& window, float alpha) const;
 
  private:
   std::string video_path_;
