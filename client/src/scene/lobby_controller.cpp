@@ -24,7 +24,7 @@ ui::MenuPointerConfig LobbyPointerConfig() {
       constants::ui::OptionsMenu::kPointerFrameCount,
       constants::ui::OptionsMenu::kPointerFrameDuration,
       constants::ui::OptionsMenu::kPointerHeightFactor,
-      constants::ui::OptionsMenu::kPointerSpacing,
+      constants::ui::Lobby::kPointerSpacing,
       constants::ui::OptionsMenu::kPointerScaleFactor};
 }
 
@@ -68,13 +68,13 @@ LobbyController::LobbyController(ClientContext& context,
 
   create_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
-      engine::math::Vector2f{constants::ui::Lobby::kCreateButtonSize,
-                             constants::ui::Lobby::kCreateButtonSize},
-      "+", [this]() {
+      engine::math::Vector2f{constants::ui::Lobby::kCreateButtonWidth,
+                             constants::ui::Lobby::kCreateButtonHeight},
+      "Create new Room", menu_effects_.WrapClick([this]() {
         if (open_create_modal_) {
           open_create_modal_();
         }
-      });
+      }));
 
   back_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{},
@@ -84,12 +84,15 @@ LobbyController::LobbyController(ClientContext& context,
 
   const auto white = engine::render::Color::White();
   const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
+  create_button_->SetColors(transparent, transparent, transparent);
+  create_button_->SetTextColor(white);
+  create_button_->SetTextScale(constants::ui::Lobby::kBackButtonTextScale);
   back_button_->SetColors(transparent, transparent, transparent);
   back_button_->SetTextColor(white);
   back_button_->SetTextScale(constants::ui::Lobby::kBackButtonTextScale);
 
   controls_ = {create_button_, back_button_};
-  pointer_buttons_ = {back_button_};
+  pointer_buttons_ = {create_button_, back_button_};
 
   menu_effects_.Load();
   RefreshRoomList();
@@ -113,15 +116,22 @@ void LobbyController::Update(engine::time::TimeDelta dt,
 void LobbyController::Layout(const engine::math::Vector2f& window_size) {
   const float width = window_size.x;
   const float height = window_size.y;
-  const float margin = constants::ui::Lobby::kPanelMargin;
 
-  create_button_->SetSize({constants::ui::Lobby::kCreateButtonSize,
-                           constants::ui::Lobby::kCreateButtonSize});
+  create_button_->SetSize({constants::ui::Lobby::kCreateButtonWidth,
+                           constants::ui::Lobby::kCreateButtonHeight});
   back_button_->SetSize({constants::ui::Lobby::kBackButtonWidth,
                          constants::ui::Lobby::kBackButtonHeight});
 
-  create_button_->SetPosition({width - margin - create_button_->GetSize().x,
-                               constants::ui::Lobby::kControlsY});
+  const float header_bottom = constants::ui::Lobby::kHeaderTopPadding +
+                              constants::ui::Lobby::kHeaderTitleFontSize +
+                              constants::ui::Lobby::kHeaderDecorationSpacing +
+                              constants::ui::Lobby::kHeaderDecorationHeight;
+  const float create_button_y =
+      header_bottom + constants::ui::Lobby::kHeaderDecorationBottomSpacing +
+      constants::ui::Lobby::kCreateButtonOffsetY;
+  create_button_->SetPosition({constants::ui::Lobby::kRoomListLeftPadding +
+                                   constants::ui::Lobby::kCreateButtonOffsetX,
+                               create_button_y});
   back_button_->SetPosition(
       {(width - back_button_->GetSize().x) * 0.5f,
        height - constants::ui::Lobby::kBackButtonBottomPadding -
@@ -129,22 +139,19 @@ void LobbyController::Layout(const engine::math::Vector2f& window_size) {
 }
 
 void LobbyController::Draw(engine::render::Renderer2D& renderer) const {
-  renderer.SetFont(std::string(constants::ui::kBodyFont));
-  create_button_->Draw(renderer);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
+  create_button_->Draw(renderer);
   back_button_->Draw(renderer);
   menu_effects_.DrawPointers(renderer, pointer_buttons_);
 }
 
 void LobbyController::ApplyButtonStyle(ClientAssetManager& assets) {
-  const auto btn_tex =
-      assets.GetTexture(constants::ui::kButtonTextureLargePath);
-  if (btn_tex) {
-    const auto hover = constants::ui::kButtonHoverColor;
-    const auto press = constants::ui::kButtonPressColor;
-    create_button_->SetTexture(btn_tex);
-    create_button_->SetColors(constants::ui::kButtonBaseColor, hover, press);
-  }
+  static_cast<void>(assets);
+  const auto white = engine::render::Color::White();
+  const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
+  create_button_->SetColors(transparent, transparent, transparent);
+  create_button_->SetTextColor(white);
+  create_button_->SetTextScale(constants::ui::Lobby::kBackButtonTextScale);
 }
 
 void LobbyController::HandleFocus(const engine::input::InputManager& input) {
