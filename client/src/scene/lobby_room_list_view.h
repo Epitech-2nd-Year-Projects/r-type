@@ -59,6 +59,19 @@ class LobbyRoomListView {
   void Layout(const engine::math::Vector2f& window_size);
 
   /**
+   * @brief Draw lobby background
+   */
+  void DrawBackground() const;
+
+  /**
+   * @brief Draw lobby foreground
+   * @param renderer Renderer instance
+   * @param status_text Directory status text
+   */
+  void DrawForeground(engine::render::Renderer2D& renderer,
+                      std::string_view status_text) const;
+
+  /**
    * @brief Draw room list and status
    * @param renderer Renderer instance
    * @param status_text Directory status text
