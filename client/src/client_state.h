@@ -14,6 +14,7 @@ namespace client {
  * @brief High level client state controlling active screen
  */
 enum class ClientState {
+  kSplash,
   kMainMenu,
   kLobby,
   kSettings,
