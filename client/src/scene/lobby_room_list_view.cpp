@@ -60,7 +60,7 @@ ui::MenuPointerConfig LobbyPointerConfig() {
       constants::ui::OptionsMenu::kPointerFrameCount,
       constants::ui::OptionsMenu::kPointerFrameDuration,
       constants::ui::OptionsMenu::kPointerHeightFactor,
-      constants::ui::OptionsMenu::kPointerSpacing,
+      constants::ui::Lobby::kPointerSpacing,
       constants::ui::OptionsMenu::kPointerScaleFactor};
 }
 
@@ -234,6 +234,11 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
                          constants::ui::Lobby::kHeaderTitleFontSize +
                          constants::ui::Lobby::kHeaderDecorationSpacing;
   header_frame_rect_ = {header_x, header_y, header_width, header_height};
+  const float header_bottom =
+      header_frame_rect_.top_left_y_ + header_frame_rect_.height_;
+  const float create_button_y =
+      header_bottom + constants::ui::Lobby::kHeaderDecorationBottomSpacing +
+      constants::ui::Lobby::kCreateButtonOffsetY;
 
   const auto room_frame_size = TextureSizeOrFallback(
       room_frames_, constants::ui::Lobby::kRoomFrameDefaultWidth,
@@ -245,10 +250,10 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
   const float room_scale =
       room_frame_size.x > 0.0f ? room_width / room_frame_size.x : 1.0f;
   room_frame_draw_size_ = {room_width, room_frame_size.y * room_scale};
-  room_list_origin_ = {
-      constants::ui::Lobby::kRoomListLeftPadding,
-      header_frame_rect_.top_left_y_ + header_frame_rect_.height_ +
-          constants::ui::Lobby::kHeaderDecorationBottomSpacing};
+  room_list_origin_ = {constants::ui::Lobby::kRoomListLeftPadding,
+                       create_button_y +
+                           constants::ui::Lobby::kCreateButtonHeight +
+                           constants::ui::Lobby::kRoomListSpacing};
 
   float room_y = room_list_origin_.y;
   for (auto& button : room_buttons_) {
@@ -258,10 +263,12 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
   }
 }
 
-void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
-                             std::string_view status_text) const {
+void LobbyRoomListView::DrawBackground() const {
   context_.MenuBackground().Draw(context_.Window());
+}
 
+void LobbyRoomListView::DrawForeground(engine::render::Renderer2D& renderer,
+                                       std::string_view status_text) const {
   const std::string title = "Select Room";
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   const auto title_size =
@@ -378,6 +385,12 @@ void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
   menu_effects_.DrawPointers(renderer, room_buttons_);
 
   static_cast<void>(status_text);
+}
+
+void LobbyRoomListView::Draw(engine::render::Renderer2D& renderer,
+                             std::string_view status_text) const {
+  DrawBackground();
+  DrawForeground(renderer, status_text);
 }
 
 void LobbyRoomListView::RefreshRooms(
