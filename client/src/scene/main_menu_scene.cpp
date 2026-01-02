@@ -191,9 +191,17 @@ void MainMenuScene::Update(engine::time::TimeDelta dt) {
 }
 
 void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
-  LayoutUi(renderer);
+  DrawBackground(renderer);
+  DrawForeground(renderer);
+}
 
-  DrawBackground();
+void MainMenuScene::DrawBackground(engine::render::Renderer2D& renderer) {
+  static_cast<void>(renderer);
+  context_.MenuBackground().Draw(context_.Window());
+}
+
+void MainMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
+  LayoutUi(renderer);
   canvas_.Draw(renderer);
   DrawTitle(renderer);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
@@ -203,10 +211,6 @@ void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kBodyFont));
   menu_effects_.DrawPointers(renderer, ui_elements_);
   DrawVersion(renderer);
-}
-
-void MainMenuScene::DrawBackground() {
-  context_.MenuBackground().Draw(context_.Window());
 }
 
 void MainMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
