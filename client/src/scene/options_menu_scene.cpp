@@ -197,10 +197,18 @@ void OptionsMenuScene::Update(engine::time::TimeDelta dt) {
 }
 
 void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
+  DrawBackground(renderer);
+  DrawForeground(renderer);
+}
+
+void OptionsMenuScene::DrawBackground(engine::render::Renderer2D& renderer) {
+  static_cast<void>(renderer);
+  context_.MenuBackground().Draw(context_.Window());
+}
+
+void OptionsMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
-
-  context_.MenuBackground().Draw(context_.Window());
   canvas_.Draw(renderer);
   DrawWarning(renderer);
   renderer.SetFont(std::string(constants::ui::kTitleFont));
