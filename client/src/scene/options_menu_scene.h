@@ -41,6 +41,18 @@ class OptionsMenuScene : public Scene {
    */
   void Draw(engine::render::Renderer2D& renderer) override;
 
+  /**
+   * @brief Draw options background
+   * @param renderer Renderer instance
+   */
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+
+  /**
+   * @brief Draw options foreground
+   * @param renderer Renderer instance
+   */
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
+
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
   void DrawWarning(engine::render::Renderer2D& renderer);
