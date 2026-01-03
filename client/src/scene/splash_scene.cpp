@@ -8,6 +8,7 @@
 #include "engine/audio/audio_engine.h"
 #include "engine/input.h"
 #include "engine/render/renderer2d.h"
+#include "logging.h"
 
 namespace client {
 namespace {
@@ -223,6 +224,10 @@ bool SplashScene::IsAnyInputDown(engine::input::InputManager& input) const {
 void SplashScene::TriggerTransition() {
   if (transition_started_) {
     return;
+  }
+  if (constants::ui::SplashScreen::kTransitionFadeSeconds <= 0.0f) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Splash transition fade seconds must be positive");
   }
   transition_started_ = true;
   transition_elapsed_ = engine::time::TimeDelta::zero();
