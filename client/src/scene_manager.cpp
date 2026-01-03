@@ -14,6 +14,7 @@
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
 #include "scene/pause_scene.h"
+#include "scene/splash_scene.h"
 
 namespace client {
 namespace {
@@ -31,7 +32,8 @@ bool AllowSettingsReturn(const SceneManager& manager, ClientState next_state) {
          manager.settings_return_state().value() == next_state;
 }
 
-constexpr std::array<TransitionRule, 32> kTransitionRules{{
+constexpr std::array<TransitionRule, 33> kTransitionRules{{
+    {ClientState::kSplash, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kConnecting, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kLobby, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kSettings, &AllowAlways},
@@ -68,6 +70,8 @@ constexpr std::array<TransitionRule, 32> kTransitionRules{{
 
 std::string_view ToString(ClientState state) {
   switch (state) {
+    case ClientState::kSplash:
+      return "Splash";
     case ClientState::kMainMenu:
       return "MainMenu";
     case ClientState::kLobby:
@@ -208,6 +212,9 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
   }
 
   switch (state_) {
+    case ClientState::kSplash:
+      SwitchScene(std::make_shared<SplashScene>(context_));
+      break;
     case ClientState::kMainMenu:
       SwitchScene(std::make_shared<MainMenuScene>(context_));
       break;

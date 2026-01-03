@@ -92,6 +92,7 @@ void ClientAssetManager::PreloadMenuAssets() {
 
   PreloadSfx(constants::ui::kMenuHoverSfxPath);
   PreloadSfx(constants::ui::kMenuClickSfxPath);
+  PreloadSfx(constants::ui::SplashScreen::kTransitionSfxPath);
 }
 
 void ClientAssetManager::PreloadSfx(std::string_view relative_path) {

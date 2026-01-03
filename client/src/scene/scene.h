@@ -28,6 +28,20 @@ class Scene {
   virtual void Draw(engine::render::Renderer2D& renderer) = 0;
 
   /**
+   * @brief Render scene background
+   * @param renderer The 2D renderer to use
+   */
+  virtual void DrawBackground(engine::render::Renderer2D& renderer) {}
+
+  /**
+   * @brief Render scene foreground
+   * @param renderer The 2D renderer to use
+   */
+  virtual void DrawForeground(engine::render::Renderer2D& renderer) {
+    Draw(renderer);
+  }
+
+  /**
    * @brief Check if the scene is currently capturing text input
    * @return True when text input is active such as typing in a field and global
    * hotkeys should be suppressed

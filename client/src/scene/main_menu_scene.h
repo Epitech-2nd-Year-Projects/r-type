@@ -22,8 +22,19 @@ class MainMenuScene : public Scene {
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
+  /**
+   * @brief Draw main menu background
+   * @param renderer Renderer instance
+   */
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+
+  /**
+   * @brief Draw main menu foreground
+   * @param renderer Renderer instance
+   */
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
+
  private:
-  void DrawBackground();
   void LayoutUi(engine::render::Renderer2D& renderer);
   void DrawTitle(engine::render::Renderer2D& renderer);
   void DrawVersion(engine::render::Renderer2D& renderer);

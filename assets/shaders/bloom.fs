@@ -7,34 +7,47 @@ in vec4 fragColor;
 // Input uniform values
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
+uniform vec2 resolution;
+uniform float threshold;
+uniform float knee;
+uniform float intensity;
 
 // Output fragment color
 out vec4 finalColor;
 
-// NOTE: Add your custom variables here
+const float samples = 5.0;
+const float quality = 1.0;
 
-const vec2 size = vec2(800, 450);   // Framebuffer size
-const float samples = 5.0;          // Pixels per axis; higher = bigger glow, worse performance
-const float quality = 2.5;          // Defines size factor: Lower = smaller glow, better quality
+float Luminance(vec3 color)
+{
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
+}
 
 void main()
 {
-    vec4 sum = vec4(0);
-    vec2 sizeFactor = vec2(1)/size*quality;
+    vec2 sizeFactor = vec2(1.0)/resolution*quality;
 
     // Texel color fetching from texture sampler
     vec4 source = texture(texture0, fragTexCoord);
 
     const int range = 2;            // should be = (samples - 1)/2;
+    float kneeValue = max(knee, 0.0001);
+    vec3 bloomSum = vec3(0.0);
 
     for (int x = -range; x <= range; x++)
     {
         for (int y = -range; y <= range; y++)
         {
-            sum += texture(texture0, fragTexCoord + vec2(x, y)*sizeFactor);
+            vec4 sampleColor =
+                texture(texture0, fragTexCoord + vec2(x, y)*sizeFactor);
+            float luma = Luminance(sampleColor.rgb);
+            float weight = smoothstep(threshold - kneeValue,
+                                      threshold + kneeValue, luma);
+            bloomSum += sampleColor.rgb * weight * sampleColor.a;
         }
     }
 
-    // Calculate final fragment color
-    finalColor = ((sum/(samples*samples)) + source)*colDiffuse;
+    vec3 bloom = bloomSum / (samples * samples);
+    vec3 color = bloom * intensity;
+    finalColor = vec4(color, 1.0) * colDiffuse * fragColor;
 }

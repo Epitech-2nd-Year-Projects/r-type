@@ -23,6 +23,8 @@ namespace {
 
 std::string_view ToString(ClientState state) {
   switch (state) {
+    case ClientState::kSplash:
+      return "Splash";
     case ClientState::kMainMenu:
       return "MainMenu";
     case ClientState::kLobby:
@@ -81,7 +83,7 @@ int Application::Run() {
   RegisterConsoleCommands(*this);
 
   UpdateRuntimeConfig();
-  scene_manager_->Initialize(ClientState::kMainMenu);
+  scene_manager_->Initialize(ClientState::kSplash);
 
   engine::time::VariableTimestepLoop loop(constants::client::kTargetFps);
   loop.run([this](engine::time::TimeDelta dt) { return Tick(dt); });

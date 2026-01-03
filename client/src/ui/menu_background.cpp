@@ -1,5 +1,7 @@
 #include "ui/menu_background.h"
 
+#include <algorithm>
+
 namespace client::ui {
 
 MenuBackground::MenuBackground(std::string_view video_path)
@@ -26,6 +28,11 @@ void MenuBackground::Update(engine::time::TimeDelta dt) {
 }
 
 void MenuBackground::Draw(const engine::render::Window& window) const {
+  Draw(window, 1.0f);
+}
+
+void MenuBackground::Draw(const engine::render::Window& window,
+                          float alpha) const {
   if (!media_loaded_) {
     return;
   }
@@ -58,7 +65,10 @@ void MenuBackground::Draw(const engine::render::Window& window) const {
   }
 
   Rectangle dest{0.0f, 0.0f, window_width, window_height};
-  DrawTexturePro(media_.videoTexture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
+  const float clamped_alpha = std::clamp(alpha, 0.0f, 1.0f);
+  Color tint = WHITE;
+  tint.a = static_cast<unsigned char>(clamped_alpha * 255.0f);
+  DrawTexturePro(media_.videoTexture, source, dest, {0.0f, 0.0f}, 0.0f, tint);
 }
 
 }  // namespace client::ui

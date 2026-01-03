@@ -20,6 +20,19 @@ class LobbyScene : public Scene {
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
+
+  /**
+   * @brief Draw lobby background
+   * @param renderer Renderer instance
+   */
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+
+  /**
+   * @brief Draw lobby foreground
+   * @param renderer Renderer instance
+   */
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
+
   bool IsInputCaptured() const override;
 
  private:

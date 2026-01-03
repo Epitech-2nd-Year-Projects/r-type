@@ -63,11 +63,34 @@ struct MainMenu {
   static constexpr float kVersionPaddingBottom = 18.0f;
   static constexpr engine::render::Color kVersionColor =
       engine::render::Color::FromBytes(180, 190, 210);
+  static constexpr int kButtonCount = 3;
   static constexpr int kPointerFrameCount = 11;
   static constexpr std::string_view kTitleTexturePath =
       "assets/ui/main_menu_title.png";
   static constexpr std::string_view kBackgroundVideoPath =
       "assets/ui/main_menu_background.mp4";
+};
+
+/**
+ * @brief Splash screen layout values
+ */
+struct SplashScreen {
+  static constexpr std::string_view kBackgroundVideoPath =
+      "assets/ui/Steel Soul.mp4";
+  static constexpr std::string_view kTransitionSfxPath =
+      "assets/ui/transition_splash_screen.mp3";
+  static constexpr float kTransitionFadeSeconds = 0.4f;
+  static constexpr std::string_view kPromptText = "PRESS ANY BUTTON";
+  static constexpr float kPromptFontScale = 0.045f;
+  static constexpr float kPromptBottomPaddingRatio = 0.35f;
+  static constexpr std::string_view kCopyrightText =
+      "2025-2026 Brainrot Production. All rights reserved.";
+  static constexpr float kCopyrightFontScale = 0.02f;
+  static constexpr float kCopyrightBottomPaddingRatio = 0.02f;
+  static constexpr engine::render::Color kPromptColor =
+      engine::render::Color::White();
+  static constexpr engine::render::Color kCopyrightColor =
+      engine::render::Color::FromBytes(200, 200, 200);
 };
 
 /**
@@ -192,7 +215,10 @@ struct Lobby {
   static constexpr float kButtonHeight = 56.0f;
   static constexpr float kRoomButtonHeight = 87.0f;
   static constexpr float kRefreshButtonWidth = 140.0f;
-  static constexpr float kCreateButtonSize = 56.0f;
+  static constexpr float kCreateButtonWidth = 300.0f;
+  static constexpr float kCreateButtonHeight = 72.0f;
+  static constexpr float kCreateButtonOffsetX = 24.0f;
+  static constexpr float kCreateButtonOffsetY = -12.0f;
   static constexpr float kBackButtonWidth = 170.0f;
   static constexpr float kBackButtonHeight = 72.0f;
   static constexpr float kBackButtonTextScale = 0.46f;
@@ -255,6 +281,7 @@ struct Lobby {
   static constexpr auto kBannerDuration = std::chrono::seconds(6);
   static constexpr float kHeaderFrameDuration = 0.06f;
   static constexpr float kRoomFrameDuration = 0.06f;
+  static constexpr float kPointerSpacing = 36.0f;
   static constexpr int kHeaderFrameCount = 9;
   static constexpr int kRoomFrameCount = 13;
   static constexpr std::string_view kHeaderFramePrefix =

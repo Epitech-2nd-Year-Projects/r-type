@@ -175,7 +175,7 @@ class SceneManager {
   ClientContext& context_;
   std::shared_ptr<Scene> current_scene_;
   std::shared_ptr<Scene> pending_scene_;
-  ClientState state_{ClientState::kMainMenu};
+  ClientState state_{ClientState::kSplash};
   std::optional<ClientState> settings_return_state_;
   std::string disconnect_reason_;
   GameOverStats last_game_stats_{};
