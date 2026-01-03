@@ -13,6 +13,7 @@
 #include "client_config.h"
 #include "client_state.h"
 #include "engine/console/console_overlay.h"
+#include "engine/debug/imgui_integration.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
@@ -168,6 +169,7 @@ class ClientRuntime {
                               const engine::ecs::Registry& registry,
                               std::optional<float> latency_ms);
   void UpdateDebugToggle();
+  void UpdateImGuiToggle();
   void UpdateConsoleOverlay(engine::time::TimeDelta dt);
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
@@ -177,7 +179,9 @@ class ClientRuntime {
   std::unique_ptr<ecs::RenderDebug> render_debug_;
   std::unique_ptr<ParallaxBackground> background_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
+  std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
   bool debug_toggle_pressed_{false};
+  bool imgui_toggle_pressed_{false};
 };
 
 }  // namespace client
