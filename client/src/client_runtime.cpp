@@ -52,6 +52,8 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   }
 
   background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
+  imgui_ = std::make_unique<engine::debug::ImGuiIntegration>();
+  imgui_->SetEnabled(false);
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   return true;
 }
@@ -77,6 +79,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   }
 
   UpdateDebugToggle();
+  UpdateImGuiToggle();
   UpdateProfilingOverlay(dt, registry, latency_ms);
   UpdateConsoleOverlay(dt);
 
@@ -84,6 +87,11 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   auto& renderer = engine_->Renderer();
 
   context.BeginFrame();
+
+  if (imgui_ && imgui_->enabled()) {
+    imgui_->BeginFrame();
+  }
+
   context.Clear(constants::client::kClearColor);
 
   const bool render_gameplay = state == ClientState::kInGame ||
@@ -110,6 +118,11 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   profiling_overlay_.Draw(renderer, engine_->Window().GetSize());
   engine_->ConsoleOverlay().Draw(renderer, engine_->Window().GetSize());
+
+  if (imgui_ && imgui_->enabled()) {
+    imgui_->EndFrame();
+  }
+
   context.EndFrame();
 }
 
@@ -184,6 +197,19 @@ void ClientRuntime::UpdateDebugToggle() {
     }
   }
   debug_toggle_pressed_ = pressed;
+}
+
+void ClientRuntime::UpdateImGuiToggle() {
+  if (!engine_ || !imgui_) {
+    return;
+  }
+
+  auto& input = engine_->Input();
+  const bool pressed = input.IsKeyDown(engine::input::Key::kF2);
+  if (pressed && !imgui_toggle_pressed_) {
+    imgui_->Toggle();
+  }
+  imgui_toggle_pressed_ = pressed;
 }
 
 void ClientRuntime::UpdateConsoleOverlay(engine::time::TimeDelta dt) {
