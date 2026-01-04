@@ -138,9 +138,7 @@ class WorldUpdateReceiver {
    */
   std::uint32_t LatestSnapshotId() const;
 
-  /**
-   * @brief Returns the ID of the last successfully received and processed snapshot
-   */
+
 
  private:
   friend class ::WorldUpdateReceiverTestPeer;
