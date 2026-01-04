@@ -1,6 +1,6 @@
 set_project("r-type")
 set_version("0.1.0")
-set_xmakever("2.8.5")
+set_xmakever("3.0.6")
 
 add_rules("mode.debug", "mode.release")
 set_languages("cxx23")
