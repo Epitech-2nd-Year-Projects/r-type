@@ -229,6 +229,15 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
       std::make_unique<ecs::RenderDebug>(registry, engine_->Renderer());
   debug_overlay_ = std::make_unique<engine::debug::DebugOverlay>(
       registry, *component_registry_);
+
+  if (render_debug_) {
+    debug_overlay_->RegisterDebugToggle("Gizmos: Colliders (Red)",
+                                        &render_debug_->show_colliders);
+    debug_overlay_->RegisterDebugToggle("Gizmos: Sprites (Blue)",
+                                        &render_debug_->show_sprite_bounds);
+    debug_overlay_->RegisterDebugToggle("Gizmos: Velocity (Yellow)",
+                                        &render_debug_->show_velocity);
+  }
 }
 
 bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
