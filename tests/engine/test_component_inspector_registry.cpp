@@ -77,19 +77,26 @@ TEST_F(ComponentInspectorRegistryTest, CallbackIsInvoked) {
         return true;
       });
 
-  MockHealthComponent component{75, 100};
-  std::any wrapped = std::ref(component);
   engine::ecs::Registry registry;
+  registry.RegisterComponent<MockHealthComponent>();
+
   engine::ecs::EntityId entity_id = registry.SpawnEntity();
+  registry.AddComponent<MockHealthComponent>(entity_id,
+                                             MockHealthComponent{75, 100});
 
   auto meta = registry_.Get(std::type_index(typeid(MockHealthComponent)));
   ASSERT_TRUE(meta.has_value());
 
-  bool modified = meta->get().draw_fn(wrapped, entity_id);
+  bool modified = meta->get().draw_fn(registry, entity_id);
 
   EXPECT_TRUE(callback_invoked);
   EXPECT_EQ(captured_value, 75);
-  EXPECT_EQ(component.current, 50);
+
+  auto& modified_comp =
+      registry.GetComponents<MockHealthComponent>()[static_cast<std::size_t>(
+          entity_id)];
+  ASSERT_TRUE(modified_comp.has_value());
+  EXPECT_EQ(modified_comp->current, 50);
   EXPECT_TRUE(modified);
 }
 
