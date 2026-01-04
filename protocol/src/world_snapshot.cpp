@@ -1,6 +1,8 @@
 #include "protocol/world_snapshot.h"
 
 #include <limits>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace protocol {
 
@@ -263,6 +265,129 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
   }
   out_payload = std::move(result);
   return true;
+}
+
+WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
+                                  const WorldSnapshotPayload& base) {
+  WorldSnapshotPayload result;
+  result.snapshot_id = current.snapshot_id;
+  result.base_snapshot_id = base.snapshot_id;
+  result.server_tick = current.server_tick;
+  result.current_wave = current.current_wave;
+
+  std::unordered_map<std::uint32_t, const EntityNetState*> base_entities;
+  for (const auto& delta : base.deltas) {
+    if (delta.op == EntityDeltaOp::kCreate ||
+        delta.op == EntityDeltaOp::kUpdate) {
+      base_entities[delta.entity_id] = &delta.state;
+    }
+  }
+
+  for (const auto& curr_delta : current.deltas) {
+    if (curr_delta.op != EntityDeltaOp::kCreate) {
+      continue;
+    }
+    const auto& curr_state = curr_delta.state;
+    auto it = base_entities.find(curr_state.entity_id);
+
+    if (it == base_entities.end()) {
+      result.deltas.push_back(curr_delta);
+    } else {
+      const auto& base_state = *it->second;
+      std::uint16_t mask = 0;
+
+      if (curr_state.type != base_state.type) mask |= kFieldType;
+      if (curr_state.x != base_state.x) mask |= kFieldX;
+      if (curr_state.y != base_state.y) mask |= kFieldY;
+      if (curr_state.vx != base_state.vx) mask |= kFieldVx;
+      if (curr_state.vy != base_state.vy) mask |= kFieldVy;
+      if (curr_state.hp != base_state.hp) mask |= kFieldHp;
+      if (curr_state.flags != base_state.flags) mask |= kFieldFlags;
+      if (curr_state.score != base_state.score) mask |= kFieldScore;
+      if (curr_state.lives != base_state.lives) mask |= kFieldLives;
+      if (curr_state.player_id != base_state.player_id) mask |= kFieldPlayerId;
+
+      if (mask != 0) {
+        EntityDelta update_delta;
+        update_delta.op = EntityDeltaOp::kUpdate;
+        update_delta.entity_id = curr_state.entity_id;
+        update_delta.field_mask = mask;
+        update_delta.state = curr_state;
+        result.deltas.push_back(std::move(update_delta));
+      }
+      base_entities.erase(it);
+    }
+  }
+
+  for (const auto& [id, _] : base_entities) {
+    EntityDelta delete_delta;
+    delete_delta.op = EntityDeltaOp::kDelete;
+    delete_delta.entity_id = id;
+    result.deltas.push_back(std::move(delete_delta));
+  }
+
+  return result;
+}
+
+WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
+                                const WorldSnapshotPayload& delta) {
+  WorldSnapshotPayload result;
+  result.snapshot_id = delta.snapshot_id;
+  result.base_snapshot_id = kNoBaseSnapshotId;
+  result.server_tick = delta.server_tick;
+  result.current_wave = delta.current_wave;
+
+  // Map base entities
+  std::unordered_map<std::uint32_t, const EntityNetState*> base_entities;
+  for (const auto& d : base.deltas) {
+    if (d.op == EntityDeltaOp::kCreate) {
+      base_entities[d.entity_id] = &d.state;
+    }
+  }
+
+  std::unordered_set<std::uint32_t> processed_ids;
+
+  for (const auto& d : delta.deltas) {
+    EntityDelta new_delta;
+    new_delta.op = EntityDeltaOp::kCreate;
+    new_delta.entity_id = d.entity_id;
+
+    if (d.op == EntityDeltaOp::kCreate) {
+      new_delta.state = d.state;
+      result.deltas.push_back(new_delta);
+    } else if (d.op == EntityDeltaOp::kUpdate) {
+      auto it = base_entities.find(d.entity_id);
+      if (it != base_entities.end()) {
+        EntityNetState merged = *it->second;
+        if (d.field_mask & kFieldType) merged.type = d.state.type;
+        if (d.field_mask & kFieldX) merged.x = d.state.x;
+        if (d.field_mask & kFieldY) merged.y = d.state.y;
+        if (d.field_mask & kFieldVx) merged.vx = d.state.vx;
+        if (d.field_mask & kFieldVy) merged.vy = d.state.vy;
+        if (d.field_mask & kFieldHp) merged.hp = d.state.hp;
+        if (d.field_mask & kFieldFlags) merged.flags = d.state.flags;
+        if (d.field_mask & kFieldScore) merged.score = d.state.score;
+        if (d.field_mask & kFieldLives) merged.lives = d.state.lives;
+        if (d.field_mask & kFieldPlayerId) merged.player_id = d.state.player_id;
+
+        new_delta.state = merged;
+        result.deltas.push_back(new_delta);
+      }
+    }
+    processed_ids.insert(d.entity_id);
+  }
+
+  for (const auto& [id, state_ptr] : base_entities) {
+    if (processed_ids.find(id) == processed_ids.end()) {
+      EntityDelta unchanged;
+      unchanged.op = EntityDeltaOp::kCreate;
+      unchanged.entity_id = id;
+      unchanged.state = *state_ptr;
+      result.deltas.push_back(unchanged);
+    }
+  }
+
+  return result;
 }
 
 }  // namespace protocol
