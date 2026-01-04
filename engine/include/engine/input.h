@@ -151,12 +151,13 @@ class InputManager {
 
   /**
    * @brief Update mouse wheel delta for current frame
-   * @param delta Scroll amount positive for up negative for down
+   * @param delta Scroll amount, positive for up, negative for down
    */
   void SetMouseWheelDelta(float delta);
 
   /**
-   * @brief Get mouse wheel delta for current frame
+   * @brief Return mouse wheel scroll delta for current frame
+   * @return Mouse wheel scroll delta for current frame
    */
   float GetMouseWheelDelta() const;
 
