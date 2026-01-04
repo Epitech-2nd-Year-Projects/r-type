@@ -47,6 +47,10 @@ namespace engine::util {
 class Configuration;
 }  // namespace engine::util
 
+namespace engine::debug {
+class EntityHierarchyPanel;
+}  // namespace engine::debug
+
 namespace client {
 
 class ParallaxBackground;
@@ -183,6 +187,7 @@ class ClientRuntime {
   std::unique_ptr<BloomResources> bloom_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
+  std::unique_ptr<engine::debug::EntityHierarchyPanel> entity_hierarchy_panel_;
   bool debug_toggle_pressed_{false};
   bool imgui_toggle_pressed_{false};
 };
