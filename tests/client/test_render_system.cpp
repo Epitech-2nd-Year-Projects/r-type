@@ -80,8 +80,8 @@ TEST(RenderSystemTest, PopulatesSpritesAndDraws) {
   const auto entity = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 10.0f,
                                                             20.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      entity, 1u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 1u,
+                                                                   1u, 0u);
 
   render_system.Render();
 
@@ -103,14 +103,13 @@ TEST(RenderSystemTest, OrdersByLayer) {
   const auto obstacle = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::PositionComponent>(obstacle, 0.0f,
                                                             0.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      obstacle, 2u, 4u, 0u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(obstacle, 2u,
+                                                                   4u, 0u);
 
   const auto player = registry.SpawnEntity();
-  registry.EmplaceComponent<client::ecs::PositionComponent>(player, 5.0f,
-                                                            5.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      player, 3u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::PositionComponent>(player, 5.0f, 5.0f);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(player, 3u,
+                                                                   1u, 0u);
 
   render_system.Render();
 
@@ -126,14 +125,14 @@ TEST(RenderDebugTest, DrawsHitboxesWhenEnabled) {
   client::ecs::RenderDebug render_debug(registry, renderer);
 
   const auto entity = registry.SpawnEntity();
-  registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f,
-                                                            3.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      entity, 4u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f, 3.0f);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 4u,
+                                                                   1u, 0u);
   registry.EmplaceComponent<engine::ecs::BoundingBoxComponent>(
       entity, 1.0f, 2.0f, 5.0f, 7.0f);
 
   render_debug.SetEnabled(true);
+  render_debug.show_colliders = true;
   render_debug.Draw();
 
   ASSERT_EQ(renderer.rects.size(), 1u);
