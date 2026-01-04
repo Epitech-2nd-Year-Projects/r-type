@@ -44,6 +44,7 @@ struct PeerConnection {
   PeerState state{PeerState::kConnecting};  ///< Current connection state.
 
   std::uint32_t last_seen_ms{0};     ///< Timestamp of last received valid packet (for timeout detection).
+  std::uint32_t last_acked_snapshot_id{0}; ///< Last snapshot ID acknowledged by the client.
 
   /**
    * @brief Protocol infrastructure helpers.
