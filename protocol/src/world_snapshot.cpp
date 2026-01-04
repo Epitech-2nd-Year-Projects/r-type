@@ -337,7 +337,6 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
   result.server_tick = delta.server_tick;
   result.current_wave = delta.current_wave;
 
-  // Map base entities
   std::unordered_map<std::uint32_t, const EntityNetState*> base_entities;
   for (const auto& d : base.deltas) {
     if (d.op == EntityDeltaOp::kCreate) {

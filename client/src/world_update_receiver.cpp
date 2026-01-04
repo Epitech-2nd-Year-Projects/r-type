@@ -308,7 +308,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
         full_packet = reassembler_.HandlePacket(header, reader, "server",
                                                 NowMilliseconds32());
         if (!full_packet.has_value()) {
-          continue;  // Partial or error
+          continue;
         }
       } else {
         full_packet = std::move(incoming.buffer);
