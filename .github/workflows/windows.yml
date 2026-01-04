@@ -57,39 +57,10 @@ jobs:
           "FFMPEG_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build
-        id: build
         run: bash scripts/build.sh
-        continue-on-error: true
-        timeout-minutes: 20
-
-      - name: Dump xmake install logs
-        if: ${{ always() }}
-        shell: pwsh
-        run: |
-          $root = Join-Path $env:LOCALAPPDATA ".xmake\cache\packages"
-          if (-not (Test-Path $root)) {
-            Write-Host "Missing xmake cache root $root"
-            exit 0
-          }
-          $logs = Get-ChildItem -Path $root -Recurse -Filter install.txt |
-            Where-Object { $_.FullName -match "\\\\installdir.failed\\\\logs\\\\install.txt$" }
-          if (-not $logs) {
-            Write-Host "No install.txt logs found under $root"
-            exit 0
-          }
-          foreach ($log in $logs) {
-            Write-Host "==== $($log.FullName)"
-            Get-Content $log.FullName
-          }
 
       - name: Test
-        if: ${{ steps.build.outcome == 'success' }}
         run: bash scripts/test.sh
 
       - name: Check format
-        if: ${{ steps.build.outcome == 'success' }}
         run: bash scripts/format-check.sh
-
-      - name: Fail if build failed
-        if: ${{ steps.build.outcome != 'success' }}
-        run: exit 1
