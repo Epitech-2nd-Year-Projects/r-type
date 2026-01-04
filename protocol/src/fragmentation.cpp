@@ -43,9 +43,9 @@ std::vector<engine::net::PacketBuffer> SplitPacketBuffer(
 
   const std::size_t max_chunk_size = mtu - overhead;
 
-  if (total_size <= mtu - header_size) {
-    result.push_back(buffer);
-    return result;
+  if (total_size <= mtu) {
+      result.push_back(buffer);
+      return result;
   }
 
   const std::size_t count = (total_size + max_chunk_size - 1) / max_chunk_size;
