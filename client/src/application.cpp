@@ -340,6 +340,9 @@ void Application::UpdateRuntimeConfig() {
   runtime_config_store.Set(
       std::string(constants::config::kClientLobbyMaxAttempts),
       std::to_string(config_.lobby_max_attempts));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientRoomListRefreshMs),
+      std::to_string(config_.room_list_refresh_ms));
 
   if (!SaveClientConfig(config_)) {
     LogLifecycle(engine::util::LogLevel::kWarn,

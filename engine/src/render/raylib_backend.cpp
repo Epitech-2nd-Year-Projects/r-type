@@ -349,6 +349,7 @@ class RaylibWindow final : public Window {
 
     ::Vector2 mouse_pos = ::GetMousePosition();
     input_manager_->SetMousePosition({mouse_pos.x, mouse_pos.y});
+    input_manager_->SetMouseWheelDelta(::GetMouseWheelMove());
 
     for (const auto& [key, native_key] : kKeyMappings) {
       if (::IsKeyPressed(native_key)) {

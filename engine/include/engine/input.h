@@ -150,6 +150,18 @@ class InputManager {
   math::Vector2f GetMousePosition() const;
 
   /**
+   * @brief Update mouse wheel delta for current frame
+   * @param delta Scroll amount, positive for up, negative for down
+   */
+  void SetMouseWheelDelta(float delta);
+
+  /**
+   * @brief Return mouse wheel scroll delta for current frame
+   * @return Mouse wheel scroll delta for current frame
+   */
+  float GetMouseWheelDelta() const;
+
+  /**
    * @brief Query whether an action is currently active
    */
   bool IsActionActive(const std::string& action) const;
@@ -215,6 +227,7 @@ class InputManager {
       mouse_to_actions_;
   std::vector<ActionEvent> events_;
   math::Vector2f mouse_position_{};
+  float mouse_wheel_delta_{0.0f};
 };
 
 }  // namespace engine::input

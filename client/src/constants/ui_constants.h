@@ -242,12 +242,15 @@ struct Lobby {
   static constexpr float kRoomFrameDefaultHeight = 87.0f;
   static constexpr float kRoomListSpacing = 18.0f;
   static constexpr float kRoomListLeftPadding = 128.0f;
+  static constexpr float kRoomListBottomPadding = 24.0f;
   static constexpr float kRoomTextPadding = 42.0f;
   static constexpr float kRoomTextGap = 18.0f;
   static constexpr float kRoomTextScale = 0.32f;
   static constexpr float kRoomTextMinScale = 0.26f;
   static constexpr float kRoomAreaOffsetY = 12.0f;
   static constexpr float kRoomTextOffsetY = 12.0f;
+  static constexpr float kScrollBarGap = 64.0f;
+  static constexpr float kScrollBarScale = 1.0f;
   static constexpr float kBannerOffsetX = 52.0f;
   static constexpr float kBannerOffsetBottom = 50.0f;
   static constexpr float kBannerFontSize = 18.0f;
@@ -284,6 +287,12 @@ struct Lobby {
   static constexpr float kPointerSpacing = 36.0f;
   static constexpr int kHeaderFrameCount = 9;
   static constexpr int kRoomFrameCount = 13;
+  static constexpr std::string_view kScrollBarHandlePath =
+      "assets/ui/scrollbar_fleur.png";
+  static constexpr std::string_view kScrollBarEndPath =
+      "assets/ui/scrollbg_end.png";
+  static constexpr std::string_view kScrollBarMidPath =
+      "assets/ui/scrollbg_mid.png";
   static constexpr std::string_view kHeaderFramePrefix =
       "assets/ui/Warning_Fleur";
   static constexpr std::string_view kHeaderFrameExtension = ".png";

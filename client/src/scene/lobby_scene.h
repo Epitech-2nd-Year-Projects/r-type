@@ -43,6 +43,10 @@ class LobbyScene : public Scene {
   LobbyController controller_;
   LobbyRoomListView room_list_view_;
   LobbyModal modal_;
+  engine::time::TimeDelta room_list_refresh_interval_ =
+      engine::time::TimeDelta::zero();
+  engine::time::TimeDelta room_list_refresh_elapsed_ =
+      engine::time::TimeDelta::zero();
 };
 
 }  // namespace client

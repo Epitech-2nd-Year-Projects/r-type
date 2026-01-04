@@ -3,7 +3,9 @@
 #include <utility>
 
 #include "client_asset_manager.h"
+#include "client_config.h"
 #include "client_context.h"
+#include "constants/config_keys.h"
 #include "constants/ui_constants.h"
 #include "engine/input.h"
 #include "engine/render/renderer2d.h"
@@ -37,12 +39,31 @@ LobbyScene::LobbyScene(ClientContext& context)
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
   controller_.ApplyButtonStyle(assets);
+
+  const ClientConfig defaults{};
+  const auto refresh_ms = context_.Config().GetInt(
+      std::string(constants::config::kClientRoomListRefreshMs),
+      static_cast<int>(defaults.room_list_refresh_ms));
+  const int interval_ms = refresh_ms > 0
+                              ? refresh_ms
+                              : static_cast<int>(defaults.room_list_refresh_ms);
+  room_list_refresh_interval_ = engine::time::TimeDelta::from_milliseconds(
+      static_cast<float>(interval_ms));
+  room_list_refresh_elapsed_ = engine::time::TimeDelta::zero();
 }
 
 void LobbyScene::Update(engine::time::TimeDelta dt) {
   room_list_view_.RefreshRooms(context_.RoomDirectoryRooms(),
                                context_.Assets());
   LayoutUi();
+
+  if (room_list_refresh_interval_ > engine::time::TimeDelta::zero()) {
+    room_list_refresh_elapsed_ += dt;
+    if (room_list_refresh_elapsed_ >= room_list_refresh_interval_) {
+      controller_.RefreshRoomList();
+      room_list_refresh_elapsed_ = engine::time::TimeDelta::zero();
+    }
+  }
 
   auto& input = context_.Input();
   const bool modal_open = modal_.IsOpen();

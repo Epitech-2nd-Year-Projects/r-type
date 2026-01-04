@@ -156,6 +156,12 @@ math::Vector2f InputManager::GetMousePosition() const {
   return mouse_position_;
 }
 
+void InputManager::SetMouseWheelDelta(float delta) {
+  mouse_wheel_delta_ = delta;
+}
+
+float InputManager::GetMouseWheelDelta() const { return mouse_wheel_delta_; }
+
 std::vector<ActionEvent> InputManager::ConsumeEvents() {
   std::vector<ActionEvent> output;
   output.swap(events_);
@@ -165,6 +171,7 @@ std::vector<ActionEvent> InputManager::ConsumeEvents() {
 void InputManager::ClearState() {
   key_states_.clear();
   mouse_states_.clear();
+  mouse_wheel_delta_ = 0.0f;
 
   for (auto& [action, active] : action_states_) {
     if (active) {

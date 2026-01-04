@@ -26,6 +26,8 @@ inline constexpr std::string_view kClientJoinMaxAttempts =
 inline constexpr std::string_view kClientLobbyRetryMs = "client.lobby_retry_ms";
 inline constexpr std::string_view kClientLobbyMaxAttempts =
     "client.lobby_max_attempts";
+inline constexpr std::string_view kClientRoomListRefreshMs =
+    "client.room_list_refresh_ms";
 
 }  // namespace client::constants::config
 

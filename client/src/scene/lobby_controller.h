@@ -102,8 +102,12 @@ class LobbyController {
   bool TryJoinRoom(const protocol::RoomSummary& room,
                    const std::string& password);
 
- private:
+  /**
+   * @brief Request a fresh room list from the lobby server
+   */
   void RefreshRoomList();
+
+ private:
   void UpdateBannerFromCreation();
   void SetBanner(std::string message);
 
