@@ -44,6 +44,10 @@ class RenderDebug {
    */
   void Draw();
 
+  bool show_colliders{false};
+  bool show_sprite_bounds{false};
+  bool show_velocity{false};
+
  private:
   void RegisterComponents();
 
