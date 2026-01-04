@@ -130,6 +130,7 @@ void ServerRuntime::RunMainLoop() {
       accumulator_ -= fixed_delta_;
     }
     CheckPeerTimeouts();
+    reassembler_.Cleanup(NowMilliseconds(), 5000);
     PruneOrphanedSessions();
     MaybeLogDecodeMetrics();
     MaybeLogServerStats();
