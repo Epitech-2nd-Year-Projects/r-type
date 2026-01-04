@@ -371,7 +371,7 @@ void LobbyRoomListView::ApplyRoomLayout() {
     button->SetPosition({room_list_origin_.x, y});
     button->SetSize(room_frame_draw_size_);
     const float bottom = y + room_frame_draw_size_.y;
-    if (y >= view_top && bottom <= view_bottom) {
+    if (bottom > view_top && y < view_bottom) {
       room_buttons_visible_[i] = button;
     }
   }
