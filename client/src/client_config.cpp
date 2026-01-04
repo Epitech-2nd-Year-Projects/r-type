@@ -38,6 +38,8 @@ constexpr std::uint32_t kMinLobbyRetryDelayMs = 100;
 constexpr std::uint32_t kMaxLobbyRetryDelayMs = 5'000;
 constexpr int kMinLobbyAttempts = 1;
 constexpr int kMaxLobbyAttempts = 20;
+constexpr std::uint32_t kMinRoomListRefreshMs = 1'000;
+constexpr std::uint32_t kMaxRoomListRefreshMs = 60'000;
 
 std::string TrimCopy(std::string_view text) {
   std::size_t start = 0;
@@ -248,6 +250,12 @@ bool TryParseLobbyAttempts(std::string_view value, int& out_attempts) {
                        kMaxLobbyAttempts);
 }
 
+bool TryParseRoomListRefresh(std::string_view value,
+                             std::uint32_t& out_interval_ms) {
+  return TryParseRange(value, out_interval_ms, kMinRoomListRefreshMs,
+                       kMaxRoomListRefreshMs);
+}
+
 bool LoadClientConfigFromFile(const std::filesystem::path& path,
                               ClientConfig& config) {
   std::ifstream file(path);
@@ -325,6 +333,9 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
               kMaxLobbyRetryDelayMs);
   apply_range(constants::config::kClientLobbyMaxAttempts,
               config.lobby_max_attempts, kMinLobbyAttempts, kMaxLobbyAttempts);
+  apply_range(constants::config::kClientRoomListRefreshMs,
+              config.room_list_refresh_ms, kMinRoomListRefreshMs,
+              kMaxRoomListRefreshMs);
 
   if (const auto it = doc.find(std::string(constants::config::kClientDebug));
       it != doc.end()) {
@@ -374,6 +385,8 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
       config.lobby_retry_delay_ms;
   doc[std::string(constants::config::kClientLobbyMaxAttempts)] =
       config.lobby_max_attempts;
+  doc[std::string(constants::config::kClientRoomListRefreshMs)] =
+      config.room_list_refresh_ms;
 
   std::ofstream file(path);
   if (!file.is_open()) {
@@ -435,6 +448,8 @@ ClientConfig LoadClientConfig() {
              config.lobby_retry_delay_ms);
   apply_uint("RTYPE_CLIENT_LOBBY_MAX_ATTEMPTS", TryParseLobbyAttempts,
              config.lobby_max_attempts);
+  apply_uint("RTYPE_CLIENT_ROOM_LIST_REFRESH_MS", TryParseRoomListRefresh,
+             config.room_list_refresh_ms);
 
   if (const char* debug = std::getenv("RTYPE_CLIENT_DEBUG")) {
     const auto normalized = Normalize(debug);
