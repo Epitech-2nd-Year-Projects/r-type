@@ -10,10 +10,7 @@ EntityHierarchyPanel::EntityHierarchyPanel(const ecs::Registry& registry)
     : registry_(registry) {}
 
 void EntityHierarchyPanel::Draw() {
-  if (!ImGui::Begin("Entity Hierarchy")) {
-    ImGui::End();
-    return;
-  }
+  ImGui::BeginChild("Hierarchy", ImVec2(0, 0), true);
 
   const auto& entities = registry_.GetEntities();
   std::string label;
@@ -33,7 +30,7 @@ void EntityHierarchyPanel::Draw() {
     }
   }
 
-  ImGui::End();
+  ImGui::EndChild();
 }
 
 std::optional<ecs::EntityId> EntityHierarchyPanel::selected_entity() const {
