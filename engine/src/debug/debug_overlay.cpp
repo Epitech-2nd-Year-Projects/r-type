@@ -9,11 +9,27 @@ DebugOverlay::DebugOverlay(engine::ecs::Registry& registry,
     : hierarchy_panel_(registry),
       inspector_panel_(registry, inspector_registry, hierarchy_panel_) {}
 
+void DebugOverlay::RegisterDebugToggle(std::string label, bool* value) {
+  toggles_.emplace_back(std::move(label), value);
+}
+
 void DebugOverlay::Draw() {
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-  if (!ImGui::Begin("Engine Debugger", nullptr, ImGuiWindowFlags_None)) {
+  if (!ImGui::Begin("Engine Debugger", nullptr, ImGuiWindowFlags_MenuBar)) {
     ImGui::End();
     return;
+  }
+
+  if (ImGui::BeginMenuBar()) {
+    if (ImGui::BeginMenu("View")) {
+      for (auto& [label, value] : toggles_) {
+        if (value) {
+          ImGui::MenuItem(label.c_str(), nullptr, value);
+        }
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMenuBar();
   }
 
   ImGui::Columns(2, "DebugColumns", true);
