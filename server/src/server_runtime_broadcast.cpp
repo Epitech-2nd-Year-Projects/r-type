@@ -20,7 +20,7 @@ void ServerRuntime::BroadcastWorldSnapshots() {
       continue;
     }
 
-    protocol::WorldSnapshotPayload snapshot = room.BuildSnapshot(server_tick_);
+    protocol::WorldSnapshotPayload full_snapshot = room.BuildSnapshot(server_tick_);
     room.MarkActive(now_ms);
 
     for (std::uint32_t player_id : room.Players()) {
@@ -33,6 +33,7 @@ void ServerRuntime::BroadcastWorldSnapshots() {
           peer.room_code != room_code) {
         continue;
       }
+
       protocol::Packet packet{};
       packet.header.version = protocol::kProtocolVersion;
       packet.header.message_type =
@@ -41,7 +42,14 @@ void ServerRuntime::BroadcastWorldSnapshots() {
       packet.header.sequence = peer.sequence_tracker.NextLocalSequence();
       packet.header.timestamp_ms = now_ms;
       peer.sequence_tracker.FillAckFields(packet.header);
-      packet.payload = snapshot;
+
+      const auto base_snapshot = room.GetSnapshot(peer.last_acked_snapshot_id);
+      if (base_snapshot.has_value()) {
+        packet.payload = protocol::ComputeDelta(full_snapshot, base_snapshot->get());
+      } else {
+        packet.payload = full_snapshot;
+      }
+
       SendPacket(peer, packet);
     }
   }
