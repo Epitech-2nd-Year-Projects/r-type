@@ -1,6 +1,10 @@
 #ifndef ENGINE_DEBUG_DEBUG_OVERLAY_H_
 #define ENGINE_DEBUG_DEBUG_OVERLAY_H_
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "engine/debug/entity_hierarchy_panel.h"
 #include "engine/debug/inspector_panel.h"
 #include "engine/ecs/registry.h"
@@ -20,9 +24,12 @@ class DebugOverlay {
 
   void Draw();
 
+  void RegisterDebugToggle(std::string label, bool* value);
+
  private:
   EntityHierarchyPanel hierarchy_panel_;
   InspectorPanel inspector_panel_;
+  std::vector<std::pair<std::string, bool*>> toggles_;
 };
 
 }  // namespace engine::debug
