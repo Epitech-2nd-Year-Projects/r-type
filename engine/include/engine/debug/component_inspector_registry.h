@@ -9,22 +9,19 @@
 #include <unordered_map>
 
 #include "engine/ecs/entity_id.h"
+#include "engine/ecs/registry.h"
 
 namespace engine::debug {
 
 /**
- * @brief Type-erased draw callback for component inspection
+ * @brief Draw callback for component inspection
  *
- * @details
- * The std::any parameter contains a std::reference_wrapper<T> to the
- * component. This design avoids raw pointers entirely.
- *
- * @param component_any std::any containing reference_wrapper to the component
- * @param entity_id The entity owning this component
- * @return true if the component was modified by the inspector
+ * @param registry Reference to the main ECS registry
+ * @param entity_id The entity to inspect
+ * @return true if the component was modified
  */
 using InspectorDrawCallback =
-    std::function<bool(std::any&, const ecs::EntityId&)>;
+    std::function<bool(ecs::Registry&, const ecs::EntityId&)>;
 
 /**
  * @struct ComponentMeta
@@ -72,10 +69,18 @@ class ComponentInspectorRegistry {
   void Register(std::string display_name,
                 std::function<bool(T&, const ecs::EntityId&)> callback) {
     auto type_erased = [cb = std::move(callback)](
-                           std::any& data,
+                           ecs::Registry& registry,
                            const ecs::EntityId& entity_id) -> bool {
-      auto& ref_wrapper = std::any_cast<std::reference_wrapper<T>&>(data);
-      return cb(ref_wrapper.get(), entity_id);
+      try {
+        auto& components = registry.GetComponents<T>();
+        auto idx = static_cast<std::size_t>(entity_id);
+
+        if (idx < components.size() && components[idx].has_value()) {
+          return cb(components[idx].value(), entity_id);
+        }
+      } catch (const std::exception&) {
+      }
+      return false;
     };
 
     inspectors_[std::type_index(typeid(T))] =
