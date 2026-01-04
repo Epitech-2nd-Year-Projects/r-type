@@ -26,6 +26,7 @@ struct ClientConfig {
   int join_max_attempts{5};
   std::uint32_t lobby_retry_delay_ms{400};
   int lobby_max_attempts{4};
+  std::uint32_t room_list_refresh_ms{5'000};
   engine::util::LogLevel log_level{engine::util::LogLevel::kDebug};
 };
 
@@ -57,6 +58,7 @@ struct ConnectionValidationResult {
  *  - RTYPE_CLIENT_JOIN_MAX_ATTEMPTS
  *  - RTYPE_CLIENT_LOBBY_RETRY_MS
  *  - RTYPE_CLIENT_LOBBY_MAX_ATTEMPTS
+ *  - RTYPE_CLIENT_ROOM_LIST_REFRESH_MS
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
 ClientConfig LoadClientConfig();
