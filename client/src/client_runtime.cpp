@@ -14,6 +14,7 @@
 #include "engine/app/engine_runtime.h"
 #include "engine/console/console.h"
 #include "engine/console/console_overlay.h"
+#include "engine/debug/entity_hierarchy_panel.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
@@ -219,6 +220,8 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
       std::make_unique<ecs::RenderSystem>(registry, engine_->Renderer());
   render_debug_ =
       std::make_unique<ecs::RenderDebug>(registry, engine_->Renderer());
+  entity_hierarchy_panel_ =
+      std::make_unique<engine::debug::EntityHierarchyPanel>(registry);
 }
 
 bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
@@ -244,6 +247,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   if (imgui_ && imgui_->enabled()) {
     imgui_->BeginFrame();
+    if (entity_hierarchy_panel_) {
+      entity_hierarchy_panel_->Draw();
+    }
   }
 
   context.Clear(constants::client::kClearColor);
