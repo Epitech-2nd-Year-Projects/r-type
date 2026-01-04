@@ -8,6 +8,7 @@
 #include "engine/input.h"
 #include "engine/render/renderer2d.h"
 #include "protocol/lobby.h"
+#include "ui/menu_background.h"
 
 namespace client {
 
@@ -44,16 +45,22 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
   LayoutUi();
 
   auto& input = context_.Input();
+  const bool modal_open = modal_.IsOpen();
   if (input.IsMouseButtonDown(engine::input::MouseButton::kLeft)) {
-    controller_.HandleFocus(input);
-    if (modal_.IsOpen()) {
+    if (modal_open) {
       modal_.HandleFocus(input);
+    } else {
+      controller_.HandleFocus(input);
     }
   }
 
-  controller_.Update(dt, input);
-  room_list_view_.Update(dt, input);
-  modal_.Update(dt, input);
+  if (modal_open) {
+    context_.MenuBackground().Update(dt);
+    modal_.Update(dt, input);
+  } else {
+    controller_.Update(dt, input);
+    room_list_view_.Update(dt, input);
+  }
 
   if (!IsInputCaptured() && input.IsKeyDown(engine::input::Key::kEscape)) {
     context_.OnQuitToMenu();
@@ -61,8 +68,18 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
 }
 
 void LobbyScene::Draw(engine::render::Renderer2D& renderer) {
+  DrawBackground(renderer);
+  DrawForeground(renderer);
+}
+
+void LobbyScene::DrawBackground(engine::render::Renderer2D& renderer) {
+  static_cast<void>(renderer);
+  room_list_view_.DrawBackground();
+}
+
+void LobbyScene::DrawForeground(engine::render::Renderer2D& renderer) {
   LayoutUi();
-  room_list_view_.Draw(renderer, context_.RoomDirectoryStatus());
+  room_list_view_.DrawForeground(renderer, context_.RoomDirectoryStatus());
   controller_.Draw(renderer);
   modal_.Draw(renderer);
 }

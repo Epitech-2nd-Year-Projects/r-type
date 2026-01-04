@@ -15,7 +15,8 @@ struct MusicCueEntry {
   std::optional<MusicType> cue;
 };
 
-constexpr std::array<MusicCueEntry, 8> kMusicCueTable{{
+constexpr std::array<MusicCueEntry, 9> kMusicCueTable{{
+    {ClientState::kSplash, MusicType::kMainMenu},
     {ClientState::kMainMenu, MusicType::kMainMenu},
     {ClientState::kLobby, MusicType::kMainMenu},
     {ClientState::kSettings, MusicType::kMainMenu},

@@ -1,7 +1,10 @@
 #include "client_runtime.h"
 
+#include <raylib.h>
+
 #include <iomanip>
 #include <sstream>
+#include <string>
 #include <utility>
 
 #include "constants/client_constants.h"
@@ -18,7 +21,153 @@
 #include "render/parallax_background.h"
 #include "scene/scene.h"
 
+namespace {
+
+unsigned char ToByte(float value) {
+  if (value < 0.0f) {
+    value = 0.0f;
+  } else if (value > 1.0f) {
+    value = 1.0f;
+  }
+  return static_cast<unsigned char>(value * 255.0f + 0.5f);
+}
+
+::Color ToRaylibColor(const engine::render::Color& color) {
+  return ::Color{ToByte(color.r), ToByte(color.g), ToByte(color.b),
+                 ToByte(color.a)};
+}
+
+}  // namespace
+
 namespace client {
+
+struct ClientRuntime::BloomResources {
+  ~BloomResources() { Reset(); }
+
+  bool Initialize(std::string_view shader_path) {
+    std::string path(shader_path);
+    shader = ::LoadShader(nullptr, path.c_str());
+    shader_ready = shader.id != 0;
+    if (shader_ready) {
+      resolution_loc = ::GetShaderLocation(shader, "resolution");
+      threshold_loc = ::GetShaderLocation(shader, "threshold");
+      knee_loc = ::GetShaderLocation(shader, "knee");
+      intensity_loc = ::GetShaderLocation(shader, "intensity");
+      ApplySettings();
+    }
+    return shader_ready;
+  }
+
+  void EnsureTarget(const engine::math::Vector2i& size) {
+    if (!shader_ready || size.x <= 0 || size.y <= 0) {
+      return;
+    }
+    if (target.id == 0 || target_size.x != size.x || target_size.y != size.y) {
+      if (target.id != 0) {
+        ::UnloadRenderTexture(target);
+      }
+      target = ::LoadRenderTexture(size.x, size.y);
+      target_size = size;
+    }
+    if (resolution_loc >= 0) {
+      const ::Vector2 resolution{
+          static_cast<float>(target_size.x),
+          static_cast<float>(target_size.y),
+      };
+      ::SetShaderValue(shader, resolution_loc, &resolution,
+                       SHADER_UNIFORM_VEC2);
+    }
+    ApplySettings();
+  }
+
+  bool Ready() const { return shader_ready && target.id != 0; }
+
+  void BeginCapture(const engine::render::Color& clear_color) {
+    ::BeginTextureMode(target);
+    ::ClearBackground(ToRaylibColor(clear_color));
+  }
+
+  void EndCapture() { ::EndTextureMode(); }
+
+  void DrawCaptured(const engine::math::Vector2i& window_size) const {
+    if (!Ready()) {
+      return;
+    }
+    const float width = static_cast<float>(window_size.x);
+    const float height = static_cast<float>(window_size.y);
+    if (width <= 0.0f || height <= 0.0f) {
+      return;
+    }
+    const ::Rectangle source{0.0f, 0.0f,
+                             static_cast<float>(target.texture.width),
+                             -static_cast<float>(target.texture.height)};
+    const ::Rectangle dest{0.0f, 0.0f, width, height};
+    ::DrawTexturePro(target.texture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
+  }
+
+  void DrawBloom(const engine::math::Vector2i& window_size) const {
+    if (!Ready()) {
+      return;
+    }
+    const float width = static_cast<float>(window_size.x);
+    const float height = static_cast<float>(window_size.y);
+    if (width <= 0.0f || height <= 0.0f) {
+      return;
+    }
+    const ::Rectangle source{0.0f, 0.0f,
+                             static_cast<float>(target.texture.width),
+                             -static_cast<float>(target.texture.height)};
+    const ::Rectangle dest{0.0f, 0.0f, width, height};
+    ::BeginBlendMode(BLEND_ADDITIVE);
+    ::BeginShaderMode(shader);
+    ::DrawTexturePro(target.texture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
+    ::EndShaderMode();
+    ::EndBlendMode();
+  }
+
+  void ApplySettings() {
+    if (!shader_ready) {
+      return;
+    }
+    const float threshold = constants::client::kBloomThreshold;
+    const float knee = constants::client::kBloomKnee;
+    const float intensity = constants::client::kBloomIntensity;
+    if (threshold_loc >= 0) {
+      ::SetShaderValue(shader, threshold_loc, &threshold, SHADER_UNIFORM_FLOAT);
+    }
+    if (knee_loc >= 0) {
+      ::SetShaderValue(shader, knee_loc, &knee, SHADER_UNIFORM_FLOAT);
+    }
+    if (intensity_loc >= 0) {
+      ::SetShaderValue(shader, intensity_loc, &intensity, SHADER_UNIFORM_FLOAT);
+    }
+  }
+
+  void Reset() {
+    if (::IsWindowReady()) {
+      if (target.id != 0) {
+        ::UnloadRenderTexture(target);
+      }
+      if (shader.id != 0) {
+        ::UnloadShader(shader);
+      }
+    }
+    target = {};
+    target_size = {};
+    shader = {};
+    shader_ready = false;
+    resolution_loc = -1;
+  }
+
+  Shader shader{};
+  RenderTexture2D target{};
+  engine::math::Vector2i target_size{};
+  int resolution_loc{-1};
+  int threshold_loc{-1};
+  int knee_loc{-1};
+  int intensity_loc{-1};
+  bool shader_ready{false};
+};
 
 ClientRuntime::ClientRuntime() = default;
 
@@ -54,6 +203,10 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
   imgui_ = std::make_unique<engine::debug::ImGuiIntegration>();
   imgui_->SetEnabled(false);
+  bloom_ = std::make_unique<BloomResources>();
+  if (!bloom_->Initialize(constants::client::kBloomShaderPath)) {
+    LogLifecycle(engine::util::LogLevel::kWarn, "Bloom shader failed to load");
+  }
   LogLifecycle(engine::util::LogLevel::kInfo, "Engine runtime ready");
   return true;
 }
@@ -85,6 +238,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   auto& context = engine_->RenderContext();
   auto& renderer = engine_->Renderer();
+  const auto window_size = engine_->Window().GetSize();
 
   context.BeginFrame();
 
@@ -97,9 +251,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   const bool render_gameplay = state == ClientState::kInGame ||
                                state == ClientState::kPaused ||
                                state == ClientState::kGameOver;
+  const bool render_with_bloom = !render_gameplay && bloom_;
 
   if (background_ && render_gameplay) {
-    const auto window_size = engine_->Window().GetSize();
     background_->Update(dt, {static_cast<float>(window_size.x),
                              static_cast<float>(window_size.y)});
     background_->Draw();
@@ -112,7 +266,23 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     render_debug_->Draw();
   }
 
-  if (scene) {
+  if (render_with_bloom) {
+    bloom_->EnsureTarget(window_size);
+    if (bloom_->Ready()) {
+      if (scene) {
+        scene->DrawBackground(renderer);
+      }
+      bloom_->BeginCapture(engine::render::Color::Transparent());
+      if (scene) {
+        scene->DrawForeground(renderer);
+      }
+      bloom_->EndCapture();
+      bloom_->DrawCaptured(window_size);
+      bloom_->DrawBloom(window_size);
+    } else if (scene) {
+      scene->Draw(renderer);
+    }
+  } else if (scene) {
     scene->Draw(renderer);
   }
 
@@ -123,6 +293,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     imgui_->EndFrame();
   }
 
+  profiling_overlay_.Draw(renderer, window_size);
+  engine_->ConsoleOverlay().Draw(renderer, window_size);
   context.EndFrame();
 }
 
