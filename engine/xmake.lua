@@ -47,7 +47,7 @@ target("engine_debug")
     add_files("src/debug/**.cpp")
     add_headerfiles("include/engine/debug/**.h")
     add_includedirs("include", { public = true })
-    add_deps("engine_core", "engine_input", "rlImGui")
+    add_deps("engine_core", "engine_ecs", "engine_input", "rlImGui")
     add_packages("imgui", "raylib", { public = true })
 
 target("engine")
