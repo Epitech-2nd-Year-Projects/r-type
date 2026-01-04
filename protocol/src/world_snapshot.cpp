@@ -376,7 +376,6 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
         processed_ids.insert(d.entity_id);
       }
     } else if (d.op == EntityDeltaOp::kDelete) {
-      // Deleted entities are intentionally omitted from result
       processed_ids.insert(d.entity_id);
     }
   }
