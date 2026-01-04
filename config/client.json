@@ -6,6 +6,7 @@
   "client.lobby_max_attempts": 4,
   "client.lobby_retry_ms": 400,
   "client.log_level": "debug",
+  "client.room_list_refresh_ms": 5000,
   "client.ping_interval_ms": 1000,
   "client.player_name": "Pilot",
   "client.port": 4242,
