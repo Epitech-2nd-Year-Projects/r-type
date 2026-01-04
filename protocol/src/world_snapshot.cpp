@@ -355,6 +355,7 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
     if (d.op == EntityDeltaOp::kCreate) {
       new_delta.state = d.state;
       result.deltas.push_back(new_delta);
+      processed_ids.insert(d.entity_id);
     } else if (d.op == EntityDeltaOp::kUpdate) {
       auto it = base_entities.find(d.entity_id);
       if (it != base_entities.end()) {
@@ -372,9 +373,12 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
 
         new_delta.state = merged;
         result.deltas.push_back(new_delta);
+        processed_ids.insert(d.entity_id);
       }
+    } else if (d.op == EntityDeltaOp::kDelete) {
+      // Deleted entities are intentionally omitted from result
+      processed_ids.insert(d.entity_id);
     }
-    processed_ids.insert(d.entity_id);
   }
 
   for (const auto& [id, state_ptr] : base_entities) {
