@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -169,6 +170,25 @@ void ApplyFrameTexture(
   }
 }
 
+float RoomListContentHeight(std::size_t count, float item_height,
+                            float spacing) {
+  if (count == 0) {
+    return 0.0f;
+  }
+  return static_cast<float>(count) * item_height +
+         static_cast<float>(count - 1) * spacing;
+}
+
+float SnapScrollOffset(float value, float step, float max_offset) {
+  if (max_offset <= 0.0f) {
+    return 0.0f;
+  }
+  if (step > 0.0f) {
+    value = std::round(value / step) * step;
+  }
+  return std::clamp(value, 0.0f, max_offset);
+}
+
 }  // namespace
 
 LobbyRoomListView::LobbyRoomListView(
@@ -185,7 +205,8 @@ LobbyRoomListView::LobbyRoomListView(
 void LobbyRoomListView::Update(engine::time::TimeDelta dt,
                                engine::input::InputManager& input) {
   context_.MenuBackground().Update(dt);
-  menu_effects_.Update(dt, input, room_buttons_);
+  UpdateScrollInput(input);
+  menu_effects_.Update(dt, input, room_buttons_visible_);
 
   if (!header_frames_.empty() && header_animating_) {
     const float max_elapsed = static_cast<float>(header_frames_.size() - 1) *
@@ -214,8 +235,10 @@ void LobbyRoomListView::Update(engine::time::TimeDelta dt,
     }
   }
 
-  for (auto& button : room_buttons_) {
-    button->Update(dt, input);
+  for (auto& button : room_buttons_visible_) {
+    if (button) {
+      button->Update(dt, input);
+    }
   }
 }
 
@@ -255,11 +278,287 @@ void LobbyRoomListView::Layout(const engine::math::Vector2f& window_size) {
                            constants::ui::Lobby::kCreateButtonHeight +
                            constants::ui::Lobby::kRoomListSpacing};
 
-  float room_y = room_list_origin_.y;
-  for (auto& button : room_buttons_) {
-    button->SetPosition({room_list_origin_.x, room_y});
+  scroll_step_ =
+      room_frame_draw_size_.y + constants::ui::Lobby::kRoomListSpacing;
+  const float list_bottom = window_size.y -
+                            constants::ui::Lobby::kBackButtonBottomPadding -
+                            constants::ui::Lobby::kBackButtonHeight -
+                            constants::ui::Lobby::kRoomListBottomPadding;
+  const float list_available_height =
+      std::max(0.0f, list_bottom - room_list_origin_.y);
+  std::size_t max_visible_rooms = 0;
+  if (scroll_step_ > 0.0f && list_available_height > 0.0f) {
+    max_visible_rooms = static_cast<std::size_t>(
+        (list_available_height + constants::ui::Lobby::kRoomListSpacing) /
+        scroll_step_);
+    if (max_visible_rooms == 0 && !room_buttons_.empty()) {
+      max_visible_rooms = 1;
+    }
+  }
+  float viewport_height = 0.0f;
+  if (max_visible_rooms > 0) {
+    viewport_height = static_cast<float>(max_visible_rooms) * scroll_step_ -
+                      constants::ui::Lobby::kRoomListSpacing;
+    viewport_height = std::min(viewport_height, list_available_height);
+  }
+  room_list_viewport_ = {room_list_origin_.x, room_list_origin_.y,
+                         room_frame_draw_size_.x, viewport_height};
+  room_list_content_height_ =
+      RoomListContentHeight(room_buttons_.size(), room_frame_draw_size_.y,
+                            constants::ui::Lobby::kRoomListSpacing);
+  scroll_max_offset_ =
+      std::max(0.0f, room_list_content_height_ - room_list_viewport_.height_);
+  scroll_offset_ =
+      SnapScrollOffset(scroll_offset_, scroll_step_, scroll_max_offset_);
+
+  scroll_track_scale_ = constants::ui::Lobby::kScrollBarScale;
+  float track_width = 0.0f;
+  if (scroll_track_end_texture_) {
+    const auto size = scroll_track_end_texture_->GetSize();
+    if (size.x > 0) {
+      track_width = static_cast<float>(size.x) * scroll_track_scale_;
+    }
+    if (size.y > 0 && room_list_viewport_.height_ > 0.0f) {
+      const float scaled_end_height =
+          static_cast<float>(size.y) * scroll_track_scale_;
+      if (scaled_end_height * 2.0f > room_list_viewport_.height_) {
+        scroll_track_scale_ =
+            room_list_viewport_.height_ / (2.0f * static_cast<float>(size.y));
+        track_width = static_cast<float>(size.x) * scroll_track_scale_;
+      }
+    }
+  }
+  if (track_width <= 0.0f && scroll_handle_texture_) {
+    const auto size = scroll_handle_texture_->GetSize();
+    if (size.x > 0) {
+      track_width = static_cast<float>(size.x) * scroll_track_scale_;
+    }
+  }
+  if (track_width <= 0.0f) {
+    track_width = room_frame_draw_size_.x * 0.1f;
+  }
+  float scroll_x = room_list_origin_.x + room_frame_draw_size_.x +
+                   constants::ui::Lobby::kPointerSpacing +
+                   constants::ui::Lobby::kScrollBarGap;
+  const float max_x =
+      window_size.x - constants::ui::Lobby::kPanelMargin - track_width;
+  scroll_x = std::min(scroll_x, max_x);
+  scroll_x = std::max(0.0f, scroll_x);
+  scroll_track_rect_ = {scroll_x, room_list_viewport_.top_left_y_, track_width,
+                        room_list_viewport_.height_};
+
+  ApplyRoomLayout();
+  UpdateScrollHandleRect();
+}
+
+void LobbyRoomListView::ApplyRoomLayout() {
+  room_buttons_visible_.assign(room_buttons_.size(), nullptr);
+  if (room_buttons_.empty()) {
+    return;
+  }
+  if (scroll_step_ <= 0.0f || room_list_viewport_.height_ <= 0.0f) {
+    return;
+  }
+  const float view_top = room_list_viewport_.top_left_y_;
+  const float view_bottom = view_top + room_list_viewport_.height_;
+  for (std::size_t i = 0; i < room_buttons_.size(); ++i) {
+    auto& button = room_buttons_[i];
+    if (!button) {
+      continue;
+    }
+    const float y = room_list_origin_.y + static_cast<float>(i) * scroll_step_ -
+                    scroll_offset_;
+    button->SetPosition({room_list_origin_.x, y});
     button->SetSize(room_frame_draw_size_);
-    room_y += room_frame_draw_size_.y + constants::ui::Lobby::kRoomListSpacing;
+    const float bottom = y + room_frame_draw_size_.y;
+    if (y >= view_top && bottom <= view_bottom) {
+      room_buttons_visible_[i] = button;
+    }
+  }
+}
+
+void LobbyRoomListView::UpdateScrollInput(engine::input::InputManager& input) {
+  UpdateScrollHandleRect();
+  const auto mouse_pos = input.GetMousePosition();
+  const bool left_down =
+      input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
+
+  if (!left_down) {
+    scroll_dragging_ = false;
+  }
+
+  if (scroll_max_offset_ <= 0.0f || scroll_track_rect_.height_ <= 0.0f) {
+    scroll_offset_ = 0.0f;
+    scroll_wheel_accumulator_ = 0.0f;
+    scroll_dragging_ = false;
+    was_left_down_ = left_down;
+    ApplyRoomLayout();
+    UpdateScrollHandleRect();
+    return;
+  }
+
+  const auto offset_from_handle_top = [this](float handle_top) {
+    const float handle_range =
+        std::max(0.0f, scroll_track_rect_.height_ - scroll_handle_height_);
+    if (handle_range <= 0.0f) {
+      return 0.0f;
+    }
+    const float min_top = scroll_track_rect_.top_left_y_;
+    const float max_top = scroll_track_rect_.top_left_y_ + handle_range;
+    const float clamped = std::clamp(handle_top, min_top, max_top);
+    const float ratio = (clamped - min_top) / handle_range;
+    return SnapScrollOffset(ratio * scroll_max_offset_, scroll_step_,
+                            scroll_max_offset_);
+  };
+
+  const float wheel_delta = input.GetMouseWheelDelta();
+  const bool hover_scroll = room_list_viewport_.Contains(mouse_pos) ||
+                            scroll_track_rect_.Contains(mouse_pos);
+  if (!scroll_dragging_ && hover_scroll && wheel_delta != 0.0f &&
+      scroll_step_ > 0.0f) {
+    scroll_wheel_accumulator_ += wheel_delta;
+    const int wheel_steps = static_cast<int>(scroll_wheel_accumulator_);
+    if (wheel_steps != 0) {
+      scroll_offset_ = SnapScrollOffset(
+          scroll_offset_ - static_cast<float>(wheel_steps) * scroll_step_,
+          scroll_step_, scroll_max_offset_);
+      scroll_wheel_accumulator_ -= static_cast<float>(wheel_steps);
+    }
+  }
+
+  if (left_down && !was_left_down_) {
+    if (scroll_handle_rect_.Contains(mouse_pos)) {
+      scroll_dragging_ = true;
+      scroll_drag_offset_ = mouse_pos.y - scroll_handle_rect_.top_left_y_;
+    } else if (scroll_track_rect_.Contains(mouse_pos)) {
+      scroll_offset_ = offset_from_handle_top(
+          mouse_pos.y - scroll_handle_rect_.height_ * 0.5f);
+    }
+  }
+
+  if (scroll_dragging_) {
+    scroll_offset_ = offset_from_handle_top(mouse_pos.y - scroll_drag_offset_);
+  }
+
+  was_left_down_ = left_down;
+  ApplyRoomLayout();
+  UpdateScrollHandleRect();
+}
+
+void LobbyRoomListView::UpdateScrollHandleRect() {
+  scroll_handle_rect_ = {};
+  scroll_handle_height_ = 0.0f;
+  if (scroll_track_rect_.height_ <= 0.0f || scroll_track_rect_.width_ <= 0.0f) {
+    return;
+  }
+
+  float handle_width = scroll_track_rect_.width_;
+  float handle_height = scroll_track_rect_.height_;
+  if (scroll_handle_texture_) {
+    const auto size = scroll_handle_texture_->GetSize();
+    if (size.x > 0) {
+      handle_width = static_cast<float>(size.x) * scroll_track_scale_;
+    }
+    if (size.y > 0) {
+      handle_height = static_cast<float>(size.y) * scroll_track_scale_;
+    }
+  }
+
+  handle_height = std::min(handle_height, scroll_track_rect_.height_);
+  scroll_handle_height_ = handle_height;
+
+  const float handle_range =
+      std::max(0.0f, scroll_track_rect_.height_ - handle_height);
+  float handle_y = scroll_track_rect_.top_left_y_;
+  if (scroll_max_offset_ > 0.0f && handle_range > 0.0f) {
+    handle_y += (scroll_offset_ / scroll_max_offset_) * handle_range;
+  }
+  const float handle_x = scroll_track_rect_.top_left_x_ +
+                         (scroll_track_rect_.width_ - handle_width) * 0.5f;
+  scroll_handle_rect_ = {handle_x, handle_y, handle_width, handle_height};
+}
+
+void LobbyRoomListView::DrawScrollBar(
+    engine::render::Renderer2D& renderer) const {
+  if (scroll_track_rect_.height_ <= 0.0f || scroll_track_rect_.width_ <= 0.0f) {
+    return;
+  }
+
+  const float track_x = scroll_track_rect_.top_left_x_;
+  const float track_y = scroll_track_rect_.top_left_y_;
+  const float track_height = scroll_track_rect_.height_;
+
+  float end_height = 0.0f;
+  float end_width = 0.0f;
+  if (scroll_track_end_texture_) {
+    const auto end_size = scroll_track_end_texture_->GetSize();
+    if (end_size.x > 0 && end_size.y > 0) {
+      end_width = static_cast<float>(end_size.x) * scroll_track_scale_;
+      end_height = static_cast<float>(end_size.y) * scroll_track_scale_;
+      const float end_x =
+          track_x + (scroll_track_rect_.width_ - end_width) * 0.5f;
+
+      engine::render::SpriteDrawParams top_params;
+      top_params.position = {end_x, track_y};
+      top_params.scale = {scroll_track_scale_, scroll_track_scale_};
+      renderer.DrawTexture(*scroll_track_end_texture_, top_params);
+
+      const float bottom_y = track_y + track_height - end_height;
+      engine::render::SpriteDrawParams bottom_params;
+      bottom_params.scale = {scroll_track_scale_, scroll_track_scale_};
+      bottom_params.origin = {end_width * 0.5f, end_height * 0.5f};
+      bottom_params.position = {end_x + end_width * 0.5f,
+                                bottom_y + end_height * 0.5f};
+      bottom_params.source = engine::math::RectF{
+          static_cast<float>(end_size.x), 0.0f, -static_cast<float>(end_size.x),
+          static_cast<float>(end_size.y)};
+      bottom_params.rotation = 180.0f;
+      renderer.DrawTexture(*scroll_track_end_texture_, bottom_params);
+    }
+  }
+
+  if (scroll_track_mid_texture_) {
+    const auto mid_size = scroll_track_mid_texture_->GetSize();
+    if (mid_size.x > 0 && mid_size.y > 0) {
+      const float mid_width =
+          static_cast<float>(mid_size.x) * scroll_track_scale_;
+      const float mid_height =
+          static_cast<float>(mid_size.y) * scroll_track_scale_;
+      const float mid_x =
+          track_x + (scroll_track_rect_.width_ - mid_width) * 0.5f;
+      const float mid_start = track_y + end_height;
+      const float mid_end = track_y + track_height - end_height;
+      float y = mid_start;
+      while (y + mid_height <= mid_end) {
+        engine::render::SpriteDrawParams params;
+        params.position = {mid_x, y};
+        params.scale = {scroll_track_scale_, scroll_track_scale_};
+        renderer.DrawTexture(*scroll_track_mid_texture_, params);
+        y += mid_height;
+      }
+      const float remaining = mid_end - y;
+      if (remaining > 0.0f) {
+        engine::render::SpriteDrawParams params;
+        params.position = {mid_x, y};
+        params.scale = {scroll_track_scale_,
+                        remaining / static_cast<float>(mid_size.y)};
+        renderer.DrawTexture(*scroll_track_mid_texture_, params);
+      }
+    }
+  }
+
+  if (scroll_handle_texture_) {
+    const auto handle_size = scroll_handle_texture_->GetSize();
+    if (handle_size.x > 0 && handle_size.y > 0 &&
+        scroll_handle_rect_.height_ > 0.0f) {
+      engine::render::SpriteDrawParams params;
+      params.position = {scroll_handle_rect_.top_left_x_,
+                         scroll_handle_rect_.top_left_y_};
+      params.scale = {
+          scroll_handle_rect_.width_ / static_cast<float>(handle_size.x),
+          scroll_handle_rect_.height_ / static_cast<float>(handle_size.y)};
+      renderer.DrawTexture(*scroll_handle_texture_, params);
+    }
   }
 }
 
@@ -309,8 +608,13 @@ void LobbyRoomListView::DrawForeground(engine::render::Renderer2D& renderer,
       room_frame_draw_size_.y * constants::ui::Lobby::kRoomTextScale;
   const float min_font_size =
       room_frame_draw_size_.y * constants::ui::Lobby::kRoomTextMinScale;
-  for (std::size_t i = 0; i < room_buttons_.size(); ++i) {
-    auto& button = room_buttons_[i];
+  const std::size_t button_count =
+      std::min(room_buttons_.size(), room_buttons_visible_.size());
+  for (std::size_t i = 0; i < button_count; ++i) {
+    auto& button = room_buttons_visible_[i];
+    if (!button) {
+      continue;
+    }
     if (i < room_entries_.size()) {
       const auto& entry = room_entries_[i];
       if (entry.area_texture) {
@@ -382,7 +686,8 @@ void LobbyRoomListView::DrawForeground(engine::render::Renderer2D& renderer,
                       constants::ui::Lobby::kRoomTextColor);
   }
 
-  menu_effects_.DrawPointers(renderer, room_buttons_);
+  DrawScrollBar(renderer);
+  menu_effects_.DrawPointers(renderer, room_buttons_visible_);
 
   static_cast<void>(status_text);
 }
@@ -403,6 +708,18 @@ void LobbyRoomListView::RefreshRooms(
                     constants::ui::Lobby::kRoomFrameExtension,
                     constants::ui::Lobby::kRoomFrameCount, room_frames_);
   LoadAreaTextures(assets, area_textures_);
+  if (!scroll_handle_texture_) {
+    scroll_handle_texture_ =
+        assets.GetTexture(constants::ui::Lobby::kScrollBarHandlePath);
+  }
+  if (!scroll_track_end_texture_) {
+    scroll_track_end_texture_ =
+        assets.GetTexture(constants::ui::Lobby::kScrollBarEndPath);
+  }
+  if (!scroll_track_mid_texture_) {
+    scroll_track_mid_texture_ =
+        assets.GetTexture(constants::ui::Lobby::kScrollBarMidPath);
+  }
 
   const auto hash = HashRooms(rooms);
   if (hash == last_rooms_hash_) {
@@ -410,6 +727,7 @@ void LobbyRoomListView::RefreshRooms(
   }
   last_rooms_hash_ = hash;
   room_buttons_.clear();
+  room_buttons_visible_.clear();
   room_entries_.clear();
 
   if (!room_frames_.empty() && room_frame_index_ >= room_frames_.size()) {
