@@ -57,13 +57,10 @@ jobs:
           "FFMPEG_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build
+        id: build
         run: bash scripts/build.sh
-
-      - name: Test
-        run: bash scripts/test.sh
-
-      - name: Check format
-        run: bash scripts/format-check.sh
+        continue-on-error: true
+        timeout-minutes: 20
 
       - name: Dump xmake install logs
         if: ${{ always() }}
@@ -84,3 +81,15 @@ jobs:
             Write-Host "==== $($log.FullName)"
             Get-Content $log.FullName
           }
+
+      - name: Test
+        if: ${{ steps.build.outcome == 'success' }}
+        run: bash scripts/test.sh
+
+      - name: Check format
+        if: ${{ steps.build.outcome == 'success' }}
+        run: bash scripts/format-check.sh
+
+      - name: Fail if build failed
+        if: ${{ steps.build.outcome != 'success' }}
+        run: exit 1
