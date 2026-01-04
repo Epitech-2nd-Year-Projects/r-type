@@ -35,6 +35,7 @@ bool EncodeInputState(const InputStatePayload& input,
   if (command_count == 0 || command_count > kMaxInputSequenceHistory) {
     return false;
   }
+  writer.WriteUint32(input.ack_snapshot_id);
   writer.WriteUint8(command_count);
   for (std::size_t i = 0; i < command_count; ++i) {
     const InputCommand& command = input.commands[i];
@@ -51,13 +52,15 @@ bool DecodeInputState(engine::net::PacketBuffer& reader,
                       InputStatePayload& out_input) {
   std::uint8_t command_count = 0;
 
-  if (!reader.ReadUint8(command_count)) {
+  std::uint32_t ack_snapshot_id = 0;
+  if (!reader.ReadUint32(ack_snapshot_id) || !reader.ReadUint8(command_count)) {
     return false;
   }
   if (command_count == 0 || command_count > kMaxInputSequenceHistory) {
     return false;
   }
   InputStatePayload result;
+  result.ack_snapshot_id = ack_snapshot_id;
   result.command_count = command_count;
   for (std::size_t i = 0; i < command_count; ++i) {
     InputCommand command;
