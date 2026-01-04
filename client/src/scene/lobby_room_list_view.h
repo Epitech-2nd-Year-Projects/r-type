@@ -88,6 +88,11 @@ class LobbyRoomListView {
                     ClientAssetManager& assets);
 
  private:
+  void ApplyRoomLayout();
+  void UpdateScrollInput(engine::input::InputManager& input);
+  void UpdateScrollHandleRect();
+  void DrawScrollBar(engine::render::Renderer2D& renderer) const;
+
   struct RoomEntry {
     protocol::RoomSummary room{};
     std::string left_text;
@@ -100,20 +105,37 @@ class LobbyRoomListView {
   std::function<void(const protocol::RoomSummary&)> on_room_selected_;
   ui::MenuEffects menu_effects_;
   std::vector<std::shared_ptr<engine::ui::Button>> room_buttons_;
+  std::vector<std::shared_ptr<engine::ui::Button>> room_buttons_visible_;
   std::vector<RoomEntry> room_entries_;
   std::vector<std::shared_ptr<engine::render::Texture2D>> area_textures_;
   std::vector<std::shared_ptr<engine::render::Texture2D>> header_frames_;
   std::vector<std::shared_ptr<engine::render::Texture2D>> room_frames_;
+  std::shared_ptr<engine::render::Texture2D> scroll_handle_texture_;
+  std::shared_ptr<engine::render::Texture2D> scroll_track_end_texture_;
+  std::shared_ptr<engine::render::Texture2D> scroll_track_mid_texture_;
   engine::math::RectF header_frame_rect_{};
   engine::math::Vector2f title_anchor_{};
   engine::math::Vector2f room_frame_draw_size_{};
   engine::math::Vector2f room_list_origin_{};
+  engine::math::RectF room_list_viewport_{};
+  engine::math::RectF scroll_track_rect_{};
+  engine::math::RectF scroll_handle_rect_{};
   std::size_t last_rooms_hash_{0};
   float header_elapsed_{0.0f};
   bool header_animating_{true};
   float room_frame_elapsed_{0.0f};
   std::size_t room_frame_index_{0};
   bool room_frame_animating_{true};
+  float room_list_content_height_{0.0f};
+  float scroll_offset_{0.0f};
+  float scroll_max_offset_{0.0f};
+  float scroll_step_{0.0f};
+  float scroll_track_scale_{1.0f};
+  float scroll_handle_height_{0.0f};
+  float scroll_drag_offset_{0.0f};
+  float scroll_wheel_accumulator_{0.0f};
+  bool scroll_dragging_{false};
+  bool was_left_down_{false};
 };
 
 }  // namespace client
