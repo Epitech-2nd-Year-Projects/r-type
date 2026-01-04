@@ -20,7 +20,8 @@ void ServerRuntime::BroadcastWorldSnapshots() {
       continue;
     }
 
-    protocol::WorldSnapshotPayload full_snapshot = room.BuildSnapshot(server_tick_);
+    protocol::WorldSnapshotPayload full_snapshot =
+        room.BuildSnapshot(server_tick_);
     room.MarkActive(now_ms);
 
     for (std::uint32_t player_id : room.Players()) {
@@ -45,7 +46,8 @@ void ServerRuntime::BroadcastWorldSnapshots() {
 
       const auto base_snapshot = room.GetSnapshot(peer.last_acked_snapshot_id);
       if (base_snapshot.has_value()) {
-        packet.payload = protocol::ComputeDelta(full_snapshot, base_snapshot->get());
+        packet.payload =
+            protocol::ComputeDelta(full_snapshot, base_snapshot->get());
       } else {
         packet.payload = full_snapshot;
       }

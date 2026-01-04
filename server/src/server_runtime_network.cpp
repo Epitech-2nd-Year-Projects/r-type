@@ -22,29 +22,30 @@ void ServerRuntime::PollNetwork() {
   }
 }
 
-  void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
-                                   const engine::net::Endpoint& from) {
-    engine::net::PacketBuffer reader = packet;
-    protocol::Header header;
-    if (!protocol::DecodeHeader(reader, header)) {
-        return;
+void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
+                                 const engine::net::Endpoint& from) {
+  engine::net::PacketBuffer reader = packet;
+  protocol::Header header;
+  if (!protocol::DecodeHeader(reader, header)) {
+    return;
+  }
+
+  std::optional<engine::net::PacketBuffer> full_packet;
+
+  if (header.flags & protocol::HeaderFlag::kHeaderFlagFragmented) {
+    full_packet = reassembler_.HandlePacket(header, reader, EndpointKey(from),
+                                            NowMilliseconds());
+    if (!full_packet.has_value()) {
+      return;
     }
-    
-    std::optional<engine::net::PacketBuffer> full_packet;
-    
-    if (header.flags & protocol::HeaderFlag::kHeaderFlagFragmented) {
-        full_packet = reassembler_.HandlePacket(header, reader, EndpointKey(from), NowMilliseconds());
-        if (!full_packet.has_value()) {
-            return;
-        }
-    } else {
-        full_packet = std::move(packet);
-    }
-  
-    protocol::Packet decoded{};
-    protocol::DecodeError error{protocol::DecodeError::kOk};
-  
-    if (!protocol::DecodePacket(*full_packet, decoded, error)) {
+  } else {
+    full_packet = std::move(packet);
+  }
+
+  protocol::Packet decoded{};
+  protocol::DecodeError error{protocol::DecodeError::kOk};
+
+  if (!protocol::DecodePacket(*full_packet, decoded, error)) {
     protocol::UpdateDecodeMetrics(decode_metrics_, error);
     logger_.Warn("Dropped packet from ", EndpointKey(from), " (",
                  protocol::DecodeErrorToString(error),
@@ -169,7 +170,7 @@ void ServerRuntime::HandleInputState(
   logger_.Trace("InputState from player ", peer.player_id,
                 " command_count=", static_cast<int>(input_state.command_count),
                 " ack_snap=", input_state.ack_snapshot_id);
-  
+
   if (input_state.ack_snapshot_id > peer.last_acked_snapshot_id) {
     peer.last_acked_snapshot_id = input_state.ack_snapshot_id;
   }
@@ -312,11 +313,11 @@ void ServerRuntime::SendPacket(PeerConnection& peer,
 
   auto fragments = protocol::SplitPacketBuffer(buffer);
   for (auto& frag : fragments) {
-      const auto send_result = transport_.Send(peer.endpoint, frag);
-      if (send_result.error) {
-        logger_.Error("Send error to ", peer.endpoint_key, ": ",
-                      send_result.error.message());
-      }
+    const auto send_result = transport_.Send(peer.endpoint, frag);
+    if (send_result.error) {
+      logger_.Error("Send error to ", peer.endpoint_key, ": ",
+                    send_result.error.message());
+    }
   }
 }
 
@@ -341,17 +342,16 @@ void ServerRuntime::ProcessReliableResends() {
       engine::net::PacketBuffer pending_buffer;
 
       pending_buffer.write_bytes(std::span<const std::uint8_t>(pending.bytes));
-      
+
       auto fragments = protocol::SplitPacketBuffer(pending_buffer);
       bool any_error = false;
       for (auto& frag : fragments) {
-          const auto send_result = transport_.Send(
-              peer.endpoint, frag);
-          if (send_result.error) {
-            logger_.Warn("Resend error to ", peer.endpoint_key, ": ",
-                         send_result.error.message());
-            any_error = true;
-          }
+        const auto send_result = transport_.Send(peer.endpoint, frag);
+        if (send_result.error) {
+          logger_.Warn("Resend error to ", peer.endpoint_key, ": ",
+                       send_result.error.message());
+          any_error = true;
+        }
       }
       if (any_error) {
         peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);

@@ -270,7 +270,7 @@ void WorldUpdateReceiver::ReceiveLoop() {
           if (protocol::EncodePacket(packet, buffer)) {
             auto fragments = protocol::SplitPacketBuffer(buffer);
             for (auto& frag : fragments) {
-               transport_->Send(std::move(frag));
+              transport_->Send(std::move(frag));
             }
           } else {
             LogPacketError("encode", "failed to encode outgoing payload");
@@ -288,31 +288,32 @@ void WorldUpdateReceiver::ReceiveLoop() {
       did_work = true;
       has_sent_initial_ping = true;
       last_ping_sent = now;
-      
+
       reassembler_.Cleanup(NowMilliseconds32(), 5000);
     }
 
     while (running_.load(std::memory_order_acquire) && transport_ &&
            transport_->Receive(incoming)) {
       did_work = true;
-      
+
       engine::net::PacketBuffer reader = incoming.buffer;
       protocol::Header header;
       if (!protocol::DecodeHeader(reader, header)) {
-          LogPacketError("recv decode", "failed to decode header");
-          continue;
+        LogPacketError("recv decode", "failed to decode header");
+        continue;
       }
 
       std::optional<engine::net::PacketBuffer> full_packet;
       if (header.flags & protocol::HeaderFlag::kHeaderFlagFragmented) {
-          full_packet = reassembler_.HandlePacket(header, reader, "server", NowMilliseconds32());
-          if (!full_packet.has_value()) {
-              continue; // Partial or error
-          }
+        full_packet = reassembler_.HandlePacket(header, reader, "server",
+                                                NowMilliseconds32());
+        if (!full_packet.has_value()) {
+          continue;  // Partial or error
+        }
       } else {
-          full_packet = std::move(incoming.buffer);
+        full_packet = std::move(incoming.buffer);
       }
-      
+
       protocol::Packet packet;
       protocol::DecodeError error{protocol::DecodeError::kOk};
       if (!protocol::DecodePacket(*full_packet, packet, error)) {
@@ -337,7 +338,8 @@ void WorldUpdateReceiver::ReceiveLoop() {
         continue;
       }
 
-      if (message->type == protocol::message_type::MessageType::kWorldSnapshot) {
+      if (message->type ==
+          protocol::message_type::MessageType::kWorldSnapshot) {
         if (auto* snapshot = std::get_if<protocol::WorldSnapshotPayload>(
                 &message->payload)) {
           if (snapshot->base_snapshot_id != protocol::kNoBaseSnapshotId) {

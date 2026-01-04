@@ -19,8 +19,7 @@ bool TryReadBool(engine::net::PacketBuffer& buffer, bool& out_value) {
   return true;
 }
 
-bool EncodeStringWithLength(std::string_view value,
-                            std::size_t max_length,
+bool EncodeStringWithLength(std::string_view value, std::size_t max_length,
                             engine::net::PacketBuffer& buffer) {
   const std::size_t len = std::min(value.size(), max_length);
   if (len > std::numeric_limits<std::uint8_t>::max()) {
@@ -34,8 +33,7 @@ bool EncodeStringWithLength(std::string_view value,
 }
 
 bool DecodeStringWithLength(engine::net::PacketBuffer& buffer,
-                            std::size_t max_length,
-                            std::string& out_value) {
+                            std::size_t max_length, std::string& out_value) {
   std::uint8_t len = 0;
   if (!buffer.ReadUint8(len)) {
     return false;
@@ -46,7 +44,8 @@ bool DecodeStringWithLength(engine::net::PacketBuffer& buffer,
   std::string value;
   if (len > 0) {
     value.resize(len);
-    if (!buffer.read_bytes(std::as_writable_bytes(std::span(value).first(len)))) {
+    if (!buffer.read_bytes(
+            std::as_writable_bytes(std::span(value).first(len)))) {
       return false;
     }
   }
@@ -121,7 +120,8 @@ bool DecodeRoomListRequest(engine::net::PacketBuffer& buffer,
 
 bool EncodeRoomListResponse(const RoomListResponsePayload& response,
                             engine::net::PacketBuffer& buffer) {
-  const std::size_t count = std::min(response.rooms.size(), kMaxRoomListEntries);
+  const std::size_t count =
+      std::min(response.rooms.size(), kMaxRoomListEntries);
   buffer.WriteUint8(static_cast<std::uint8_t>(count));
   for (std::size_t i = 0; i < count; ++i) {
     if (!EncodeRoomSummary(response.rooms[i], buffer)) {
@@ -160,7 +160,7 @@ bool EncodeCreateRoomRequest(const CreateRoomRequestPayload& request,
   }
   buffer.WriteUint8(BoolToByte(request.is_private));
   buffer.WriteUint8(request.max_players);
-   if (!EncodeStringWithLength(request.room_password, kMaxRoomCodeLength,
+  if (!EncodeStringWithLength(request.room_password, kMaxRoomCodeLength,
                               buffer)) {
     return false;
   }
@@ -194,7 +194,8 @@ bool DecodeCreateRoomRequest(engine::net::PacketBuffer& buffer,
 bool EncodeCreateRoomResponse(const CreateRoomResponsePayload& response,
                               engine::net::PacketBuffer& buffer) {
   buffer.WriteUint8(BoolToByte(response.success));
-  if (!EncodeStringWithLength(response.message, kMaxRoomMessageLength, buffer)) {
+  if (!EncodeStringWithLength(response.message, kMaxRoomMessageLength,
+                              buffer)) {
     return false;
   }
   const bool has_room = response.room.has_value();
@@ -219,7 +220,8 @@ bool DecodeCreateRoomResponse(engine::net::PacketBuffer& buffer,
     return false;
   }
   response.success = success;
-  if (!DecodeStringWithLength(buffer, kMaxRoomMessageLength, response.message)) {
+  if (!DecodeStringWithLength(buffer, kMaxRoomMessageLength,
+                              response.message)) {
     return false;
   }
   bool has_room = false;
