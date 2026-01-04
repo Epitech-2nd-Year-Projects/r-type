@@ -1,5 +1,6 @@
 #include "client_runtime.h"
 
+#include <imgui.h>
 #include <raylib.h>
 
 #include <iomanip>
@@ -8,13 +9,15 @@
 #include <utility>
 
 #include "constants/client_constants.h"
+#include "debug/inspector_registration.h"
 #include "ecs/components.h"
 #include "ecs/render_debug.h"
 #include "ecs/render_system.h"
 #include "engine/app/engine_runtime.h"
 #include "engine/console/console.h"
 #include "engine/console/console_overlay.h"
-#include "engine/debug/entity_hierarchy_panel.h"
+#include "engine/debug/component_inspector_registry.h"
+#include "engine/debug/debug_overlay.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
@@ -204,6 +207,10 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
   imgui_ = std::make_unique<engine::debug::ImGuiIntegration>();
   imgui_->SetEnabled(false);
+  component_registry_ =
+      std::make_unique<engine::debug::ComponentInspectorRegistry>();
+  client::debug::RegisterClientInspectors(*component_registry_);
+
   bloom_ = std::make_unique<BloomResources>();
   if (!bloom_->Initialize(constants::client::kBloomShaderPath)) {
     LogLifecycle(engine::util::LogLevel::kWarn, "Bloom shader failed to load");
@@ -220,8 +227,8 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
       std::make_unique<ecs::RenderSystem>(registry, engine_->Renderer());
   render_debug_ =
       std::make_unique<ecs::RenderDebug>(registry, engine_->Renderer());
-  entity_hierarchy_panel_ =
-      std::make_unique<engine::debug::EntityHierarchyPanel>(registry);
+  debug_overlay_ = std::make_unique<engine::debug::DebugOverlay>(
+      registry, *component_registry_);
 }
 
 bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
@@ -247,8 +254,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   if (imgui_ && imgui_->enabled()) {
     imgui_->BeginFrame();
-    if (entity_hierarchy_panel_) {
-      entity_hierarchy_panel_->Draw();
+    if (debug_overlay_) {
+      debug_overlay_->Draw();
     }
   }
 

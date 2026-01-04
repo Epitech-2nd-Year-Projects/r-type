@@ -48,7 +48,8 @@ class Configuration;
 }  // namespace engine::util
 
 namespace engine::debug {
-class EntityHierarchyPanel;
+class ComponentInspectorRegistry;
+class DebugOverlay;
 }  // namespace engine::debug
 
 namespace client {
@@ -187,7 +188,9 @@ class ClientRuntime {
   std::unique_ptr<BloomResources> bloom_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
-  std::unique_ptr<engine::debug::EntityHierarchyPanel> entity_hierarchy_panel_;
+  std::unique_ptr<engine::debug::ComponentInspectorRegistry>
+      component_registry_;
+  std::unique_ptr<engine::debug::DebugOverlay> debug_overlay_;
   bool debug_toggle_pressed_{false};
   bool imgui_toggle_pressed_{false};
 };
