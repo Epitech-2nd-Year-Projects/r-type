@@ -153,6 +153,16 @@ class SceneManager {
   void OnCloseSettings();
 
   /**
+   * @brief Open the profile editor
+   */
+  void OnOpenProfile();
+
+  /**
+   * @brief Close the profile editor
+   */
+  void OnCloseProfile();
+
+  /**
    * @brief Transition to a new state
    * @param next_state State to apply
    * @param reason Optional reason
