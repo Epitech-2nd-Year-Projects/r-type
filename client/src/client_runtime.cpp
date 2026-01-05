@@ -18,6 +18,7 @@
 #include "engine/console/console_overlay.h"
 #include "engine/debug/component_inspector_registry.h"
 #include "engine/debug/debug_overlay.h"
+#include "engine/debug/network_debugger.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
@@ -210,6 +211,7 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   imgui_->SetEnabled(false);
   component_registry_ =
       std::make_unique<engine::debug::ComponentInspectorRegistry>();
+  network_debugger_ = std::make_unique<engine::debug::NetworkDebugger>();
   client::debug::RegisterClientInspectors(*component_registry_);
 
   bloom_ = std::make_unique<BloomResources>();
@@ -271,6 +273,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     imgui_->BeginFrame();
     if (debug_overlay_) {
       debug_overlay_->Draw();
+    }
+    if (network_debugger_) {
+      network_debugger_->DrawPanel();
     }
   }
 
@@ -432,6 +437,10 @@ std::size_t ClientRuntime::RenderableEntityCount(
     }
   }
   return count;
+}
+
+engine::debug::NetworkDebugger& ClientRuntime::NetworkDebugger() {
+  return *network_debugger_;
 }
 
 }  // namespace client
