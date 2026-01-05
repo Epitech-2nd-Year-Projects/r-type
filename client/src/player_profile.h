@@ -27,6 +27,7 @@ struct PlayerStats {
 struct PlayerProfile {
   std::string nickname{"Pilot"};
   PlayerStats stats{};
+  std::uint8_t avatar_index{0};
 };
 
 /**
