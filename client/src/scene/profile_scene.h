@@ -10,6 +10,7 @@
 #include "engine/ui/text.h"
 #include "engine/ui/text_input.h"
 #include "engine/ui/widget.h"
+#include "ui/avatar_renderer.h"
 
 namespace client {
 
@@ -30,6 +31,8 @@ class ProfileScene : public Scene {
   void LayoutUi(engine::render::Renderer2D& renderer);
   void SaveAndClose();
   void FormatPlaytime(std::uint64_t seconds, std::string& out) const;
+  void SelectPrevAvatar();
+  void SelectNextAvatar();
 
   ClientContext& context_;
   engine::ui::Canvas canvas_;
@@ -47,6 +50,12 @@ class ProfileScene : public Scene {
 
   std::vector<std::shared_ptr<engine::ui::Widget>> ui_elements_;
   bool text_input_focused_{false};
+
+  std::unique_ptr<ui::AvatarRenderer> avatar_renderer_;
+  std::uint8_t selected_avatar_{0};
+  std::shared_ptr<engine::ui::Button> avatar_left_button_;
+  std::shared_ptr<engine::ui::Button> avatar_right_button_;
+  engine::math::Vector2f avatar_position_{0.0f, 0.0f};
 };
 
 }  // namespace client
