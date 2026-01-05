@@ -50,6 +50,7 @@ class Configuration;
 namespace engine::debug {
 class ComponentInspectorRegistry;
 class DebugOverlay;
+class NetworkDebugger;
 }  // namespace engine::debug
 
 namespace client {
@@ -196,8 +197,12 @@ class ClientRuntime {
   std::unique_ptr<engine::debug::ComponentInspectorRegistry>
       component_registry_;
   std::unique_ptr<engine::debug::DebugOverlay> debug_overlay_;
+  std::unique_ptr<engine::debug::NetworkDebugger> network_debugger_;
   bool debug_toggle_pressed_{false};
   bool imgui_toggle_pressed_{false};
+
+ public:
+  engine::debug::NetworkDebugger& NetworkDebugger();
 };
 
 }  // namespace client
