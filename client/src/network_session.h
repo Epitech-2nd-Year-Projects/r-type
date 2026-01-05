@@ -25,6 +25,10 @@ namespace engine::ecs {
 class Registry;
 }  // namespace engine::ecs
 
+namespace engine::debug {
+class NetworkDebugger;
+}
+
 namespace client {
 
 class AudioController;
@@ -97,6 +101,11 @@ class NetworkSession {
    * @brief Shutdown network resources
    */
   void Shutdown();
+
+  /**
+   * @brief Attach a network debugger
+   */
+  void AttachDebugger(engine::debug::NetworkDebugger& debugger);
 
   /**
    * @brief Update connection configuration

@@ -1,5 +1,6 @@
 #include "engine/profiling/network_profiler.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace engine::profiling {
