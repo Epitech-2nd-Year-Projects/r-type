@@ -47,13 +47,28 @@ class RenderDebug {
   bool show_colliders{false};
   bool show_sprite_bounds{false};
   bool show_velocity{false};
+  bool show_ai_paths{false};
+
+  void DrawLine(const engine::math::Vector2f& start,
+                const engine::math::Vector2f& end,
+                const engine::render::Color& color =
+                    engine::render::Color(1.0f, 0.0f, 0.0f));
+
+  void DrawPolyline(const std::vector<engine::math::Vector2f>& points,
+                    const engine::render::Color& color =
+                        engine::render::Color(0.0f, 1.0f, 0.0f));
+
+  void DrawAnimatedPolyline(const std::vector<engine::math::Vector2f>& points,
+                            const engine::render::Color& color =
+                                engine::render::Color(0.0f, 1.0f, 0.0f),
+                            float total_time_seconds = 0.0f);
+  bool enabled_{false};
 
  private:
   void RegisterComponents();
 
   engine::ecs::Registry& registry_;
   engine::render::Renderer2D& renderer_;
-  bool enabled_{false};
 };
 
 }  // namespace client::ecs
