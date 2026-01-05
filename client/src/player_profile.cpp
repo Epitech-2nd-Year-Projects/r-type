@@ -72,6 +72,10 @@ PlayerProfile LoadPlayerProfile() {
     }
   }
 
+  if (doc.contains("avatar_index") && doc["avatar_index"].is_number_unsigned()) {
+    profile.avatar_index = doc["avatar_index"].get<std::uint8_t>();
+  }
+
   return profile;
 }
 
@@ -92,6 +96,7 @@ bool SavePlayerProfile(const PlayerProfile& profile) {
   doc["stats"]["total_deaths"] = profile.stats.total_deaths;
   doc["stats"]["highest_score"] = profile.stats.highest_score;
   doc["stats"]["games_played"] = profile.stats.games_played;
+  doc["avatar_index"] = profile.avatar_index;
 
   std::ofstream file(path);
   if (!file.is_open()) {
