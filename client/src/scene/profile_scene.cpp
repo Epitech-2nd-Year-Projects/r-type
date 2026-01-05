@@ -5,6 +5,7 @@
 #include <string>
 
 #include "client_context.h"
+#include "client_asset_manager.h"
 #include "constants/input_constants.h"
 #include "constants/ui_constants.h"
 #include "engine/input.h"
@@ -15,7 +16,9 @@
 
 namespace client {
 
-ProfileScene::ProfileScene(ClientContext& context) : context_(context) {
+ProfileScene::ProfileScene(ClientContext& context)
+    : context_(context), selected_avatar_(context.Profile().avatar_index) {
+  avatar_renderer_ = std::make_unique<ui::AvatarRenderer>(context_.Assets());
   const auto& profile = context_.Profile();
 
   auto root =
@@ -40,7 +43,68 @@ ProfileScene::ProfileScene(ClientContext& context) : context_(context) {
       constants::ui::Profile::kTitleColor);
   root->AddChild(title_);
 
-  // Nickname section
+  auto avatar_label = std::make_shared<engine::ui::TextElement>(
+      "Avatar",
+      engine::ui::FontSize::RelativeWidth(
+          constants::ui::Profile::kLabelFontScale),
+      constants::ui::Profile::kLabelColor);
+  root->AddChild(avatar_label);
+
+  auto avatar_row = std::make_shared<engine::ui::StackContainer>(
+      engine::ui::Axis::kHorizontal);
+  avatar_row->SetSpacing(constants::ui::Profile::kAvatarArrowSpacing);
+  avatar_row->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  avatar_row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                 engine::ui::VerticalAlignment::kCenter});
+
+  avatar_left_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
+                             constants::ui::Profile::kAvatarArrowHeight},
+      "<", [this]() { SelectPrevAvatar(); });
+  ui_elements_.push_back(avatar_left_button_);
+
+  auto left_arrow_slot = std::make_shared<engine::ui::BoxElement>();
+  left_arrow_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowWidth);
+  left_arrow_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowHeight);
+  left_arrow_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    avatar_left_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    avatar_left_button_->SetSize({rect.width_, rect.height_});
+  });
+
+  auto avatar_slot = std::make_shared<engine::ui::BoxElement>();
+  avatar_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarDisplaySize);
+  avatar_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarDisplaySize);
+  avatar_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    avatar_position_ = {rect.top_left_x_, rect.top_left_y_};
+  });
+
+  avatar_right_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
+                             constants::ui::Profile::kAvatarArrowHeight},
+      ">", [this]() { SelectNextAvatar(); });
+  ui_elements_.push_back(avatar_right_button_);
+
+  auto right_arrow_slot = std::make_shared<engine::ui::BoxElement>();
+  right_arrow_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowWidth);
+  right_arrow_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowHeight);
+  right_arrow_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    avatar_right_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    avatar_right_button_->SetSize({rect.width_, rect.height_});
+  });
+
+  avatar_row->AddChild(left_arrow_slot);
+  avatar_row->AddChild(avatar_slot);
+  avatar_row->AddChild(right_arrow_slot);
+  root->AddChild(avatar_row);
+
   nickname_label_ = std::make_shared<engine::ui::TextElement>(
       "Nickname",
       engine::ui::FontSize::RelativeWidth(
@@ -69,7 +133,6 @@ ProfileScene::ProfileScene(ClientContext& context) : context_(context) {
       });
   root->AddChild(input_slot);
 
-  // Stats section
   auto stats_spacer = std::make_shared<engine::ui::BoxElement>();
   stats_spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(
       constants::ui::Profile::kSectionSpacing);
@@ -202,6 +265,13 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   context_.MenuBackground().Draw(context_.Window());
   LayoutUi(renderer);
   canvas_.LayoutAndDraw(renderer);
+
+  // Draw avatar
+  if (avatar_renderer_) {
+    avatar_renderer_->Draw(renderer, selected_avatar_, avatar_position_,
+                           constants::ui::Profile::kAvatarDisplaySize);
+  }
+
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
   }
@@ -220,6 +290,7 @@ void ProfileScene::SaveAndClose() {
       new_nickname.length() <= constants::ui::Profile::kMaxNicknameLength) {
     profile.nickname = new_nickname;
   }
+  profile.avatar_index = selected_avatar_;
   context_.SaveProfile();
   context_.OnCloseProfile();
 }
@@ -239,6 +310,21 @@ void ProfileScene::FormatPlaytime(std::uint64_t seconds,
   }
   ss << secs << "s";
   out = ss.str();
+}
+
+void ProfileScene::SelectPrevAvatar() {
+  if (selected_avatar_ == 0) {
+    selected_avatar_ =
+        static_cast<std::uint8_t>(constants::ui::Profile::kAvatarCount - 1);
+  } else {
+    --selected_avatar_;
+  }
+}
+
+void ProfileScene::SelectNextAvatar() {
+  selected_avatar_ =
+      static_cast<std::uint8_t>((selected_avatar_ + 1) %
+                                constants::ui::Profile::kAvatarCount);
 }
 
 }  // namespace client
