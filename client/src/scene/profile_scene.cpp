@@ -170,6 +170,22 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
   auto& input = context_.Input();
   LayoutUi(context_.Renderer());
 
+  if (input.IsMouseButtonDown(engine::input::MouseButton::kLeft)) {
+    const auto mouse_pos = input.GetMousePosition();
+    const auto input_pos = nickname_input_->GetPosition();
+    const auto input_size = nickname_input_->GetSize();
+
+    const bool clicked_inside =
+        mouse_pos.x >= input_pos.x && mouse_pos.x <= input_pos.x + input_size.x &&
+        mouse_pos.y >= input_pos.y && mouse_pos.y <= input_pos.y + input_size.y;
+
+    if (clicked_inside && !nickname_input_->IsFocused()) {
+      nickname_input_->SetFocused(true);
+    } else if (!clicked_inside && nickname_input_->IsFocused()) {
+      nickname_input_->SetFocused(false);
+    }
+  }
+
   text_input_focused_ = nickname_input_->IsFocused();
 
   for (auto& elem : ui_elements_) {
