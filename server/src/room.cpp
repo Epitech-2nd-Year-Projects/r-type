@@ -124,6 +124,11 @@ std::vector<protocol::PlayerDiedPayload> Room::PollPlayerDeaths() {
   return payloads;
 }
 
+std::optional<std::reference_wrapper<const protocol::WorldSnapshotPayload>>
+Room::GetSnapshot(std::uint32_t snapshot_id) const {
+  return snapshot_history_.GetSnapshot(snapshot_id);
+}
+
 const std::string& Room::Code() const { return room_code_; }
 const std::string& Room::Name() const { return room_name_; }
 

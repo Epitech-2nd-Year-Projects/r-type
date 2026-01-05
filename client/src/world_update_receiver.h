@@ -26,6 +26,8 @@
 #include "protocol/player_died.h"
 #include "protocol/sequence_tracker.h"
 #include "protocol/world_snapshot.h"
+#include "protocol/snapshot_history.h"
+#include "protocol/fragmentation.h"
 
 class WorldUpdateReceiverTestPeer;
 
@@ -131,6 +133,13 @@ class WorldUpdateReceiver {
    */
   std::optional<float> LatestRttMs() const;
 
+  /**
+   * @brief Returns the ID of the last successfully received and processed snapshot
+   */
+  std::uint32_t LatestSnapshotId() const;
+
+
+
  private:
   friend class ::WorldUpdateReceiverTestPeer;
   void ReceiveLoop();
@@ -165,6 +174,9 @@ class WorldUpdateReceiver {
   std::atomic<bool> has_latency_estimate_{false};
   std::atomic<float> latest_rtt_ms_{0.0f};
   std::atomic<std::uint64_t> last_pong_ms_{0};
+  protocol::SnapshotHistory snapshot_history_{32};
+  std::atomic<std::uint32_t> last_received_snapshot_id_{0};
+  protocol::FragmentReassembler reassembler_;
 };
 
 }  // namespace client

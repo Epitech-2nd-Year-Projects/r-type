@@ -37,7 +37,8 @@ struct Header {
 enum HeaderFlag : std::uint8_t {
   kHeaderFlagReliable = 1u << 0,       ///< Packet carries at least one reliable msg.
   kHeaderFlagCompressed = 1u << 1,     ///< Payload is compressed (e.g., LZ4).
-  kHeaderFlagConnectionless = 1u << 2  ///< Packet is not bound to a session.
+  kHeaderFlagConnectionless = 1u << 2, ///< Packet is not bound to a session.
+  kHeaderFlagFragmented = 1u << 3      ///< Packet is a fragment of a larger message.
   ///< Bits 3..7 reserved for future use.
 };
 

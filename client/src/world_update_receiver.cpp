@@ -63,6 +63,10 @@ std::optional<float> WorldUpdateReceiver::LatestRttMs() const {
   return latest_rtt_ms_.load(std::memory_order_acquire);
 }
 
+std::uint32_t WorldUpdateReceiver::LatestSnapshotId() const {
+  return last_received_snapshot_id_.load(std::memory_order_acquire);
+}
+
 bool WorldUpdateReceiver::Start(std::shared_ptr<NetworkTransport> transport) {
   if (running_.load(std::memory_order_acquire)) {
     return false;
@@ -253,6 +257,8 @@ void WorldUpdateReceiver::ReceiveLoop() {
           sequence_tracker_.FillAckFields(packet.header);
           if (message.type ==
               protocol::message_type::MessageType::kInputState) {
+            message.input_state.ack_snapshot_id =
+                last_received_snapshot_id_.load(std::memory_order_relaxed);
             packet.payload = message.input_state;
           } else if (message.type ==
                      protocol::message_type::MessageType::kClientCommand) {
@@ -262,7 +268,10 @@ void WorldUpdateReceiver::ReceiveLoop() {
           engine::net::PacketBuffer buffer;
           buffer.reserve(128);
           if (protocol::EncodePacket(packet, buffer)) {
-            transport_->Send(std::move(buffer));
+            auto fragments = protocol::SplitPacketBuffer(buffer);
+            for (auto& frag : fragments) {
+              transport_->Send(std::move(frag));
+            }
           } else {
             LogPacketError("encode", "failed to encode outgoing payload");
           }
@@ -279,14 +288,35 @@ void WorldUpdateReceiver::ReceiveLoop() {
       did_work = true;
       has_sent_initial_ping = true;
       last_ping_sent = now;
+
+      reassembler_.Cleanup(NowMilliseconds32(), 5000);
     }
 
     while (running_.load(std::memory_order_acquire) && transport_ &&
            transport_->Receive(incoming)) {
       did_work = true;
+
+      engine::net::PacketBuffer reader = incoming.buffer;
+      protocol::Header header;
+      if (!protocol::DecodeHeader(reader, header)) {
+        LogPacketError("recv decode", "failed to decode header");
+        continue;
+      }
+
+      std::optional<engine::net::PacketBuffer> full_packet;
+      if (header.flags & protocol::HeaderFlag::kHeaderFlagFragmented) {
+        full_packet = reassembler_.HandlePacket(header, reader, "server",
+                                                NowMilliseconds32());
+        if (!full_packet.has_value()) {
+          continue;
+        }
+      } else {
+        full_packet = std::move(incoming.buffer);
+      }
+
       protocol::Packet packet;
       protocol::DecodeError error{protocol::DecodeError::kOk};
-      if (!protocol::DecodePacket(incoming.buffer, packet, error)) {
+      if (!protocol::DecodePacket(*full_packet, packet, error)) {
         LogPacketError("recv decode", protocol::DecodeErrorToString(error));
         continue;
       }
@@ -306,6 +336,25 @@ void WorldUpdateReceiver::ReceiveLoop() {
       auto message = MakeWorldUpdateMessage(packet);
       if (!message.has_value()) {
         continue;
+      }
+
+      if (message->type ==
+          protocol::message_type::MessageType::kWorldSnapshot) {
+        if (auto* snapshot = std::get_if<protocol::WorldSnapshotPayload>(
+                &message->payload)) {
+          if (snapshot->base_snapshot_id != protocol::kNoBaseSnapshotId) {
+            const auto base =
+                snapshot_history_.GetSnapshot(snapshot->base_snapshot_id);
+            if (!base.has_value()) {
+              LogPacketError("recv delta", "missing base snapshot");
+              continue;
+            }
+            *snapshot = protocol::ApplyDelta(base->get(), *snapshot);
+          }
+          snapshot_history_.AddSnapshot(*snapshot);
+          last_received_snapshot_id_.store(snapshot->snapshot_id,
+                                           std::memory_order_release);
+        }
       }
 
       if (!Push(std::move(*message))) {

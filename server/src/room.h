@@ -101,6 +101,11 @@ class Room {
    * @brief Poll any player death events that occurred since last poll
    */
   std::vector<protocol::PlayerDiedPayload> PollPlayerDeaths();
+  
+  /**
+   * @brief Retrieves a snapshot from the room's history.
+   */
+  std::optional<std::reference_wrapper<const protocol::WorldSnapshotPayload>> GetSnapshot(std::uint32_t snapshot_id) const;
 
   /**
    * @brief Returns the room code.

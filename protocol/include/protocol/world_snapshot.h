@@ -148,6 +148,29 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
 bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
                          WorldSnapshotPayload& out_payload);
 
+/**
+ * @brief Computes a delta snapshot representing the difference between current and base.
+ * @param current The full current world snapshot.
+ * @param base The full base world snapshot (acknowledged by client).
+ * @return A new WorldSnapshotPayload containing only the differences (deltas).
+ * 
+ * The returned snapshot will have:
+ * - base_snapshot_id = base.snapshot_id
+ * - snapshot_id = current.snapshot_id
+ * - deltas containing kCreate, kUpdate (with mask), or kDelete ops.
+ */
+WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
+                                  const WorldSnapshotPayload& base);
+
+/**
+* @brief Reconstructs a full snapshot by applying deltas to a base snapshot.
+* @param base The base full snapshot.
+* @param delta The delta snapshot containing changes.
+* @return The reconstructed full snapshot.
+*/
+WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
+                                const WorldSnapshotPayload& delta);
+
 }  // namespace protocol
 
 #endif  // PROTOCOL_WORLD_SNAPSHOT_H_

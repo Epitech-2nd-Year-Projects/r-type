@@ -46,6 +46,7 @@ namespace protocol {
    * are sent together to handle packet loss (rolling window approach).
    */
   struct InputStatePayload {
+    std::uint32_t ack_snapshot_id = 0;     ///< The last world snapshot ID received by the client (for delta compression)
     std::uint8_t command_count = 0;        ///< Number of input commands in this payload (1..kMaxInputSequenceHistory)
     InputCommand commands[kMaxInputSequenceHistory];  ///< Array of input commands
   };

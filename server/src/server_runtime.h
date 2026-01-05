@@ -23,6 +23,7 @@
 #include "protocol/input_state.h"
 #include "protocol/command.h"
 #include "protocol/error.h"
+#include "protocol/fragmentation.h"
 #include "protocol/lobby.h"
 #include "server_config.h"
 #include "peer_connection.h"
@@ -469,7 +470,10 @@ class ServerRuntime {
   std::uint32_t last_tick_health_sample_ms_{0};            ///< Start timestamp for the tick health window.
   std::uint32_t last_tick_health_sample_tick_{0};          ///< Tick counter at start of the health window.
   double frame_time_accumulator_ms_{0.0};                  ///< Accumulated frame durations for health averages.
+
+
   std::uint64_t frame_time_samples_{0};                    ///< Frame count contributing to health averages.
+  protocol::FragmentReassembler reassembler_;              ///< Handles reassembly of fragmented packets.
 };
 
 }  // namespace server
