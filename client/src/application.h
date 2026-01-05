@@ -1,10 +1,12 @@
 #ifndef CLIENT_APPLICATION_H_
 #define CLIENT_APPLICATION_H_
 
+#include <chrono>
 #include <memory>
 
 #include "client_config.h"
 #include "client_context.h"
+#include "player_profile.h"
 #include "engine/time/time_delta.h"
 
 namespace client {
@@ -63,6 +65,8 @@ class Application : public ClientContext {
   void OnOpenSettings() override;
   void OnCloseSettings() override;
   void OnQuitApplication() override;
+  void OnOpenProfile() override;
+  void OnCloseProfile() override;
   void OnQuitToMenu() override;
   void OnGamePause() override;
   void OnGameResume() override;
@@ -87,6 +91,9 @@ class Application : public ClientContext {
   std::optional<std::uint32_t> LocalPlayerId() const override;
   std::string_view ConnectionStatus() const override;
   bool ConnectionActive() const override;
+  PlayerProfile& Profile() override;
+  const PlayerProfile& Profile() const override;
+  void SaveProfile() override;
 
  private:
   bool Tick(engine::time::TimeDelta dt);
@@ -95,6 +102,7 @@ class Application : public ClientContext {
   void UpdateRuntimeConfig();
 
   ClientConfig config_{};
+  PlayerProfile profile_{};
   std::unique_ptr<ClientRuntime> runtime_;
   std::unique_ptr<ui::MenuBackground> menu_background_;
   std::unique_ptr<SceneManager> scene_manager_;
@@ -102,6 +110,7 @@ class Application : public ClientContext {
   std::unique_ptr<ClientAssetManager> assets_;
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
+  std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };
 
 }  // namespace client
