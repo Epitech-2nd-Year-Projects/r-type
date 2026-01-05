@@ -62,6 +62,10 @@ class RenderSystem;
 class RenderDebug;
 }  // namespace ecs
 
+namespace systems {
+class DebugPathSystem;
+}  // namespace systems
+
 /**
  * @brief Client runtime for engine boot and frame rendering
  */
@@ -184,6 +188,7 @@ class ClientRuntime {
   std::unique_ptr<engine::app::EngineRuntime> engine_;
   std::unique_ptr<ecs::RenderSystem> render_system_;
   std::unique_ptr<ecs::RenderDebug> render_debug_;
+  std::unique_ptr<systems::DebugPathSystem> debug_path_system_;
   std::unique_ptr<ParallaxBackground> background_;
   std::unique_ptr<BloomResources> bloom_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
