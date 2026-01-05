@@ -14,6 +14,10 @@
 #include "packet_buffer.h"
 #include "udp_socket.h"
 
+namespace engine::debug {
+class NetworkDebugger;
+}
+
 namespace engine::net {
 
 /**
@@ -80,6 +84,10 @@ class Client {
    */
   Endpoint server_endpoint() const;
 
+  void AttachDebugger(debug::NetworkDebugger& debugger) {
+    network_debugger_ = std::ref(debugger);
+  }
+
  private:
   void WorkerLoop();
   bool DequeueOutgoing(PacketBuffer::Storage& out_bytes);
@@ -99,6 +107,9 @@ class Client {
 
   std::mutex recv_mutex_;
   std::deque<ReceivedPacket> recv_queue_;
+
+  std::optional<std::reference_wrapper<debug::NetworkDebugger>>
+      network_debugger_;
 };
 
 }  // namespace engine::net
