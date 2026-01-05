@@ -102,19 +102,17 @@ void RenderDebug::DrawAnimatedPolyline(
 
     if (segment_length < 0.001f) continue;
 
-    direction = direction / segment_length;  // Normalize
+    direction = direction / segment_length;
 
     float distance_covered = 0.0f;
     while (distance_covered < segment_length) {
       float remaining_in_segment = segment_length - distance_covered;
 
-      // Where are we in the dash/gap cycle?
       float cycle_pos = std::fmod(current_distance, period);
 
       if (cycle_pos < 0) cycle_pos += period;
 
       if (cycle_pos < dash_length) {
-        // We are in a dash
         float dist_to_gap = dash_length - cycle_pos;
         float draw_len = std::min(remaining_in_segment, dist_to_gap);
 
@@ -126,7 +124,6 @@ void RenderDebug::DrawAnimatedPolyline(
         distance_covered += draw_len;
         current_distance += draw_len;
       } else {
-        // We are in a gap
         float dist_to_dash = period - cycle_pos;
         float skip_len = std::min(remaining_in_segment, dist_to_dash);
 
