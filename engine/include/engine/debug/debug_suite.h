@@ -35,7 +35,6 @@ class DebugSuite {
     bool show_inspector{true};
     bool show_network{false};
     bool show_profiler{true};
-    // Console visibility is tracked via the ConsoleOverlay itself usually
     bool show_demo_window{false};
   };
 
