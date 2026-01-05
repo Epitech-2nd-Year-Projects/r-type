@@ -355,6 +355,35 @@ struct GameOver {
       engine::render::Color::FromBytes(255, 215, 0);
 };
 
+/**
+ * @brief Player profile scene layout values
+ */
+struct Profile {
+  static constexpr float kRootPadding = 48.0f;
+  static constexpr float kRootSpacing = 20.0f;
+  static constexpr float kTitleFontScale = 0.06f;
+  static constexpr float kLabelFontScale = 0.028f;
+  static constexpr float kValueFontScale = 0.024f;
+  static constexpr float kInputWidth = 300.0f;
+  static constexpr float kInputHeight = 48.0f;
+  static constexpr float kButtonWidth = 160.0f;
+  static constexpr float kButtonHeight = 50.0f;
+  static constexpr float kButtonSpacing = 20.0f;
+  static constexpr float kStatsSpacing = 12.0f;
+  static constexpr float kSectionSpacing = 30.0f;
+  static constexpr std::size_t kMaxNicknameLength = 16;
+  static constexpr engine::render::Color kTitleColor =
+      engine::render::Color::FromBytes(230, 235, 245);
+  static constexpr engine::render::Color kLabelColor =
+      engine::render::Color::FromBytes(200, 210, 230);
+  static constexpr engine::render::Color kValueColor =
+      engine::render::Color::FromBytes(140, 186, 255);
+  static constexpr engine::render::Color kInputBgColor =
+      engine::render::Color::FromBytes(30, 40, 60, 200);
+  static constexpr engine::render::Color kInputTextColor =
+      engine::render::Color::White();
+};
+
 }  // namespace client::constants::ui
 
 #endif  // CLIENT_CONSTANTS_UI_CONSTANTS_H_
