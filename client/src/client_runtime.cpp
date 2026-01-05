@@ -17,7 +17,7 @@
 #include "engine/console/console.h"
 #include "engine/console/console_overlay.h"
 #include "engine/debug/component_inspector_registry.h"
-#include "engine/debug/debug_overlay.h"
+#include "engine/debug/debug_suite.h"
 #include "engine/debug/network_debugger.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
@@ -233,18 +233,26 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
   debug_path_system_ =
       std::make_unique<systems::DebugPathSystem>(registry, *render_debug_);
 
-  debug_overlay_ = std::make_unique<engine::debug::DebugOverlay>(
+  debug_suite_ = std::make_unique<engine::debug::DebugSuite>(
       registry, *component_registry_);
 
+  if (network_debugger_) {
+    debug_suite_->SetNetworkDebugger(std::ref(*network_debugger_));
+  }
+  if (engine_) {
+    debug_suite_->SetConsoleOverlay(std::ref(engine_->ConsoleOverlay()));
+  }
+  debug_suite_->SetProfilingOverlay(std::ref(profiling_overlay_));
+
   if (render_debug_) {
-    debug_overlay_->RegisterDebugToggle("Gizmos: Colliders (Red)",
-                                        &render_debug_->show_colliders);
-    debug_overlay_->RegisterDebugToggle("Gizmos: Sprites (Blue)",
-                                        &render_debug_->show_sprite_bounds);
-    debug_overlay_->RegisterDebugToggle("Gizmos: Velocity (Yellow)",
-                                        &render_debug_->show_velocity);
-    debug_overlay_->RegisterDebugToggle("AI: Predicted Paths",
-                                        &render_debug_->show_ai_paths);
+    debug_suite_->RegisterGizmo("Colliders (Red)",
+                                std::ref(render_debug_->show_colliders));
+    debug_suite_->RegisterGizmo("Sprites (Blue)",
+                                std::ref(render_debug_->show_sprite_bounds));
+    debug_suite_->RegisterGizmo("Velocity (Yellow)",
+                                std::ref(render_debug_->show_velocity));
+    debug_suite_->RegisterGizmo("AI Paths",
+                                std::ref(render_debug_->show_ai_paths));
   }
 }
 
@@ -271,11 +279,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
 
   if (imgui_ && imgui_->enabled()) {
     imgui_->BeginFrame();
-    if (debug_overlay_) {
-      debug_overlay_->Draw();
-    }
-    if (network_debugger_) {
-      network_debugger_->DrawPanel();
+    if (debug_suite_) {
+      debug_suite_->Draw();
     }
   }
 
