@@ -382,6 +382,21 @@ struct Profile {
       engine::render::Color::FromBytes(30, 40, 60, 200);
   static constexpr engine::render::Color kInputTextColor =
       engine::render::Color::White();
+
+  static constexpr std::string_view kAvatarSpritePath =
+      "assets/sprites/avatar_profile.png";
+  static constexpr int kAvatarSpriteWidth = 116;
+  static constexpr int kAvatarSpriteHeight = 120;
+  static constexpr int kAvatarColumns = 6;
+  static constexpr int kAvatarRows = 7;
+  static constexpr int kAvatarCount = 39;
+  static constexpr float kAvatarDisplaySize = 12.0f;
+  static constexpr float kAvatarArrowSpacing = 50.0f;
+  static constexpr float kAvatarArrowWidth = 50.0f;
+  static constexpr float kAvatarArrowHeight = 50.0f;
+  static constexpr float kAvatarSectionSpacing = 20.0f;
+  static constexpr float kAvatarOffsetX = -25.0f;
+  static constexpr float kAvatarOffsetY = -35.0f;
 };
 
 }  // namespace client::constants::ui
