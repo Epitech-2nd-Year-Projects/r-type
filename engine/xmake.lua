@@ -1,6 +1,14 @@
 add_rules("mode.debug", "mode.release")
 
-add_requires("asio", "raylib", "lua", "sol2")
+add_requires("asio", "raylib", "lua", "sol2", "imgui")
+
+target("rlImGui")
+    set_kind("static")
+    add_files("../third_party/rlImGui/rlImGui.cpp")
+    add_headerfiles("../third_party/rlImGui/rlImGui.h")
+    add_includedirs("../third_party/rlImGui", { public = true })
+    add_defines("NO_FONT_AWESOME", { public = true })
+    add_packages("imgui", "raylib", { public = true })
 
 function engine_module(name, deps, packages)
     target("engine_" .. name)
@@ -34,7 +42,15 @@ engine_module("scripting", {"engine_core", "engine_util", "engine_ecs", "engine_
 engine_module("console", {"engine_core", "engine_util", "engine_render", "engine_input", "engine_time", "engine_scripting"}, {"lua", "sol2"})
 engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui", "engine_scripting", "engine_console"})
 
+target("engine_debug")
+    set_kind("static")
+    add_files("src/debug/**.cpp")
+    add_headerfiles("include/engine/debug/**.h")
+    add_includedirs("include", { public = true })
+    add_deps("engine_core", "engine_ecs", "engine_input", "engine_net", "rlImGui")
+    add_packages("imgui", "raylib", { public = true })
+
 target("engine")
     set_kind("phony")
-    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_profiling", "engine_scripting", "engine_console", "engine_app")
+    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_profiling", "engine_scripting", "engine_console", "engine_app", "engine_debug")
     add_headerfiles("include/engine/*.h")

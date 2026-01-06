@@ -28,7 +28,7 @@ target("engine_tests")
     add_packages("gtest")
     add_files("engine/*.cpp")
     add_links("gtest_main")
-    add_deps("engine")
+    add_deps("engine", "engine_debug")
     add_tests("engine_tests")
 
 target("game_logic_tests")

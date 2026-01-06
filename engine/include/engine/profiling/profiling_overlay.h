@@ -48,6 +48,7 @@ class ProfilingOverlay {
   void Toggle();
   void SetEnabled(bool enabled);
   bool enabled() const { return enabled_; }
+  bool& enabled_ref() { return enabled_; }
 
   void Update(time::TimeDelta dt);
   void UpdateLatency(float latency_ms);

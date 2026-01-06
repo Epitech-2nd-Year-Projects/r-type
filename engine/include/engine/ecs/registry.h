@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <typeindex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "entity_id.h"
@@ -176,7 +177,11 @@ class Registry {
    * EntityId enemy = registry.SpawnEntity();
    * @endcode
    */
-  EntityId SpawnEntity() noexcept { return EntityId(next_entity_id_++); }
+  EntityId SpawnEntity() noexcept {
+    EntityId id(next_entity_id_++);
+    active_entities_.insert(id);
+    return id;
+  }
 
   /**
    * @brief Create EntityId from an index
@@ -204,9 +209,13 @@ class Registry {
    * @endcode
    */
   void KillEntity(const EntityId& e) {
+    if (active_entities_.find(e) == active_entities_.end()) {
+      return;
+    }
     for (auto& deleter : component_deleters_) {
       deleter(*this, e);
     }
+    active_entities_.erase(e);
   }
 
   /**
@@ -509,6 +518,14 @@ class Registry {
    */
   void ClearSystems();
 
+  /**
+   * @brief Get all active entities
+   * @return Const reference to the set of active entities
+   */
+  const std::unordered_set<EntityId>& GetEntities() const {
+    return active_entities_;
+  }
+
  private:
   /// @brief Component storage map (type_index -> SparseArray<Component>)
   std::unordered_map<std::type_index, std::any> components_arrays_;
@@ -519,6 +536,9 @@ class Registry {
 
   /// @brief Next entity ID to assign
   std::size_t next_entity_id_ = 0;
+
+  /// @brief Set of currently active entity IDs
+  std::unordered_set<EntityId> active_entities_;
 
   /// @brief System scheduler
   std::unique_ptr<SystemScheduler> scheduler_;

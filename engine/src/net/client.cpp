@@ -6,6 +6,8 @@
 #include <span>
 #include <system_error>
 
+#include "engine/debug/network_debugger.h"
+
 namespace engine::net {
 
 namespace {
@@ -18,7 +20,6 @@ bool IsTransientError(const std::error_code& ec) {
 }
 
 }  // namespace
-
 Client::Client() : socket_(UdpSocket::Protocol::kIpv4) {}
 
 Client::~Client() { Stop(); }
@@ -118,31 +119,129 @@ Endpoint Client::server_endpoint() const {
 void Client::WorkerLoop() {
   std::array<std::uint8_t, kMaxDatagramSize> recv_buffer{};
 
+  struct DelayedPacket {
+    std::chrono::steady_clock::time_point delivery_time;
+    PacketBuffer::Storage data;
+    std::optional<Endpoint> endpoint;
+  };
+
+  std::deque<DelayedPacket> delayed_starts;
+  std::deque<DelayedPacket> delayed_recvs;
+
   while (running_.load(std::memory_order_acquire)) {
     bool did_work = false;
-
+    auto now = std::chrono::steady_clock::now();
     PacketBuffer::Storage outgoing_bytes;
     if (DequeueOutgoing(outgoing_bytes)) {
-      did_work = true;
-      const auto send_result =
-          socket_.send(std::span<const std::uint8_t>(outgoing_bytes));
-      if (send_result.error && !IsTransientError(send_result.error)) {
-        running_.store(false, std::memory_order_release);
+      bool drop = false;
+      std::chrono::milliseconds delay = std::chrono::milliseconds(0);
+
+      if (network_debugger_.has_value()) {
+        auto& dbg = network_debugger_->get();
+        if (dbg.ShouldDropPacket()) {
+          drop = true;
+        } else {
+          delay = dbg.GetDelayDuration();
+        }
+      }
+
+      if (!drop) {
+        if (delay.count() > 0) {
+          delayed_starts.push_back(
+              {now + delay, std::move(outgoing_bytes), std::nullopt});
+        } else {
+          did_work = true;
+          const auto send_result =
+              socket_.send(std::span<const std::uint8_t>(outgoing_bytes));
+          if (send_result.error && !IsTransientError(send_result.error)) {
+            running_.store(false, std::memory_order_release);
+            break;
+          }
+        }
+      } else {
+        did_work = true;
+      }
+    }
+    while (!delayed_starts.empty()) {
+      if (delayed_starts.front().delivery_time <= now) {
+        auto& pkt = delayed_starts.front();
+        const auto send_result =
+            socket_.send(std::span<const std::uint8_t>(pkt.data));
+        if (send_result.error && !IsTransientError(send_result.error)) {
+          running_.store(false, std::memory_order_release);
+          break;
+        }
+        delayed_starts.pop_front();
+        did_work = true;
+      } else {
+        break;
+        for (auto it = delayed_starts.begin(); it != delayed_starts.end();) {
+          if (it->delivery_time <= now) {
+            const auto send_result =
+                socket_.send(std::span<const std::uint8_t>(it->data));
+            if (send_result.error && !IsTransientError(send_result.error)) {
+            }
+            it = delayed_starts.erase(it);
+            did_work = true;
+          } else {
+            ++it;
+          }
+        }
         break;
       }
     }
-
     const auto recv_result = socket_.receive(std::span(recv_buffer));
     if (!recv_result.error && recv_result.bytes_transferred > 0) {
       did_work = true;
-      const auto packet_view =
-          std::span(recv_buffer).first(recv_result.bytes_transferred);
-      PacketBuffer packet(packet_view);
-      ReceivedPacket received{recv_result.remote_endpoint, std::move(packet)};
-      {
-        std::lock_guard<std::mutex> lock(recv_mutex_);
-        if (recv_queue_.size() < kMaxQueueDepth) {
-          recv_queue_.push_back(std::move(received));
+
+      bool drop = false;
+      std::chrono::milliseconds delay = std::chrono::milliseconds(0);
+
+      if (network_debugger_.has_value()) {
+        auto& dbg = network_debugger_->get();
+        if (dbg.ShouldDropPacket()) {
+          drop = true;
+        } else {
+          delay = dbg.GetDelayDuration();
+        }
+      }
+
+      if (!drop) {
+        PacketBuffer::Storage data(
+            recv_buffer.begin(),
+            recv_buffer.begin() + recv_result.bytes_transferred);
+
+        if (delay.count() > 0) {
+          delayed_recvs.push_back(
+              {now + delay, std::move(data), recv_result.remote_endpoint});
+        } else {
+          PacketBuffer packet(data);
+          ReceivedPacket received{recv_result.remote_endpoint,
+                                  std::move(packet)};
+          {
+            std::lock_guard<std::mutex> lock(recv_mutex_);
+            if (recv_queue_.size() < kMaxQueueDepth) {
+              recv_queue_.push_back(std::move(received));
+            }
+          }
+        }
+      }
+    }
+    if (!delayed_recvs.empty()) {
+      for (auto it = delayed_recvs.begin(); it != delayed_recvs.end();) {
+        if (it->delivery_time <= now) {
+          PacketBuffer packet(std::move(it->data));
+          ReceivedPacket received{*it->endpoint, std::move(packet)};
+          {
+            std::lock_guard<std::mutex> lock(recv_mutex_);
+            if (recv_queue_.size() < kMaxQueueDepth) {
+              recv_queue_.push_back(std::move(received));
+            }
+          }
+          it = delayed_recvs.erase(it);
+          did_work = true;
+        } else {
+          ++it;
         }
       }
     }

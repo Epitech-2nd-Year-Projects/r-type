@@ -71,6 +71,7 @@ int Application::Run() {
   }
 
   runtime_->AttachWorld(network_->World());
+  network_->AttachDebugger(runtime_->NetworkDebugger());
   input_->Initialize(runtime_->Input(), network_->UpdateReceiver());
   auto audio_engine = runtime_->Audio();
   if (audio_engine) {
