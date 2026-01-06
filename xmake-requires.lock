@@ -343,5 +343,49 @@
             },
             version = "v3.5.0"
         }
+    },
+    ["windows|x64"] = {
+        ["asio#f56260b5"] = {
+            version = "1.36.0"
+        },
+        ["cmake#f56260b5"] = {
+            version = "3.31.6"
+        },
+        ["ffmpeg#f56260b5"] = {
+            version = "7.1"
+        },
+        ["gtest#f56260b5"] = {
+            version = "v1.17.0"
+        },
+        ["imgui#f56260b5"] = {
+            version = "v1.92.5"
+        },
+        ["lua#f56260b5"] = {
+            version = "v5.4.7"
+        },
+        ["msys2#5d6fcce6"] = {
+            version = "latest"
+        },
+        ["msys2-base#f56260b5"] = {
+            version = "2025.08.30"
+        },
+        ["nasm#f56260b5"] = {
+            version = "2.16.01"
+        },
+        ["ninja#f56260b5"] = {
+            version = "1.13.2"
+        },
+        ["nlohmann_json#f56260b5"] = {
+            version = "v3.12.0"
+        },
+        ["opengl#f56260b5"] = {
+            version = "latest"
+        },
+        ["raylib#f56260b5"] = {
+            version = "5.5"
+        },
+        ["sol2#f56260b5"] = {
+            version = "v3.5.0"
+        }
     }
 }
