@@ -328,7 +328,8 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
   if (events.game_over.has_value()) {
     std::uint64_t session_seconds = 0;
     if (session_start_time_.has_value()) {
-      const auto elapsed = std::chrono::steady_clock::now() - *session_start_time_;
+      const auto elapsed =
+          std::chrono::steady_clock::now() - *session_start_time_;
       session_seconds = static_cast<std::uint64_t>(
           std::chrono::duration_cast<std::chrono::seconds>(elapsed).count());
       session_start_time_.reset();

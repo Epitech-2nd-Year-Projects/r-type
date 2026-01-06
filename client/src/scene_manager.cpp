@@ -185,9 +185,7 @@ void SceneManager::OnOpenProfile() {
   TransitionTo(ClientState::kProfile);
 }
 
-void SceneManager::OnCloseProfile() {
-  TransitionTo(ClientState::kMainMenu);
-}
+void SceneManager::OnCloseProfile() { TransitionTo(ClientState::kMainMenu); }
 
 bool SceneManager::TransitionTo(ClientState next_state, std::string reason) {
   if (!CanTransition(next_state)) {

@@ -4,8 +4,8 @@
 #include <sstream>
 #include <string>
 
-#include "client_context.h"
 #include "client_asset_manager.h"
+#include "client_context.h"
 #include "constants/input_constants.h"
 #include "constants/ui_constants.h"
 #include "engine/input.h"
@@ -19,14 +19,13 @@ namespace client {
 namespace {
 
 ui::MenuPointerConfig ProfileMenuPointerConfig() {
-  return ui::MenuPointerConfig{
-      constants::ui::kMenuPointerFramePrefix,
-      constants::ui::kMenuPointerFrameExtension,
-      constants::ui::Profile::kPointerFrameCount,
-      constants::ui::Profile::kPointerFrameDuration,
-      constants::ui::Profile::kPointerHeightFactor,
-      constants::ui::Profile::kPointerSpacing,
-      constants::ui::Profile::kPointerScaleFactor};
+  return ui::MenuPointerConfig{constants::ui::kMenuPointerFramePrefix,
+                               constants::ui::kMenuPointerFrameExtension,
+                               constants::ui::Profile::kPointerFrameCount,
+                               constants::ui::Profile::kPointerFrameDuration,
+                               constants::ui::Profile::kPointerHeightFactor,
+                               constants::ui::Profile::kPointerSpacing,
+                               constants::ui::Profile::kPointerScaleFactor};
 }
 
 }  // namespace
@@ -69,10 +68,9 @@ ProfileScene::ProfileScene(ClientContext& context)
   // Title
   title_ = std::make_shared<engine::ui::TextElement>(
       "Profile",
-      engine::ui::FontSize::Pixels(
-          constants::ui::Profile::kButtonHeight *
-          constants::ui::Profile::kButtonTextScale *
-          constants::ui::Profile::kTitleScaleFactor),
+      engine::ui::FontSize::Pixels(constants::ui::Profile::kButtonHeight *
+                                   constants::ui::Profile::kButtonTextScale *
+                                   constants::ui::Profile::kTitleScaleFactor),
       white);
   title_->SetFont(std::string(constants::ui::kTitleFont));
   title_->Layout().alignment.horizontal =
@@ -158,20 +156,19 @@ ProfileScene::ProfileScene(ClientContext& context)
   ui_elements_.push_back(nickname_input_);
 
   auto input_slot = std::make_shared<engine::ui::BoxElement>();
-  input_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kInputWidth);
-  input_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kInputHeight);
-  input_slot->SetLayoutCallback(
-      [this](const engine::math::RectF& rect) {
-        nickname_input_->SetPosition({rect.top_left_x_, rect.top_left_y_});
-        nickname_input_->SetSize({rect.width_, rect.height_});
-      });
+  input_slot->Layout().size.width =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kInputWidth);
+  input_slot->Layout().size.height =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kInputHeight);
+  input_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    nickname_input_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    nickname_input_->SetSize({rect.width_, rect.height_});
+  });
   root->AddChild(input_slot);
 
   auto stats_spacer = std::make_shared<engine::ui::BoxElement>();
-  stats_spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kSectionSpacing);
+  stats_spacer->Layout().size.height =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kSectionSpacing);
   root->AddChild(stats_spacer);
 
   stats_header_ = std::make_shared<engine::ui::TextElement>(
@@ -213,8 +210,8 @@ ProfileScene::ProfileScene(ClientContext& context)
 
   // Button row
   auto button_spacer = std::make_shared<engine::ui::BoxElement>();
-  button_spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kSectionSpacing);
+  button_spacer->Layout().size.height =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kSectionSpacing);
   root->AddChild(button_spacer);
 
   auto button_row = std::make_shared<engine::ui::StackContainer>(
@@ -237,26 +234,24 @@ ProfileScene::ProfileScene(ClientContext& context)
   buttons_.push_back(back_button_);
 
   auto save_slot = std::make_shared<engine::ui::BoxElement>();
-  save_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kButtonWidth);
-  save_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kButtonHeight);
-  save_slot->SetLayoutCallback(
-      [this](const engine::math::RectF& rect) {
-        save_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
-        save_button_->SetSize({rect.width_, rect.height_});
-      });
+  save_slot->Layout().size.width =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kButtonWidth);
+  save_slot->Layout().size.height =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kButtonHeight);
+  save_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    save_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    save_button_->SetSize({rect.width_, rect.height_});
+  });
 
   auto back_slot = std::make_shared<engine::ui::BoxElement>();
-  back_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kButtonWidth);
-  back_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kButtonHeight);
-  back_slot->SetLayoutCallback(
-      [this](const engine::math::RectF& rect) {
-        back_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
-        back_button_->SetSize({rect.width_, rect.height_});
-      });
+  back_slot->Layout().size.width =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kButtonWidth);
+  back_slot->Layout().size.height =
+      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kButtonHeight);
+  back_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    back_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    back_button_->SetSize({rect.width_, rect.height_});
+  });
 
   button_row->AddChild(save_slot);
   button_row->AddChild(back_slot);
@@ -280,9 +275,10 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
     const auto input_pos = nickname_input_->GetPosition();
     const auto input_size = nickname_input_->GetSize();
 
-    const bool clicked_inside =
-        mouse_pos.x >= input_pos.x && mouse_pos.x <= input_pos.x + input_size.x &&
-        mouse_pos.y >= input_pos.y && mouse_pos.y <= input_pos.y + input_size.y;
+    const bool clicked_inside = mouse_pos.x >= input_pos.x &&
+                                mouse_pos.x <= input_pos.x + input_size.x &&
+                                mouse_pos.y >= input_pos.y &&
+                                mouse_pos.y <= input_pos.y + input_size.y;
 
     if (clicked_inside && !nickname_input_->IsFocused()) {
       nickname_input_->SetFocused(true);
@@ -351,7 +347,7 @@ void ProfileScene::SaveAndClose() {
 }
 
 void ProfileScene::FormatPlaytime(std::uint64_t seconds,
-                                   std::string& out) const {
+                                  std::string& out) const {
   const auto hours = seconds / 3600;
   const auto minutes = (seconds % 3600) / 60;
   const auto secs = seconds % 60;
@@ -377,9 +373,8 @@ void ProfileScene::SelectPrevAvatar() {
 }
 
 void ProfileScene::SelectNextAvatar() {
-  selected_avatar_ =
-      static_cast<std::uint8_t>((selected_avatar_ + 1) %
-                                constants::ui::Profile::kAvatarCount);
+  selected_avatar_ = static_cast<std::uint8_t>(
+      (selected_avatar_ + 1) % constants::ui::Profile::kAvatarCount);
 }
 
 }  // namespace client

@@ -72,7 +72,8 @@ PlayerProfile LoadPlayerProfile() {
     }
   }
 
-  if (doc.contains("avatar_index") && doc["avatar_index"].is_number_unsigned()) {
+  if (doc.contains("avatar_index") &&
+      doc["avatar_index"].is_number_unsigned()) {
     profile.avatar_index = doc["avatar_index"].get<std::uint8_t>();
   }
 
