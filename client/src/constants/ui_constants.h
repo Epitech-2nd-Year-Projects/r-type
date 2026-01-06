@@ -360,17 +360,28 @@ struct GameOver {
  */
 struct Profile {
   static constexpr float kRootPadding = 48.0f;
-  static constexpr float kRootSpacing = 20.0f;
+  static constexpr float kRootPaddingTop = 40.0f;
+  static constexpr float kRootSpacing = 14.0f;
   static constexpr float kTitleFontScale = 0.06f;
   static constexpr float kLabelFontScale = 0.028f;
   static constexpr float kValueFontScale = 0.024f;
   static constexpr float kInputWidth = 300.0f;
   static constexpr float kInputHeight = 48.0f;
-  static constexpr float kButtonWidth = 160.0f;
-  static constexpr float kButtonHeight = 50.0f;
+  static constexpr float kButtonWidth = 170.0f;
+  static constexpr float kButtonHeight = 72.0f;
+  static constexpr float kButtonTextScale = 0.46f;
   static constexpr float kButtonSpacing = 20.0f;
+  static constexpr float kButtonColumnSpacing = 20.0f;
+  static constexpr float kButtonSlotPadding = 8.0f;
+  static constexpr float kButtonSlotInset = 4.0f;
   static constexpr float kStatsSpacing = 12.0f;
   static constexpr float kSectionSpacing = 30.0f;
+  static constexpr float kPointerHeightFactor = 0.85f;
+  static constexpr float kPointerFrameDuration = 0.06f;
+  static constexpr float kPointerSpacing = 28.0f;
+  static constexpr float kPointerScaleFactor = 0.6f;
+  static constexpr float kTitleScaleFactor = 1.5f;
+  static constexpr int kPointerFrameCount = 11;
   static constexpr std::size_t kMaxNicknameLength = 16;
   static constexpr engine::render::Color kTitleColor =
       engine::render::Color::FromBytes(230, 235, 245);
