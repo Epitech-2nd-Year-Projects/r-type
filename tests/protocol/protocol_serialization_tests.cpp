@@ -182,7 +182,7 @@ TEST(ProtocolSerializationTests, WorldSnapshotRoundTrip) {
   original.snapshot_id = 10u;
   original.base_snapshot_id = protocol::kNoBaseSnapshotId;
   original.server_tick = 1234u;
-   original.current_wave = 5u;
+  original.current_wave = 5u;
 
   {
     protocol::EntityDelta d{};

@@ -31,7 +31,6 @@ void LagCompensationHistory::PruneOldSnapshots(PlayerHistory& ph,
                                                std::uint32_t current_time_ms) {
   while (ph.snapshots.size() > 1) {
     std::uint32_t front_ts = ph.snapshots.front().timestamp_ms;
-    // Wraparound safe difference
     std::uint32_t age = current_time_ms - front_ts;
     if (age > max_history_duration_ms_) {
       ph.snapshots.pop_front();

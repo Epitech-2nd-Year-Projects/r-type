@@ -7,12 +7,12 @@
 #include "engine/scripting/bindings.h"
 #include "engine/scripting/script_engine.h"
 #include "game_logic/bindings.h"
+#include "game_logic/components/damageable_component.h"
+#include "game_logic/components/shoot_event_component.h"
 #include "game_logic/components/weapon_component.h"
 #include "game_logic/game_config.h"
 #include "game_logic/prefab_binder.h"
 #include "game_logic/systems/weapon_system.h"
-#include "game_logic/components/damageable_component.h"
-#include "game_logic/components/shoot_event_component.h"
 
 class LuaWeaponTest : public ::testing::Test {
  protected:

@@ -12,8 +12,9 @@ using client::ecs::NetworkedEntityComponent;
 using client::ecs::PositionComponent;
 using client::ecs::VelocityComponent;
 
-std::size_t FindEntityIndex(const engine::ecs::SparseArray<NetworkedEntityComponent>& net,
-                            std::uint32_t network_id) {
+std::size_t FindEntityIndex(
+    const engine::ecs::SparseArray<NetworkedEntityComponent>& net,
+    std::uint32_t network_id) {
   for (std::size_t i = 0; i < net.size(); ++i) {
     if (net[i].has_value() && net[i]->network_id == network_id) {
       return i;
@@ -131,14 +132,15 @@ TEST(WorldStateSystemTest, AppliesUpdateAndTracksPreviousPosition) {
   protocol::EntityDelta delta{};
   delta.op = protocol::EntityDeltaOp::kUpdate;
   delta.entity_id = 1;
-  delta.field_mask = protocol::EntityFieldMask::kFieldX |
-                     protocol::EntityFieldMask::kFieldHp;
+  delta.field_mask =
+      protocol::EntityFieldMask::kFieldX | protocol::EntityFieldMask::kFieldHp;
   delta.state.x = 8;
   delta.state.hp = 3;
   update.deltas.push_back(delta);
   ApplyAt(system, update, 20);
 
-  const auto index = FindEntityIndex(registry.GetComponents<NetworkedEntityComponent>(), 1);
+  const auto index =
+      FindEntityIndex(registry.GetComponents<NetworkedEntityComponent>(), 1);
   ASSERT_LT(index, registry.GetComponents<NetworkedEntityComponent>().size());
   const auto& pos = registry.GetComponents<PositionComponent>()[index];
   const auto& hp = registry.GetComponents<HealthComponent>()[index];
@@ -183,8 +185,8 @@ TEST(WorldStateSystemTest, UpdateCreatesMissingEntityWithMaskedFields) {
   protocol::EntityDelta delta{};
   delta.op = protocol::EntityDeltaOp::kUpdate;
   delta.entity_id = 9;
-  delta.field_mask = protocol::EntityFieldMask::kFieldX |
-                     protocol::EntityFieldMask::kFieldHp;
+  delta.field_mask =
+      protocol::EntityFieldMask::kFieldX | protocol::EntityFieldMask::kFieldHp;
   delta.state.x = 12;
   delta.state.hp = 6;
   update.deltas.push_back(delta);

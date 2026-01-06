@@ -45,9 +45,9 @@ class FakeRenderer final : public engine::render::Renderer2D {
                 const engine::math::Vector2f& /*end*/, float /*thickness*/,
                 const engine::render::Color& /*color*/) override {}
 
-  void DrawTexture(const engine::render::Texture2D& /*texture*/,
-                   const engine::render::SpriteDrawParams& /*params*/) override {
-  }
+  void DrawTexture(
+      const engine::render::Texture2D& /*texture*/,
+      const engine::render::SpriteDrawParams& /*params*/) override {}
 
   void DrawText(std::string_view /*text*/,
                 const engine::math::Vector2f& /*position*/, float /*font_size*/,
@@ -87,8 +87,7 @@ class FakeRenderContext final : public engine::render::RenderContext {
 
 class FakeWindow final : public engine::render::Window {
  public:
-  FakeWindow()
-      : size_(1280, 720), context_(renderer_), input_manager_() {}
+  FakeWindow() : size_(1280, 720), context_(renderer_), input_manager_() {}
 
   void PollEvents() override {}
   bool ShouldClose() const override { return false; }
@@ -121,9 +120,7 @@ class FakeClientContext final : public client::ClientContext {
  public:
   FakeClientContext() : assets_(window_.Renderer()) {}
 
-  engine::render::Renderer2D& Renderer() override {
-    return window_.Renderer();
-  }
+  engine::render::Renderer2D& Renderer() override { return window_.Renderer(); }
 
   engine::input::InputManager& Input() override { return input_; }
 
@@ -142,9 +139,7 @@ class FakeClientContext final : public client::ClientContext {
 
   engine::render::Window& Window() override { return window_; }
 
-  std::shared_ptr<engine::audio::AudioEngine> Audio() override {
-    return {};
-  }
+  std::shared_ptr<engine::audio::AudioEngine> Audio() override { return {}; }
 
   client::ClientAssetManager& Assets() override { return assets_; }
 
@@ -162,8 +157,8 @@ class FakeClientContext final : public client::ClientContext {
   void OnGamePause() override { ++pause_calls_; }
   void OnGameResume() override { ++resume_calls_; }
 
-  void SetConnectionConfig(std::string host, int port,
-                           std::string player_name, std::string room_code,
+  void SetConnectionConfig(std::string host, int port, std::string player_name,
+                           std::string room_code,
                            std::string room_password = {}) override {
     last_host_ = std::move(host);
     last_port_ = port;
@@ -201,8 +196,8 @@ class FakeClientContext final : public client::ClientContext {
 
   std::string RoomDirectoryStatus() const override { return room_status_; }
 
-  std::optional<protocol::CreateRoomResponsePayload>
-  ConsumeLastRoomCreation() override {
+  std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation()
+      override {
     return std::nullopt;
   }
 
@@ -257,7 +252,7 @@ class FakeClientContext final : public client::ClientContext {
   std::uint16_t last_max_players_{0};
 };
 
-}
+}  // namespace
 
 TEST(SceneManagerTest, RoutesMainMenuToLobby) {
   FakeClientContext context;
@@ -292,9 +287,9 @@ TEST(SceneManagerTest, ReturnsFromSettingsToPreviousState) {
             client::ClientState::kLobby);
   manager.CommitSceneChange();
   ASSERT_NE(manager.CurrentScene(), nullptr);
-  EXPECT_NE(dynamic_cast<client::OptionsMenuScene*>(
-                manager.CurrentScene().get()),
-            nullptr);
+  EXPECT_NE(
+      dynamic_cast<client::OptionsMenuScene*>(manager.CurrentScene().get()),
+      nullptr);
 
   manager.OnCloseSettings();
   manager.CommitSceneChange();
