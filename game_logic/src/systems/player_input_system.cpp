@@ -72,6 +72,7 @@ void PlayerInputSystem::Update(
     engine::ecs::SparseArray<components::PlayerComponent> &players,
     engine::ecs::SparseArray<engine::ecs::VelocityComponent> &velocities,
     engine::ecs::SparseArray<components::WeaponComponent> &weapons,
+    engine::ecs::SparseArray<components::ShootEventComponent> &shoot_events,
     engine::time::TimeDelta,
     std::reference_wrapper<GameInstance> instance_ref) {
   GameInstance &instance = instance_ref.get();
@@ -102,7 +103,6 @@ void PlayerInputSystem::Update(
     auto &player_opt = players[index];
     auto &velocity_opt = velocities[index];
     auto &weapon_opt = weapons[index];
-
     if (!player_opt.has_value() || !velocity_opt.has_value()) {
       continue;
     }
@@ -117,6 +117,16 @@ void PlayerInputSystem::Update(
       auto &weapon = weapon_opt.value();
       if (evt.type == InputType::kBasicShootPressed) {
         weapon.is_trigger_held = true;
+
+        if (evt.spawn_pos.has_value()) {
+          if (index < shoot_events.size() && shoot_events[index].has_value()) {
+            auto &shoot_evt = shoot_events[index].value();
+            shoot_evt.fired = true;
+            shoot_evt.is_big_shot = false;
+            shoot_evt.spawn_position = evt.spawn_pos.value();
+            shoot_evt.latency_s = evt.latency_s;
+          }
+        }
       } else if (evt.type == InputType::kBasicShootReleased) {
         weapon.is_trigger_held = false;
       } else if (evt.type == InputType::kBigShootPressed) {
