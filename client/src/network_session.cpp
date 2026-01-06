@@ -428,3 +428,14 @@ GameOverStats NetworkSession::BuildGameOverStats() const {
 }
 
 }  // namespace client
+
+namespace client {
+void NetworkSession::AttachDebugger(engine::debug::NetworkDebugger& debugger) {
+  if (transport_) {
+    transport_->AttachDebugger(debugger);
+  }
+  if (lobby_transport_) {
+    lobby_transport_->AttachDebugger(debugger);
+  }
+}
+}  // namespace client

@@ -79,6 +79,10 @@ bool EngineRuntime::Pump() {
     audio_->Update();
   }
 
+  if (script_engine_) {
+    script_engine_->Update();
+  }
+
   return true;
 }
 

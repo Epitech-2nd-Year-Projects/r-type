@@ -13,6 +13,7 @@
 #include "client_config.h"
 #include "client_state.h"
 #include "engine/console/console_overlay.h"
+#include "engine/debug/imgui_integration.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
@@ -46,6 +47,13 @@ namespace engine::util {
 class Configuration;
 }  // namespace engine::util
 
+namespace engine::debug {
+class ComponentInspectorRegistry;
+class DebugSuite;
+class ImGuiIntegration;
+class NetworkDebugger;
+}  // namespace engine::debug
+
 namespace client {
 
 class ParallaxBackground;
@@ -55,6 +63,10 @@ namespace ecs {
 class RenderSystem;
 class RenderDebug;
 }  // namespace ecs
+
+namespace systems {
+class DebugPathSystem;
+}  // namespace systems
 
 /**
  * @brief Client runtime for engine boot and frame rendering
@@ -168,6 +180,7 @@ class ClientRuntime {
                               const engine::ecs::Registry& registry,
                               std::optional<float> latency_ms);
   void UpdateDebugToggle();
+  void UpdateImGuiToggle();
   void UpdateConsoleOverlay(engine::time::TimeDelta dt);
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
@@ -177,10 +190,20 @@ class ClientRuntime {
   std::unique_ptr<engine::app::EngineRuntime> engine_;
   std::unique_ptr<ecs::RenderSystem> render_system_;
   std::unique_ptr<ecs::RenderDebug> render_debug_;
+  std::unique_ptr<systems::DebugPathSystem> debug_path_system_;
   std::unique_ptr<ParallaxBackground> background_;
   std::unique_ptr<BloomResources> bloom_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
+  std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
+  std::unique_ptr<engine::debug::ComponentInspectorRegistry>
+      component_registry_;
+  std::unique_ptr<engine::debug::DebugSuite> debug_suite_;
+  std::unique_ptr<engine::debug::NetworkDebugger> network_debugger_;
   bool debug_toggle_pressed_{false};
+  bool imgui_toggle_pressed_{false};
+
+ public:
+  engine::debug::NetworkDebugger& NetworkDebugger();
 };
 
 }  // namespace client

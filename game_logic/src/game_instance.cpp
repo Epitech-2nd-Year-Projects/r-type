@@ -112,6 +112,9 @@ void GameInstance::Update(engine::time::TimeDelta dt) {
   }
 
   registry_->UpdateSystems(dt);
+  if (script_engine_) {
+    script_engine_->Update();
+  }
   UpdateGameState();
 }
 

@@ -8,69 +8,7 @@
 #include "ecs/render_system.h"
 #include "engine/ecs/components/bounding_box_component.h"
 #include "engine/ecs/registry.h"
-
-namespace {
-
-class FakeTexture : public engine::render::Texture2D {
- public:
-  explicit FakeTexture(std::string id, engine::math::Vector2i size)
-      : id_(std::move(id)), size_(size) {}
-
-  engine::math::Vector2i GetSize() const override { return size_; }
-
-  std::string id_;
-  engine::math::Vector2i size_;
-};
-
-class FakeRenderer : public engine::render::Renderer2D {
- public:
-  struct Call {
-    std::string texture;
-    engine::render::SpriteDrawParams params;
-  };
-
-  void DrawRect(const engine::math::RectF& rect,
-                const engine::render::Color&) override {
-    rects.push_back(rect);
-  }
-  void DrawCircle(const engine::math::Vector2f&, float,
-                  const engine::render::Color&) override {}
-  void DrawLine(const engine::math::Vector2f&, const engine::math::Vector2f&,
-                float, const engine::render::Color&) override {}
-
-  void DrawTexture(const engine::render::Texture2D& texture,
-                   const engine::render::SpriteDrawParams& params) override {
-    const auto* fake = dynamic_cast<const FakeTexture*>(&texture);
-    if (fake != nullptr) {
-      calls.push_back(Call{fake->id_, params});
-    }
-  }
-
-  void DrawText(std::string_view, const engine::math::Vector2f&, float,
-                const engine::render::Color&) override {}
-
-  engine::math::Vector2f MeasureText(std::string_view, float) override {
-    return {0.0f, 0.0f};
-  }
-
-  std::shared_ptr<engine::render::Texture2D> LoadTextureFromFile(
-      const std::string& path) override {
-    auto texture =
-        std::make_shared<FakeTexture>(path, engine::math::Vector2i{64, 64});
-    loaded.push_back(path);
-    return texture;
-  }
-
-  void LoadFont(const std::string&, const std::string&) override {}
-  void SetFont(const std::string&) override {}
-  void Flush() override {}
-
-  std::vector<std::string> loaded;
-  std::vector<Call> calls;
-  std::vector<engine::math::RectF> rects;
-};
-
-}  // namespace
+#include "fake_renderer.h"
 
 TEST(RenderSystemTest, PopulatesSpritesAndDraws) {
   engine::ecs::Registry registry;
@@ -80,8 +18,8 @@ TEST(RenderSystemTest, PopulatesSpritesAndDraws) {
   const auto entity = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 10.0f,
                                                             20.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      entity, 1u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 1u,
+                                                                   1u, 0u);
 
   render_system.Render();
 
@@ -103,14 +41,13 @@ TEST(RenderSystemTest, OrdersByLayer) {
   const auto obstacle = registry.SpawnEntity();
   registry.EmplaceComponent<client::ecs::PositionComponent>(obstacle, 0.0f,
                                                             0.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      obstacle, 2u, 4u, 0u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(obstacle, 2u,
+                                                                   4u, 0u);
 
   const auto player = registry.SpawnEntity();
-  registry.EmplaceComponent<client::ecs::PositionComponent>(player, 5.0f,
-                                                            5.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      player, 3u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::PositionComponent>(player, 5.0f, 5.0f);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(player, 3u,
+                                                                   1u, 0u);
 
   render_system.Render();
 
@@ -126,14 +63,14 @@ TEST(RenderDebugTest, DrawsHitboxesWhenEnabled) {
   client::ecs::RenderDebug render_debug(registry, renderer);
 
   const auto entity = registry.SpawnEntity();
-  registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f,
-                                                            3.0f);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      entity, 4u, 1u, 0u);
+  registry.EmplaceComponent<client::ecs::PositionComponent>(entity, 2.0f, 3.0f);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(entity, 4u,
+                                                                   1u, 0u);
   registry.EmplaceComponent<engine::ecs::BoundingBoxComponent>(
       entity, 1.0f, 2.0f, 5.0f, 7.0f);
 
   render_debug.SetEnabled(true);
+  render_debug.show_colliders = true;
   render_debug.Draw();
 
   ASSERT_EQ(renderer.rects.size(), 1u);

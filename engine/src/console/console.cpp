@@ -169,7 +169,7 @@ void Console::ExecuteLua(std::string_view code) {
       sol::error err = result;
       PrintError(err.what());
     } else if (result.get_type() != sol::type::none &&
-               result.get_type() != sol::type::nil) {
+               result.get_type() != sol::type::lua_nil) {
       std::ostringstream oss;
       sol::object obj = result;
 

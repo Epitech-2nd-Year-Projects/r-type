@@ -11,6 +11,10 @@
 #include "engine/net/endpoint.h"
 #include "engine/net/packet_buffer.h"
 
+namespace engine::debug {
+class NetworkDebugger;
+}
+
 namespace client {
 
 /**
@@ -62,6 +66,13 @@ class NetworkTransport {
     }
 #endif
     return client_.server_endpoint();
+  }
+
+  /**
+   * @brief Attach a network debugger
+   */
+  void AttachDebugger(engine::debug::NetworkDebugger& debugger) {
+    client_.AttachDebugger(debugger);
   }
 
   /**

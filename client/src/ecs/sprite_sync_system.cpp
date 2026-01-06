@@ -77,7 +77,6 @@ void SpriteSyncSystem::ApplyDefinition(std::size_t index,
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
   }
-  sprite->visible = true;
 
   auto& layer = layers[index];
   if (!layer.has_value()) {

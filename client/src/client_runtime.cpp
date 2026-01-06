@@ -1,5 +1,6 @@
 #include "client_runtime.h"
 
+#include <imgui.h>
 #include <raylib.h>
 
 #include <iomanip>
@@ -8,18 +9,23 @@
 #include <utility>
 
 #include "constants/client_constants.h"
+#include "debug/inspector_registration.h"
 #include "ecs/components.h"
 #include "ecs/render_debug.h"
 #include "ecs/render_system.h"
 #include "engine/app/engine_runtime.h"
 #include "engine/console/console.h"
 #include "engine/console/console_overlay.h"
+#include "engine/debug/component_inspector_registry.h"
+#include "engine/debug/debug_suite.h"
+#include "engine/debug/network_debugger.h"
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
 #include "logging.h"
 #include "render/parallax_background.h"
 #include "scene/scene.h"
+#include "systems/debug_path_system.h"
 
 namespace {
 
@@ -201,6 +207,13 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   }
 
   background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
+  imgui_ = std::make_unique<engine::debug::ImGuiIntegration>();
+  imgui_->SetEnabled(false);
+  component_registry_ =
+      std::make_unique<engine::debug::ComponentInspectorRegistry>();
+  network_debugger_ = std::make_unique<engine::debug::NetworkDebugger>();
+  client::debug::RegisterClientInspectors(*component_registry_);
+
   bloom_ = std::make_unique<BloomResources>();
   if (!bloom_->Initialize(constants::client::kBloomShaderPath)) {
     LogLifecycle(engine::util::LogLevel::kWarn, "Bloom shader failed to load");
@@ -217,6 +230,30 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
       std::make_unique<ecs::RenderSystem>(registry, engine_->Renderer());
   render_debug_ =
       std::make_unique<ecs::RenderDebug>(registry, engine_->Renderer());
+  debug_path_system_ =
+      std::make_unique<systems::DebugPathSystem>(registry, *render_debug_);
+
+  debug_suite_ = std::make_unique<engine::debug::DebugSuite>(
+      registry, *component_registry_);
+
+  if (network_debugger_) {
+    debug_suite_->SetNetworkDebugger(std::ref(*network_debugger_));
+  }
+  if (engine_) {
+    debug_suite_->SetConsoleOverlay(std::ref(engine_->ConsoleOverlay()));
+  }
+  debug_suite_->SetProfilingOverlay(std::ref(profiling_overlay_));
+
+  if (render_debug_) {
+    debug_suite_->RegisterGizmo("Colliders (Red)",
+                                std::ref(render_debug_->show_colliders));
+    debug_suite_->RegisterGizmo("Sprites (Blue)",
+                                std::ref(render_debug_->show_sprite_bounds));
+    debug_suite_->RegisterGizmo("Velocity (Yellow)",
+                                std::ref(render_debug_->show_velocity));
+    debug_suite_->RegisterGizmo("AI Paths",
+                                std::ref(render_debug_->show_ai_paths));
+  }
 }
 
 bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
@@ -230,6 +267,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   }
 
   UpdateDebugToggle();
+  UpdateImGuiToggle();
   UpdateProfilingOverlay(dt, registry, latency_ms);
   UpdateConsoleOverlay(dt);
 
@@ -238,6 +276,14 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   const auto window_size = engine_->Window().GetSize();
 
   context.BeginFrame();
+
+  if (imgui_ && imgui_->enabled()) {
+    imgui_->BeginFrame();
+    if (debug_suite_) {
+      debug_suite_->Draw();
+    }
+  }
+
   context.Clear(constants::client::kClearColor);
 
   const bool render_gameplay = state == ClientState::kInGame ||
@@ -255,6 +301,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     render_system_->Render();
   }
   if (render_debug_ && render_gameplay) {
+    if (debug_path_system_) {
+      debug_path_system_->Update(dt);
+    }
     render_debug_->Draw();
   }
 
@@ -276,6 +325,13 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     }
   } else if (scene) {
     scene->Draw(renderer);
+  }
+
+  profiling_overlay_.Draw(renderer, engine_->Window().GetSize());
+  engine_->ConsoleOverlay().Draw(renderer, engine_->Window().GetSize());
+
+  if (imgui_ && imgui_->enabled()) {
+    imgui_->EndFrame();
   }
 
   profiling_overlay_.Draw(renderer, window_size);
@@ -356,6 +412,19 @@ void ClientRuntime::UpdateDebugToggle() {
   debug_toggle_pressed_ = pressed;
 }
 
+void ClientRuntime::UpdateImGuiToggle() {
+  if (!engine_ || !imgui_) {
+    return;
+  }
+
+  auto& input = engine_->Input();
+  const bool pressed = input.IsKeyDown(engine::input::Key::kF2);
+  if (pressed && !imgui_toggle_pressed_) {
+    imgui_->Toggle();
+  }
+  imgui_toggle_pressed_ = pressed;
+}
+
 void ClientRuntime::UpdateConsoleOverlay(engine::time::TimeDelta dt) {
   if (!engine_) {
     return;
@@ -373,6 +442,10 @@ std::size_t ClientRuntime::RenderableEntityCount(
     }
   }
   return count;
+}
+
+engine::debug::NetworkDebugger& ClientRuntime::NetworkDebugger() {
+  return *network_debugger_;
 }
 
 }  // namespace client
