@@ -12,7 +12,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
     : rng_(seed),
       logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
       logger_(logger),
-      history_(1000) {}
+      history_(1000),
+      current_tick_(0) {}
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
                                   std::string_view player_name) {
@@ -101,9 +102,9 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
               .count());
       std::uint32_t client_time = newest->get().client_time_ms;
 
-      if (current_server_time > client_time) {
-        latency_s =
-            static_cast<float>(current_server_time - client_time) / 1000.0f;
+      std::uint32_t delta = current_server_time - client_time;
+      if (delta < 0x80000000u) {
+        latency_s = static_cast<float>(delta) / 1000.0f;
         spawn_pos = history_.GetPlayerPositionAt(player_id, client_time);
       }
     }
@@ -207,8 +208,7 @@ void GameInstance::Update(const engine::time::TimeDelta &delta) {
             std::chrono::steady_clock::now().time_since_epoch())
             .count());
 
-    static std::uint32_t local_tick = 0;
-    local_tick++;
+    current_tick_++;
 
     auto &registry = logic_->World();
     auto &players =
@@ -217,7 +217,7 @@ void GameInstance::Update(const engine::time::TimeDelta &delta) {
 
     for (size_t i = 0; i < players.size() && i < positions.size(); ++i) {
       if (players[i].has_value() && positions[i].has_value()) {
-        history_.RecordSnapshot(local_tick, current_time_ms,
+        history_.RecordSnapshot(current_tick_, current_time_ms,
                                 players[i]->player_id, positions[i]->position);
       }
     }

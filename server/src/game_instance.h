@@ -217,6 +217,7 @@ class GameInstance {
    * @brief Lag compensation history
    */
   LagCompensationHistory history_;
+  std::uint32_t current_tick_{0};
 };
 
 }  // namespace server

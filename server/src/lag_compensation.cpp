@@ -15,9 +15,12 @@ void LagCompensationHistory::RecordSnapshot(std::uint32_t server_tick,
   PlayerSnapshot snapshot{server_tick, timestamp_ms, player_id, position};
   auto& ph = history_[player_id];
 
-  if (!ph.snapshots.empty() &&
-      timestamp_ms < ph.snapshots.back().timestamp_ms) {
-    return;
+  if (!ph.snapshots.empty()) {
+    std::uint32_t last_ts = ph.snapshots.back().timestamp_ms;
+    std::int32_t diff = static_cast<std::int32_t>(timestamp_ms - last_ts);
+    if (diff <= 0) {
+      return;
+    }
   }
 
   ph.snapshots.push_back(snapshot);
@@ -26,10 +29,15 @@ void LagCompensationHistory::RecordSnapshot(std::uint32_t server_tick,
 
 void LagCompensationHistory::PruneOldSnapshots(PlayerHistory& ph,
                                                std::uint32_t current_time_ms) {
-  while (ph.snapshots.size() > 1 &&
-         current_time_ms - ph.snapshots.front().timestamp_ms >
-             max_history_duration_ms_) {
-    ph.snapshots.pop_front();
+  while (ph.snapshots.size() > 1) {
+    std::uint32_t front_ts = ph.snapshots.front().timestamp_ms;
+    // Wraparound safe difference
+    std::uint32_t age = current_time_ms - front_ts;
+    if (age > max_history_duration_ms_) {
+      ph.snapshots.pop_front();
+    } else {
+      break;
+    }
   }
 }
 
@@ -51,11 +59,12 @@ LagCompensationHistory::GetPlayerPositionAt(
     return snapshots.back().position;
   }
 
-  auto upper =
-      std::lower_bound(snapshots.begin(), snapshots.end(), target_time_ms,
-                       [](const PlayerSnapshot& s, std::uint32_t t) {
-                         return s.timestamp_ms < t;
-                       });
+  auto upper = std::lower_bound(
+      snapshots.begin(), snapshots.end(), target_time_ms,
+      [](const PlayerSnapshot& s, std::uint32_t t) {
+        std::int32_t diff = static_cast<std::int32_t>(t - s.timestamp_ms);
+        return diff > 0;
+      });
 
   if (upper == snapshots.begin()) {
     return upper->position;

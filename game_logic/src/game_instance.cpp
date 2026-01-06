@@ -307,7 +307,7 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<components::ScoreValueComponent>();
   registry_->RegisterComponent<components::PowerupComponent>();
   registry_->RegisterComponent<components::DamageableComponent>();
-  registry_->RegisterComponent<components::DamageableComponent>();
+
   registry_->RegisterComponent<components::DropsPowerupComponent>();
   registry_->RegisterComponent<components::ShootEventComponent>();
 }
