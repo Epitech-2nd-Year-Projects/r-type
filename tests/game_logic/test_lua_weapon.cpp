@@ -11,6 +11,8 @@
 #include "game_logic/game_config.h"
 #include "game_logic/prefab_binder.h"
 #include "game_logic/systems/weapon_system.h"
+#include "game_logic/components/damageable_component.h"
+#include "game_logic/components/shoot_event_component.h"
 
 class LuaWeaponTest : public ::testing::Test {
  protected:
@@ -27,6 +29,8 @@ class LuaWeaponTest : public ::testing::Test {
     registry_->RegisterComponent<engine::ecs::VelocityComponent>();
     registry_->RegisterComponent<game_logic::components::WeaponComponent>();
     registry_->RegisterComponent<game_logic::components::SpriteComponent>();
+    registry_->RegisterComponent<game_logic::components::DamageableComponent>();
+    registry_->RegisterComponent<game_logic::components::ShootEventComponent>();
   }
 
   std::unique_ptr<engine::ecs::Registry> registry_;
