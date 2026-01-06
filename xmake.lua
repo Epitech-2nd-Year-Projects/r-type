@@ -2,6 +2,11 @@ set_project("r-type")
 set_version("0.1.0")
 set_xmakever("3.0.6")
 
+if not os.exists("third_party/rlImGui/rlImGui.cpp") or not os.exists("third_party/raylib-media/src/rmedia.c") then
+    print("Initializing git submodules...")
+    os.run("git submodule update --init --recursive")
+end
+
 add_rules("mode.debug", "mode.release")
 set_languages("cxx23")
 set_warnings("all")
