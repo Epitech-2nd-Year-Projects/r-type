@@ -16,10 +16,39 @@
 
 namespace client {
 
+namespace {
+
+ui::MenuPointerConfig ProfileMenuPointerConfig() {
+  return ui::MenuPointerConfig{
+      constants::ui::kMenuPointerFramePrefix,
+      constants::ui::kMenuPointerFrameExtension,
+      constants::ui::Profile::kPointerFrameCount,
+      constants::ui::Profile::kPointerFrameDuration,
+      constants::ui::Profile::kPointerHeightFactor,
+      constants::ui::Profile::kPointerSpacing,
+      constants::ui::Profile::kPointerScaleFactor};
+}
+
+}  // namespace
+
 ProfileScene::ProfileScene(ClientContext& context)
-    : context_(context), selected_avatar_(context.Profile().avatar_index) {
+    : context_(context),
+      selected_avatar_(context.Profile().avatar_index),
+      menu_effects_(context, ProfileMenuPointerConfig(),
+                    constants::ui::kMenuHoverSfxPath,
+                    constants::ui::kMenuClickSfxPath) {
+  auto& renderer = context_.Renderer();
+  auto& assets = context_.Assets();
+  assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
+
+  menu_effects_.Load();
+
   avatar_renderer_ = std::make_unique<ui::AvatarRenderer>(context_.Assets());
   const auto& profile = context_.Profile();
+
+  const auto white = engine::render::Color::White();
+  const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
 
   auto root =
       std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
@@ -28,8 +57,10 @@ ProfileScene::ProfileScene(ClientContext& context)
   root->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kStretch;
   root->Layout().alignment.vertical = engine::ui::VerticalAlignment::kStretch;
-  root->SetPadding(engine::ui::Insets::Uniform(
-      constants::ui::Profile::kRootPadding));
+  auto padding =
+      engine::ui::Insets::Uniform(constants::ui::Profile::kRootPadding);
+  padding.top = constants::ui::Profile::kRootPaddingTop;
+  root->SetPadding(padding);
   root->SetSpacing(constants::ui::Profile::kRootSpacing);
   root->SetMainAlignment(engine::ui::StackAlignment::kCenter);
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
@@ -37,10 +68,15 @@ ProfileScene::ProfileScene(ClientContext& context)
 
   // Title
   title_ = std::make_shared<engine::ui::TextElement>(
-      "PLAYER PROFILE",
-      engine::ui::FontSize::RelativeWidth(
-          constants::ui::Profile::kTitleFontScale),
-      constants::ui::Profile::kTitleColor);
+      "Profile",
+      engine::ui::FontSize::Pixels(
+          constants::ui::Profile::kButtonHeight *
+          constants::ui::Profile::kButtonTextScale *
+          constants::ui::Profile::kTitleScaleFactor),
+      white);
+  title_->SetFont(std::string(constants::ui::kTitleFont));
+  title_->Layout().alignment.horizontal =
+      engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_);
 
   auto avatar_label = std::make_shared<engine::ui::TextElement>(
@@ -190,15 +226,15 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::Profile::kButtonWidth,
                              constants::ui::Profile::kButtonHeight},
-      "Save", [this]() { SaveAndClose(); });
-  ui_elements_.push_back(save_button_);
+      "Save", menu_effects_.WrapClick([this]() { SaveAndClose(); }));
+  buttons_.push_back(save_button_);
 
   back_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::Profile::kButtonWidth,
                              constants::ui::Profile::kButtonHeight},
-      "Back", [this]() { context_.OnCloseProfile(); });
-  ui_elements_.push_back(back_button_);
+      "Back", menu_effects_.WrapClick([this]() { context_.OnCloseProfile(); }));
+  buttons_.push_back(back_button_);
 
   auto save_slot = std::make_shared<engine::ui::BoxElement>();
   save_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
@@ -227,6 +263,12 @@ ProfileScene::ProfileScene(ClientContext& context)
   root->AddChild(button_row);
 
   canvas_.SetRoot(root);
+
+  for (auto& button : buttons_) {
+    button->SetColors(transparent, transparent, transparent);
+    button->SetTextColor(white);
+    button->SetTextScale(constants::ui::Profile::kButtonTextScale);
+  }
 }
 
 void ProfileScene::Update(engine::time::TimeDelta dt) {
@@ -251,8 +293,15 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 
   text_input_focused_ = nickname_input_->IsFocused();
 
+  context_.MenuBackground().Update(dt);
+
+  menu_effects_.Update(dt, input, buttons_);
+
   for (auto& elem : ui_elements_) {
     elem->Update(dt, input);
+  }
+  for (auto& button : buttons_) {
+    button->Update(dt, input);
   }
 
   if (input.IsActionActive(std::string(constants::input::kActionCancel)) &&
@@ -263,6 +312,7 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 
 void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   context_.MenuBackground().Draw(context_.Window());
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
   canvas_.LayoutAndDraw(renderer);
 
@@ -275,6 +325,11 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
   }
+  renderer.SetFont(std::string(constants::ui::kTitleFont));
+  for (auto& button : buttons_) {
+    button->Draw(renderer);
+  }
+  menu_effects_.DrawPointers(renderer, buttons_);
 }
 
 void ProfileScene::LayoutUi(engine::render::Renderer2D& renderer) {
