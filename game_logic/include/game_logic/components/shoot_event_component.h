@@ -22,4 +22,4 @@ struct ShootEventComponent {
 
 }  // namespace game_logic::components
 
-#endif // GAME_LOGIC_COMPONENTS_SHOOT_EVENT_COMPONENT_H_
+#endif  // GAME_LOGIC_COMPONENTS_SHOOT_EVENT_COMPONENT_H_
