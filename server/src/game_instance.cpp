@@ -11,7 +11,8 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
                            engine::util::Logger &logger)
     : rng_(seed),
       logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
-      logger_(logger) {}
+      logger_(logger),
+      history_(1000) {}
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
                                   std::string_view player_name) {
@@ -88,8 +89,27 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     const bool is_set =
         (newest->get().buttons & static_cast<std::uint8_t>(flag)) != 0;
     if (!logic_) return;
+    std::optional<engine::math::Vector2f> spawn_pos = std::nullopt;
+    float latency_s = 0.0f;
+
+    if ((flag == protocol::InputButton::kInputFire ||
+         flag == protocol::InputButton::kInputBigFire) &&
+        !was_pressed && is_set) {
+      std::uint32_t current_server_time = static_cast<std::uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::steady_clock::now().time_since_epoch())
+              .count());
+      std::uint32_t client_time = newest->get().client_time_ms;
+
+      if (current_server_time > client_time) {
+        latency_s =
+            static_cast<float>(current_server_time - client_time) / 1000.0f;
+        spawn_pos = history_.GetPlayerPositionAt(player_id, client_time);
+      }
+    }
+
     if (!was_pressed && is_set) {
-      logic_->OnPlayerInput(player_id, event_type);
+      logic_->OnPlayerInput(player_id, event_type, spawn_pos, latency_s);
     } else if (was_pressed && !is_set) {
       logic_->OnPlayerInput(player_id, released_evt);
     }
@@ -181,6 +201,26 @@ void GameInstance::Update(const engine::time::TimeDelta &delta) {
   }
   if (logic_) {
     logic_->Update(delta);
+
+    auto current_time_ms = static_cast<std::uint32_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count());
+
+    static std::uint32_t local_tick = 0;
+    local_tick++;
+
+    auto &registry = logic_->World();
+    auto &players =
+        registry.GetComponents<game_logic::components::PlayerComponent>();
+    auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
+
+    for (size_t i = 0; i < players.size() && i < positions.size(); ++i) {
+      if (players[i].has_value() && positions[i].has_value()) {
+        history_.RecordSnapshot(local_tick, current_time_ms,
+                                players[i]->player_id, positions[i]->position);
+      }
+    }
   }
 }
 
