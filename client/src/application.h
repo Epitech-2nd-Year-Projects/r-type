@@ -50,6 +50,8 @@ class Application : public ClientContext {
                                           engine::input::Key key) override;
   engine::render::Window& Window() override;
   std::shared_ptr<engine::audio::AudioEngine> Audio() override;
+  void SetAudioVolumes(float master_volume, float music_volume,
+                       float sfx_volume) override;
   /**
    * @brief Access the asset manager
    */
@@ -61,7 +63,9 @@ class Application : public ClientContext {
   engine::util::Configuration& Config() override;
   void OnPlay() override;
   void OnOpenSettings() override;
+  void OnOpenAudioSettings() override;
   void OnCloseSettings() override;
+  void OnCloseAudioSettings() override;
   void OnQuitApplication() override;
   void OnQuitToMenu() override;
   void OnGamePause() override;
@@ -77,8 +81,8 @@ class Application : public ClientContext {
                   std::uint16_t max_players) override;
   const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const override;
   std::string RoomDirectoryStatus() const override;
-  std::optional<protocol::CreateRoomResponsePayload>
-  ConsumeLastRoomCreation() override;
+  std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation()
+      override;
   engine::ecs::Registry& World() override;
   const engine::ecs::Registry& World() const override;
   bool EnqueueCommand(const protocol::CommandPayload& payload) override;

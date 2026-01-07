@@ -40,6 +40,8 @@ constexpr int kMinLobbyAttempts = 1;
 constexpr int kMaxLobbyAttempts = 20;
 constexpr std::uint32_t kMinRoomListRefreshMs = 1'000;
 constexpr std::uint32_t kMaxRoomListRefreshMs = 60'000;
+constexpr float kMinVolume = 0.0f;
+constexpr float kMaxVolume = 1.0f;
 
 std::string TrimCopy(std::string_view text) {
   std::size_t start = 0;
@@ -101,6 +103,24 @@ bool TryParseRange(std::string_view value, T& out_value, T min_value,
   const auto [ptr, ec] =
       std::from_chars(value.data(), value.data() + value.size(), parsed);
   if (ec != std::errc() || ptr != value.data() + value.size()) {
+    return false;
+  }
+  if (parsed < min_value || parsed > max_value) {
+    return false;
+  }
+  out_value = parsed;
+  return true;
+}
+
+bool TryParseFloatRange(std::string_view value, float& out_value,
+                        float min_value, float max_value) {
+  if (value.empty()) {
+    return false;
+  }
+  std::string buffer(value);
+  char* end = nullptr;
+  const float parsed = std::strtof(buffer.c_str(), &end);
+  if (end == buffer.c_str() || end != buffer.c_str() + buffer.size()) {
     return false;
   }
   if (parsed < min_value || parsed > max_value) {
@@ -193,6 +213,23 @@ bool TryParseRangeValue(const nlohmann::json& value, T& out_value, T min_value,
   if (value.is_string()) {
     return TryParseRange(value.get<std::string>(), out_value, min_value,
                          max_value);
+  }
+  return false;
+}
+
+bool TryParseFloatRangeValue(const nlohmann::json& value, float& out_value,
+                             float min_value, float max_value) {
+  if (value.is_number()) {
+    const double parsed = value.get<double>();
+    if (parsed < min_value || parsed > max_value) {
+      return false;
+    }
+    out_value = static_cast<float>(parsed);
+    return true;
+  }
+  if (value.is_string()) {
+    return TryParseFloatRange(value.get<std::string>(), out_value, min_value,
+                              max_value);
   }
   return false;
 }
@@ -318,6 +355,18 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
     }
   };
 
+  const auto apply_float_range = [&](std::string_view key, float& target,
+                                     float min_value, float max_value) {
+    const auto it = doc.find(std::string(key));
+    if (it == doc.end()) {
+      return;
+    }
+    float parsed{};
+    if (TryParseFloatRangeValue(*it, parsed, min_value, max_value)) {
+      target = parsed;
+    }
+  };
+
   apply_range(constants::config::kClientTimeoutMs, config.timeout_ms,
               kMinTimeoutMs, kMaxTimeoutMs);
   apply_range(constants::config::kClientPingIntervalMs, config.ping_interval_ms,
@@ -336,6 +385,12 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
   apply_range(constants::config::kClientRoomListRefreshMs,
               config.room_list_refresh_ms, kMinRoomListRefreshMs,
               kMaxRoomListRefreshMs);
+  apply_float_range(constants::config::kAudioMasterVolume, config.master_volume,
+                    kMinVolume, kMaxVolume);
+  apply_float_range(constants::config::kAudioMusicVolume, config.music_volume,
+                    kMinVolume, kMaxVolume);
+  apply_float_range(constants::config::kAudioSfxVolume, config.sfx_volume,
+                    kMinVolume, kMaxVolume);
 
   if (const auto it = doc.find(std::string(constants::config::kClientDebug));
       it != doc.end()) {
@@ -387,6 +442,10 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
       config.lobby_max_attempts;
   doc[std::string(constants::config::kClientRoomListRefreshMs)] =
       config.room_list_refresh_ms;
+  doc[std::string(constants::config::kAudioMasterVolume)] =
+      config.master_volume;
+  doc[std::string(constants::config::kAudioMusicVolume)] = config.music_volume;
+  doc[std::string(constants::config::kAudioSfxVolume)] = config.sfx_volume;
 
   std::ofstream file(path);
   if (!file.is_open()) {
