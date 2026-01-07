@@ -12,6 +12,7 @@
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
+#include "engine/audio/audio_engine.h"
 #include "engine/time/game_loop.h"
 #include "input/input_coordinator.h"
 #include "logging.h"
@@ -23,6 +24,10 @@
 namespace client {
 namespace {
 
+float ClampVolume(float volume) {
+  return std::max(0.0f, std::min(1.0f, volume));
+}
+
 std::string_view ToString(ClientState state) {
   switch (state) {
     case ClientState::kSplash:
@@ -33,6 +38,8 @@ std::string_view ToString(ClientState state) {
       return "Lobby";
     case ClientState::kSettings:
       return "Settings";
+    case ClientState::kAudioSettings:
+      return "AudioSettings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -76,6 +83,9 @@ int Application::Run() {
   auto audio_engine = runtime_->Audio();
   if (audio_engine) {
     audio_->Initialize(*audio_engine);
+    audio_engine->SetMasterVolume(config_.master_volume);
+    audio_engine->SetMusicVolume(config_.music_volume);
+    audio_engine->SetSfxVolume(config_.sfx_volume);
   }
 
   assets_ = std::make_unique<ClientAssetManager>(runtime_->Renderer());
@@ -123,6 +133,19 @@ std::shared_ptr<engine::audio::AudioEngine> Application::Audio() {
   return runtime_->Audio();
 }
 
+void Application::SetAudioVolumes(float master_volume, float music_volume,
+                                  float sfx_volume) {
+  config_.master_volume = ClampVolume(master_volume);
+  config_.music_volume = ClampVolume(music_volume);
+  config_.sfx_volume = ClampVolume(sfx_volume);
+  if (auto audio_engine = runtime_->Audio()) {
+    audio_engine->SetMasterVolume(config_.master_volume);
+    audio_engine->SetMusicVolume(config_.music_volume);
+    audio_engine->SetSfxVolume(config_.sfx_volume);
+  }
+  UpdateRuntimeConfig();
+}
+
 ClientAssetManager& Application::Assets() { return *assets_; }
 
 ui::MenuBackground& Application::MenuBackground() { return *menu_background_; }
@@ -135,7 +158,15 @@ void Application::OnPlay() { scene_manager_->OnPlay(); }
 
 void Application::OnOpenSettings() { scene_manager_->OnOpenSettings(); }
 
+void Application::OnOpenAudioSettings() {
+  scene_manager_->OnOpenAudioSettings();
+}
+
 void Application::OnCloseSettings() { scene_manager_->OnCloseSettings(); }
+
+void Application::OnCloseAudioSettings() {
+  scene_manager_->OnCloseAudioSettings();
+}
 
 void Application::OnQuitApplication() {
   SaveProfile();
@@ -376,6 +407,12 @@ void Application::UpdateRuntimeConfig() {
   runtime_config_store.Set(
       std::string(constants::config::kClientRoomListRefreshMs),
       std::to_string(config_.room_list_refresh_ms));
+  runtime_config_store.Set(std::string(constants::config::kAudioMasterVolume),
+                           std::to_string(config_.master_volume));
+  runtime_config_store.Set(std::string(constants::config::kAudioMusicVolume),
+                           std::to_string(config_.music_volume));
+  runtime_config_store.Set(std::string(constants::config::kAudioSfxVolume),
+                           std::to_string(config_.sfx_volume));
 
   if (!SaveClientConfig(config_)) {
     LogLifecycle(engine::util::LogLevel::kWarn,

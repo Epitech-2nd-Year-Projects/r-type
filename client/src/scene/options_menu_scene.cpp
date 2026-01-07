@@ -119,7 +119,8 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Audio", menu_effects_.WrapClick({}));
+      "Audio",
+      menu_effects_.WrapClick([this]() { context_.OnOpenAudioSettings(); }));
   auto video_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
