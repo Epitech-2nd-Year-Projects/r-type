@@ -87,6 +87,9 @@ class GameRuntime {
   void AudioThreadMain();
   void DebugThreadMain();
 
+  void FlushNetworkCommandQueue();
+  void ProduceRenderSnapshot();
+
   Config config_;
   std::atomic<bool> running_{false};
 
