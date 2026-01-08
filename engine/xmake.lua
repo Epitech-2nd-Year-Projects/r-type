@@ -42,6 +42,13 @@ engine_module("scripting", {"engine_core", "engine_util", "engine_ecs", "engine_
 engine_module("console", {"engine_core", "engine_util", "engine_render", "engine_input", "engine_time", "engine_scripting"}, {"lua", "sol2"})
 engine_module("app", {"engine_core", "engine_audio", "engine_render", "engine_input", "engine_time", "engine_ui", "engine_scripting", "engine_console"})
 
+target("engine_runtime")
+    set_kind("static")
+    add_files("src/game_runtime.cpp")
+    add_headerfiles("include/engine/game_runtime.h")
+    add_includedirs("include", { public = true })
+    add_deps("engine_core", "engine_ecs", "engine_event", "engine_time")
+
 target("engine_debug")
     set_kind("static")
     add_files("src/debug/**.cpp")
@@ -52,5 +59,5 @@ target("engine_debug")
 
 target("engine")
     set_kind("phony")
-    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_profiling", "engine_scripting", "engine_console", "engine_app", "engine_debug")
+    add_deps("engine_core", "engine_util", "engine_math", "engine_time", "engine_event", "engine_resource", "engine_ecs", "engine_input", "engine_net", "engine_audio", "engine_render", "engine_ui", "engine_profiling", "engine_scripting", "engine_console", "engine_app", "engine_runtime", "engine_debug")
     add_headerfiles("include/engine/*.h")
