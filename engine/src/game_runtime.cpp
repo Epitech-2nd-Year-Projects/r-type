@@ -4,12 +4,17 @@
 
 namespace engine {
 
-GameRuntime::GameRuntime() : GameRuntime(Config{}) {}
+GameRuntime::GameRuntime()
+    : config_(Config{}),
+      registry_(std::make_unique<ecs::Registry>()),
+      event_bus_(std::make_unique<event::EventBus>()),
+      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()) {}
 
 GameRuntime::GameRuntime(Config config)
     : config_(config),
       registry_(std::make_unique<ecs::Registry>()),
-      event_bus_(std::make_unique<event::EventBus>()) {}
+      event_bus_(std::make_unique<event::EventBus>()),
+      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()) {}
 
 GameRuntime::~GameRuntime() { Stop(); }
 
@@ -108,7 +113,10 @@ void GameRuntime::LogicThreadMain() {
 
 void GameRuntime::FlushNetworkCommandQueue() {}
 
-void GameRuntime::ProduceRenderSnapshot() {}
+void GameRuntime::ProduceRenderSnapshot() {
+  static std::uint32_t tick_count = 0;
+  snapshot_buffer_->Produce(render::ExtractSnapshot(*registry_, tick_count++));
+}
 
 void GameRuntime::NetworkThreadMain() {
   while (running_.load()) {
