@@ -6,6 +6,7 @@
 
 #include "engine/audio/raylib_audio_engine.h"
 #include "engine/net/events.h"
+#include "engine/util/logging.h"
 
 namespace engine {
 
@@ -16,7 +17,21 @@ GameRuntime::GameRuntime()
       snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
       frame_interpolator_(
           std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
-      socket_(std::make_unique<net::UdpSocket>()) {}
+      socket_(std::make_unique<net::UdpSocket>()),
+      console_(std::make_unique<console::Console>()),
+      console_overlay_(std::make_unique<console::ConsoleOverlay>(*console_)),
+      frame_profiler_(std::make_unique<profiling::FrameProfiler>()),
+      profiling_overlay_(std::make_unique<profiling::ProfilingOverlay>()),
+      network_debugger_(std::make_unique<debug::NetworkDebugger>()),
+      component_inspector_registry_(
+          std::make_unique<debug::ComponentInspectorRegistry>()),
+      debug_suite_(std::make_unique<debug::DebugSuite>(
+          *registry_, *component_inspector_registry_)) {
+  profiling_overlay_->SetFrameProfiler(*frame_profiler_);
+  debug_suite_->SetConsoleOverlay(*console_overlay_);
+  debug_suite_->SetProfilingOverlay(*profiling_overlay_);
+  debug_suite_->SetNetworkDebugger(*network_debugger_);
+}
 
 GameRuntime::GameRuntime(Config config)
     : config_(config),
@@ -27,7 +42,21 @@ GameRuntime::GameRuntime(Config config)
           std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
       socket_(std::make_unique<net::UdpSocket>()),
       audio_dispatcher_(
-          std::make_unique<audio::AudioDispatcher>(audio_command_queue_)) {}
+          std::make_unique<audio::AudioDispatcher>(audio_command_queue_)),
+      console_(std::make_unique<console::Console>()),
+      console_overlay_(std::make_unique<console::ConsoleOverlay>(*console_)),
+      frame_profiler_(std::make_unique<profiling::FrameProfiler>()),
+      profiling_overlay_(std::make_unique<profiling::ProfilingOverlay>()),
+      network_debugger_(std::make_unique<debug::NetworkDebugger>()),
+      component_inspector_registry_(
+          std::make_unique<debug::ComponentInspectorRegistry>()),
+      debug_suite_(std::make_unique<debug::DebugSuite>(
+          *registry_, *component_inspector_registry_)) {
+  profiling_overlay_->SetFrameProfiler(*frame_profiler_);
+  debug_suite_->SetConsoleOverlay(*console_overlay_);
+  debug_suite_->SetProfilingOverlay(*profiling_overlay_);
+  debug_suite_->SetNetworkDebugger(*network_debugger_);
+}
 
 GameRuntime::~GameRuntime() { Stop(); }
 
@@ -55,10 +84,12 @@ void GameRuntime::Stop() {
   if (logic_thread_ && logic_thread_->joinable()) logic_thread_->join();
   if (network_thread_ && network_thread_->joinable()) network_thread_->join();
   if (audio_thread_ && audio_thread_->joinable()) audio_thread_->join();
+  if (debug_thread_ && debug_thread_->joinable()) debug_thread_->join();
 
   logic_thread_.reset();
   network_thread_.reset();
   audio_thread_.reset();
+  debug_thread_.reset();
 }
 
 bool GameRuntime::Running() const { return running_.load(); }
@@ -101,6 +132,9 @@ void GameRuntime::RunMainThread(
         std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch())
             .count();
+
+    frame_profiler_->RecordFrame(delta_time);
+    debug_suite_->Draw();
 
     [[maybe_unused]] auto sprites = frame_interpolator_->Interpolate(now_ns);
 
@@ -230,7 +264,18 @@ void GameRuntime::AudioThreadMain() {
 
 void GameRuntime::DebugThreadMain() {
   while (running_.load()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (!frame_profiler_) continue;
+
+    float fps = frame_profiler_->current_fps();
+    float latency = 0.0f;
+    if (network_debugger_) {
+      latency = network_debugger_->conditions().latency_ms.load();
+    }
+
+    ENGINE_LOG_INFO("Telemetry: FPS: ", fps, ", Latency (Sim): ", latency,
+                    " ms");
   }
 }
 

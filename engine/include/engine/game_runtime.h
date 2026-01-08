@@ -10,10 +10,16 @@
 
 #include "engine/audio/audio_command.h"
 #include "engine/audio/audio_dispatcher.h"
+#include "engine/console/console.h"
+#include "engine/console/console_overlay.h"
+#include "engine/debug/debug_suite.h"
+#include "engine/debug/network_debugger.h"
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
 #include "engine/net/received_packet.h"
 #include "engine/net/udp_socket.h"
+#include "engine/profiling/frame_profiler.h"
+#include "engine/profiling/profiling_overlay.h"
 #include "engine/render/frame_interpolator.h"
 #include "engine/render/snapshot_buffer.h"
 #include "engine/time/time_delta.h"
@@ -115,6 +121,15 @@ class GameRuntime {
 
   audio::AudioCommandQueue audio_command_queue_;
   std::unique_ptr<audio::AudioDispatcher> audio_dispatcher_;
+
+  std::unique_ptr<console::Console> console_;
+  std::unique_ptr<console::ConsoleOverlay> console_overlay_;
+  std::unique_ptr<profiling::FrameProfiler> frame_profiler_;
+  std::unique_ptr<profiling::ProfilingOverlay> profiling_overlay_;
+  std::unique_ptr<debug::NetworkDebugger> network_debugger_;
+  std::unique_ptr<debug::ComponentInspectorRegistry>
+      component_inspector_registry_;
+  std::unique_ptr<debug::DebugSuite> debug_suite_;
 
   std::unique_ptr<std::thread> logic_thread_;
   std::unique_ptr<std::thread> network_thread_;
