@@ -35,7 +35,7 @@ TEST(AudioDispatcherTest, PushesPlayMusicCommand) {
   EXPECT_FALSE(play_cmd.looping);
 }
 
-TEST(AudioDispatcherTest, PushesvolumeCommands) {
+TEST(AudioDispatcherTest, PushesVolumeCommands) {
   AudioCommandQueue queue;
   AudioDispatcher dispatcher(queue);
 
