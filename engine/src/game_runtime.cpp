@@ -18,6 +18,8 @@ GameRuntime::GameRuntime()
       frame_interpolator_(
           std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
       socket_(std::make_unique<net::UdpSocket>()),
+      audio_dispatcher_(
+          std::make_unique<audio::AudioDispatcher>(audio_command_queue_)),
       console_(std::make_unique<console::Console>()),
       console_overlay_(std::make_unique<console::ConsoleOverlay>(*console_)),
       frame_profiler_(std::make_unique<profiling::FrameProfiler>()),
@@ -189,8 +191,7 @@ void GameRuntime::FlushNetworkCommandQueue() {
 }
 
 void GameRuntime::ProduceRenderSnapshot() {
-  static std::uint32_t tick_count = 0;
-  snapshot_buffer_->Produce(render::ExtractSnapshot(*registry_, tick_count++));
+  snapshot_buffer_->Produce(render::ExtractSnapshot(*registry_, tick_count_++));
 }
 
 void GameRuntime::NetworkThreadMain() {
@@ -207,6 +208,7 @@ void GameRuntime::NetworkThreadMain() {
     if (result.error) {
       if (result.error != std::errc::resource_unavailable_try_again &&
           result.error != std::errc::operation_would_block) {
+        ENGINE_LOG_ERROR("Network receive error: ", result.error.value());
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
@@ -258,12 +260,15 @@ void GameRuntime::AudioThreadMain() {
       audio_engine->Update();
       std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
+  } catch (const std::exception& e) {
+    ENGINE_LOG_ERROR("Audio thread exception: ", e.what());
   } catch (...) {
+    ENGINE_LOG_ERROR("Audio thread unknown exception");
   }
 }
 
 void GameRuntime::DebugThreadMain() {
-  while (running_.load()) {
+  while (running_.load(std::memory_order_acquire)) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     if (!frame_profiler_) continue;
