@@ -74,10 +74,41 @@ void GameRuntime::RunMainThread(
 }
 
 void GameRuntime::LogicThreadMain() {
-  while (running_.load()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  using clock = std::chrono::steady_clock;
+  const auto timestep = config_.logic_timestep;
+  auto previous = clock::now();
+  time::TimeDelta accumulator = time::TimeDelta::zero();
+
+  while (running_.load(std::memory_order_acquire)) {
+    const auto current = clock::now();
+    const auto frame_time = time::TimeDelta::from_microseconds(
+        std::chrono::duration_cast<std::chrono::microseconds>(current -
+                                                              previous)
+            .count());
+    previous = current;
+
+    accumulator += frame_time;
+
+    constexpr int kMaxIterations = 5;
+    int iterations = 0;
+
+    while (accumulator >= timestep && iterations < kMaxIterations) {
+      event_bus_->FlushChannel(util::ThreadId::kLogic);
+      FlushNetworkCommandQueue();
+      registry_->UpdateSystems(timestep);
+      ProduceRenderSnapshot();
+
+      accumulator -= timestep;
+      ++iterations;
+    }
+
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
   }
 }
+
+void GameRuntime::FlushNetworkCommandQueue() {}
+
+void GameRuntime::ProduceRenderSnapshot() {}
 
 void GameRuntime::NetworkThreadMain() {
   while (running_.load()) {
