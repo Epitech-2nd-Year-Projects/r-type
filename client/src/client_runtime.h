@@ -14,6 +14,7 @@
 #include "client_state.h"
 #include "engine/console/console_overlay.h"
 #include "engine/debug/imgui_integration.h"
+#include "engine/profiling/frame_profiler.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
@@ -194,6 +195,7 @@ class ClientRuntime {
   std::unique_ptr<ParallaxBackground> background_;
   std::unique_ptr<BloomResources> bloom_;
   engine::profiling::ProfilingOverlay profiling_overlay_{};
+  std::unique_ptr<engine::profiling::FrameProfiler> frame_profiler_;
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
   std::unique_ptr<engine::debug::ComponentInspectorRegistry>
       component_registry_;
