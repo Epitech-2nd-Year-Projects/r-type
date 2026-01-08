@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include "engine/net/events.h"
+
 namespace engine {
 
 GameRuntime::GameRuntime()
@@ -10,7 +12,8 @@ GameRuntime::GameRuntime()
       event_bus_(std::make_unique<event::EventBus>()),
       snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
       frame_interpolator_(
-          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)) {}
+          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
+      socket_(std::make_unique<net::UdpSocket>()) {}
 
 GameRuntime::GameRuntime(Config config)
     : config_(config),
@@ -18,7 +21,8 @@ GameRuntime::GameRuntime(Config config)
       event_bus_(std::make_unique<event::EventBus>()),
       snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
       frame_interpolator_(
-          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)) {}
+          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
+      socket_(std::make_unique<net::UdpSocket>()) {}
 
 GameRuntime::~GameRuntime() { Stop(); }
 
@@ -55,6 +59,20 @@ void GameRuntime::Stop() {
 }
 
 bool GameRuntime::Running() const { return running_.load(); }
+
+void GameRuntime::StartNetwork(std::uint16_t port) {
+  if (socket_) {
+    socket_->open(net::UdpSocket::Protocol::kIpv4);
+    socket_->bind(net::Endpoint::AnyIpv4(port));
+  }
+}
+
+std::uint16_t GameRuntime::GetBoundPort() const {
+  if (socket_ && socket_->is_open()) {
+    return socket_->local_endpoint().port();
+  }
+  return 0;
+}
 
 ecs::Registry& GameRuntime::Registry() { return *registry_; }
 
@@ -122,7 +140,12 @@ void GameRuntime::LogicThreadMain() {
   }
 }
 
-void GameRuntime::FlushNetworkCommandQueue() {}
+void GameRuntime::FlushNetworkCommandQueue() {
+  net::ReceivedPacket packet;
+  while (network_in_queue_.TryPop(packet)) {
+    event_bus_->Publish(net::PacketReceivedEvent{std::move(packet)});
+  }
+}
 
 void GameRuntime::ProduceRenderSnapshot() {
   static std::uint32_t tick_count = 0;
@@ -130,8 +153,31 @@ void GameRuntime::ProduceRenderSnapshot() {
 }
 
 void GameRuntime::NetworkThreadMain() {
-  while (running_.load()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::array<std::uint8_t, 4096> receive_buffer;
+
+  while (running_.load(std::memory_order_acquire)) {
+    if (!socket_ || !socket_->is_open()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      continue;
+    }
+
+    auto result = socket_->receive_from(receive_buffer);
+
+    if (result.error) {
+      if (result.error != std::errc::resource_unavailable_try_again &&
+          result.error != std::errc::operation_would_block) {
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      continue;
+    }
+
+    if (result.bytes_transferred > 0) {
+      net::ReceivedPacket packet;
+      packet.payload.assign(receive_buffer.begin(),
+                            receive_buffer.begin() + result.bytes_transferred);
+      packet.remote = result.remote_endpoint;
+      network_in_queue_.Push(std::move(packet));
+    }
   }
 }
 

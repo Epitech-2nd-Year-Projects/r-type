@@ -10,9 +10,12 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
+#include "engine/net/received_packet.h"
+#include "engine/net/udp_socket.h"
 #include "engine/render/frame_interpolator.h"
 #include "engine/render/snapshot_buffer.h"
 #include "engine/time/time_delta.h"
+#include "engine/util/thread_safe_queue.h"
 
 namespace engine {
 
@@ -66,7 +69,10 @@ class GameRuntime {
    * @brief Access the ECS Registry.
    * @return Reference to the thread-local or shared Registry.
    */
-  [[nodiscard]] ecs::Registry& Registry();
+  void StartNetwork(std::uint16_t port);
+  [[nodiscard]] std::uint16_t GetBoundPort() const;
+
+  ecs::Registry& Registry();
 
   /**
    * @brief Access the central EventBus.
@@ -99,6 +105,9 @@ class GameRuntime {
   std::unique_ptr<event::EventBus> event_bus_;
   std::unique_ptr<render::SnapshotBuffer> snapshot_buffer_;
   std::unique_ptr<render::FrameInterpolator> frame_interpolator_;
+
+  util::ThreadSafeQueue<net::ReceivedPacket> network_in_queue_;
+  std::unique_ptr<net::UdpSocket> socket_;
 
   std::unique_ptr<std::thread> logic_thread_;
   std::unique_ptr<std::thread> network_thread_;
