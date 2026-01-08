@@ -8,13 +8,17 @@ GameRuntime::GameRuntime()
     : config_(Config{}),
       registry_(std::make_unique<ecs::Registry>()),
       event_bus_(std::make_unique<event::EventBus>()),
-      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()) {}
+      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
+      frame_interpolator_(
+          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)) {}
 
 GameRuntime::GameRuntime(Config config)
     : config_(config),
       registry_(std::make_unique<ecs::Registry>()),
       event_bus_(std::make_unique<event::EventBus>()),
-      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()) {}
+      snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
+      frame_interpolator_(
+          std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)) {}
 
 GameRuntime::~GameRuntime() { Stop(); }
 
@@ -67,6 +71,13 @@ void GameRuntime::RunMainThread(
     last_time = current_time;
 
     event_bus_->FlushChannel(util::ThreadId::kMain);
+
+    std::uint64_t now_ns =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count();
+
+    [[maybe_unused]] auto sprites = frame_interpolator_->Interpolate(now_ns);
 
     if (render_callback) {
       if (!render_callback(delta_time)) {
