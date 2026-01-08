@@ -10,6 +10,7 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
+#include "engine/render/snapshot_buffer.h"
 #include "engine/time/time_delta.h"
 
 namespace engine {
@@ -95,6 +96,7 @@ class GameRuntime {
 
   std::unique_ptr<ecs::Registry> registry_;
   std::unique_ptr<event::EventBus> event_bus_;
+  std::unique_ptr<render::SnapshotBuffer> snapshot_buffer_;
 
   std::unique_ptr<std::thread> logic_thread_;
   std::unique_ptr<std::thread> network_thread_;
