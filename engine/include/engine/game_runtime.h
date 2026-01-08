@@ -8,6 +8,8 @@
 #include <thread>
 #include <vector>
 
+#include "engine/audio/audio_command.h"
+#include "engine/audio/audio_dispatcher.h"
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
 #include "engine/net/received_packet.h"
@@ -80,6 +82,8 @@ class GameRuntime {
    */
   [[nodiscard]] event::EventBus& EventBus();
 
+  [[nodiscard]] audio::AudioDispatcher& GetAudioDispatcher();
+
   /**
    * @brief Executes the main thread loop (typically rendering).
    *
@@ -108,6 +112,9 @@ class GameRuntime {
 
   util::ThreadSafeQueue<net::ReceivedPacket> network_in_queue_;
   std::unique_ptr<net::UdpSocket> socket_;
+
+  audio::AudioCommandQueue audio_command_queue_;
+  std::unique_ptr<audio::AudioDispatcher> audio_dispatcher_;
 
   std::unique_ptr<std::thread> logic_thread_;
   std::unique_ptr<std::thread> network_thread_;
