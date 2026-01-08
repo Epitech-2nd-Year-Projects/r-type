@@ -77,7 +77,16 @@ class GameRuntime {
    * @brief Access the ECS Registry.
    * @return Reference to the thread-local or shared Registry.
    */
+  /**
+   * @brief Starts the network subsystem on the specified port.
+   * @param port The port to bind to. If 0, the OS assigns an available port.
+   */
   void StartNetwork(std::uint16_t port);
+
+  /**
+   * @brief Returns the port the socket is bound to.
+   * @return The bound port, or 0 if the socket is not open.
+   */
   [[nodiscard]] std::uint16_t GetBoundPort() const;
 
   ecs::Registry& Registry();
@@ -88,6 +97,14 @@ class GameRuntime {
    */
   [[nodiscard]] event::EventBus& EventBus();
 
+  /**
+   * @brief Access the audio command dispatcher.
+   *
+   * Use this to queue audio operations (play sound, play music, etc.)
+   * that will be processed on the dedicated audio thread.
+   *
+   * @return Reference to the AudioDispatcher.
+   */
   [[nodiscard]] audio::AudioDispatcher& GetAudioDispatcher();
 
   /**
@@ -118,6 +135,7 @@ class GameRuntime {
 
   util::ThreadSafeQueue<net::ReceivedPacket> network_in_queue_;
   std::unique_ptr<net::UdpSocket> socket_;
+  std::uint32_t tick_count_{0};
 
   audio::AudioCommandQueue audio_command_queue_;
   std::unique_ptr<audio::AudioDispatcher> audio_dispatcher_;
