@@ -112,6 +112,11 @@ class UdpSocket {
   bool is_open() const { return socket_ && socket_->is_open(); }
 
   /**
+   * @brief Get the local endpoint the socket is bound to
+   */
+  Endpoint local_endpoint() const;
+
+  /**
    * @brief Close socket
    */
   void close();
