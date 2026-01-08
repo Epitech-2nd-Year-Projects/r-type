@@ -1,7 +1,10 @@
 #include "engine/game_runtime.h"
 
 #include <chrono>
+#include <thread>
+#include <variant>
 
+#include "engine/audio/raylib_audio_engine.h"
 #include "engine/net/events.h"
 
 namespace engine {
@@ -22,7 +25,9 @@ GameRuntime::GameRuntime(Config config)
       snapshot_buffer_(std::make_unique<render::SnapshotBuffer>()),
       frame_interpolator_(
           std::make_unique<render::FrameInterpolator>(*snapshot_buffer_)),
-      socket_(std::make_unique<net::UdpSocket>()) {}
+      socket_(std::make_unique<net::UdpSocket>()),
+      audio_dispatcher_(
+          std::make_unique<audio::AudioDispatcher>(audio_command_queue_)) {}
 
 GameRuntime::~GameRuntime() { Stop(); }
 
@@ -50,12 +55,10 @@ void GameRuntime::Stop() {
   if (logic_thread_ && logic_thread_->joinable()) logic_thread_->join();
   if (network_thread_ && network_thread_->joinable()) network_thread_->join();
   if (audio_thread_ && audio_thread_->joinable()) audio_thread_->join();
-  if (debug_thread_ && debug_thread_->joinable()) debug_thread_->join();
 
   logic_thread_.reset();
   network_thread_.reset();
   audio_thread_.reset();
-  debug_thread_.reset();
 }
 
 bool GameRuntime::Running() const { return running_.load(); }
@@ -77,6 +80,10 @@ std::uint16_t GameRuntime::GetBoundPort() const {
 ecs::Registry& GameRuntime::Registry() { return *registry_; }
 
 event::EventBus& GameRuntime::EventBus() { return *event_bus_; }
+
+audio::AudioDispatcher& GameRuntime::GetAudioDispatcher() {
+  return *audio_dispatcher_;
+}
 
 void GameRuntime::RunMainThread(
     std::function<bool(time::TimeDelta)> render_callback) {
@@ -182,8 +189,42 @@ void GameRuntime::NetworkThreadMain() {
 }
 
 void GameRuntime::AudioThreadMain() {
-  while (running_.load()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  try {
+    [[maybe_unused]] auto audio_engine = audio::CreateRaylibAudioEngine();
+
+    while (running_.load(std::memory_order_acquire)) {
+      audio::AudioCommand cmd;
+      while (audio_command_queue_.TryPop(cmd)) {
+        std::visit(
+            [&](auto&& command) {
+              using T = std::decay_t<decltype(command)>;
+              if constexpr (std::is_same_v<T, audio::PlaySoundCommand>) {
+                audio_engine->PlaySoundEffect(command.path);
+              } else if constexpr (std::is_same_v<T, audio::PlayMusicCommand>) {
+                audio_engine->PlayMusic(command.path);
+              } else if constexpr (std::is_same_v<T, audio::StopMusicCommand>) {
+                audio_engine->StopMusic();
+              } else if constexpr (std::is_same_v<T, audio::SetVolumeCommand>) {
+                switch (command.target) {
+                  case audio::SetVolumeCommand::Target::kMaster:
+                    audio_engine->SetMasterVolume(command.volume);
+                    break;
+                  case audio::SetVolumeCommand::Target::kMusic:
+                    audio_engine->SetMusicVolume(command.volume);
+                    break;
+                  case audio::SetVolumeCommand::Target::kSfx:
+                    audio_engine->SetSfxVolume(command.volume);
+                    break;
+                }
+              }
+            },
+            cmd);
+      }
+
+      audio_engine->Update();
+      std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+  } catch (...) {
   }
 }
 
