@@ -38,6 +38,11 @@ void EventBus::DispatchQueued() {
   }
 }
 
+void EventBus::FlushChannel(engine::util::ThreadId self) {
+  std::lock_guard lock(channels_mutex_);
+  channels_[self].FlushEvents();
+}
+
 bool EventBus::HasQueuedEvents() const {
   std::lock_guard lock(queue_mutex_);
   return !queued_events_.empty();
