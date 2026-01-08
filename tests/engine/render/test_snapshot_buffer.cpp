@@ -41,8 +41,6 @@ TEST(SnapshotBufferTest, ConcurrentProducerConsumer) {
     while (running) {
       const auto& s = buffer.Consume();
       if (s.valid) {
-        // We might skip ticks, but we should strictly increase
-        // (unless we read the same snapshot multiple times if producer is slow)
         EXPECT_GE(s.tick, last_tick);
         last_tick = s.tick;
       }
