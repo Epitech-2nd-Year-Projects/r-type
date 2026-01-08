@@ -47,7 +47,7 @@ target("engine_runtime")
     add_files("src/game_runtime.cpp")
     add_headerfiles("include/engine/game_runtime.h")
     add_includedirs("include", { public = true })
-    add_deps("engine_core", "engine_ecs", "engine_event", "engine_time", "engine_net", "engine_render", "engine_audio")
+    add_deps("engine_core", "engine_ecs", "engine_event", "engine_time", "engine_net", "engine_render", "engine_audio", "engine_console", "engine_profiling", "engine_debug")
 
 target("engine_debug")
     set_kind("static")
