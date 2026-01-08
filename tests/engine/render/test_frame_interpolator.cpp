@@ -41,7 +41,7 @@ TEST(FrameInterpolatorTest, InterpolatesPositions) {
   EXPECT_NEAR(sprites[0].position.y, 50.0f, 0.001f);
 }
 
-TEST(FrameInterpolatorTest, RecursionHandlesSpawn) {
+TEST(FrameInterpolatorTest, RendersNewlySpawnedEntityWithoutInterpolation) {
   SnapshotBuffer buffer;
   FrameInterpolator interpolator(buffer);
 
