@@ -16,7 +16,7 @@ ConsoleOverlay::ConsoleOverlay(Console& console)
 
 ConsoleOverlay::ConsoleOverlay(Console& console,
                                const ConsoleOverlayConfig& config)
-    : console_(&console), config_(config) {
+    : console_(console), config_(config) {
   key_states_.resize(static_cast<std::size_t>(input::Key::kF4) + 1, false);
 }
 
@@ -172,8 +172,8 @@ void ConsoleOverlay::Submit() {
     return;
   }
 
-  if (console_) {
-    console_->Execute(input_text_);
+  if (console_.has_value()) {
+    console_->get().Execute(input_text_);
   }
 
   input_text_.clear();
@@ -184,13 +184,13 @@ void ConsoleOverlay::Submit() {
 }
 
 void ConsoleOverlay::UpdateAutocomplete() {
-  if (!console_ || input_text_.empty()) {
+  if (!console_.has_value() || input_text_.empty()) {
     show_autocomplete_ = false;
     autocomplete_suggestions_.clear();
     return;
   }
 
-  autocomplete_suggestions_ = console_->Autocomplete(input_text_);
+  autocomplete_suggestions_ = console_->get().Autocomplete(input_text_);
   show_autocomplete_ = !autocomplete_suggestions_.empty();
   autocomplete_index_ = show_autocomplete_ ? 0 : -1;
 }
@@ -207,9 +207,9 @@ void ConsoleOverlay::ApplyAutocomplete() {
 }
 
 void ConsoleOverlay::HistoryUp() {
-  if (!console_) return;
+  if (!console_.has_value()) return;
 
-  const auto& history = console_->GetInputHistory();
+  const auto& history = console_->get().GetInputHistory();
   if (history.empty()) return;
 
   if (history_index_ < 0) {
@@ -225,9 +225,9 @@ void ConsoleOverlay::HistoryUp() {
 }
 
 void ConsoleOverlay::HistoryDown() {
-  if (!console_) return;
+  if (!console_.has_value()) return;
 
-  const auto& history = console_->GetInputHistory();
+  const auto& history = console_->get().GetInputHistory();
   if (history.empty() || history_index_ < 0) return;
 
   ++history_index_;
@@ -242,8 +242,8 @@ void ConsoleOverlay::HistoryDown() {
 
 void ConsoleOverlay::ScrollUp() {
   constexpr std::size_t kScrollStep = 3;
-  if (console_) {
-    std::size_t max_scroll = console_->GetHistorySize();
+  if (console_.has_value()) {
+    std::size_t max_scroll = console_->get().GetHistorySize();
     scroll_offset_ = std::min(scroll_offset_ + kScrollStep, max_scroll);
   }
 }
@@ -327,8 +327,8 @@ void ConsoleOverlay::Draw(render::Renderer2D& renderer,
   float output_height = output_bottom - output_top;
   float line_height = config_.font_size + config_.line_spacing;
 
-  if (console_ && output_height > 0) {
-    const auto& history = console_->GetHistory();
+  if (console_.has_value() && output_height > 0) {
+    const auto& history = console_->get().GetHistory();
 
     std::vector<std::pair<std::string, ConsoleLine::Type>> display_lines;
     for (const auto& entry : history) {
