@@ -39,3 +39,26 @@ TEST(GameRuntimeTest, MainThreadLoop) {
   EXPECT_EQ(frames, 5);
   EXPECT_FALSE(runtime.Running());
 }
+
+TEST(GameRuntimeTest, LogicLoopIntegration) {
+  engine::GameRuntime runtime;
+  std::atomic<bool> event_processed{false};
+
+  runtime.EventBus().Subscribe<int>(
+      [&](const int& val) { event_processed = true; });
+
+  runtime.Start();
+
+  runtime.EventBus().PostTo(engine::util::ThreadId::kLogic, 100);
+
+  auto start = std::chrono::steady_clock::now();
+  while (!event_processed) {
+    if (std::chrono::steady_clock::now() - start > std::chrono::seconds(1))
+      break;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
+  runtime.Stop();
+
+  EXPECT_TRUE(event_processed);
+}
