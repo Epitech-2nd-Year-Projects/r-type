@@ -59,6 +59,20 @@ jobs:
       - name: Build
         run: bash scripts/build.sh
 
+      - name: Print xmake package install logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $logDir = "$env:LOCALAPPDATA\.xmake\cache\packages"
+          if (Test-Path $logDir) {
+            Get-ChildItem -Path $logDir -Recurse -Filter "install.txt" | ForEach-Object {
+              Write-Host "========== $($_.FullName) =========="
+              Get-Content $_.FullName
+            }
+          } else {
+            Write-Host "No xmake package logs found"
+          }
+
       - name: Test
         run: bash scripts/test.sh
 
