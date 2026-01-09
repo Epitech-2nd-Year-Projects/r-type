@@ -71,7 +71,10 @@ int Application::Run() {
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "target configured");
 
-  if (!runtime_->Initialize(config_)) {
+  if (!runtime_->Initialize(config_,
+                            [this](const protocol::CommandPayload& payload) {
+                              EnqueueCommand(payload);
+                            })) {
     return 1;
   }
 
