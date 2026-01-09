@@ -34,7 +34,7 @@ bool AllowSettingsReturn(const SceneManager& manager, ClientState next_state) {
          manager.settings_return_state().value() == next_state;
 }
 
-constexpr std::array<TransitionRule, 36> kTransitionRules{{
+constexpr std::array<TransitionRule, 44> kTransitionRules{{
     {ClientState::kSplash, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kConnecting, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kLobby, &AllowAlways},
@@ -187,6 +187,10 @@ void SceneManager::OnOpenAudioSettings() {
     return;
   }
   TransitionTo(ClientState::kAudioSettings);
+}
+
+void SceneManager::OnCloseAudioSettings() {
+  TransitionTo(ClientState::kSettings);
 }
 
 void SceneManager::OnCloseSettings() {
