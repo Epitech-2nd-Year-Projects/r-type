@@ -102,7 +102,6 @@ void RegisterClientInspectors(
           }
         }
         if (modified && is_debug) {
-          // Send only the position vector (8 bytes), skipping the rest of the struct
           params_to_payload(id, protocol::DebugComponentId::kTransform,
                             &pos.position, sizeof(pos.position));
         }
