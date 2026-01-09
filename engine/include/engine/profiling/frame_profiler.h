@@ -1,6 +1,8 @@
 #ifndef ENGINE_PROFILING_FRAME_PROFILER_H_
 #define ENGINE_PROFILING_FRAME_PROFILER_H_
 
+#include <atomic>
+
 #include "engine/profiling/ring_buffer.h"
 #include "engine/time/time_delta.h"
 
@@ -34,8 +36,8 @@ class FrameProfiler {
 
  private:
   RingBuffer<float, kSampleCount> frame_times_;
-  float current_fps_{0.0f};
-  float current_frame_time_ms_{0.0f};
+  std::atomic<float> current_fps_{0.0f};
+  std::atomic<float> current_frame_time_ms_{0.0f};
 };
 
 }  // namespace engine::profiling

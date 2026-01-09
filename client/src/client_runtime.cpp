@@ -214,6 +214,9 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   network_debugger_ = std::make_unique<engine::debug::NetworkDebugger>();
   client::debug::RegisterClientInspectors(*component_registry_);
 
+  frame_profiler_ = std::make_unique<engine::profiling::FrameProfiler>();
+  profiling_overlay_.SetFrameProfiler(*frame_profiler_);
+
   bloom_ = std::make_unique<BloomResources>();
   if (!bloom_->Initialize(constants::client::kBloomShaderPath)) {
     LogLifecycle(engine::util::LogLevel::kWarn, "Bloom shader failed to load");
@@ -265,6 +268,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   if (!engine_) {
     return;
   }
+
+  frame_profiler_->RecordFrame(dt);
 
   UpdateDebugToggle();
   UpdateImGuiToggle();

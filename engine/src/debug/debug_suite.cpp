@@ -35,6 +35,8 @@ void DebugSuite::RegisterGizmo(std::string name,
 }
 
 void DebugSuite::Draw() {
+  if (ImGui::GetCurrentContext() == nullptr) return;
+
   DrawMainMenuBar();
 
   if (config_.show_hierarchy || config_.show_inspector) {
