@@ -159,6 +159,7 @@ class FakeClientContext final : public client::ClientContext {
   void OnPlay() override { ++play_calls_; }
   void OnOpenSettings() override { ++open_settings_calls_; }
   void OnOpenAudioSettings() override { ++open_audio_settings_calls_; }
+  void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
@@ -254,6 +255,7 @@ class FakeClientContext final : public client::ClientContext {
   int play_calls_{0};
   int open_settings_calls_{0};
   int open_audio_settings_calls_{0};
+  int close_audio_settings_calls_{0};
   int close_settings_calls_{0};
   int open_profile_calls_{0};
   int close_profile_calls_{0};
