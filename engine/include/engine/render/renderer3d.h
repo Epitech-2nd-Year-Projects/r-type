@@ -43,8 +43,6 @@ class Renderer3D {
  public:
   virtual ~Renderer3D() = default;
 
-  // === Camera Management ===
-
   /**
    * @brief Begin 3D rendering mode with the specified camera.
    *
@@ -59,8 +57,6 @@ class Renderer3D {
    * Must be called after all 3D draw calls are complete.
    */
   virtual void End3D() = 0;
-
-  // === Primitives ===
 
   /**
    * @brief Draw a solid cube.
@@ -161,8 +157,6 @@ class Renderer3D {
   virtual void DrawPoint3D(const math::Vector3f& position,
                            const Color& color) = 0;
 
-  // === Models ===
-
   /**
    * @brief Draw a 3D model with the specified parameters.
    * @param model The model to draw.
@@ -186,8 +180,6 @@ class Renderer3D {
    * @return Shared pointer to the loaded model, or nullptr on failure.
    */
   virtual std::shared_ptr<Model> LoadModelFromFile(const std::string& path) = 0;
-
-  // === Lighting ===
 
   /**
    * @brief Set the lighting configuration for subsequent draws.
