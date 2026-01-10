@@ -65,7 +65,6 @@ ProfileScene::ProfileScene(ClientContext& context)
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
-  // Title
   title_ = std::make_shared<engine::ui::TextElement>(
       "Profile",
       engine::ui::FontSize::Pixels(constants::ui::Profile::kButtonHeight *
@@ -208,7 +207,6 @@ ProfileScene::ProfileScene(ClientContext& context)
       constants::ui::Profile::kValueColor);
   root->AddChild(games_played_text_);
 
-  // Button row
   auto button_spacer = std::make_shared<engine::ui::BoxElement>();
   button_spacer->Layout().size.height =
       engine::ui::LayoutValue::Pixels(constants::ui::Profile::kSectionSpacing);
@@ -312,7 +310,6 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   LayoutUi(renderer);
   canvas_.LayoutAndDraw(renderer);
 
-  // Draw avatar
   if (avatar_renderer_) {
     avatar_renderer_->Draw(renderer, selected_avatar_, avatar_position_,
                            constants::ui::Profile::kAvatarDisplaySize);
