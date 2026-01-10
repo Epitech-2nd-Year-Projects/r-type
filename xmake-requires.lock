@@ -222,49 +222,52 @@
     },
     ["macosx|arm64"] = {
         ["asio#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "1.36.0"
         },
-        ["cmake >=3.11#f56260b5"] = {
-            version = "4.2.0"
-        },
         ["cmake#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "4.0.3"
         },
-        ["ffmpeg#f56260b5"] = {
-            version = "7.1"
-        },
         ["gtest#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "v1.17.0"
         },
-        ["imgui#f56260b5"] = {
-            version = "v1.92.5"
-        },
-        ["lua >=5.4#f56260b5"] = {
-            version = "5.4.8"
-        },
-        ["lua#f56260b5"] = {
-            version = "5.4.8"
-        },
-        ["nasm#f56260b5"] = {
-            version = "2.16.03"
-        },
         ["ninja#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "v1.13.1"
         },
-        ["nlohmann_json#f56260b5"] = {
-            version = "v3.12.0"
-        },
         ["opengl#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "latest"
         },
-        ["pkg-config#f56260b5"] = {
-            version = "2.5.1"
-        },
         ["raylib#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
             version = "5.5"
-        },
-        ["sol2#f56260b5"] = {
-            version = "v3.5.0"
         }
     },
     ["macosx|x86_64"] = {
