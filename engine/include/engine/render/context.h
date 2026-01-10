@@ -6,6 +6,7 @@
 namespace engine::render {
 
 class Renderer2D;
+class Renderer3D;
 
 /**
  * @brief Rendering context representing a frame lifecycle.
@@ -33,6 +34,11 @@ class RenderContext {
    * @brief Access the 2D renderer bound to the context.
    */
   virtual Renderer2D& Get2DRenderer() = 0;
+
+  /**
+   * @brief Access the 3D renderer bound to the context.
+   */
+  virtual Renderer3D& Get3DRenderer() = 0;
 };
 
 }  // namespace engine::render
