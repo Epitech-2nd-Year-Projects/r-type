@@ -34,7 +34,7 @@ void GameInstance::RegisterComponents() {
 }
 
 void GameInstance::RegisterSystems() {
-  // Systems will be added as the game logic is expanded
+  // TODO: Register game systems
 }
 
 void GameInstance::Start() {
@@ -48,7 +48,6 @@ void GameInstance::Start() {
 }
 
 void GameInstance::InitializeGame() {
-  // Reset fighter positions and health at round start
   for (auto& [player_id, entity_id] : player_entities_) {
     auto& positions = registry_->GetComponents<engine::ecs::PositionComponent>();
     auto& healths = registry_->GetComponents<components::HealthComponent>();

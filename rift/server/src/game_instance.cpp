@@ -281,7 +281,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
         state.flags |= 4u;  // Facing left flag
       }
       state.score = fighter_opt->get().rounds_won;
-      state.lives = 1;  // Rounds are single-life
+      state.lives = 1;
       state.player_id = fighter_opt->get().player_id;
     }
 
@@ -305,7 +305,6 @@ rift::GameInstance &GameInstance::Logic() { return *logic_; }
 const rift::GameInstance &GameInstance::Logic() const { return *logic_; }
 
 bool GameInstance::CheckStartCondition() const {
-  // Rift requires exactly 2 players, both ready
   if (players_.size() != 2) {
     return false;
   }
