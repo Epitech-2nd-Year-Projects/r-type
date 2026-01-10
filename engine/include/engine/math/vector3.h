@@ -92,9 +92,7 @@ class Vector3 {
   /**
    * @brief Get length magnitude.
    */
-  T Length() const {
-    return static_cast<T>(std::sqrt(x * x + y * y + z * z));
-  }
+  T Length() const { return static_cast<T>(std::sqrt(x * x + y * y + z * z)); }
 
   /**
    * @brief Get squared length (faster, no sqrt).

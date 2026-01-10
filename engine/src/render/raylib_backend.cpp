@@ -313,10 +313,9 @@ class RaylibModel final : public Model {
   }
 
   math::Vector3f GetBoundingBoxCenter() const override {
-    return math::Vector3f(
-        (bounding_box_.max.x + bounding_box_.min.x) / 2.0f,
-        (bounding_box_.max.y + bounding_box_.min.y) / 2.0f,
-        (bounding_box_.max.z + bounding_box_.min.z) / 2.0f);
+    return math::Vector3f((bounding_box_.max.x + bounding_box_.min.x) / 2.0f,
+                          (bounding_box_.max.y + bounding_box_.min.y) / 2.0f,
+                          (bounding_box_.max.z + bounding_box_.min.z) / 2.0f);
   }
 
   const ::Model& GetNative() const { return model_; }
@@ -334,8 +333,7 @@ class RaylibRenderer3D final : public Renderer3D {
     raylib_camera.target = ToRaylibVector3(camera.GetTarget());
     raylib_camera.up = ToRaylibVector3(camera.GetUp());
     raylib_camera.fovy = camera.GetFov();
-    raylib_camera.projection =
-        static_cast<int>(camera.GetProjection());
+    raylib_camera.projection = static_cast<int>(camera.GetProjection());
     ::BeginMode3D(raylib_camera);
   }
 
@@ -409,11 +407,10 @@ class RaylibRenderer3D final : public Renderer3D {
   void DrawModelWires(const Model& model,
                       const ModelDrawParams& params) override {
     const auto& raylib_model = dynamic_cast<const RaylibModel&>(model);
-    ::DrawModelWiresEx(raylib_model.GetNative(),
-                       ToRaylibVector3(params.position),
-                       ToRaylibVector3(params.rotation_axis),
-                       params.rotation_angle, ToRaylibVector3(params.scale),
-                       ToRaylibColor(params.tint));
+    ::DrawModelWiresEx(
+        raylib_model.GetNative(), ToRaylibVector3(params.position),
+        ToRaylibVector3(params.rotation_axis), params.rotation_angle,
+        ToRaylibVector3(params.scale), ToRaylibColor(params.tint));
   }
 
   std::shared_ptr<Model> LoadModelFromFile(const std::string& path) override {

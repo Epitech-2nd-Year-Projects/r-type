@@ -91,7 +91,7 @@ class Camera3D {
    * @brief Get the camera's up vector.
    */
   math::Vector3f GetUp() const noexcept;
-  
+
   /**
    * @brief Set the vertical field of view in degrees.
    */
@@ -115,9 +115,9 @@ class Camera3D {
  private:
   math::Vector3f target_{0.0f, 0.0f, 0.0f};
   float distance_{10.0f};
-  float yaw_{0.0f};       ///< Horizontal angle in degrees
-  float pitch_{-30.0f};   ///< Vertical angle in degrees
-  float fov_{45.0f};      ///< Vertical field of view in degrees
+  float yaw_{0.0f};      ///< Horizontal angle in degrees
+  float pitch_{-30.0f};  ///< Vertical angle in degrees
+  float fov_{45.0f};     ///< Vertical field of view in degrees
   CameraProjection projection_{CameraProjection::kPerspective};
 
   static constexpr float kMinPitch = -89.0f;

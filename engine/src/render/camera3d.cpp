@@ -59,9 +59,7 @@ math::Vector3f Camera3D::GetPosition() const noexcept {
   return target_ + math::Vector3f(x, y, z);
 }
 
-math::Vector3f Camera3D::GetUp() const noexcept {
-  return math::Vector3f::Up();
-}
+math::Vector3f Camera3D::GetUp() const noexcept { return math::Vector3f::Up(); }
 
 void Camera3D::SetFov(float degrees) noexcept {
   fov_ = std::clamp(degrees, kMinFov, kMaxFov);
