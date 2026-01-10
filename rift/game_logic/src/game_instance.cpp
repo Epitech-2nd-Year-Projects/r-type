@@ -76,7 +76,7 @@ void GameInstance::Update(engine::time::TimeDelta dt) {
   auto& positions = registry_->GetComponents<engine::ecs::PositionComponent>();
   auto& velocities = registry_->GetComponents<engine::ecs::VelocityComponent>();
 
-  const float dt_sec = dt.AsSeconds();
+  const float dt_sec = dt.as_seconds();
 
   for (auto& [player_id, entity_id] : player_entities_) {
     if (entity_id >= positions.size() || !positions[entity_id].has_value()) {
@@ -95,7 +95,7 @@ void GameInstance::Update(engine::time::TimeDelta dt) {
     pos.x = std::clamp(pos.x, 0.0f, kArenaWidth);
   }
 
-  game_state_.round_timer_ms += static_cast<std::uint32_t>(dt.AsMilliseconds());
+  game_state_.round_timer_ms += static_cast<std::uint32_t>(dt.as_milliseconds());
 }
 
 void GameInstance::Shutdown() {
@@ -111,21 +111,22 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
   if (player_entities_.size() >= max_players_) {
     return std::nullopt;
   }
-  if (player_entities_.count(player_id) > 0) {
-    return player_entities_[player_id];
+  auto existing = player_entities_.find(player_id);
+  if (existing != player_entities_.end()) {
+    return existing->second;
   }
 
-  player_names_[player_id] = std::string(player_name);
-  player_input_states_[player_id] = InputState{};
+  player_names_.insert_or_assign(player_id, std::string(player_name));
+  player_input_states_.insert_or_assign(player_id, InputState{});
 
   std::uint8_t slot = static_cast<std::uint8_t>(player_entities_.size());
   SpawnFighter(player_id, slot);
 
-  return player_entities_[player_id];
+  return player_entities_.at(player_id);
 }
 
 void GameInstance::SpawnFighter(std::uint32_t player_id, std::uint8_t slot) {
-  engine::ecs::EntityId entity = registry_->CreateEntity();
+  engine::ecs::EntityId entity = registry_->SpawnEntity();
 
   float spawn_x = slot == 0
       ? kArenaCenter - kSpawnOffset
@@ -154,7 +155,7 @@ void GameInstance::SpawnFighter(std::uint32_t player_id, std::uint8_t slot) {
   components::CombatStateComponent combat{};
   registry_->AddComponent<components::CombatStateComponent>(entity, combat);
 
-  player_entities_[player_id] = entity;
+  player_entities_.insert_or_assign(player_id, entity);
 }
 
 void GameInstance::OnPlayerLeave(std::uint32_t player_id) {
