@@ -1,0 +1,10 @@
+add_requires("raylib")
+
+target("rift_client")
+    set_kind("binary")
+    set_default(false)
+    add_files("src/**.cpp")
+    add_includedirs("src")
+    add_deps("protocol", "rift_game_logic", "engine", "engine_debug")
+    add_packages("raylib")
+    set_rundir("$(projectdir)")
