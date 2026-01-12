@@ -18,6 +18,14 @@ namespace client {
 
 namespace {
 namespace ui_constants = constants::ui;
+
+constexpr engine::render::Color kTitleBarColor =
+    engine::render::Color::FromBytes(20, 30, 50, 240);
+constexpr engine::render::Color kMinimizeButtonColor =
+    engine::render::Color::FromBytes(80, 100, 140, 255);
+constexpr engine::render::Color kResizeHandleColor =
+    engine::render::Color::FromBytes(60, 80, 120, 200);
+constexpr float kTitleFontSize = 14.0f;
 }  // namespace
 
 LobbyChatView::LobbyChatView(ClientContext& context, SendCallback on_send)
@@ -25,7 +33,8 @@ LobbyChatView::LobbyChatView(ClientContext& context, SendCallback on_send)
       on_send_(std::move(on_send)),
       message_input_(std::make_shared<engine::ui::TextInput>(
           engine::math::Vector2f{0.0f, 0.0f},
-          engine::math::Vector2f{200.0f, ui_constants::Lobby::kChatInputHeight})),
+          engine::math::Vector2f{200.0f,
+                                 ui_constants::Lobby::kChatInputHeight})),
       send_button_(std::make_shared<engine::ui::Button>(
           engine::math::Vector2f{0.0f, 0.0f},
           engine::math::Vector2f{ui_constants::Lobby::kChatSendButtonWidth,
@@ -40,8 +49,32 @@ void LobbyChatView::Update(engine::time::TimeDelta dt,
                            engine::input::InputManager& input) {
   (void)dt;
 
-  UpdateInputFocus(input);
+  const auto mouse_pos = input.GetMousePosition();
+  const engine::math::Vector2f mouse{static_cast<float>(mouse_pos.x),
+                                     static_cast<float>(mouse_pos.y)};
+  const bool mouse_down =
+      input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
 
+  // Handle minimize button click
+  if (mouse_down && !mouse_was_down_ && minimize_button_rect_.Contains(mouse)) {
+    ToggleMinimized();
+    mouse_was_down_ = mouse_down;
+    return;
+  }
+
+  // Handle dragging and resizing
+  UpdateDragging(input);
+  if (!minimized_) {
+    UpdateResizing(input);
+  }
+
+  mouse_was_down_ = mouse_down;
+
+  if (minimized_) {
+    return;
+  }
+
+  UpdateInputFocus(input);
   message_input_->Update(dt, input);
   send_button_->Update(dt, input);
 
@@ -53,35 +86,60 @@ void LobbyChatView::Update(engine::time::TimeDelta dt,
   enter_pressed_ = enter_down;
 }
 
-void LobbyChatView::Layout(const engine::math::RectF& panel_rect) {
-  panel_rect_ = panel_rect;
+void LobbyChatView::SetDefaultBounds(const engine::math::RectF& panel_rect) {
+  if (panel_rect_.width_ == 0.0f && panel_rect_.height_ == 0.0f) {
+    panel_rect_ = panel_rect;
+  }
+}
 
+void LobbyChatView::Layout() {
   const float padding = ui_constants::Lobby::kChatPanelPadding;
   const float input_height = ui_constants::Lobby::kChatInputHeight;
   const float input_spacing = ui_constants::Lobby::kChatInputSpacing;
   const float send_width = ui_constants::Lobby::kChatSendButtonWidth;
   const float send_height = ui_constants::Lobby::kChatSendButtonHeight;
 
+  // Title bar at top
+  title_bar_rect_ = engine::math::RectF{panel_rect_.top_left_x_,
+                                        panel_rect_.top_left_y_,
+                                        panel_rect_.width_, kTitleBarHeight};
+
+  // Minimize button in title bar (right side)
+  const float min_btn_size = kTitleBarHeight - 8.0f;
+  minimize_button_rect_ = engine::math::RectF{
+      panel_rect_.top_left_x_ + panel_rect_.width_ - min_btn_size - 4.0f,
+      panel_rect_.top_left_y_ + 4.0f, min_btn_size, min_btn_size};
+
+  // Resize handle at bottom-right corner
+  resize_handle_rect_ = engine::math::RectF{
+      panel_rect_.top_left_x_ + panel_rect_.width_ - kResizeHandleSize,
+      panel_rect_.top_left_y_ + panel_rect_.height_ - kResizeHandleSize,
+      kResizeHandleSize, kResizeHandleSize};
+
+  if (minimized_) {
+    return;
+  }
+
+  const float content_top = panel_rect_.top_left_y_ + kTitleBarHeight + padding;
+
   // Input area at bottom
   input_rect_ = engine::math::RectF{
-      panel_rect.top_left_x_ + padding,
-      panel_rect.top_left_y_ + panel_rect.height_ - padding - input_height,
-      panel_rect.width_ - padding * 2.0f - send_width - input_spacing,
+      panel_rect_.top_left_x_ + padding,
+      panel_rect_.top_left_y_ + panel_rect_.height_ - padding - input_height,
+      panel_rect_.width_ - padding * 2.0f - send_width - input_spacing,
       input_height};
 
   // Send button to the right of input
   send_button_rect_ = engine::math::RectF{
       input_rect_.top_left_x_ + input_rect_.width_ + input_spacing,
-      input_rect_.top_left_y_ + (input_height - send_height) * 0.5f,
-      send_width,
+      input_rect_.top_left_y_ + (input_height - send_height) * 0.5f, send_width,
       send_height};
 
-  // Messages area above input
+  // Messages area between title bar and input
   messages_rect_ = engine::math::RectF{
-      panel_rect.top_left_x_ + padding,
-      panel_rect.top_left_y_ + padding,
-      panel_rect.width_ - padding * 2.0f,
-      panel_rect.height_ - padding * 3.0f - input_height - input_spacing};
+      panel_rect_.top_left_x_ + padding, content_top,
+      panel_rect_.width_ - padding * 2.0f,
+      input_rect_.top_left_y_ - content_top - input_spacing};
 
   // Position UI elements
   message_input_->SetPosition(
@@ -89,15 +147,45 @@ void LobbyChatView::Layout(const engine::math::RectF& panel_rect) {
   message_input_->SetSize(
       engine::math::Vector2f{input_rect_.width_, input_rect_.height_});
 
-  send_button_->SetPosition(
-      engine::math::Vector2f{send_button_rect_.top_left_x_, send_button_rect_.top_left_y_});
+  send_button_->SetPosition(engine::math::Vector2f{send_button_rect_.top_left_x_,
+                                                   send_button_rect_.top_left_y_});
   send_button_->SetSize(
       engine::math::Vector2f{send_button_rect_.width_, send_button_rect_.height_});
 }
 
+void LobbyChatView::Layout(const engine::math::RectF& panel_rect) {
+  SetDefaultBounds(panel_rect);
+  Layout();
+}
+
 void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
   // Draw panel background
-  renderer.DrawRect(panel_rect_, ui_constants::Lobby::kChatPanelColor);
+  if (minimized_) {
+    renderer.DrawRect(title_bar_rect_, kTitleBarColor);
+  } else {
+    renderer.DrawRect(panel_rect_, ui_constants::Lobby::kChatPanelColor);
+    renderer.DrawRect(title_bar_rect_, kTitleBarColor);
+  }
+
+  // Draw title text
+  renderer.DrawText("Chat", engine::math::Vector2f{title_bar_rect_.top_left_x_ + 8.0f,
+                                                   title_bar_rect_.top_left_y_ + 6.0f},
+                    kTitleFontSize, engine::render::Color::White());
+
+  // Draw minimize button
+  renderer.DrawRect(minimize_button_rect_, kMinimizeButtonColor);
+  const char* min_text = minimized_ ? "+" : "-";
+  renderer.DrawText(min_text,
+                    engine::math::Vector2f{minimize_button_rect_.top_left_x_ + 5.0f,
+                                           minimize_button_rect_.top_left_y_ + 2.0f},
+                    kTitleFontSize, engine::render::Color::White());
+
+  if (minimized_) {
+    return;
+  }
+
+  // Draw resize handle
+  renderer.DrawRect(resize_handle_rect_, kResizeHandleColor);
 
   // Draw messages
   const float font_size = ui_constants::Lobby::kChatMessageFontSize;
@@ -107,11 +195,11 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
   float y_pos = messages_rect_.top_left_y_ + messages_rect_.height_ - line_height;
   const float min_y = messages_rect_.top_left_y_;
 
-  // Draw messages from newest to oldest (bottom to top)
   for (auto it = display_messages_.rbegin();
        it != display_messages_.rend() && y_pos >= min_y; ++it) {
-    renderer.DrawText(*it, engine::math::Vector2f{messages_rect_.top_left_x_, y_pos},
-                      font_size, ui_constants::Lobby::kChatMessageColor);
+    renderer.DrawText(
+        *it, engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
+        ui_constants::Lobby::kChatMessageColor);
     y_pos -= line_height;
   }
 
@@ -129,7 +217,6 @@ void LobbyChatView::ApplyStyle(ClientAssetManager& assets) {
 }
 
 void LobbyChatView::AddMessage(const ChatMessage& message) {
-  // Format as "Sender: content" for display
   std::string display_text;
   if (!message.sender.empty()) {
     display_text = message.sender + ": " + message.content;
@@ -139,7 +226,6 @@ void LobbyChatView::AddMessage(const ChatMessage& message) {
 
   display_messages_.push_back(std::move(display_text));
 
-  // Limit displayed messages
   while (display_messages_.size() > kMaxVisibleMessages) {
     display_messages_.pop_front();
   }
@@ -157,18 +243,15 @@ void LobbyChatView::SyncMessages(const std::deque<ChatMessage>& messages) {
     display_messages_.push_back(std::move(display_text));
   }
 
-  // Limit to max visible
   while (display_messages_.size() > kMaxVisibleMessages) {
     display_messages_.pop_front();
   }
 }
 
-void LobbyChatView::ClearMessages() {
-  display_messages_.clear();
-}
+void LobbyChatView::ClearMessages() { display_messages_.clear(); }
 
 bool LobbyChatView::IsInputCaptured() const {
-  return message_input_->IsFocused();
+  return !minimized_ && message_input_->IsFocused();
 }
 
 void LobbyChatView::SetInputFocused(bool focused) {
@@ -184,12 +267,65 @@ void LobbyChatView::UpdateInputFocus(engine::input::InputManager& input) {
   const engine::math::Vector2f pos{static_cast<float>(mouse_pos.x),
                                    static_cast<float>(mouse_pos.y)};
 
-  // Check if clicked within input field
   if (input_rect_.Contains(pos)) {
     message_input_->SetFocused(true);
   } else if (!send_button_rect_.Contains(pos)) {
-    // Click outside input and send button - unfocus
     message_input_->SetFocused(false);
+  }
+}
+
+void LobbyChatView::UpdateDragging(engine::input::InputManager& input) {
+  const auto mouse_pos = input.GetMousePosition();
+  const engine::math::Vector2f mouse{static_cast<float>(mouse_pos.x),
+                                     static_cast<float>(mouse_pos.y)};
+  const bool mouse_down =
+      input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
+
+  if (mouse_down && !mouse_was_down_) {
+    // Start dragging if clicking on title bar (but not minimize button)
+    if (title_bar_rect_.Contains(mouse) &&
+        !minimize_button_rect_.Contains(mouse)) {
+      dragging_ = true;
+      drag_offset_ = engine::math::Vector2f{
+          mouse.x - panel_rect_.top_left_x_, mouse.y - panel_rect_.top_left_y_};
+    }
+  } else if (!mouse_down) {
+    dragging_ = false;
+  }
+
+  if (dragging_) {
+    panel_rect_.top_left_x_ = mouse.x - drag_offset_.x;
+    panel_rect_.top_left_y_ = mouse.y - drag_offset_.y;
+    ClampToScreen();
+    Layout();
+  }
+}
+
+void LobbyChatView::UpdateResizing(engine::input::InputManager& input) {
+  const auto mouse_pos = input.GetMousePosition();
+  const engine::math::Vector2f mouse{static_cast<float>(mouse_pos.x),
+                                     static_cast<float>(mouse_pos.y)};
+  const bool mouse_down =
+      input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
+
+  if (mouse_down && !mouse_was_down_) {
+    if (resize_handle_rect_.Contains(mouse)) {
+      resizing_ = true;
+      resize_start_size_ =
+          engine::math::Vector2f{panel_rect_.width_, panel_rect_.height_};
+      resize_start_mouse_ = mouse;
+    }
+  } else if (!mouse_down) {
+    resizing_ = false;
+  }
+
+  if (resizing_) {
+    const float dx = mouse.x - resize_start_mouse_.x;
+    const float dy = mouse.y - resize_start_mouse_.y;
+    panel_rect_.width_ = std::max(kMinWidth, resize_start_size_.x + dx);
+    panel_rect_.height_ = std::max(kMinHeight, resize_start_size_.y + dy);
+    ClampToScreen();
+    Layout();
   }
 }
 
@@ -204,5 +340,17 @@ void LobbyChatView::HandleSendAction() {
   }
 }
 
+void LobbyChatView::ClampToScreen() {
+  const auto window_size = context_.Window().GetSize();
+  const float max_x =
+      static_cast<float>(window_size.x) - panel_rect_.width_;
+  const float max_y =
+      static_cast<float>(window_size.y) - panel_rect_.height_;
+
+  panel_rect_.top_left_x_ = std::max(0.0f, std::min(panel_rect_.top_left_x_, max_x));
+  panel_rect_.top_left_y_ = std::max(0.0f, std::min(panel_rect_.top_left_y_, max_y));
+}
+
 }  // namespace client
+
 

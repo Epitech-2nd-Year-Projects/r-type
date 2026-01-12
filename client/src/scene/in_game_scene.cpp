@@ -88,7 +88,8 @@ void InGameScene::LayoutChat() {
       height - chat_height - chat_padding,
       chat_width,
       chat_height};
-  chat_view_.Layout(chat_rect);
+  chat_view_.SetDefaultBounds(chat_rect);
+  chat_view_.Layout();
 }
 
 }  // namespace client
