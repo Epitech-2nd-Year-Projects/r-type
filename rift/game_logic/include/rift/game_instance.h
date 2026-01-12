@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "engine/ecs/registry.h"
+#include "engine/ecs/system.h"
 #include "engine/time/time_delta.h"
 
 namespace rift {
@@ -30,10 +31,10 @@ class GameInstance {
     kMoveLeftReleased = 1,
     kMoveRightPressed = 2,
     kMoveRightReleased = 3,
-    kMoveUpPressed = 4,
-    kMoveUpReleased = 5,
-    kMoveDownPressed = 6,
-    kMoveDownReleased = 7,
+    kBlockPressed = 4,
+    kBlockReleased = 5,
+    kDodgePressed = 6,
+    kDodgeReleased = 7,
     kLightAttackPressed = 8,
     kLightAttackReleased = 9,
     kHeavyAttackPressed = 10,
@@ -80,13 +81,17 @@ class GameInstance {
     bool move_left{false};
     bool move_right{false};
     bool blocking{false};
-    bool dodging{false};
+    bool light_attack{false};
+    bool heavy_attack{false};
   };
 
   void RegisterComponents();
   void RegisterSystems();
   void InitializeGame();
   void SpawnFighter(std::uint32_t player_id, std::uint8_t slot);
+  void ProcessAttackInput(std::uint32_t player_id, bool light, bool pressed);
+  void ProcessBlockInput(std::uint32_t player_id, bool pressed);
+  void ProcessDodgeInput(std::uint32_t player_id);
 
   std::uint32_t room_id_;
   std::uint32_t max_players_;
@@ -96,6 +101,7 @@ class GameInstance {
   std::unordered_map<std::uint32_t, engine::ecs::EntityId> player_entities_;
   std::unordered_map<std::uint32_t, InputState> player_input_states_;
   std::vector<PlayerDeathEvent> pending_deaths_;
+  std::vector<std::unique_ptr<engine::ecs::ISystem>> systems_;
   bool is_started_{false};
 };
 
