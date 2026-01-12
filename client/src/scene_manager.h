@@ -153,14 +153,24 @@ class SceneManager {
   void OnOpenAudioSettings();
 
   /**
+   * @brief Close the audio settings menu
+   */
+  void OnCloseAudioSettings();
+
+  /**
    * @brief Close the settings menu
    */
   void OnCloseSettings();
 
   /**
-   * @brief Close the audio settings menu
+   * @brief Open the profile editor
    */
-  void OnCloseAudioSettings();
+  void OnOpenProfile();
+
+  /**
+   * @brief Close the profile editor
+   */
+  void OnCloseProfile();
 
   /**
    * @brief Transition to a new state

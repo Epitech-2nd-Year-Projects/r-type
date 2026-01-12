@@ -1,6 +1,6 @@
 #include "application.h"
 
-#include <algorithm>
+#include <chrono>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -17,6 +17,7 @@
 #include "input/input_coordinator.h"
 #include "logging.h"
 #include "network_session.h"
+#include "player_profile.h"
 #include "scene_manager.h"
 #include "ui/menu_background.h"
 
@@ -57,6 +58,7 @@ std::string_view ToString(ClientState state) {
 
 Application::Application(ClientConfig config)
     : config_(std::move(config)),
+      profile_(LoadPlayerProfile()),
       runtime_(std::make_unique<ClientRuntime>()),
       scene_manager_(std::make_unique<SceneManager>(*this)),
       audio_(std::make_unique<AudioController>()),
@@ -170,9 +172,14 @@ void Application::OnCloseAudioSettings() {
 }
 
 void Application::OnQuitApplication() {
+  SaveProfile();
   StopNetworkSession();
   runtime_->RequestClose();
 }
+
+void Application::OnOpenProfile() { scene_manager_->OnOpenProfile(); }
+
+void Application::OnCloseProfile() { scene_manager_->OnCloseProfile(); }
 
 void Application::OnQuitToMenu() {
   StopNetworkSession();
@@ -280,6 +287,17 @@ bool Application::ConnectionActive() const {
          network_->TransportRunning();
 }
 
+PlayerProfile& Application::Profile() { return profile_; }
+
+const PlayerProfile& Application::Profile() const { return profile_; }
+
+void Application::SaveProfile() {
+  if (!SavePlayerProfile(profile_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist player profile");
+  }
+}
+
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!runtime_->Pump()) {
     LogLifecycle(engine::util::LogLevel::kError,
@@ -329,6 +347,7 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
       events.connection_failed.has_value() || events.disconnected.has_value();
   if (should_stop) {
     StopNetworkSession();
+    session_start_time_.reset();
   }
   if (events.connection_failed.has_value()) {
     scene_manager_->OnConnectionFailed(*events.connection_failed);
@@ -337,10 +356,22 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
     scene_manager_->OnDisconnect(*events.disconnected);
   }
   if (events.connected) {
+    session_start_time_ = std::chrono::steady_clock::now();
     scene_manager_->OnConnected();
   }
   if (events.game_over.has_value()) {
-    scene_manager_->OnGameOver(*events.game_over);
+    std::uint64_t session_seconds = 0;
+    if (session_start_time_.has_value()) {
+      const auto elapsed =
+          std::chrono::steady_clock::now() - *session_start_time_;
+      session_seconds = static_cast<std::uint64_t>(
+          std::chrono::duration_cast<std::chrono::seconds>(elapsed).count());
+      session_start_time_.reset();
+    }
+    const auto& stats = *events.game_over;
+    UpdateProfileStats(profile_, session_seconds, 0, stats.score);
+    SaveProfile();
+    scene_manager_->OnGameOver(stats);
   }
 }
 

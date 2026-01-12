@@ -17,6 +17,7 @@
 #include "engine/util/config.h"
 #include "input/input_layer.h"
 #include "input/key_binding_service.h"
+#include "player_profile.h"
 #include "protocol/command.h"
 #include "protocol/lobby.h"
 
@@ -145,6 +146,16 @@ class ClientContext {
   virtual void OnQuitApplication() = 0;
 
   /**
+   * @brief Open the profile editor
+   */
+  virtual void OnOpenProfile() = 0;
+
+  /**
+   * @brief Close the profile editor
+   */
+  virtual void OnCloseProfile() = 0;
+
+  /**
    * @brief Quit to the main menu
    */
   virtual void OnQuitToMenu() = 0;
@@ -241,6 +252,21 @@ class ClientContext {
    * @brief Connection active flag
    */
   virtual bool ConnectionActive() const = 0;
+
+  /**
+   * @brief Access the player profile
+   */
+  virtual PlayerProfile& Profile() = 0;
+
+  /**
+   * @brief Access the player profile (const)
+   */
+  virtual const PlayerProfile& Profile() const = 0;
+
+  /**
+   * @brief Persist the player profile to disk
+   */
+  virtual void SaveProfile() = 0;
 };
 
 }  // namespace client

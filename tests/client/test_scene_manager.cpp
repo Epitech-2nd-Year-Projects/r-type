@@ -210,8 +210,10 @@ class FakeClientContext final : public client::ClientContext {
   void OnPlay() override { ++play_calls_; }
   void OnOpenSettings() override { ++open_settings_calls_; }
   void OnOpenAudioSettings() override { ++open_audio_settings_calls_; }
-  void OnCloseSettings() override { ++close_settings_calls_; }
   void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
+  void OnCloseSettings() override { ++close_settings_calls_; }
+  void OnOpenProfile() override { ++open_profile_calls_; }
+  void OnCloseProfile() override { ++close_profile_calls_; }
   void OnQuitApplication() override { ++quit_calls_; }
   void OnQuitToMenu() override { ++quit_to_menu_calls_; }
   void OnGamePause() override { ++pause_calls_; }
@@ -280,6 +282,10 @@ class FakeClientContext final : public client::ClientContext {
 
   bool ConnectionActive() const override { return connection_active_; }
 
+  client::PlayerProfile& Profile() override { return profile_; }
+  const client::PlayerProfile& Profile() const override { return profile_; }
+  void SaveProfile() override { ++save_profile_calls_; }
+
  private:
   FakeWindow window_;
   engine::input::InputManager input_;
@@ -287,6 +293,7 @@ class FakeClientContext final : public client::ClientContext {
   client::ClientAssetManager assets_;
   client::ui::MenuBackground menu_background_{""};
   engine::util::Configuration config_{};
+  client::PlayerProfile profile_{};
   engine::ecs::Registry registry_{};
   std::vector<protocol::RoomSummary> rooms_{};
   std::string room_status_{"Lobby idle"};
@@ -299,8 +306,11 @@ class FakeClientContext final : public client::ClientContext {
   int play_calls_{0};
   int open_settings_calls_{0};
   int open_audio_settings_calls_{0};
-  int close_settings_calls_{0};
   int close_audio_settings_calls_{0};
+  int close_settings_calls_{0};
+  int open_profile_calls_{0};
+  int close_profile_calls_{0};
+  int save_profile_calls_{0};
   int quit_calls_{0};
   int quit_to_menu_calls_{0};
   int pause_calls_{0};

@@ -42,6 +42,7 @@ class MainMenuScene : public Scene {
   ClientContext& context_;
   std::vector<std::shared_ptr<engine::ui::Button>> ui_elements_;
   std::shared_ptr<engine::ui::Button> play_button_;
+  std::shared_ptr<engine::ui::Button> profile_button_;
   std::shared_ptr<engine::ui::Button> settings_button_;
   std::shared_ptr<engine::ui::Button> quit_button_;
   engine::ui::Canvas canvas_;
