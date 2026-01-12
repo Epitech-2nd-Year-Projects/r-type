@@ -15,8 +15,7 @@ namespace ui_config = constants::ui;
 }  // namespace
 
 InGameScene::InGameScene(ClientContext& context)
-    : context_(context),
-      chat_view_(context, [this](std::string_view message) {
+    : context_(context), chat_view_(context, [this](std::string_view message) {
         return context_.ChatService().SendMessage(message);
       }) {
   auto& input = context_.Input();
@@ -83,14 +82,11 @@ void InGameScene::LayoutChat() {
   const float chat_height = height * 0.4f;  // Use 40% of screen height
 
   // Position chat at bottom-right of screen
-  const engine::math::RectF chat_rect{
-      width - chat_width - chat_padding,
-      height - chat_height - chat_padding,
-      chat_width,
-      chat_height};
+  const engine::math::RectF chat_rect{width - chat_width - chat_padding,
+                                      height - chat_height - chat_padding,
+                                      chat_width, chat_height};
   chat_view_.SetDefaultBounds(chat_rect);
   chat_view_.Layout();
 }
 
 }  // namespace client
-
