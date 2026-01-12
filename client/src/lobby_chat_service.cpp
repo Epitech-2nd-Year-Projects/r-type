@@ -31,7 +31,8 @@ bool LobbyChatService::SendMessage(std::string_view message) {
   return command_sender_(payload);
 }
 
-void LobbyChatService::OnChatMessageReceived(std::string_view formatted_message) {
+void LobbyChatService::OnChatMessageReceived(
+    std::string_view formatted_message) {
   ChatMessage msg{};
   msg.raw = std::string(formatted_message);
 
@@ -62,8 +63,6 @@ void LobbyChatService::SetMessageCallback(MessageCallback callback) {
   message_callback_ = std::move(callback);
 }
 
-void LobbyChatService::ClearHistory() {
-  messages_.clear();
-}
+void LobbyChatService::ClearHistory() { messages_.clear(); }
 
 }  // namespace client
