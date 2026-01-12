@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <raylib.h>
 
+#include <functional>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -179,7 +180,10 @@ ClientRuntime::ClientRuntime() = default;
 
 ClientRuntime::~ClientRuntime() = default;
 
-bool ClientRuntime::Initialize(const ClientConfig& config) {
+bool ClientRuntime::Initialize(
+    const ClientConfig& config,
+    std::function<void(const protocol::CommandPayload&)>
+        send_command_callback) {
   engine::app::EngineRuntimeConfig runtime_config;
   runtime_config.window_config.title =
       std::string(constants::client::kWindowTitle);
@@ -212,7 +216,8 @@ bool ClientRuntime::Initialize(const ClientConfig& config) {
   component_registry_ =
       std::make_unique<engine::debug::ComponentInspectorRegistry>();
   network_debugger_ = std::make_unique<engine::debug::NetworkDebugger>();
-  client::debug::RegisterClientInspectors(*component_registry_);
+  client::debug::RegisterClientInspectors(*component_registry_, config.debug,
+                                          std::move(send_command_callback));
 
   frame_profiler_ = std::make_unique<engine::profiling::FrameProfiler>();
   profiling_overlay_.SetFrameProfiler(*frame_profiler_);

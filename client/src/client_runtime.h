@@ -17,6 +17,7 @@
 #include "engine/profiling/frame_profiler.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
+#include "protocol/command.h"
 
 namespace engine::app {
 class EngineRuntime;
@@ -92,9 +93,12 @@ class ClientRuntime {
   /**
    * @brief Initialize engine systems
    * @param config Client configuration
+   * @param send_command_callback Callback to send network commands (for debug)
    * @return True when initialization succeeds
    */
-  bool Initialize(const ClientConfig& config);
+  bool Initialize(const ClientConfig& config,
+                  std::function<void(const protocol::CommandPayload&)>
+                      send_command_callback);
 
   /**
    * @brief Attach world systems for rendering

@@ -153,4 +153,6 @@ bool Room::IsEmpty() const { return players_.empty(); }
 
 bool Room::HasStarted() const { return started_; }
 
+engine::ecs::Registry& Room::World() { return game_instance_->World(); }
+
 }  // namespace server

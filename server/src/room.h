@@ -12,11 +12,11 @@
 #include "engine/util/logging.h"
 #include "game_instance.h"
 #include "protocol/command.h"
+#include "protocol/header.h"
+#include "protocol/input_state.h"
+#include "protocol/player_died.h"
 #include "protocol/snapshot_history.h"
 #include "protocol/world_snapshot.h"
-#include "protocol/input_state.h"
-#include "protocol/header.h"
-#include "protocol/player_died.h"
 
 namespace server {
 
@@ -37,14 +37,9 @@ class Room {
    * @param seed Seed for deterministic simulation.
    * @param logger Logger used for diagnostics.
    */
-  Room(std::string room_code,
-       std::string room_name,
-       std::uint32_t room_id,
-       std::uint16_t max_players,
-       bool is_private,
-       std::string password,
-       std::uint32_t seed,
-       engine::util::Logger& logger);
+  Room(std::string room_code, std::string room_name, std::uint32_t room_id,
+       std::uint16_t max_players, bool is_private, std::string password,
+       std::uint32_t seed, engine::util::Logger& logger);
 
   Room(const Room&) = delete;
   Room& operator=(const Room&) = delete;
@@ -101,11 +96,12 @@ class Room {
    * @brief Poll any player death events that occurred since last poll
    */
   std::vector<protocol::PlayerDiedPayload> PollPlayerDeaths();
-  
+
   /**
    * @brief Retrieves a snapshot from the room's history.
    */
-  std::optional<std::reference_wrapper<const protocol::WorldSnapshotPayload>> GetSnapshot(std::uint32_t snapshot_id) const;
+  std::optional<std::reference_wrapper<const protocol::WorldSnapshotPayload>>
+  GetSnapshot(std::uint32_t snapshot_id) const;
 
   /**
    * @brief Returns the room code.
@@ -158,6 +154,11 @@ class Room {
    * @brief Checks if the room has no players.
    */
   bool IsEmpty() const;
+
+  /**
+   * @brief Returns a mutable reference to the game instance's registry.
+   */
+  engine::ecs::Registry& World();
 
  private:
   std::string room_code_;
