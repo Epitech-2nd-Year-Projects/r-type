@@ -1,6 +1,7 @@
 #include <utility>
 #include <vector>
 
+#include "protocol/chat.h"
 #include "protocol/message_type.h"
 #include "protocol/reliability_policy.h"
 #include "server_runtime.h"
@@ -213,6 +214,42 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     logger_.Info("Peer requested disconnect ", peer.endpoint_key);
     DisconnectPeer(peer, "client disconnect", /*notify_client=*/false);
     peers_.erase(peer.endpoint_key);
+    return;
+  }
+
+  // Handle chat messages - broadcast to all players in the room
+  if (command.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kChatMessage)) {
+    if (!protocol::IsValidChatMessage(command.payload)) {
+      logger_.Debug("Dropping invalid chat message from player ",
+                    peer.player_id);
+      return;
+    }
+
+    // Format message with sender name
+    const std::string formatted_message =
+        protocol::FormatChatMessage(peer.player_name, command.payload);
+
+    logger_.Debug("Chat from player ", peer.player_id, " (",
+                  peer.player_name, "): ", command.payload);
+
+    // Broadcast to all players in the room
+    const auto& players = room->get().Players();
+    for (std::uint32_t player_id : players) {
+      auto peer_ref = FindPeerByPlayerId(player_id);
+      if (!peer_ref.has_value()) {
+        continue;
+      }
+      PeerConnection& target = peer_ref->get();
+      if (target.state != PeerState::kJoined || target.player_id == 0 ||
+          target.room_code != peer.room_code) {
+        continue;
+      }
+      SendServerCommand(
+          target,
+          static_cast<std::uint16_t>(protocol::CommandType::kChatMessage),
+          formatted_message);
+    }
     return;
   }
 
