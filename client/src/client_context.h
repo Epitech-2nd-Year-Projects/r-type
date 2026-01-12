@@ -16,6 +16,7 @@
 #include "engine/render/window.h"
 #include "engine/util/config.h"
 #include "input/input_layer.h"
+#include "input/key_binding_service.h"
 #include "player_profile.h"
 #include "protocol/command.h"
 #include "protocol/lobby.h"
