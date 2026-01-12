@@ -161,7 +161,7 @@ class LobbyChatView {
   std::shared_ptr<engine::ui::Button> send_button_;
 
   // Display state
-  std::deque<std::string> display_messages_;
+  std::deque<ChatMessage> display_messages_;
   float scroll_offset_{0.0f};
   bool enter_pressed_{false};
 

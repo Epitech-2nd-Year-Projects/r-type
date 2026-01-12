@@ -26,6 +26,25 @@ constexpr engine::render::Color kMinimizeButtonColor =
 constexpr engine::render::Color kResizeHandleColor =
     engine::render::Color::FromBytes(60, 80, 120, 200);
 constexpr float kTitleFontSize = 14.0f;
+
+engine::render::Color GenerateNameColor(std::string_view name) {
+  if (name.empty()) {
+    return engine::render::Color::White();
+  }
+  std::size_t hash = 0;
+  for (char c : name) {
+    hash = c + (hash << 6) + (hash << 16) - hash;
+  }
+  
+  // Use HSL approach for pleasing colors (high saturation/lightness)
+  // Simple RGB generation for now to avoid advanced math dep
+  const std::uint8_t r = 100 + (hash % 156);
+  const std::uint8_t g = 100 + ((hash >> 8) % 156);
+  const std::uint8_t b = 100 + ((hash >> 16) % 156);
+  
+  return engine::render::Color::FromBytes(r, g, b, 255);
+}
+
 }  // namespace
 
 LobbyChatView::LobbyChatView(ClientContext& context, SendCallback on_send)
@@ -197,9 +216,29 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
 
   for (auto it = display_messages_.rbegin();
        it != display_messages_.rend() && y_pos >= min_y; ++it) {
-    renderer.DrawText(
-        *it, engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
-        ui_constants::Lobby::kChatMessageColor);
+    const auto& msg = *it;
+    
+    // Draw sender name
+    if (!msg.sender.empty()) {
+      const std::string sender_text = msg.sender + ": ";
+      const auto name_color = GenerateNameColor(msg.sender);
+      renderer.DrawText(sender_text,
+                        engine::math::Vector2f{messages_rect_.top_left_x_, y_pos},
+                        font_size, name_color);
+                        
+      // Measure name width to offset message content
+      const float name_width = renderer.MeasureText(sender_text, font_size).x;
+      
+      renderer.DrawText(msg.content, 
+                        engine::math::Vector2f{messages_rect_.top_left_x_ + name_width, y_pos},
+                        font_size, ui_constants::Lobby::kChatMessageColor);
+    } else {
+      // System message or self
+      renderer.DrawText(msg.content,
+                        engine::math::Vector2f{messages_rect_.top_left_x_, y_pos},
+                        font_size, ui_constants::Lobby::kChatMessageColor);
+    }
+    
     y_pos -= line_height;
   }
 
@@ -217,14 +256,7 @@ void LobbyChatView::ApplyStyle(ClientAssetManager& assets) {
 }
 
 void LobbyChatView::AddMessage(const ChatMessage& message) {
-  std::string display_text;
-  if (!message.sender.empty()) {
-    display_text = message.sender + ": " + message.content;
-  } else {
-    display_text = message.content;
-  }
-
-  display_messages_.push_back(std::move(display_text));
+  display_messages_.push_back(message);
 
   while (display_messages_.size() > kMaxVisibleMessages) {
     display_messages_.pop_front();
@@ -232,16 +264,7 @@ void LobbyChatView::AddMessage(const ChatMessage& message) {
 }
 
 void LobbyChatView::SyncMessages(const std::deque<ChatMessage>& messages) {
-  display_messages_.clear();
-  for (const auto& msg : messages) {
-    std::string display_text;
-    if (!msg.sender.empty()) {
-      display_text = msg.sender + ": " + msg.content;
-    } else {
-      display_text = msg.content;
-    }
-    display_messages_.push_back(std::move(display_text));
-  }
+  display_messages_ = messages;
 
   while (display_messages_.size() > kMaxVisibleMessages) {
     display_messages_.pop_front();
