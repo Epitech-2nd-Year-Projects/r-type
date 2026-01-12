@@ -299,9 +299,7 @@ void Application::SaveProfile() {
   }
 }
 
-LobbyChatService& Application::ChatService() {
-  return *chat_service_;
-}
+LobbyChatService& Application::ChatService() { return *chat_service_; }
 
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!runtime_->Pump()) {
