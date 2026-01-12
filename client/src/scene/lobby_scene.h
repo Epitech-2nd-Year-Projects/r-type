@@ -1,6 +1,7 @@
 #ifndef CLIENT_SCENE_LOBBY_SCENE_H_
 #define CLIENT_SCENE_LOBBY_SCENE_H_
 
+#include "lobby_chat_view.h"
 #include "lobby_controller.h"
 #include "lobby_modal.h"
 #include "lobby_room_list_view.h"
@@ -43,6 +44,8 @@ class LobbyScene : public Scene {
   LobbyController controller_;
   LobbyRoomListView room_list_view_;
   LobbyModal modal_;
+  LobbyChatView chat_view_;
+  bool chat_visible_{true};
   engine::time::TimeDelta room_list_refresh_interval_ =
       engine::time::TimeDelta::zero();
   engine::time::TimeDelta room_list_refresh_elapsed_ =
