@@ -16,6 +16,7 @@
 #include "engine/render/window.h"
 #include "engine/util/config.h"
 #include "input/key_binding_service.h"
+#include "lobby_chat_service.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
@@ -211,6 +212,7 @@ class FakeClientContext final : public client::ClientContext {
   void OnOpenSettings() override { ++open_settings_calls_; }
   void OnOpenAudioSettings() override { ++open_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
+  void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
   void OnQuitApplication() override { ++quit_calls_; }
@@ -285,6 +287,8 @@ class FakeClientContext final : public client::ClientContext {
   const client::PlayerProfile& Profile() const override { return profile_; }
   void SaveProfile() override { ++save_profile_calls_; }
 
+  client::LobbyChatService& ChatService() override { return chat_service_; }
+
  private:
   FakeWindow window_;
   engine::input::InputManager input_;
@@ -293,6 +297,9 @@ class FakeClientContext final : public client::ClientContext {
   client::ui::MenuBackground menu_background_{""};
   engine::util::Configuration config_{};
   client::PlayerProfile profile_{};
+  client::LobbyChatService chat_service_{[](const protocol::CommandPayload&) {
+    return true;
+  }};
   engine::ecs::Registry registry_{};
   std::vector<protocol::RoomSummary> rooms_{};
   std::string room_status_{"Lobby idle"};
@@ -306,6 +313,7 @@ class FakeClientContext final : public client::ClientContext {
   int open_settings_calls_{0};
   int open_audio_settings_calls_{0};
   int close_settings_calls_{0};
+  int close_audio_settings_calls_{0};
   int open_profile_calls_{0};
   int close_profile_calls_{0};
   int save_profile_calls_{0};
