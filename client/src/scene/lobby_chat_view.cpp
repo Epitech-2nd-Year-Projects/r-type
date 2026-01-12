@@ -31,18 +31,26 @@ engine::render::Color GenerateNameColor(std::string_view name) {
   if (name.empty()) {
     return engine::render::Color::White();
   }
+  
+  static const std::vector<engine::render::Color> kNameColors = {
+      engine::render::Color::FromBytes(255, 100, 100, 255),  // Red
+      engine::render::Color::FromBytes(100, 255, 100, 255),  // Green
+      engine::render::Color::FromBytes(100, 100, 255, 255),  // Blue
+      engine::render::Color::FromBytes(255, 255, 100, 255),  // Yellow
+      engine::render::Color::FromBytes(100, 255, 255, 255),  // Cyan
+      engine::render::Color::FromBytes(255, 100, 255, 255),  // Magenta
+      engine::render::Color::FromBytes(255, 165, 0, 255),    // Orange
+      engine::render::Color::FromBytes(173, 255, 47, 255),   // GreenYellow
+      engine::render::Color::FromBytes(255, 192, 203, 255),  // Pink
+      engine::render::Color::FromBytes(0, 255, 127, 255)     // SpringGreen
+  };
+
   std::size_t hash = 0;
   for (char c : name) {
     hash = c + (hash << 6) + (hash << 16) - hash;
   }
   
-  // Use HSL approach for pleasing colors (high saturation/lightness)
-  // Simple RGB generation for now to avoid advanced math dep
-  const std::uint8_t r = 100 + (hash % 156);
-  const std::uint8_t g = 100 + ((hash >> 8) % 156);
-  const std::uint8_t b = 100 + ((hash >> 16) % 156);
-  
-  return engine::render::Color::FromBytes(r, g, b, 255);
+  return kNameColors[hash % kNameColors.size()];
 }
 
 }  // namespace
