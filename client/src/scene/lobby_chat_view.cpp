@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 #include "client_asset_manager.h"
 #include "client_context.h"
