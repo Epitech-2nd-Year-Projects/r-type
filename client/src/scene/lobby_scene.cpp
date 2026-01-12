@@ -9,13 +9,10 @@
 #include "constants/ui_constants.h"
 #include "engine/input.h"
 #include "engine/render/renderer2d.h"
-#include "lobby_chat_service.h"
 #include "protocol/lobby.h"
 #include "ui/menu_background.h"
 
 namespace client {
-
-namespace ui_config = constants::ui;
 
 LobbyScene::LobbyScene(ClientContext& context)
     : context_(context),
@@ -34,11 +31,7 @@ LobbyScene::LobbyScene(ClientContext& context)
           [this](const protocol::RoomSummary& room,
                  const std::string& password) {
             return controller_.TryJoinRoom(room, password);
-          }),
-      chat_view_(context,
-                 [this](std::string_view message) {
-                   return context_.ChatService().SendMessage(message);
-                 }) {
+          }) {
   auto& renderer = context_.Renderer();
   auto& assets = context_.Assets();
   assets.LoadFont(constants::ui::kTitleFont, constants::ui::kTitleFontPath);
@@ -46,7 +39,6 @@ LobbyScene::LobbyScene(ClientContext& context)
   renderer.SetFont(std::string(constants::ui::kBodyFont));
 
   controller_.ApplyButtonStyle(assets);
-  chat_view_.ApplyStyle(assets);
 
   const ClientConfig defaults{};
   const auto refresh_ms = context_.Config().GetInt(
@@ -91,12 +83,6 @@ void LobbyScene::Update(engine::time::TimeDelta dt) {
     room_list_view_.Update(dt, input);
   }
 
-  // Update chat view and sync messages from service
-  if (chat_visible_) {
-    chat_view_.SyncMessages(context_.ChatService().messages());
-    chat_view_.Update(dt, input);
-  }
-
   if (!IsInputCaptured() && input.IsKeyDown(engine::input::Key::kEscape)) {
     context_.OnQuitToMenu();
   }
@@ -117,16 +103,10 @@ void LobbyScene::DrawForeground(engine::render::Renderer2D& renderer) {
   room_list_view_.DrawForeground(renderer, context_.RoomDirectoryStatus());
   controller_.Draw(renderer);
   modal_.Draw(renderer);
-
-  // Draw chat panel when visible
-  if (chat_visible_) {
-    chat_view_.Draw(renderer);
-  }
 }
 
 bool LobbyScene::IsInputCaptured() const {
-  return controller_.IsInputCaptured() || modal_.IsInputCaptured() ||
-         (chat_visible_ && chat_view_.IsInputCaptured());
+  return controller_.IsInputCaptured() || modal_.IsInputCaptured();
 }
 
 void LobbyScene::LayoutUi() {
@@ -137,19 +117,6 @@ void LobbyScene::LayoutUi() {
   room_list_view_.Layout(size);
   if (modal_.IsOpen()) {
     modal_.Layout(size);
-  }
-
-  // Layout chat panel on the right side of the screen
-  if (chat_visible_) {
-    const float chat_width = ui_config::Lobby::kChatPanelWidth;
-    const float chat_padding = ui_config::Lobby::kPanelMargin;
-    const float chat_height = size.y - chat_padding * 2.0f - 100.0f;
-    const engine::math::RectF chat_rect{
-        size.x - chat_width - chat_padding,
-        chat_padding + 50.0f,
-        chat_width,
-        chat_height};
-    chat_view_.Layout(chat_rect);
   }
 }
 
@@ -162,4 +129,5 @@ void LobbyScene::HandleRoomSelected(const protocol::RoomSummary& room) {
 }
 
 }  // namespace client
+
 
