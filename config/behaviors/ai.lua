@@ -32,6 +32,7 @@ function AIBehaviors.ChasePlayer(entity, dt, ai, vel, pos)
   end
 end
 
+
 function AIBehaviors.Patrol(entity, dt, ai, vel, pos)
     vel.velocity.x = -ai.speed * 0.5 
 
@@ -45,5 +46,51 @@ function AIBehaviors.Patrol(entity, dt, ai, vel, pos)
     elseif pos.position.y <= ai.patrol_min.y then
         ai.state_timer = 1
         pos.position.y = ai.patrol_min.y
+    end
+end
+
+local DobkeratopsStates = {}
+
+function AIBehaviors.Dobkeratops(entity, dt, ai, vel, pos)
+    local STOP_X = 600
+    local ENTRY_SPEED = 100
+    local OSCILLATE_SPEED = 3.0
+    local OSCILLATE_AMP = 80
+    local OSCILLATE_PERIOD = 10.0
+    local OSCILLATE_DURATION = 3.0
+
+    if not DobkeratopsStates[entity] then
+        DobkeratopsStates[entity] = { 
+            state = "entry",
+            initial_y = pos.position.y,
+            battle_timer = 0,
+            oscillate_phase = 0
+        }
+    end
+    local data = DobkeratopsStates[entity]
+
+    if data.state == "entry" then
+        if pos.position.x > STOP_X then
+             vel.velocity.x = -ENTRY_SPEED
+        else
+             vel.velocity.x = 0
+             pos.position.x = STOP_X
+             data.state = "battle"
+             data.initial_y = pos.position.y
+             data.battle_timer = 0
+        end
+        vel.velocity.y = 0
+    
+    elseif data.state == "battle" then
+        vel.velocity.x = 0
+        data.battle_timer = data.battle_timer + dt
+        
+        local cycle_time = data.battle_timer % OSCILLATE_PERIOD
+        if cycle_time < OSCILLATE_DURATION then
+            data.oscillate_phase = data.oscillate_phase + dt
+            vel.velocity.y = math.sin(data.oscillate_phase * OSCILLATE_SPEED) * OSCILLATE_AMP
+        else
+            vel.velocity.y = 0
+        end
     end
 end
