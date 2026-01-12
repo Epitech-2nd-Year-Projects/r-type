@@ -313,6 +313,25 @@ struct Lobby {
   static constexpr std::size_t kGoldenHashRatio = 0x9e3779b9;
   static constexpr std::size_t kHashPrivateSalt = 0xabcddcba;
   static constexpr std::size_t kHashPublicSeed = 0x12344321;
+
+  // Chat panel layout
+  static constexpr float kChatPanelWidth = 320.0f;
+  static constexpr float kChatPanelPadding = 12.0f;
+  static constexpr float kChatInputHeight = 40.0f;
+  static constexpr float kChatSendButtonWidth = 60.0f;
+  static constexpr float kChatSendButtonHeight = 36.0f;
+  static constexpr float kChatMessageFontSize = 14.0f;
+  static constexpr float kChatSenderFontSize = 14.0f;
+  static constexpr float kChatMessageSpacing = 4.0f;
+  static constexpr float kChatInputSpacing = 8.0f;
+  static constexpr engine::render::Color kChatPanelColor =
+      engine::render::Color::FromBytes(12, 18, 30, 220);
+  static constexpr engine::render::Color kChatInputBgColor =
+      engine::render::Color::FromBytes(30, 40, 60, 200);
+  static constexpr engine::render::Color kChatSenderColor =
+      engine::render::Color::FromBytes(140, 186, 255, 255);
+  static constexpr engine::render::Color kChatMessageColor =
+      engine::render::Color::FromBytes(220, 225, 235, 255);
 };
 
 /**
