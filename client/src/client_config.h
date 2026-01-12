@@ -27,6 +27,9 @@ struct ClientConfig {
   std::uint32_t lobby_retry_delay_ms{400};
   int lobby_max_attempts{4};
   std::uint32_t room_list_refresh_ms{5'000};
+  float master_volume{1.0f};
+  float music_volume{1.0f};
+  float sfx_volume{1.0f};
   engine::util::LogLevel log_level{engine::util::LogLevel::kDebug};
 };
 

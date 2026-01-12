@@ -1,6 +1,8 @@
 #ifndef ENGINE_CONSOLE_CONSOLE_OVERLAY_H_
 #define ENGINE_CONSOLE_CONSOLE_OVERLAY_H_
 
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -43,7 +45,7 @@ class ConsoleOverlay {
   explicit ConsoleOverlay(Console& console);
   ConsoleOverlay(Console& console, const ConsoleOverlayConfig& config);
 
-  void SetConsole(Console& console) { console_ = &console; }
+  void SetConsole(Console& console) { console_ = console; }
 
   void Toggle();
   void SetOpen(bool open);
@@ -69,7 +71,7 @@ class ConsoleOverlay {
 
   render::Color GetLineColor(ConsoleLine::Type type) const;
 
-  Console* console_{nullptr};
+  std::optional<std::reference_wrapper<Console>> console_;
   ConsoleOverlayConfig config_;
 
   bool open_{false};

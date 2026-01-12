@@ -67,7 +67,7 @@ class AudioManager {
   std::optional<MusicType> ActiveMusic() const;
 
  private:
-  static constexpr float kDefaultMusicVolume = 0.65f;
+  static constexpr float kDefaultMusicVolume = 1.0f;
 
   engine::audio::AudioEngine& engine_;
   std::unordered_map<MusicType, std::string> music_paths_;

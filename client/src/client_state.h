@@ -18,6 +18,7 @@ enum class ClientState {
   kMainMenu,
   kLobby,
   kSettings,
+  kAudioSettings,
   kConnecting,
   kInGame,
   kPaused,

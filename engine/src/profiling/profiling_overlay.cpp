@@ -19,10 +19,7 @@ void ProfilingOverlay::Toggle() { enabled_ = !enabled_; }
 
 void ProfilingOverlay::SetEnabled(bool enabled) { enabled_ = enabled; }
 
-void ProfilingOverlay::Update(time::TimeDelta dt) {
-  frame_profiler_.RecordFrame(dt);
-  resource_monitor_.Update();
-}
+void ProfilingOverlay::Update(time::TimeDelta) { resource_monitor_.Update(); }
 
 void ProfilingOverlay::UpdateLatency(float latency_ms) {
   network_profiler_.RecordLatency(latency_ms);
@@ -48,7 +45,11 @@ void ProfilingOverlay::Draw(render::Renderer2D& renderer,
                             const math::Vector2i& window_size) const {
   if (!enabled_) return;
 
-  auto frame_stats = frame_profiler_.GetStats();
+  FrameStats frame_stats;
+  if (frame_profiler_.has_value()) {
+    frame_stats = frame_profiler_->get().GetStats();
+  }
+
   auto net_stats = network_profiler_.GetStats();
   auto res_stats = resource_monitor_.GetStats();
 
@@ -127,10 +128,12 @@ void ProfilingOverlay::Draw(render::Renderer2D& renderer,
                       config_.text_color);
     y += config_.font_size;
 
-    DrawGraphImpl(renderer, x, y, content_width, config_.graph_height,
-                  frame_profiler_.frame_times(), 128, 50.0f,
-                  config_.frame_time_warning_ms,
-                  config_.frame_time_critical_ms);
+    if (frame_profiler_.has_value()) {
+      DrawGraphImpl(renderer, x, y, content_width, config_.graph_height,
+                    frame_profiler_->get().frame_times(), 128, 50.0f,
+                    config_.frame_time_warning_ms,
+                    config_.frame_time_critical_ms);
+    }
     y += config_.graph_height + 4.0f;
   }
 

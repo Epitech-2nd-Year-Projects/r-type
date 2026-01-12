@@ -1,0 +1,7 @@
+target("rift_game_logic")
+    set_kind("static")
+    set_default(false)
+    add_files("src/**.cpp")
+    add_includedirs("include", {public = true})
+    add_headerfiles("include/rift/(**.h|**.hpp)")
+    add_deps("engine_core", "engine_ecs", "engine_math", "engine_time", "engine_event", "engine_input")
