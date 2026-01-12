@@ -10,6 +10,7 @@
 #include "game_logic/components/powerup_component.h"
 #include "game_logic/components/powerup_drop_component.h"
 #include "game_logic/components/score_value_component.h"
+#include "game_logic/components/shoot_event_component.h"
 #include "game_logic/components/sprite_component.h"
 #include "game_logic/components/weapon_component.h"
 
