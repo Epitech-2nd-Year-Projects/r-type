@@ -60,14 +60,15 @@ class RenderQueueSystem {
       const ecs::RenderLayerComponent& layer,
       const std::optional<ecs::VelocityComponent>& velocity,
       std::uint16_t type_code,
-      const std::shared_ptr<engine::render::Texture2D>& texture) const;
+      const std::shared_ptr<engine::render::Texture2D>& texture,
+      const std::string& texture_id) const;
   engine::math::RectF ApplyFlip(const engine::math::RectF& base, bool flip_x,
                                 bool flip_y) const;
   engine::math::Vector2f ComputeScale(const engine::render::Texture2D& texture,
                                       const engine::math::RectF& source) const;
   bool ComputeFlipX(std::uint16_t type_code,
                     const std::optional<ecs::VelocityComponent>& velocity,
-                    bool sprite_flip) const;
+                    bool sprite_flip, const std::string& texture_id) const;
   std::shared_ptr<engine::render::Texture2D> LoadTexture(const std::string& id);
 
   engine::ecs::Registry& registry_;
