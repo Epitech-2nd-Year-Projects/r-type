@@ -11,8 +11,8 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
-#include "engine/time/time_delta.h"
 #include "engine/math/vector2.h"
+#include "engine/time/time_delta.h"
 #include "game_logic/game_state.h"
 
 namespace engine::scripting {
@@ -230,9 +230,10 @@ class GameInstance {
    * - Events are consumed by the internal player input system
    *   registered in RegisterSystems()
    */
-  void OnPlayerInput(std::uint32_t player_id, InputEventType input_type,
-                     std::optional<engine::math::Vector2f> spawn_pos = std::nullopt,
-                     float latency_s = 0.0f);
+  void OnPlayerInput(
+      std::uint32_t player_id, InputEventType input_type,
+      std::optional<engine::math::Vector2f> spawn_pos = std::nullopt,
+      float latency_s = 0.0f);
 
   /**
    * @brief Trigger a player death event
