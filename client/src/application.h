@@ -6,6 +6,7 @@
 
 #include "client_config.h"
 #include "client_context.h"
+#include "lobby_chat_service.h"
 #include "player_profile.h"
 #include "engine/time/time_delta.h"
 
@@ -94,6 +95,7 @@ class Application : public ClientContext {
   PlayerProfile& Profile() override;
   const PlayerProfile& Profile() const override;
   void SaveProfile() override;
+  LobbyChatService& ChatService() override;
 
  private:
   bool Tick(engine::time::TimeDelta dt);
@@ -110,6 +112,7 @@ class Application : public ClientContext {
   std::unique_ptr<ClientAssetManager> assets_;
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
+  std::unique_ptr<LobbyChatService> chat_service_;
   std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };
 

@@ -56,7 +56,11 @@ Application::Application(ClientConfig config)
       scene_manager_(std::make_unique<SceneManager>(*this)),
       audio_(std::make_unique<AudioController>()),
       network_(std::make_unique<NetworkSession>(config_)),
-      input_(std::make_unique<InputCoordinator>()) {}
+      input_(std::make_unique<InputCoordinator>()),
+      chat_service_(std::make_unique<LobbyChatService>(
+          [this](const protocol::CommandPayload& payload) {
+            return EnqueueCommand(payload);
+          })) {}
 
 Application::~Application() = default;
 
@@ -264,6 +268,10 @@ void Application::SaveProfile() {
   }
 }
 
+LobbyChatService& Application::ChatService() {
+  return *chat_service_;
+}
+
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!runtime_->Pump()) {
     LogLifecycle(engine::util::LogLevel::kError,
@@ -338,6 +346,10 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
     UpdateProfileStats(profile_, session_seconds, 0, stats.score);
     SaveProfile();
     scene_manager_->OnGameOver(stats);
+  }
+  // Forward chat messages to the chat service
+  for (const auto& message : events.chat_messages) {
+    chat_service_->OnChatMessageReceived(message);
   }
 }
 
