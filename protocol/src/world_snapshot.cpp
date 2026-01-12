@@ -8,14 +8,14 @@ namespace protocol {
 
 namespace {
 
-bool EncodeFullEntityState(const EntityNetState& state,
-                           engine::net::PacketBuffer& buffer) {
+bool EncodeFullEntityState(const EntityNetState &state,
+                           engine::net::PacketBuffer &buffer) {
   buffer.WriteUint16(state.type);
   buffer.WriteInt16(state.x);
   buffer.WriteInt16(state.y);
   buffer.WriteInt16(state.vx);
   buffer.WriteInt16(state.vy);
-  buffer.WriteUint8(state.hp);
+  buffer.WriteUint32(state.hp);
   buffer.WriteUint8(state.flags);
   buffer.WriteUint32(state.score);
   buffer.WriteUint8(state.lives);
@@ -23,14 +23,14 @@ bool EncodeFullEntityState(const EntityNetState& state,
   return true;
 }
 
-bool DecodeFullEntityState(engine::net::PacketBuffer& buffer,
-                           EntityNetState& out_state) {
+bool DecodeFullEntityState(engine::net::PacketBuffer &buffer,
+                           EntityNetState &out_state) {
   std::uint16_t type = 0;
   std::int16_t x = 0;
   std::int16_t y = 0;
   std::int16_t vx = 0;
   std::int16_t vy = 0;
-  std::uint8_t hp = 0;
+  std::uint32_t hp = 0;
   std::uint8_t flags = 0;
   std::uint32_t score = 0;
   std::uint8_t lives = 0;
@@ -38,7 +38,7 @@ bool DecodeFullEntityState(engine::net::PacketBuffer& buffer,
 
   if (!buffer.ReadUint16(type) || !buffer.ReadInt16(x) ||
       !buffer.ReadInt16(y) || !buffer.ReadInt16(vx) || !buffer.ReadInt16(vy) ||
-      !buffer.ReadUint8(hp) || !buffer.ReadUint8(flags) ||
+      !buffer.ReadUint32(hp) || !buffer.ReadUint8(flags) ||
       !buffer.ReadUint32(score) || !buffer.ReadUint8(lives) ||
       !buffer.ReadUint32(player_id)) {
     return false;
@@ -58,8 +58,8 @@ bool DecodeFullEntityState(engine::net::PacketBuffer& buffer,
 
 }  // namespace
 
-bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
-                         engine::net::PacketBuffer& buffer) {
+bool EncodeWorldSnapshot(const WorldSnapshotPayload &payload,
+                         engine::net::PacketBuffer &buffer) {
   if (payload.deltas.size() >
       static_cast<std::size_t>(std::numeric_limits<std::uint16_t>::max())) {
     return false;
@@ -73,7 +73,7 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
   const std::uint16_t count = static_cast<std::uint16_t>(payload.deltas.size());
   buffer.WriteUint16(count);
 
-  for (const EntityDelta& delta : payload.deltas) {
+  for (const EntityDelta &delta : payload.deltas) {
     buffer.WriteUint8(static_cast<std::uint8_t>(delta.op));
     buffer.WriteUint32(delta.entity_id);
 
@@ -107,7 +107,7 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
           buffer.WriteInt16(delta.state.vy);
         }
         if (mask & kFieldHp) {
-          buffer.WriteUint8(delta.state.hp);
+          buffer.WriteUint32(delta.state.hp);
         }
         if (mask & kFieldFlags) {
           buffer.WriteUint8(delta.state.flags);
@@ -129,8 +129,8 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
   return true;
 }
 
-bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
-                         WorldSnapshotPayload& out_payload) {
+bool DecodeWorldSnapshot(engine::net::PacketBuffer &buffer,
+                         WorldSnapshotPayload &out_payload) {
   WorldSnapshotPayload result;
 
   std::uint32_t snapshot_id = 0;
@@ -223,8 +223,8 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
           state.vy = vy;
         }
         if (mask & kFieldHp) {
-          std::uint8_t hp = 0;
-          if (!buffer.ReadUint8(hp)) {
+          std::uint32_t hp = 0;
+          if (!buffer.ReadUint32(hp)) {
             return false;
           }
           state.hp = hp;
@@ -267,33 +267,33 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
   return true;
 }
 
-WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
-                                  const WorldSnapshotPayload& base) {
+WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload &current,
+                                  const WorldSnapshotPayload &base) {
   WorldSnapshotPayload result;
   result.snapshot_id = current.snapshot_id;
   result.base_snapshot_id = base.snapshot_id;
   result.server_tick = current.server_tick;
   result.current_wave = current.current_wave;
 
-  std::unordered_map<std::uint32_t, const EntityNetState*> base_entities;
-  for (const auto& delta : base.deltas) {
+  std::unordered_map<std::uint32_t, const EntityNetState *> base_entities;
+  for (const auto &delta : base.deltas) {
     if (delta.op == EntityDeltaOp::kCreate ||
         delta.op == EntityDeltaOp::kUpdate) {
       base_entities[delta.entity_id] = &delta.state;
     }
   }
 
-  for (const auto& curr_delta : current.deltas) {
+  for (const auto &curr_delta : current.deltas) {
     if (curr_delta.op != EntityDeltaOp::kCreate) {
       continue;
     }
-    const auto& curr_state = curr_delta.state;
+    const auto &curr_state = curr_delta.state;
     auto it = base_entities.find(curr_state.entity_id);
 
     if (it == base_entities.end()) {
       result.deltas.push_back(curr_delta);
     } else {
-      const auto& base_state = *it->second;
+      const auto &base_state = *it->second;
       std::uint16_t mask = 0;
 
       if (curr_state.type != base_state.type) mask |= kFieldType;
@@ -319,7 +319,7 @@ WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
     }
   }
 
-  for (const auto& [id, _] : base_entities) {
+  for (const auto &[id, _] : base_entities) {
     EntityDelta delete_delta;
     delete_delta.op = EntityDeltaOp::kDelete;
     delete_delta.entity_id = id;
@@ -329,16 +329,16 @@ WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
   return result;
 }
 
-WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
-                                const WorldSnapshotPayload& delta) {
+WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload &base,
+                                const WorldSnapshotPayload &delta) {
   WorldSnapshotPayload result;
   result.snapshot_id = delta.snapshot_id;
   result.base_snapshot_id = kNoBaseSnapshotId;
   result.server_tick = delta.server_tick;
   result.current_wave = delta.current_wave;
 
-  std::unordered_map<std::uint32_t, const EntityNetState*> base_entities;
-  for (const auto& d : base.deltas) {
+  std::unordered_map<std::uint32_t, const EntityNetState *> base_entities;
+  for (const auto &d : base.deltas) {
     if (d.op == EntityDeltaOp::kCreate) {
       base_entities[d.entity_id] = &d.state;
     }
@@ -346,7 +346,7 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
 
   std::unordered_set<std::uint32_t> processed_ids;
 
-  for (const auto& d : delta.deltas) {
+  for (const auto &d : delta.deltas) {
     EntityDelta new_delta;
     new_delta.op = EntityDeltaOp::kCreate;
     new_delta.entity_id = d.entity_id;
@@ -379,7 +379,7 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
     }
   }
 
-  for (const auto& [id, state_ptr] : base_entities) {
+  for (const auto &[id, state_ptr] : base_entities) {
     if (processed_ids.find(id) == processed_ids.end()) {
       EntityDelta unchanged;
       unchanged.op = EntityDeltaOp::kCreate;
