@@ -61,6 +61,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/dobkeratops.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
