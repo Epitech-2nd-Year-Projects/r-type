@@ -217,7 +217,6 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     return;
   }
 
-  // Handle chat messages - broadcast to all players in the room
   if (command.command_id ==
       static_cast<std::uint16_t>(protocol::CommandType::kChatMessage)) {
     if (!protocol::IsValidChatMessage(command.payload)) {
@@ -226,14 +225,12 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
       return;
     }
 
-    // Format message with sender name
     const std::string formatted_message =
         protocol::FormatChatMessage(peer.player_name, command.payload);
 
     logger_.Debug("Chat from player ", peer.player_id, " (",
                   peer.player_name, "): ", command.payload);
 
-    // Broadcast to all players in the room
     const auto& players = room->get().Players();
     for (std::uint32_t player_id : players) {
       auto peer_ref = FindPeerByPlayerId(player_id);

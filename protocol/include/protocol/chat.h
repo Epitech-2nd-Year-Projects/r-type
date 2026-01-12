@@ -53,7 +53,6 @@ inline bool ParseChatMessage(std::string_view formatted_message,
     return false;
   }
   out_sender = formatted_message.substr(0, delimiter_pos);
-  // Skip ": " (delimiter and space)
   const std::size_t message_start = delimiter_pos + 1;
   if (message_start < formatted_message.size() &&
       formatted_message[message_start] == ' ') {
