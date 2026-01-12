@@ -15,7 +15,6 @@
 
 #include "engine/render/window.h"
 #include "engine/util/config.h"
-#include "input/key_binding_service.h"
 #include "input/input_layer.h"
 #include "player_profile.h"
 #include "protocol/command.h"
@@ -82,8 +81,8 @@ class ClientContext {
    * @param action Gameplay action
    * @param key Input key
    */
-  virtual KeyBindingUpdateResult UpdateKeyBinding(
-      GameAction action, engine::input::Key key) = 0;
+  virtual KeyBindingUpdateResult UpdateKeyBinding(GameAction action,
+                                                  engine::input::Key key) = 0;
 
   /**
    * @brief Access the active window
@@ -94,6 +93,12 @@ class ClientContext {
    * @brief Access the audio engine when available
    */
   virtual std::shared_ptr<engine::audio::AudioEngine> Audio() = 0;
+
+  /**
+   * @brief Update audio volume settings and persist them
+   */
+  virtual void SetAudioVolumes(float master_volume, float music_volume,
+                               float sfx_volume) = 0;
 
   /**
    * @brief Access the asset manager
@@ -121,9 +126,19 @@ class ClientContext {
   virtual void OnOpenSettings() = 0;
 
   /**
+   * @brief Open the audio settings menu
+   */
+  virtual void OnOpenAudioSettings() = 0;
+
+  /**
    * @brief Close the settings menu
    */
   virtual void OnCloseSettings() = 0;
+
+  /**
+   * @brief Close the audio settings menu
+   */
+  virtual void OnCloseAudioSettings() = 0;
 
   /**
    * @brief Quit the application

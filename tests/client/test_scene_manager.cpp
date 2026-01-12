@@ -12,6 +12,7 @@
 #include "engine/input.h"
 #include "engine/render/context.h"
 #include "engine/render/renderer2d.h"
+#include "engine/render/renderer3d.h"
 #include "engine/render/window.h"
 #include "engine/util/config.h"
 #include "input/key_binding_service.h"
@@ -45,9 +46,9 @@ class FakeRenderer final : public engine::render::Renderer2D {
                 const engine::math::Vector2f& /*end*/, float /*thickness*/,
                 const engine::render::Color& /*color*/) override {}
 
-  void DrawTexture(const engine::render::Texture2D& /*texture*/,
-                   const engine::render::SpriteDrawParams& /*params*/) override {
-  }
+  void DrawTexture(
+      const engine::render::Texture2D& /*texture*/,
+      const engine::render::SpriteDrawParams& /*params*/) override {}
 
   void DrawText(std::string_view /*text*/,
                 const engine::math::Vector2f& /*position*/, float /*font_size*/,
@@ -71,24 +72,72 @@ class FakeRenderer final : public engine::render::Renderer2D {
   void Flush() override {}
 };
 
+class FakeRenderer3D final : public engine::render::Renderer3D {
+ public:
+  void Begin3D(const engine::render::Camera3D& /*camera*/) override {}
+  void End3D() override {}
+  void DrawCube(const engine::math::Vector3f& /*position*/,
+                const engine::math::Vector3f& /*size*/,
+                const engine::render::Color& /*color*/) override {}
+  void DrawCubeWires(const engine::math::Vector3f& /*position*/,
+                     const engine::math::Vector3f& /*size*/,
+                     const engine::render::Color& /*color*/) override {}
+  void DrawSphere(const engine::math::Vector3f& /*center*/, float /*radius*/,
+                  const engine::render::Color& /*color*/) override {}
+  void DrawSphereWires(const engine::math::Vector3f& /*center*/,
+                       float /*radius*/, int /*rings*/, int /*slices*/,
+                       const engine::render::Color& /*color*/) override {}
+  void DrawCylinder(const engine::math::Vector3f& /*position*/,
+                    float /*radius_top*/, float /*radius_bottom*/,
+                    float /*height*/, int /*slices*/,
+                    const engine::render::Color& /*color*/) override {}
+  void DrawCylinderWires(const engine::math::Vector3f& /*position*/,
+                         float /*radius_top*/, float /*radius_bottom*/,
+                         float /*height*/, int /*slices*/,
+                         const engine::render::Color& /*color*/) override {}
+  void DrawPlane(const engine::math::Vector3f& /*center*/,
+                 const engine::math::Vector2f& /*size*/,
+                 const engine::render::Color& /*color*/) override {}
+  void DrawGrid(int /*slices*/, float /*spacing*/) override {}
+  void DrawLine3D(const engine::math::Vector3f& /*start*/,
+                  const engine::math::Vector3f& /*end*/,
+                  const engine::render::Color& /*color*/) override {}
+  void DrawPoint3D(const engine::math::Vector3f& /*position*/,
+                   const engine::render::Color& /*color*/) override {}
+  void DrawModel(const engine::render::Model& /*model*/,
+                 const engine::render::ModelDrawParams& /*params*/) override {}
+  void DrawModelWires(
+      const engine::render::Model& /*model*/,
+      const engine::render::ModelDrawParams& /*params*/) override {}
+  std::shared_ptr<engine::render::Model> LoadModelFromFile(
+      const std::string& /*path*/) override {
+    return nullptr;
+  }
+  void SetLighting(const engine::render::LightingConfig& /*config*/) override {}
+  void DisableLighting() override {}
+};
+
 class FakeRenderContext final : public engine::render::RenderContext {
  public:
-  explicit FakeRenderContext(engine::render::Renderer2D& renderer)
-      : renderer_(renderer) {}
+  explicit FakeRenderContext(engine::render::Renderer2D& renderer2d,
+                             engine::render::Renderer3D& renderer3d)
+      : renderer2d_(renderer2d), renderer3d_(renderer3d) {}
 
   void BeginFrame() override {}
   void EndFrame() override {}
   void Clear(const engine::render::Color& /*color*/) override {}
-  engine::render::Renderer2D& Get2DRenderer() override { return renderer_; }
+  engine::render::Renderer2D& Get2DRenderer() override { return renderer2d_; }
+  engine::render::Renderer3D& Get3DRenderer() override { return renderer3d_; }
 
  private:
-  engine::render::Renderer2D& renderer_;
+  engine::render::Renderer2D& renderer2d_;
+  engine::render::Renderer3D& renderer3d_;
 };
 
 class FakeWindow final : public engine::render::Window {
  public:
   FakeWindow()
-      : size_(1280, 720), context_(renderer_), input_manager_() {}
+      : size_(1280, 720), context_(renderer2d_, renderer3d_), input_manager_() {}
 
   void PollEvents() override {}
   bool ShouldClose() const override { return false; }
@@ -108,11 +157,12 @@ class FakeWindow final : public engine::render::Window {
     return context_;
   }
 
-  engine::render::Renderer2D& Renderer() { return renderer_; }
+  engine::render::Renderer2D& Renderer() { return renderer2d_; }
 
  private:
   engine::math::Vector2i size_;
-  FakeRenderer renderer_;
+  FakeRenderer renderer2d_;
+  FakeRenderer3D renderer3d_;
   FakeRenderContext context_;
   std::shared_ptr<engine::input::InputManager> input_manager_;
 };
@@ -121,9 +171,7 @@ class FakeClientContext final : public client::ClientContext {
  public:
   FakeClientContext() : assets_(window_.Renderer()) {}
 
-  engine::render::Renderer2D& Renderer() override {
-    return window_.Renderer();
-  }
+  engine::render::Renderer2D& Renderer() override { return window_.Renderer(); }
 
   engine::input::InputManager& Input() override { return input_; }
 
@@ -142,8 +190,13 @@ class FakeClientContext final : public client::ClientContext {
 
   engine::render::Window& Window() override { return window_; }
 
-  std::shared_ptr<engine::audio::AudioEngine> Audio() override {
-    return {};
+  std::shared_ptr<engine::audio::AudioEngine> Audio() override { return {}; }
+
+  void SetAudioVolumes(float master_volume, float music_volume,
+                       float sfx_volume) override {
+    last_master_volume_ = master_volume;
+    last_music_volume_ = music_volume;
+    last_sfx_volume_ = sfx_volume;
   }
 
   client::ClientAssetManager& Assets() override { return assets_; }
@@ -156,6 +209,7 @@ class FakeClientContext final : public client::ClientContext {
 
   void OnPlay() override { ++play_calls_; }
   void OnOpenSettings() override { ++open_settings_calls_; }
+  void OnOpenAudioSettings() override { ++open_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
@@ -164,8 +218,8 @@ class FakeClientContext final : public client::ClientContext {
   void OnGamePause() override { ++pause_calls_; }
   void OnGameResume() override { ++resume_calls_; }
 
-  void SetConnectionConfig(std::string host, int port,
-                           std::string player_name, std::string room_code,
+  void SetConnectionConfig(std::string host, int port, std::string player_name,
+                           std::string room_code,
                            std::string room_password = {}) override {
     last_host_ = std::move(host);
     last_port_ = port;
@@ -203,8 +257,8 @@ class FakeClientContext final : public client::ClientContext {
 
   std::string RoomDirectoryStatus() const override { return room_status_; }
 
-  std::optional<protocol::CreateRoomResponsePayload>
-  ConsumeLastRoomCreation() override {
+  std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation()
+      override {
     return std::nullopt;
   }
 
@@ -244,9 +298,13 @@ class FakeClientContext final : public client::ClientContext {
   std::string room_status_{"Lobby idle"};
   std::string connection_status_{"Connecting"};
   bool connection_active_{false};
+  float last_master_volume_{0.0f};
+  float last_music_volume_{0.0f};
+  float last_sfx_volume_{0.0f};
 
   int play_calls_{0};
   int open_settings_calls_{0};
+  int open_audio_settings_calls_{0};
   int close_settings_calls_{0};
   int open_profile_calls_{0};
   int close_profile_calls_{0};
@@ -267,7 +325,7 @@ class FakeClientContext final : public client::ClientContext {
   std::uint16_t last_max_players_{0};
 };
 
-}
+}  // namespace
 
 TEST(SceneManagerTest, RoutesMainMenuToLobby) {
   FakeClientContext context;
@@ -302,9 +360,9 @@ TEST(SceneManagerTest, ReturnsFromSettingsToPreviousState) {
             client::ClientState::kLobby);
   manager.CommitSceneChange();
   ASSERT_NE(manager.CurrentScene(), nullptr);
-  EXPECT_NE(dynamic_cast<client::OptionsMenuScene*>(
-                manager.CurrentScene().get()),
-            nullptr);
+  EXPECT_NE(
+      dynamic_cast<client::OptionsMenuScene*>(manager.CurrentScene().get()),
+      nullptr);
 
   manager.OnCloseSettings();
   manager.CommitSceneChange();

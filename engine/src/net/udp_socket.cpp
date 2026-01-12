@@ -112,6 +112,14 @@ UdpReceiveResult UdpSocket::receive_from(std::span<std::uint8_t> data) {
   return result;
 }
 
+Endpoint UdpSocket::local_endpoint() const {
+  if (!socket_ || !socket_->is_open()) return Endpoint();
+  std::error_code ec;
+  auto ep = socket_->local_endpoint(ec);
+  if (ec) return Endpoint();
+  return Endpoint(ep, true);
+}
+
 void UdpSocket::close() {
   if (!socket_) return;
   std::error_code ec;

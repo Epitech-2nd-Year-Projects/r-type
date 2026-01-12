@@ -13,6 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include "engine/util/thread_id.h"
+#include "engine/util/thread_safe_queue.h"
+
 namespace engine::event {
 
 /**
@@ -88,6 +91,25 @@ class EventBus {
   void DispatchQueued();
 
   /**
+   * @brief Post an event to a specific thread's event channel.
+   *
+   * @tparam Event  The event type to post.
+   * @param target  The target thread ID where the event should be processed.
+   * @param event   The event instance (moved).
+   *
+   * @note This is thread-safe and non-blocking.
+   */
+  template <typename Event>
+  void PostTo(engine::util::ThreadId target, Event&& event);
+
+  /**
+   * @brief Process all pending events for the specified thread channel.
+   *
+   * @param self  The thread ID of the calling thread (current context).
+   */
+  void FlushChannel(engine::util::ThreadId self);
+
+  /**
    * @brief Check whether pending events are waiting to be processed.
    */
   [[nodiscard]] bool HasQueuedEvents() const;
@@ -102,6 +124,27 @@ class EventBus {
     virtual ~HandlerBase() = default;
     virtual void Invoke(const std::any& event) const = 0;
     [[nodiscard]] virtual std::size_t Id() const noexcept = 0;
+  };
+
+  class ThreadChannel {
+   public:
+    void EnqueueEvent(std::function<void()> event) {
+      queue_.Push(std::move(event));
+    }
+
+    void FlushEvents() {
+      std::function<void()> event;
+      while (queue_.TryPop(event)) {
+        if (event) {
+          event();
+        }
+      }
+    }
+
+    [[nodiscard]] bool HasPendingEvents() const { return !queue_.Empty(); }
+
+   private:
+    util::ThreadSafeQueue<std::function<void()>> queue_;
   };
 
   template <typename Event>
@@ -131,6 +174,9 @@ class EventBus {
 
   std::vector<std::function<void()>> queued_events_;
   mutable std::mutex queue_mutex_;
+
+  std::unordered_map<engine::util::ThreadId, ThreadChannel> channels_;
+  mutable std::mutex channels_mutex_;
 
   std::size_t next_subscription_id_ = 1;
 };
@@ -177,6 +223,17 @@ void EventBus::Enqueue(Args&&... args) {
 
   std::lock_guard lock(queue_mutex_);
   queued_events_.push_back(std::move(dispatch));
+}
+
+template <typename Event>
+void EventBus::PostTo(engine::util::ThreadId target, Event&& event) {
+  using DecayedEvent = std::decay_t<Event>;
+  auto event_ptr = std::make_shared<DecayedEvent>(std::forward<Event>(event));
+
+  auto dispatch = [this, event_ptr] { this->Publish(*event_ptr); };
+
+  std::lock_guard lock(channels_mutex_);
+  channels_[target].EnqueueEvent(std::move(dispatch));
 }
 
 template <typename Event>

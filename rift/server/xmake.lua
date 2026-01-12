@@ -1,0 +1,5 @@
+target("rift_server")
+    set_kind("binary")
+    set_default(false)
+    add_files("src/*.cpp")
+    add_deps("protocol", "rift_game_logic", "engine_core", "engine_net", "engine_ecs", "engine_time", "engine_util", "engine_math")

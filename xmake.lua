@@ -22,3 +22,7 @@ add_deps("engine", "server", "client", "protocol", "game_logic")
 if os.getenv("BUILD_BENCHMARKS") then
     includes("benchmarks/engine")
 end
+
+if os.getenv("BUILD_RIFT") then
+    includes("rift")
+end
