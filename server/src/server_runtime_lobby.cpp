@@ -394,6 +394,7 @@ bool ServerRuntime::JoinRoom(PeerConnection& peer, Room& room,
   if (!room.AddPlayer(peer.player_id, player_name)) {
     return false;
   }
+  peer.player_name = std::string(player_name);
   players_[peer.player_id] = PlayerSession{peer.endpoint_key, room.Code()};
   room.MarkActive(peer.last_seen_ms);
   return true;
