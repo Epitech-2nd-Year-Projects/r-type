@@ -28,6 +28,9 @@ inline constexpr std::string_view kClientLobbyMaxAttempts =
     "client.lobby_max_attempts";
 inline constexpr std::string_view kClientRoomListRefreshMs =
     "client.room_list_refresh_ms";
+inline constexpr std::string_view kAudioMasterVolume = "audio.master_volume";
+inline constexpr std::string_view kAudioMusicVolume = "audio.music_volume";
+inline constexpr std::string_view kAudioSfxVolume = "audio.sfx_volume";
 
 }  // namespace client::constants::config
 
