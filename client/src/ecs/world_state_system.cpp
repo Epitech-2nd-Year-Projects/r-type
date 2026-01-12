@@ -12,7 +12,7 @@ constexpr float kQuantizationScale = 1.0f;
 
 }  // namespace
 
-WorldStateSystem::WorldStateSystem(engine::ecs::Registry& registry)
+WorldStateSystem::WorldStateSystem(engine::ecs::Registry &registry)
     : registry_(registry),
       archetypes_(ArchetypeRegistry::Get()),
       animation_factory_(archetypes_) {
@@ -36,7 +36,7 @@ void WorldStateSystem::RegisterComponents() {
 }
 
 void WorldStateSystem::Reset() {
-  for (const auto& [network_id, entity] : network_to_entity_) {
+  for (const auto &[network_id, entity] : network_to_entity_) {
     (void)network_id;
     registry_.KillEntity(entity);
   }
@@ -45,7 +45,7 @@ void WorldStateSystem::Reset() {
 }
 
 void WorldStateSystem::ApplySnapshot(
-    const protocol::WorldSnapshotPayload& snapshot,
+    const protocol::WorldSnapshotPayload &snapshot,
     std::uint64_t receipt_timestamp_ms) {
   if (snapshot.snapshot_id <= last_snapshot_id_) {
     return;
@@ -56,7 +56,7 @@ void WorldStateSystem::ApplySnapshot(
   std::unordered_set<std::uint32_t> seen;
   seen.reserve(snapshot.deltas.size());
 
-  for (const auto& delta : snapshot.deltas) {
+  for (const auto &delta : snapshot.deltas) {
     switch (delta.op) {
       case protocol::EntityDeltaOp::kCreate:
         ApplyCreate(delta, snapshot.snapshot_id, receipt_timestamp_ms);
@@ -87,52 +87,54 @@ void WorldStateSystem::ApplySnapshot(
   last_snapshot_id_ = snapshot.snapshot_id;
 }
 
-void WorldStateSystem::ApplyCreate(const protocol::EntityDelta& delta,
+void WorldStateSystem::ApplyCreate(const protocol::EntityDelta &delta,
                                    std::uint32_t snapshot_id,
                                    std::uint64_t receipt_timestamp_ms) {
   const auto entity =
       ResolveOrCreateEntity(delta.entity_id, snapshot_id, delta.state.type);
 
-  auto& net = registry_.GetComponents<NetworkedEntityComponent>();
-  auto& net_comp = net[entity].value();
+  auto &net = registry_.GetComponents<NetworkedEntityComponent>();
+  auto &net_comp = net[entity].value();
   net_comp.type_code = delta.state.type;
   net_comp.last_snapshot = snapshot_id;
   net_comp.flags = delta.state.flags;
 
   UpdateArchetypeTags(entity, delta.state.type);
-  animation_factory_.EnsureAnimation(registry_, entity, delta.state.type);
 
   const auto position = ToVector(delta.state.x, delta.state.y);
-  auto& positions = registry_.GetComponents<PositionComponent>();
+  auto &positions = registry_.GetComponents<PositionComponent>();
   positions[entity] = PositionComponent(position, position);
   positions[entity]->render_position = position;
 
   const auto velocity = ToVector(delta.state.vx, delta.state.vy);
-  auto& velocities = registry_.GetComponents<VelocityComponent>();
+  auto &velocities = registry_.GetComponents<VelocityComponent>();
   velocities[entity] = VelocityComponent(velocity);
 
-  auto& health = registry_.GetComponents<HealthComponent>();
+  auto &health = registry_.GetComponents<HealthComponent>();
   const auto hp = delta.state.hp;
-  auto& target_hp = health[entity];
+  auto &target_hp = health[entity];
   if (!target_hp.has_value()) {
-    target_hp = HealthComponent(hp, hp);
+    target_hp = HealthComponent(static_cast<std::uint32_t>(hp),
+                                static_cast<std::uint32_t>(hp));
   } else {
-    target_hp->max = std::max(target_hp->max, hp);
-    target_hp->current = hp;
+    target_hp->max = std::max(target_hp->max, static_cast<std::uint32_t>(hp));
+    target_hp->current = static_cast<std::uint32_t>(hp);
   }
 
-  auto& player_states = registry_.GetComponents<PlayerStateComponent>();
+  animation_factory_.EnsureAnimation(registry_, entity, delta.state.type);
+
+  auto &player_states = registry_.GetComponents<PlayerStateComponent>();
   if (archetypes_.IsPlayer(delta.state.type)) {
     player_states[entity] = PlayerStateComponent(
         delta.state.player_id, delta.state.score, delta.state.lives);
   }
 
-  auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
+  auto &snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
   snapshots[entity] = SnapshotInterpolationComponent(receipt_timestamp_ms,
                                                      receipt_timestamp_ms);
 }
 
-void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
+void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta &delta,
                                    std::uint32_t snapshot_id,
                                    std::uint64_t receipt_timestamp_ms) {
   const auto it = network_to_entity_.find(delta.entity_id);
@@ -141,9 +143,9 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
                           ? ResolveOrCreateEntity(delta.entity_id, snapshot_id,
                                                   delta.state.type)
                           : it->second;
-  auto& net = registry_.GetComponents<NetworkedEntityComponent>();
-  auto& net_comp = net[entity];
-  auto& player_states = registry_.GetComponents<PlayerStateComponent>();
+  auto &net = registry_.GetComponents<NetworkedEntityComponent>();
+  auto &net_comp = net[entity];
+  auto &player_states = registry_.GetComponents<PlayerStateComponent>();
   const std::uint32_t last_applied =
       net_comp.has_value() ? net_comp->last_snapshot : 0u;
   if (!created && last_applied >= snapshot_id) {
@@ -162,9 +164,10 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
   }
   net_comp->last_snapshot = snapshot_id;
 
-  if (created || (delta.field_mask & protocol::EntityFieldMask::kFieldType)) {
+  const bool needs_animation =
+      created || (delta.field_mask & protocol::EntityFieldMask::kFieldType);
+  if (needs_animation) {
     UpdateArchetypeTags(entity, net_comp->type_code);
-    animation_factory_.EnsureAnimation(registry_, entity, net_comp->type_code);
   }
 
   const bool is_player_type = archetypes_.IsPlayer(
@@ -174,8 +177,8 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldX ||
       delta.field_mask & protocol::EntityFieldMask::kFieldY) {
-    auto& positions = registry_.GetComponents<PositionComponent>();
-    auto& pos = positions[entity];
+    auto &positions = registry_.GetComponents<PositionComponent>();
+    auto &pos = positions[entity];
     const float target_x =
         delta.field_mask & protocol::EntityFieldMask::kFieldX
             ? static_cast<float>(delta.state.x) * kQuantizationScale
@@ -191,16 +194,14 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     } else {
       pos->previous_position = pos->position;
       pos->position = target;
-      // Keep render position at the old location so interpolation blends toward
-      // the new authoritative state instead of teleporting.
       pos->render_position = pos->previous_position;
     }
   }
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldVx ||
       delta.field_mask & protocol::EntityFieldMask::kFieldVy) {
-    auto& velocities = registry_.GetComponents<VelocityComponent>();
-    auto& vel = velocities[entity];
+    auto &velocities = registry_.GetComponents<VelocityComponent>();
+    auto &vel = velocities[entity];
     const float target_x =
         delta.field_mask & protocol::EntityFieldMask::kFieldVx
             ? static_cast<float>(delta.state.vx) * kQuantizationScale
@@ -218,18 +219,23 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
   }
 
   if (delta.field_mask & protocol::EntityFieldMask::kFieldHp) {
-    auto& health = registry_.GetComponents<HealthComponent>();
-    auto& hp = health[entity];
+    auto &health = registry_.GetComponents<HealthComponent>();
+    auto &hp = health[entity];
     if (!hp.has_value()) {
-      hp = HealthComponent(delta.state.hp, delta.state.hp);
+      hp = HealthComponent(static_cast<std::uint32_t>(delta.state.hp),
+                           static_cast<std::uint32_t>(delta.state.hp));
     } else {
-      hp->current = delta.state.hp;
-      hp->max = std::max(hp->max, delta.state.hp);
+      hp->current = static_cast<std::uint32_t>(delta.state.hp);
+      hp->max = std::max(hp->max, static_cast<std::uint32_t>(delta.state.hp));
     }
   }
 
+  if (needs_animation) {
+    animation_factory_.EnsureAnimation(registry_, entity, net_comp->type_code);
+  }
+
   if (is_player_type) {
-    auto& player_state = player_states[entity];
+    auto &player_state = player_states[entity];
     if (!player_state.has_value()) {
       player_state = PlayerStateComponent(delta.state.player_id,
                                           delta.state.score, delta.state.lives);
@@ -248,8 +254,8 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
     player_states[entity].reset();
   }
 
-  auto& snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
-  auto& snapshot = snapshots[entity];
+  auto &snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
+  auto &snapshot = snapshots[entity];
   if (!snapshot.has_value()) {
     snapshot = SnapshotInterpolationComponent(receipt_timestamp_ms,
                                               receipt_timestamp_ms);
@@ -259,7 +265,7 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta& delta,
   }
 }
 
-void WorldStateSystem::ApplyDelete(const protocol::EntityDelta& delta) {
+void WorldStateSystem::ApplyDelete(const protocol::EntityDelta &delta) {
   const auto it = network_to_entity_.find(delta.entity_id);
   if (it == network_to_entity_.end()) {
     return;
@@ -287,9 +293,9 @@ void WorldStateSystem::UpdateArchetypeTags(engine::ecs::EntityId entity,
                                            std::uint16_t type_code) {
   const auto kind = archetypes_.KindOf(type_code);
 
-  auto& players = registry_.GetComponents<PlayerTag>();
-  auto& enemies = registry_.GetComponents<EnemyTag>();
-  auto& missiles = registry_.GetComponents<MissileTag>();
+  auto &players = registry_.GetComponents<PlayerTag>();
+  auto &enemies = registry_.GetComponents<EnemyTag>();
+  auto &missiles = registry_.GetComponents<MissileTag>();
 
   const bool is_player = kind == ArchetypeKind::kPlayer;
   const bool is_enemy = kind == ArchetypeKind::kEnemy;

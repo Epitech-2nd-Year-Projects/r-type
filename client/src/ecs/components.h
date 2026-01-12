@@ -61,8 +61,8 @@ struct PositionComponent {
   PositionComponent() = default;
   PositionComponent(float x, float y)
       : position(x, y), previous_position(x, y), render_position(x, y) {}
-  PositionComponent(const engine::math::Vector2f& pos,
-                    const engine::math::Vector2f& prev)
+  PositionComponent(const engine::math::Vector2f &pos,
+                    const engine::math::Vector2f &prev)
       : position(pos), previous_position(prev), render_position(pos) {}
 };
 
@@ -78,7 +78,7 @@ struct VelocityComponent {
 
   VelocityComponent() = default;
   VelocityComponent(float vx, float vy) : velocity(vx, vy) {}
-  explicit VelocityComponent(const engine::math::Vector2f& vel)
+  explicit VelocityComponent(const engine::math::Vector2f &vel)
       : velocity(vel) {}
 };
 
@@ -100,7 +100,7 @@ struct SpriteComponent {
 
   SpriteComponent() = default;
   explicit SpriteComponent(std::string id) : texture_id(std::move(id)) {}
-  SpriteComponent(std::string id, const engine::math::RectF& rect)
+  SpriteComponent(std::string id, const engine::math::RectF &rect)
       : texture_id(std::move(id)), source_rect(rect) {}
 };
 
@@ -143,12 +143,12 @@ struct RenderLayerComponent {
  * small because network payloads quantize health to a byte.
  */
 struct HealthComponent {
-  std::uint8_t current{0};
-  std::uint8_t max{0};
+  std::uint32_t current{0};
+  std::uint32_t max{0};
 
   HealthComponent() = default;
-  explicit HealthComponent(std::uint8_t hp) : current(hp), max(hp) {}
-  HealthComponent(std::uint8_t current_hp, std::uint8_t max_hp)
+  explicit HealthComponent(std::uint32_t hp) : current(hp), max(hp) {}
+  HealthComponent(std::uint32_t current_hp, std::uint32_t max_hp)
       : current(current_hp), max(max_hp) {}
 
   /**
