@@ -45,6 +45,7 @@ class Configuration;
 namespace client {
 
 class ClientAssetManager;
+class LobbyChatService;
 namespace ui {
 class MenuBackground;
 }
@@ -251,6 +252,11 @@ class ClientContext {
    * @brief Persist the player profile to disk
    */
   virtual void SaveProfile() = 0;
+
+  /**
+   * @brief Access the lobby chat service
+   */
+  virtual LobbyChatService& ChatService() = 0;
 };
 
 }  // namespace client
