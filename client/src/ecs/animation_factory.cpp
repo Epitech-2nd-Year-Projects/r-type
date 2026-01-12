@@ -9,8 +9,6 @@ namespace client::ecs {
 
 namespace {
 
-constexpr float kBossSpriteWidth = 164.0f;
-constexpr float kBossSpriteHeight = 190.0f;
 constexpr std::size_t kBossColumns = 4u;
 constexpr std::size_t kBossRows = 9u;
 constexpr std::uint32_t kBossHealthThreshold = 500u;
