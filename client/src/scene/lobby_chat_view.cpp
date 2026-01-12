@@ -32,7 +32,7 @@ engine::render::Color GenerateNameColor(std::string_view name) {
   if (name.empty()) {
     return engine::render::Color::White();
   }
-  
+
   static const std::vector<engine::render::Color> kNameColors = {
       engine::render::Color::FromBytes(255, 100, 100, 255),  // Red
       engine::render::Color::FromBytes(100, 255, 100, 255),  // Green
@@ -50,7 +50,7 @@ engine::render::Color GenerateNameColor(std::string_view name) {
   for (char c : name) {
     hash = c + (hash << 6) + (hash << 16) - hash;
   }
-  
+
   return kNameColors[hash % kNameColors.size()];
 }
 
@@ -128,9 +128,9 @@ void LobbyChatView::Layout() {
   const float send_height = ui_constants::Lobby::kChatSendButtonHeight;
 
   // Title bar at top
-  title_bar_rect_ = engine::math::RectF{panel_rect_.top_left_x_,
-                                        panel_rect_.top_left_y_,
-                                        panel_rect_.width_, kTitleBarHeight};
+  title_bar_rect_ =
+      engine::math::RectF{panel_rect_.top_left_x_, panel_rect_.top_left_y_,
+                          panel_rect_.width_, kTitleBarHeight};
 
   // Minimize button in title bar (right side)
   const float min_btn_size = kTitleBarHeight - 8.0f;
@@ -175,10 +175,10 @@ void LobbyChatView::Layout() {
   message_input_->SetSize(
       engine::math::Vector2f{input_rect_.width_, input_rect_.height_});
 
-  send_button_->SetPosition(engine::math::Vector2f{send_button_rect_.top_left_x_,
-                                                   send_button_rect_.top_left_y_});
-  send_button_->SetSize(
-      engine::math::Vector2f{send_button_rect_.width_, send_button_rect_.height_});
+  send_button_->SetPosition(engine::math::Vector2f{
+      send_button_rect_.top_left_x_, send_button_rect_.top_left_y_});
+  send_button_->SetSize(engine::math::Vector2f{send_button_rect_.width_,
+                                               send_button_rect_.height_});
 }
 
 void LobbyChatView::Layout(const engine::math::RectF& panel_rect) {
@@ -196,17 +196,19 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
   }
 
   // Draw title text
-  renderer.DrawText("Chat", engine::math::Vector2f{title_bar_rect_.top_left_x_ + 8.0f,
-                                                   title_bar_rect_.top_left_y_ + 6.0f},
+  renderer.DrawText("Chat",
+                    engine::math::Vector2f{title_bar_rect_.top_left_x_ + 8.0f,
+                                           title_bar_rect_.top_left_y_ + 6.0f},
                     kTitleFontSize, engine::render::Color::White());
 
   // Draw minimize button
   renderer.DrawRect(minimize_button_rect_, kMinimizeButtonColor);
   const char* min_text = minimized_ ? "+" : "-";
-  renderer.DrawText(min_text,
-                    engine::math::Vector2f{minimize_button_rect_.top_left_x_ + 5.0f,
-                                           minimize_button_rect_.top_left_y_ + 2.0f},
-                    kTitleFontSize, engine::render::Color::White());
+  renderer.DrawText(
+      min_text,
+      engine::math::Vector2f{minimize_button_rect_.top_left_x_ + 5.0f,
+                             minimize_button_rect_.top_left_y_ + 2.0f},
+      kTitleFontSize, engine::render::Color::White());
 
   if (minimized_) {
     return;
@@ -220,34 +222,38 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
   const float line_spacing = ui_constants::Lobby::kChatMessageSpacing;
   const float line_height = font_size + line_spacing;
 
-  float y_pos = messages_rect_.top_left_y_ + messages_rect_.height_ - line_height;
+  float y_pos =
+      messages_rect_.top_left_y_ + messages_rect_.height_ - line_height;
   const float min_y = messages_rect_.top_left_y_;
 
   for (auto it = display_messages_.rbegin();
        it != display_messages_.rend() && y_pos >= min_y; ++it) {
     const auto& msg = *it;
-    
+
     // Draw sender name
     if (!msg.sender.empty()) {
       const std::string sender_text = msg.sender + ": ";
       const auto name_color = GenerateNameColor(msg.sender);
-      renderer.DrawText(sender_text,
-                        engine::math::Vector2f{messages_rect_.top_left_x_, y_pos},
-                        font_size, name_color);
-                        
+      renderer.DrawText(
+          sender_text,
+          engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
+          name_color);
+
       // Measure name width to offset message content
       const float name_width = renderer.MeasureText(sender_text, font_size).x;
-      
-      renderer.DrawText(msg.content, 
-                        engine::math::Vector2f{messages_rect_.top_left_x_ + name_width, y_pos},
+
+      renderer.DrawText(msg.content,
+                        engine::math::Vector2f{
+                            messages_rect_.top_left_x_ + name_width, y_pos},
                         font_size, ui_constants::Lobby::kChatMessageColor);
     } else {
       // System message or self
-      renderer.DrawText(msg.content,
-                        engine::math::Vector2f{messages_rect_.top_left_x_, y_pos},
-                        font_size, ui_constants::Lobby::kChatMessageColor);
+      renderer.DrawText(
+          msg.content,
+          engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
+          ui_constants::Lobby::kChatMessageColor);
     }
-    
+
     y_pos -= line_height;
   }
 
@@ -318,8 +324,8 @@ void LobbyChatView::UpdateDragging(engine::input::InputManager& input) {
     if (title_bar_rect_.Contains(mouse) &&
         !minimize_button_rect_.Contains(mouse)) {
       dragging_ = true;
-      drag_offset_ = engine::math::Vector2f{
-          mouse.x - panel_rect_.top_left_x_, mouse.y - panel_rect_.top_left_y_};
+      drag_offset_ = engine::math::Vector2f{mouse.x - panel_rect_.top_left_x_,
+                                            mouse.y - panel_rect_.top_left_y_};
     }
   } else if (!mouse_down) {
     dragging_ = false;
@@ -374,15 +380,13 @@ void LobbyChatView::HandleSendAction() {
 
 void LobbyChatView::ClampToScreen() {
   const auto window_size = context_.Window().GetSize();
-  const float max_x =
-      static_cast<float>(window_size.x) - panel_rect_.width_;
-  const float max_y =
-      static_cast<float>(window_size.y) - panel_rect_.height_;
+  const float max_x = static_cast<float>(window_size.x) - panel_rect_.width_;
+  const float max_y = static_cast<float>(window_size.y) - panel_rect_.height_;
 
-  panel_rect_.top_left_x_ = std::max(0.0f, std::min(panel_rect_.top_left_x_, max_x));
-  panel_rect_.top_left_y_ = std::max(0.0f, std::min(panel_rect_.top_left_y_, max_y));
+  panel_rect_.top_left_x_ =
+      std::max(0.0f, std::min(panel_rect_.top_left_x_, max_x));
+  panel_rect_.top_left_y_ =
+      std::max(0.0f, std::min(panel_rect_.top_left_y_, max_y));
 }
 
 }  // namespace client
-
-
