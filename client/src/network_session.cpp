@@ -328,6 +328,12 @@ void NetworkSession::HandleServerCommand(
     if (const auto lost = HandleConnectionLost(reason)) {
       events.disconnected = *lost;
     }
+    return;
+  }
+
+  if (payload.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kChatMessage)) {
+    events.chat_messages.push_back(payload.payload);
   }
 }
 

@@ -50,6 +50,7 @@ struct NetworkEvents {
   std::optional<std::string> connection_failed;
   std::optional<std::string> disconnected;
   std::optional<GameOverStats> game_over;
+  std::vector<std::string> chat_messages;  ///< Incoming chat messages.
 };
 
 /**
