@@ -138,7 +138,6 @@ struct ClientRuntime::BloomResources {
     }
     const float threshold = constants::client::kBloomThreshold;
     const float knee = constants::client::kBloomKnee;
-    const float intensity = constants::client::kBloomIntensity;
     if (threshold_loc >= 0) {
       ::SetShaderValue(shader, threshold_loc, &threshold, SHADER_UNIFORM_FLOAT);
     }
@@ -146,7 +145,14 @@ struct ClientRuntime::BloomResources {
       ::SetShaderValue(shader, knee_loc, &knee, SHADER_UNIFORM_FLOAT);
     }
     if (intensity_loc >= 0) {
-      ::SetShaderValue(shader, intensity_loc, &intensity, SHADER_UNIFORM_FLOAT);
+      ::SetShaderValue(shader, intensity_loc, &current_intensity, SHADER_UNIFORM_FLOAT);
+    }
+  }
+
+  void SetIntensity(float multiplier) {
+    current_intensity = constants::client::kBloomIntensity * multiplier;
+    if (shader_ready && intensity_loc >= 0) {
+      ::SetShaderValue(shader, intensity_loc, &current_intensity, SHADER_UNIFORM_FLOAT);
     }
   }
 
@@ -173,6 +179,7 @@ struct ClientRuntime::BloomResources {
   int threshold_loc{-1};
   int knee_loc{-1};
   int intensity_loc{-1};
+  float current_intensity{constants::client::kBloomIntensity};
   bool shader_ready{false};
 };
 
@@ -299,7 +306,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   const bool render_gameplay = state == ClientState::kInGame ||
                                state == ClientState::kPaused ||
                                state == ClientState::kGameOver;
-  const bool render_with_bloom = !render_gameplay && bloom_;
+  const float bloom_intensity = scene ? scene->GetBloomIntensity() : 1.0f;
+  const bool render_with_bloom = !render_gameplay && bloom_ && bloom_intensity > 0.0f;
 
   if (background_ && render_gameplay) {
     background_->Update(dt, {static_cast<float>(window_size.x),
@@ -318,6 +326,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   }
 
   if (render_with_bloom) {
+    bloom_->SetIntensity(bloom_intensity);
     bloom_->EnsureTarget(window_size);
     if (bloom_->Ready()) {
       if (scene) {
