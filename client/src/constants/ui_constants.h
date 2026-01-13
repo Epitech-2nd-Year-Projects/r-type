@@ -363,8 +363,8 @@ struct Profile {
   static constexpr float kRootPaddingTop = 40.0f;
   static constexpr float kRootSpacing = 14.0f;
   static constexpr float kTitleFontScale = 0.06f;
-  static constexpr float kLabelFontScale = 0.028f;
-  static constexpr float kValueFontScale = 0.024f;
+  static constexpr float kLabelFontScale = 0.015f;
+  static constexpr float kValueFontScale = 0.011f;
   static constexpr float kInputWidth = 300.0f;
   static constexpr float kInputHeight = 48.0f;
   static constexpr float kButtonWidth = 170.0f;
