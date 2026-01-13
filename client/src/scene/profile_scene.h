@@ -31,6 +31,7 @@ class ProfileScene : public Scene {
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
+  void DrawTitle(engine::render::Renderer2D& renderer);
   void SaveAndClose();
   void FormatPlaytime(std::uint64_t seconds, std::string& out) const;
   void SelectPrevAvatar();
@@ -39,7 +40,8 @@ class ProfileScene : public Scene {
   ClientContext& context_;
   engine::ui::Canvas canvas_;
 
-  std::shared_ptr<engine::ui::TextElement> title_;
+  std::shared_ptr<engine::render::Texture2D> title_texture_;
+  engine::math::RectF title_rect_{};
   std::shared_ptr<engine::ui::TextElement> nickname_label_;
   std::shared_ptr<engine::ui::TextInput> nickname_input_;
   std::shared_ptr<engine::ui::TextElement> stats_header_;
