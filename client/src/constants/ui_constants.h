@@ -386,7 +386,7 @@ struct Profile {
   static constexpr engine::render::Color kTitleColor =
       engine::render::Color::FromBytes(230, 235, 245);
   static constexpr engine::render::Color kLabelColor =
-      engine::render::Color::FromBytes(200, 210, 230);
+      engine::render::Color::FromBytes(0, 0, 0);
   static constexpr engine::render::Color kValueColor =
       engine::render::Color::FromBytes(140, 186, 255);
   static constexpr engine::render::Color kInputBgColor =
