@@ -45,6 +45,8 @@ ProfileScene::ProfileScene(ClientContext& context)
   menu_effects_.Load();
 
   title_texture_ = assets.GetTexture("assets/ui/profile_text.png");
+  stats_border_texture_ = assets.GetTexture("assets/ui/border.png");
+  input_bg_texture_ = assets.GetTexture("assets/ui/case_profile.png");
 
   avatar_renderer_ = std::make_unique<ui::AvatarRenderer>(context_.Assets());
   const auto& profile = context_.Profile();
@@ -144,19 +146,19 @@ ProfileScene::ProfileScene(ClientContext& context)
   avatar_row->AddChild(right_arrow_slot);
   root->AddChild(avatar_row);
 
-  nickname_label_ = std::make_shared<engine::ui::TextElement>(
-      "Nickname",
-      engine::ui::FontSize::RelativeWidth(
-          constants::ui::Profile::kLabelFontScale),
-      constants::ui::Profile::kLabelColor);
-  root->AddChild(nickname_label_);
+  const float input_spacing_top = 100.0f;
+  
+  auto input_spacer = std::make_shared<engine::ui::BoxElement>();
+  input_spacer->Layout().size.height = engine::ui::LayoutValue::Pixels(input_spacing_top);
+  root->AddChild(input_spacer);
+
 
   nickname_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::Profile::kInputWidth,
                              constants::ui::Profile::kInputHeight});
   nickname_input_->SetText(profile.nickname);
-  nickname_input_->SetBackgroundColor(constants::ui::Profile::kInputBgColor);
+  nickname_input_->SetBackgroundColor(transparent);
   nickname_input_->SetTextColor(constants::ui::Profile::kInputTextColor);
   ui_elements_.push_back(nickname_input_);
 
@@ -171,9 +173,12 @@ ProfileScene::ProfileScene(ClientContext& context)
   });
   root->AddChild(input_slot);
 
+  const float stats_absolute_pos = constants::ui::Profile::kSectionSpacing + 200.0f; 
+  const float stats_spacing = stats_absolute_pos - input_spacing_top;
+
   auto stats_spacer = std::make_shared<engine::ui::BoxElement>();
   stats_spacer->Layout().size.height =
-      engine::ui::LayoutValue::Pixels(constants::ui::Profile::kSectionSpacing);
+      engine::ui::LayoutValue::Pixels(stats_spacing);
   root->AddChild(stats_spacer);
 
   stats_header_ = std::make_shared<engine::ui::TextElement>(
@@ -314,12 +319,18 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   context_.MenuBackground().Draw(context_.Window());
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
+  DrawStatsBorder(renderer);
+  DrawInputBackground(renderer);
   canvas_.LayoutAndDraw(renderer);
 
   DrawTitle(renderer);
 
   if (avatar_renderer_) {
-    avatar_renderer_->Draw(renderer, selected_avatar_, avatar_position_,
+    const float avatar_offset_y = 0.0f;
+    auto pos = avatar_position_;
+    pos.y += avatar_offset_y;
+
+    avatar_renderer_->Draw(renderer, selected_avatar_, pos,
                            constants::ui::Profile::kAvatarDisplaySize);
   }
 
@@ -360,13 +371,67 @@ void ProfileScene::DrawTitle(engine::render::Renderer2D& renderer) {
   const float draw_height = static_cast<float>(tex_size.y) * draw_scale;
   const float x =
       title_rect_.top_left_x_ + (title_rect_.width_ - draw_width) * 0.5f;
+  const float title_offset_y = -20.0f;
   const float y =
-      title_rect_.top_left_y_ + (title_rect_.height_ - draw_height) * 0.5f - 40.0f;
+      title_rect_.top_left_y_ + (title_rect_.height_ - draw_height) * 0.5f + title_offset_y;
   
   engine::render::SpriteDrawParams params;
   params.position = {x, y};
   params.scale = {draw_scale, draw_scale};
   renderer.DrawTexture(*title_texture_, params);
+}
+
+void ProfileScene::DrawStatsBorder(engine::render::Renderer2D& renderer) {
+  if (!stats_border_texture_) {
+    return;
+  }
+  
+  if (!stats_header_ || !playtime_text_ || !deaths_text_ || 
+      !highest_score_text_ || !games_played_text_) {
+    return;
+  }
+  
+  const auto tex_size = stats_border_texture_->GetSize();
+  if (tex_size.x == 0 || tex_size.y == 0) {
+    return;
+  }
+  
+  const auto& header_frame = stats_header_->Frame();
+  const auto& playtime_frame = playtime_text_->Frame();
+  const auto& deaths_frame = deaths_text_->Frame();
+  const auto& score_frame = highest_score_text_->Frame();
+  const auto& games_frame = games_played_text_->Frame();
+  
+  const float min_x = std::min({header_frame.top_left_x_, playtime_frame.top_left_x_,
+                                 deaths_frame.top_left_x_, score_frame.top_left_x_,
+                                 games_frame.top_left_x_});
+  const float min_y = header_frame.top_left_y_;
+  const float max_x = std::max({header_frame.top_left_x_ + header_frame.width_,
+                                 playtime_frame.top_left_x_ + playtime_frame.width_,
+                                 deaths_frame.top_left_x_ + deaths_frame.width_,
+                                 score_frame.top_left_x_ + score_frame.width_,
+                                 games_frame.top_left_x_ + games_frame.width_});
+  const float max_y = games_frame.top_left_y_ + games_frame.height_;
+  
+  const float padding_vertical = 65.0f;
+  const float padding_horizontal = 165.0f;
+
+  const float border_offset_x = 0.0f;
+  const float border_offset_y = 0.0f;
+
+  stats_rect_.top_left_x_ = min_x - padding_horizontal + border_offset_x;
+  stats_rect_.top_left_y_ = min_y - padding_vertical + border_offset_y;
+  stats_rect_.width_ = (max_x - min_x) + (padding_horizontal * 2.0f);
+  stats_rect_.height_ = (max_y - min_y) + (padding_vertical * 2.0f);
+  
+  const float scale_x = stats_rect_.width_ / static_cast<float>(tex_size.x);
+  const float scale_y = stats_rect_.height_ / static_cast<float>(tex_size.y);
+  
+  engine::render::SpriteDrawParams params;
+  params.position = {stats_rect_.top_left_x_, stats_rect_.top_left_y_};
+  params.scale = {scale_x, scale_y};
+  
+  renderer.DrawTexture(*stats_border_texture_, params);
 }
 
 void ProfileScene::SaveAndClose() {
@@ -379,6 +444,39 @@ void ProfileScene::SaveAndClose() {
   profile.avatar_index = selected_avatar_;
   context_.SaveProfile();
   context_.OnCloseProfile();
+}
+
+void ProfileScene::DrawInputBackground(engine::render::Renderer2D& renderer) {
+  if (!input_bg_texture_ || !nickname_input_) {
+    return;
+  }
+  const auto input_pos = nickname_input_->GetPosition();
+  const auto input_size = nickname_input_->GetSize();
+  const auto tex_size = input_bg_texture_->GetSize();
+
+  if (tex_size.x == 0 || tex_size.y == 0) {
+    return;
+  }
+
+  const float scale_multiplier = 2.0f;
+
+  const float offset_x = 0.0f;
+  const float offset_y = 0.0f;
+
+  const float base_scale = input_size.x / static_cast<float>(tex_size.x);
+  const float final_scale = base_scale * scale_multiplier;
+
+  const float draw_width = static_cast<float>(tex_size.x) * final_scale;
+  const float draw_height = static_cast<float>(tex_size.y) * final_scale;
+
+  const float x = input_pos.x + (input_size.x - draw_width) * 0.5f + offset_x;
+  const float y = input_pos.y + (input_size.y - draw_height) * 0.5f + offset_y;
+
+  engine::render::SpriteDrawParams params;
+  params.position = {x, y};
+  params.scale = {final_scale, final_scale};
+
+  renderer.DrawTexture(*input_bg_texture_, params);
 }
 
 void ProfileScene::FormatPlaytime(std::uint64_t seconds,
