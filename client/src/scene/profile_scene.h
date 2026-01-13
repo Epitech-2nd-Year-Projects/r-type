@@ -27,6 +27,7 @@ class ProfileScene : public Scene {
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
   bool IsInputCaptured() const override { return text_input_focused_; }
+  float GetBloomIntensity() const override { return 0.3f; }
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
