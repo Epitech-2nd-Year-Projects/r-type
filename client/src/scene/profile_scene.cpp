@@ -1,5 +1,6 @@
 #include "profile_scene.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -43,6 +44,8 @@ ProfileScene::ProfileScene(ClientContext& context)
 
   menu_effects_.Load();
 
+  title_texture_ = assets.GetTexture("assets/ui/profile_text.png");
+
   avatar_renderer_ = std::make_unique<ui::AvatarRenderer>(context_.Assets());
   const auto& profile = context_.Profile();
 
@@ -65,16 +68,19 @@ ProfileScene::ProfileScene(ClientContext& context)
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
-  title_ = std::make_shared<engine::ui::TextElement>(
-      "Profile",
-      engine::ui::FontSize::Pixels(constants::ui::Profile::kButtonHeight *
-                                   constants::ui::Profile::kButtonTextScale *
-                                   constants::ui::Profile::kTitleScaleFactor),
-       constants::ui::Profile::kLabelColor);
-  title_->SetFont(std::string(constants::ui::kTitleFont));
-  title_->Layout().alignment.horizontal =
+  auto title_slot = std::make_shared<engine::ui::BoxElement>();
+  title_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
+  title_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kButtonHeight *
+      constants::ui::Profile::kButtonTextScale *
+      constants::ui::Profile::kTitleScaleFactor);
+  title_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
-  root->AddChild(title_);
+  title_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    title_rect_ = {rect.top_left_x_, rect.top_left_y_,
+                   rect.width_, rect.height_};
+  });
+  root->AddChild(title_slot);
 
   auto avatar_label = std::make_shared<engine::ui::TextElement>(
       "Avatar",
@@ -310,6 +316,8 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
   LayoutUi(renderer);
   canvas_.LayoutAndDraw(renderer);
 
+  DrawTitle(renderer);
+
   if (avatar_renderer_) {
     avatar_renderer_->Draw(renderer, selected_avatar_, avatar_position_,
                            constants::ui::Profile::kAvatarDisplaySize);
@@ -329,6 +337,36 @@ void ProfileScene::LayoutUi(engine::render::Renderer2D& renderer) {
   const auto window_size = context_.Window().GetSize();
   canvas_.SetViewportSize(
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+}
+
+void ProfileScene::DrawTitle(engine::render::Renderer2D& renderer) {
+  if (!title_texture_) {
+    return;
+  }
+  const auto tex_size = title_texture_->GetSize();
+  if (tex_size.x == 0 || tex_size.y == 0) {
+    return;
+  }
+  
+  const float scale =
+      std::min(title_rect_.width_ / static_cast<float>(tex_size.x),
+               title_rect_.height_ / static_cast<float>(tex_size.y));
+  if (scale <= 0.0f) {
+    return;
+  }
+  
+  const float draw_scale = scale * 6.5f;
+  const float draw_width = static_cast<float>(tex_size.x) * draw_scale;
+  const float draw_height = static_cast<float>(tex_size.y) * draw_scale;
+  const float x =
+      title_rect_.top_left_x_ + (title_rect_.width_ - draw_width) * 0.5f;
+  const float y =
+      title_rect_.top_left_y_ + (title_rect_.height_ - draw_height) * 0.5f - 40.0f;
+  
+  engine::render::SpriteDrawParams params;
+  params.position = {x, y};
+  params.scale = {draw_scale, draw_scale};
+  renderer.DrawTexture(*title_texture_, params);
 }
 
 void ProfileScene::SaveAndClose() {
