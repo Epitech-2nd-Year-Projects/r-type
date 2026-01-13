@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "engine/ecs/component.h"
+#include "engine/ecs/components/compound_circle_collider_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
@@ -292,6 +293,7 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<engine::ecs::TransformComponent>();
   registry_->RegisterComponent<engine::ecs::BoundingBoxComponent>();
   registry_->RegisterComponent<engine::ecs::CircleColliderComponent>();
+  registry_->RegisterComponent<engine::ecs::CompoundCircleColliderComponent>();
   registry_->RegisterComponent<engine::ecs::LifetimeComponent>();
   registry_->RegisterComponent<engine::ecs::TagComponent>();
 
