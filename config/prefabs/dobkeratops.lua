@@ -12,7 +12,13 @@ Prefabs.Dobkeratops = {
         layer = 3,
         scale = 2.0
     },
-    BoundingBox = { width = 165, height = 200 },
+    CompoundCircleCollider = {
+        circles = {
+            { radius = 60, offset_x = 60, offset_y = 50 },
+            { radius = 75, offset_x = 150, offset_y = 130 },
+            { radius = 55, offset_x = 130, offset_y = 195 }
+        }
+    },
     AI = {
         behavior = "Dobkeratops",
         speed = 50,
