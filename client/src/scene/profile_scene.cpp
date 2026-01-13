@@ -70,7 +70,7 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::ui::FontSize::Pixels(constants::ui::Profile::kButtonHeight *
                                    constants::ui::Profile::kButtonTextScale *
                                    constants::ui::Profile::kTitleScaleFactor),
-      white);
+       constants::ui::Profile::kLabelColor);
   title_->SetFont(std::string(constants::ui::kTitleFont));
   title_->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
@@ -174,7 +174,7 @@ ProfileScene::ProfileScene(ClientContext& context)
       "Statistics",
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kLabelFontScale),
-      constants::ui::Profile::kLabelColor);
+      white);
   root->AddChild(stats_header_);
 
   std::string playtime_str;
