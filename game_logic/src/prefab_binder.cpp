@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 
 #include "engine/ecs/components/bounding_box_component.h"
+#include "engine/ecs/components/compound_circle_collider_component.h"
 #include "engine/ecs/components/lifetime_component.h"
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/tag_component.h"
@@ -14,10 +15,10 @@
 
 namespace game_logic {
 
-void BindGameComponents(engine::scripting::PrefabFactory& factory) {
+void BindGameComponents(engine::scripting::PrefabFactory &factory) {
   factory.RegisterComponent(
-      "Position", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                     const sol::object& value) {
+      "Position", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                     const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           float x = t["x"].get_or(0.0f);
@@ -27,8 +28,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "Velocity", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                     const sol::object& value) {
+      "Velocity", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                     const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           float x = t["x"].get_or(0.0f);
@@ -38,8 +39,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "Lifetime", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                     const sol::object& value) {
+      "Lifetime", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                     const sol::object &value) {
         if (value.is<double>()) {
           r.EmplaceComponent<engine::ecs::LifetimeComponent>(
               e, engine::time::TimeDelta::from_seconds(value.as<double>()));
@@ -47,8 +48,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "BoundingBox", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                        const sol::object& value) {
+      "BoundingBox", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                        const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           float width = t["width"].get_or(0.0f);
@@ -60,17 +61,41 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
         }
       });
 
-  factory.RegisterComponent("Tag", [](engine::ecs::Registry& r,
+  factory.RegisterComponent(
+      "CompoundCircleCollider",
+      [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+         const sol::object &value) {
+        if (value.is<sol::table>()) {
+          sol::table t = value;
+          std::vector<engine::ecs::CircleDefinition> circles;
+          sol::optional<sol::table> circles_table = t["circles"];
+          if (circles_table) {
+            for (auto &pair : *circles_table) {
+              if (pair.second.is<sol::table>()) {
+                sol::table circle = pair.second.as<sol::table>();
+                float radius = circle["radius"].get_or(1.0f);
+                float offset_x = circle["offset_x"].get_or(0.0f);
+                float offset_y = circle["offset_y"].get_or(0.0f);
+                circles.emplace_back(radius, offset_x, offset_y);
+              }
+            }
+          }
+          r.EmplaceComponent<engine::ecs::CompoundCircleColliderComponent>(
+              e, std::move(circles));
+        }
+      });
+
+  factory.RegisterComponent("Tag", [](engine::ecs::Registry &r,
                                       engine::ecs::EntityId e,
-                                      const sol::object& value) {
+                                      const sol::object &value) {
     if (value.is<std::string>()) {
       r.EmplaceComponent<engine::ecs::TagComponent>(e, value.as<std::string>());
     }
   });
 
   factory.RegisterComponent(
-      "Health", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                   const sol::object& value) {
+      "Health", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                   const sol::object &value) {
         if (value.is<int>()) {
           r.EmplaceComponent<components::HealthComponent>(e, value.as<int>());
         } else if (value.is<sol::table>()) {
@@ -81,8 +106,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "Damageable", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                       const sol::object& value) {
+      "Damageable", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                       const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           std::uint32_t damage = t["damage"].get_or(10);
@@ -98,17 +123,17 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
         }
       });
 
-  factory.RegisterComponent("ScoreValue", [](engine::ecs::Registry& r,
+  factory.RegisterComponent("ScoreValue", [](engine::ecs::Registry &r,
                                              engine::ecs::EntityId e,
-                                             const sol::object& value) {
+                                             const sol::object &value) {
     if (value.is<int>()) {
       r.EmplaceComponent<components::ScoreValueComponent>(e, value.as<int>());
     }
   });
 
   factory.RegisterComponent(
-      "Sprite", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                   const sol::object& value) {
+      "Sprite", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                   const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::SpriteComponent sprite;
@@ -132,8 +157,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "AI", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-               const sol::object& value) {
+      "AI", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+               const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           std::string behavior = t["behavior"].get_or(std::string("Straight"));
@@ -160,8 +185,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "Weapon", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                   const sol::object& value) {
+      "Weapon", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                   const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::WeaponComponent weapon;
@@ -184,8 +209,8 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "PlayerValue", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                        const sol::object& value) {
+      "PlayerValue", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                        const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::PlayerComponent player;
@@ -196,16 +221,16 @@ void BindGameComponents(engine::scripting::PrefabFactory& factory) {
       });
 
   factory.RegisterComponent(
-      "DropsPowerup", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                         const sol::object& value) {
+      "DropsPowerup", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                         const sol::object &value) {
         if (value.is<bool>() && value.as<bool>()) {
           r.EmplaceComponent<components::DropsPowerupComponent>(e);
         }
       });
 
   factory.RegisterComponent(
-      "Powerup", [](engine::ecs::Registry& r, engine::ecs::EntityId e,
-                    const sol::object& value) {
+      "Powerup", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                    const sol::object &value) {
         if (value.is<sol::table>()) {
           sol::table t = value;
           components::PowerupComponent powerup;

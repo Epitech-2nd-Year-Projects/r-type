@@ -2,6 +2,7 @@ local Level = {
     info = { name = "Level 1", id = 1 },
     run = function()
         Wait(2.0)
+
         Spawn("Scout", 1650.0, 0.0, true, false)
         
         Wait(1.0)

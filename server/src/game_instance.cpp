@@ -300,8 +300,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       state.vy = static_cast<std::int16_t>(std::lround(vel_opt->y));
     }
     if (health_opt.has_value()) {
-      state.hp = static_cast<std::uint8_t>(
-          std::min<std::uint32_t>(health_opt->get().current_health, 255u));
+      state.hp = health_opt->get().current_health;
       state.flags = health_opt->get().invulnerable ? 1u : 0u;
     } else {
       state.hp = 0;

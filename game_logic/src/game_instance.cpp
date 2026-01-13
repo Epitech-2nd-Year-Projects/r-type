@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "engine/ecs/component.h"
+#include "engine/ecs/components/compound_circle_collider_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
@@ -61,6 +62,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/dobkeratops.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
@@ -295,6 +297,7 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<engine::ecs::TransformComponent>();
   registry_->RegisterComponent<engine::ecs::BoundingBoxComponent>();
   registry_->RegisterComponent<engine::ecs::CircleColliderComponent>();
+  registry_->RegisterComponent<engine::ecs::CompoundCircleColliderComponent>();
   registry_->RegisterComponent<engine::ecs::LifetimeComponent>();
   registry_->RegisterComponent<engine::ecs::TagComponent>();
 
