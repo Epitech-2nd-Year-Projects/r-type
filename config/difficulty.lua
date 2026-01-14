@@ -1,3 +1,5 @@
+local INSTANT_KILL_DAMAGE = 9999
+
 DifficultySettings = {
     Easy = {
         enemy_speed_multiplier = 0.7,
@@ -32,7 +34,7 @@ DifficultySettings = {
     Hardcore = {
         enemy_speed_multiplier = 1.5,
         enemy_health_multiplier = 2.0,
-        enemy_damage_multiplier = 9999,
+        enemy_damage_multiplier = INSTANT_KILL_DAMAGE,
         enemy_fire_rate_multiplier = 2.0,
         player_health = 1,
         player_lives = 1,

@@ -19,7 +19,7 @@ function SpawnHelper.ApplyPlayerModifiers(registry, entity)
     end
 end
 
-    function SpawnHelper.ApplyEnemyModifiers(registry, entity)
+function SpawnHelper.ApplyEnemyModifiers(registry, entity)
     if not DifficultyModifiers then return end
     
     local health = registry:get_health(entity)
