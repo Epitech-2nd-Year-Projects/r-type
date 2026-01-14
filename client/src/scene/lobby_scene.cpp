@@ -24,9 +24,10 @@ LobbyScene::LobbyScene(ClientContext& context)
       modal_(
           [this](const std::string& room_name,
                  const std::string& max_players_text, bool is_private,
-                 std::string password) {
+                 std::string password, protocol::Difficulty difficulty) {
             return controller_.TryCreateRoom(room_name, max_players_text,
-                                             is_private, std::move(password));
+                                             is_private, std::move(password),
+                                             difficulty);
           },
           [this](const protocol::RoomSummary& room,
                  const std::string& password) {

@@ -237,9 +237,10 @@ void Application::RefreshRoomList(std::string host, std::uint16_t port) {
 void Application::CreateRoom(std::string host, std::uint16_t port,
                              const std::string& room_name, bool is_private,
                              std::string room_password,
-                             std::uint16_t max_players) {
+                             std::uint16_t max_players,
+                             protocol::Difficulty difficulty) {
   network_->CreateRoom(std::move(host), port, room_name, is_private,
-                       std::move(room_password), max_players);
+                       std::move(room_password), max_players, difficulty);
 }
 
 const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()

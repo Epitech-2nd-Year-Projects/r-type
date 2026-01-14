@@ -8,9 +8,12 @@ namespace server {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
                            std::uint32_t max_players,
+                           protocol::Difficulty difficulty,
                            engine::util::Logger &logger)
     : rng_(seed),
-      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
+      logic_(std::make_unique<game_logic::GameInstance>(
+          room_id, max_players,
+          static_cast<game_logic::Difficulty>(difficulty))),
       logger_(logger),
       history_(1000),
       current_tick_(0) {}
@@ -28,7 +31,9 @@ void GameInstance::OnPlayerJoined(std::uint32_t player_id,
     const std::string name = player_name.empty()
                                  ? "Player_" + std::to_string(player_id)
                                  : std::string{player_name};
+    logger_.Info("[GameInstance] Calling Logic OnPlayerJoin");
     logic_->OnPlayerJoin(player_id, name);
+    logger_.Info("[GameInstance] Logic OnPlayerJoin returned");
   }
 }
 

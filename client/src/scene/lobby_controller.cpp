@@ -162,7 +162,8 @@ bool LobbyController::IsInputCaptured() const { return false; }
 
 bool LobbyController::TryCreateRoom(const std::string& room_name,
                                     const std::string& max_players_text,
-                                    bool is_private, std::string password) {
+                                    bool is_private, std::string password,
+                                    protocol::Difficulty difficulty) {
   if (room_name.empty()) {
     SetBanner("Room name required");
     return false;
@@ -192,7 +193,7 @@ bool LobbyController::TryCreateRoom(const std::string& room_name,
 
   context_.CreateRoom(lobby_host_, lobby_port_, room_name, is_private,
                       std::move(password),
-                      static_cast<std::uint16_t>(max_players));
+                      static_cast<std::uint16_t>(max_players), difficulty);
   return true;
 }
 

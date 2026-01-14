@@ -15,18 +15,18 @@ protocol::CommandPayload MakeCommand(protocol::CommandType type) {
 
 TEST(GameInstanceLobbyTests, UnknownPlayerCommandIgnored) {
   auto& logger = engine::util::Logger::Default();
-  server::GameInstance instance{/*room_id=*/1, /*seed=*/1234,
-                                /*max_players=*/4, logger};
+  server::GameInstance instance{1, 1234, 4, protocol::Difficulty::kNormal,
+                                logger};
 
   const auto evt = instance.OnClientCommand(
-      /*player_id=*/42, MakeCommand(protocol::CommandType::kSetReady));
+      42, MakeCommand(protocol::CommandType::kSetReady));
   EXPECT_FALSE(evt.has_value());
 }
 
 TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerNoStart) {
   auto& logger = engine::util::Logger::Default();
-  server::GameInstance instance{/*room_id=*/2, /*seed=*/9999,
-                                /*max_players=*/4, logger};
+  server::GameInstance instance{2, 9999, 4, protocol::Difficulty::kNormal,
+                                logger};
 
   instance.OnPlayerJoined(1, "p1");
 
@@ -38,7 +38,7 @@ TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerNoStart) {
 
   auto evt_duplicate = instance.OnClientCommand(
       1, MakeCommand(protocol::CommandType::kSetReady));
-  EXPECT_FALSE(evt_duplicate.has_value());  // No change, no event.
+  EXPECT_FALSE(evt_duplicate.has_value());
 
   auto evt_unready =
       instance.OnClientCommand(1, MakeCommand(protocol::CommandType::kUnready));
@@ -49,8 +49,8 @@ TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerNoStart) {
 
 TEST(GameInstanceLobbyTests, StartWhenTwoPlayersReady) {
   auto& logger = engine::util::Logger::Default();
-  server::GameInstance instance{/*room_id=*/3, /*seed=*/2024,
-                                /*max_players=*/4, logger};
+  server::GameInstance instance{3, 2024, 4, protocol::Difficulty::kNormal,
+                                logger};
 
   instance.OnPlayerJoined(1, "p1");
   instance.OnPlayerJoined(2, "p2");
@@ -68,8 +68,8 @@ TEST(GameInstanceLobbyTests, StartWhenTwoPlayersReady) {
 
 TEST(GameInstanceLobbyTests, ResetToLobbyAfterAllLeave) {
   auto& logger = engine::util::Logger::Default();
-  server::GameInstance instance{/*room_id=*/4, /*seed=*/5555,
-                                /*max_players=*/4, logger};
+  server::GameInstance instance{4, 5555, 4, protocol::Difficulty::kNormal,
+                                logger};
 
   instance.OnPlayerJoined(1, "p1");
   instance.OnPlayerJoined(2, "p2");

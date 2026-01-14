@@ -7,10 +7,10 @@
 /**
  * @file protocol.h
  * @brief Convenience umbrella header for the R-Type UDP protocol library.
- * 
- * Include this header from engine / game code to access the public protocol API.
- * More types (packets, payload structs, channels, etc.) will be added as the
- * implementation progresses.
+ *
+ * Include this header from engine / game code to access the public protocol
+ * API. More types (packets, payload structs, channels, etc.) will be added as
+ * the implementation progresses.
  */
 
 namespace protocol {

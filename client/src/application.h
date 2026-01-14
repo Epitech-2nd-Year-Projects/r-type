@@ -6,8 +6,8 @@
 
 #include "client_config.h"
 #include "client_context.h"
-#include "player_profile.h"
 #include "engine/time/time_delta.h"
+#include "player_profile.h"
 
 namespace client {
 
@@ -81,8 +81,8 @@ class Application : public ClientContext {
   void RefreshRoomList(std::string host, std::uint16_t port) override;
   void CreateRoom(std::string host, std::uint16_t port,
                   const std::string& room_name, bool is_private,
-                  std::string room_password,
-                  std::uint16_t max_players) override;
+                  std::string password, std::uint16_t max_players,
+                  protocol::Difficulty difficulty) override;
   const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const override;
   std::string RoomDirectoryStatus() const override;
   std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation()
