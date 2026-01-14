@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ "${OS:-}" == "Windows_NT" ]]; then
-  xmake f -p windows -a x64 -m release --toolchain=clang --ar=llvm-ar --yes
+  xmake f -p windows -a x64 -m release --toolchain=clang-cl --yes
 fi
 
 xmake build --yes

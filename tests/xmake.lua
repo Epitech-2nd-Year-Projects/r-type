@@ -1,16 +1,31 @@
-add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
+if is_plat("windows") then
+    add_requires("gtest", "nlohmann_json", "raylib")
+else
+    add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
+end
 
-target("client_tests")
-    set_kind("binary")
-    set_default(false)
-    add_packages("gtest", "nlohmann_json", "ffmpeg", "raylib")
-    add_defines("RTYPE_TESTING")
-    add_files("client/*.cpp")
-    add_files("../client/src/**.cpp|main.cpp")
-    add_files("../third_party/raylib-media/src/rmedia.c")
-    add_includedirs("../client/src", "../third_party/raylib-media/src")
-    add_deps("protocol", "engine", "game_logic")
-    add_tests("client_tests")
+ target("client_tests")
+     set_kind("binary")
+     set_default(false)
+     add_packages("gtest", "nlohmann_json", "raylib")
+     if is_plat("windows") then
+         local ffmpeg_dir = os.getenv("FFMPEG_DIR")
+         assert(ffmpeg_dir and #ffmpeg_dir > 0, "FFMPEG_DIR must be set on Windows to use prebuilt FFmpeg")
+         add_includedirs(path.join(ffmpeg_dir, "include"))
+         add_linkdirs(path.join(ffmpeg_dir, "lib"))
+         add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
+         add_runenvs("PATH", path.join(ffmpeg_dir, "bin"))
+     else
+         add_packages("ffmpeg")
+     end
+     add_defines("RTYPE_TESTING")
+     add_files("client/*.cpp")
+     add_files("../client/src/**.cpp|main.cpp")
+     add_files("../third_party/raylib-media/src/rmedia.c")
+     add_includedirs("../client/src", "../third_party/raylib-media/src")
+     add_deps("protocol", "engine", "game_logic")
+     add_tests("client_tests")
+
 
 target("engine_tests")
     set_kind("binary")

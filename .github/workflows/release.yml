@@ -87,11 +87,8 @@ jobs:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
-      CC: clang
-      CXX: clang++
-      AR: llvm-ar
-      NM: llvm-nm
-      RANLIB: llvm-ranlib
+      CC: clang-cl
+      CXX: clang-cl
 
     steps:
       - uses: actions/checkout@v4
@@ -133,7 +130,7 @@ jobs:
       - name: Build Release
         shell: bash
         run: |
-          xmake f -p windows -a x64 -m release --toolchain=clang --ar=llvm-ar --yes
+          xmake f -p windows -a x64 -m release --toolchain=clang-cl --yes
           xmake build --yes
 
       - name: Package Windows
@@ -144,6 +141,10 @@ jobs:
           Copy-Item build/windows/x64/release/server.exe -Destination release/r-type-windows/r-type-server.exe
           Copy-Item -Recurse -Path assets -Destination release/r-type-windows/assets
           Copy-Item -Recurse -Path config -Destination release/r-type-windows/config
+          if (-not $env:FFMPEG_DIR) {
+            throw "FFMPEG_DIR is not set; cannot bundle FFmpeg DLLs."
+          }
+          Copy-Item -Path (Join-Path $env:FFMPEG_DIR "bin\*.dll") -Destination release/r-type-windows -Force
           
           Compress-Archive -Path release/r-type-windows -DestinationPath release/r-type-windows.zip
 

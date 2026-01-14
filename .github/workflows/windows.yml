@@ -13,11 +13,8 @@ jobs:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
-      CC: clang
-      CXX: clang++
-      AR: llvm-ar
-      NM: llvm-nm
-      RANLIB: llvm-ranlib
+      CC: clang-cl
+      CXX: clang-cl
 
     steps:
       - uses: actions/checkout@v4
