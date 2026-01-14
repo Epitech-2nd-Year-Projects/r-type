@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/scripting/script_engine.h"
 #include "game_logic/game_config.h"
 
 TEST(GameConfigTest, LoadConfigs) {
@@ -13,8 +14,6 @@ TEST(GameConfigTest, VerifyGlobalConfig) {
   EXPECT_EQ(w.grid_cell_size, 100.0f);
   EXPECT_EQ(w.player_spawn_y, 300.0f);
 }
-
-#include "engine/scripting/script_engine.h"
 
 TEST(GameConfigTest, LoadDifficultyConfig) {
   engine::scripting::ScriptEngine script_engine;
