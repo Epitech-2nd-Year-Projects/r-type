@@ -89,7 +89,8 @@ void BindTypes(sol::state& lua) {
       &ecs::Registry::SpawnEntity, "kill_entity", &ecs::Registry::KillEntity,
 
       "get_tag",
-      [](ecs::Registry& r, ecs::EntityId e) -> std::optional<ecs::TagComponent*> {
+      [](ecs::Registry& r,
+         ecs::EntityId e) -> std::optional<ecs::TagComponent*> {
         try {
           auto& sparse = r.GetComponents<ecs::TagComponent>();
           if (e < sparse.size() && sparse[e].has_value()) {

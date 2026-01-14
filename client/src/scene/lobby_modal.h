@@ -36,14 +36,14 @@ class LobbyModal {
    * @param on_create Callback for create requests
    * @param on_join Callback for join requests
    */
-  LobbyModal(std::function<bool(const std::string& room_name,
-                                const std::string& max_players_text,
-                                bool is_private, std::string password,
-                                protocol::Difficulty difficulty)>
-                 on_create,
-             std::function<bool(const protocol::RoomSummary& room,
-                                const std::string& password)>
-                 on_join);
+  LobbyModal(
+      std::function<bool(const std::string& room_name,
+                         const std::string& max_players_text, bool is_private,
+                         std::string password, protocol::Difficulty difficulty)>
+          on_create,
+      std::function<bool(const protocol::RoomSummary& room,
+                         const std::string& password)>
+          on_join);
 
   /**
    * @brief Update modal widgets
