@@ -7,6 +7,8 @@ set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
 
+add_requires("lz4")
+
 if is_plat("windows") then
 	set_toolchains("clang-cl")
 	add_defines("NODRAWTEXT")
