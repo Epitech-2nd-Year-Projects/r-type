@@ -354,6 +354,7 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
     const auto btn_size = avatar_left_button_->GetSize();
     auto pos = avatar_left_button_->GetPosition();
     
+    const float scale_val = 0.05f;
     
     const float scaled_width = static_cast<float>(tex_size.x) * scale_val;
     const float scaled_height = static_cast<float>(tex_size.y) * scale_val;
