@@ -227,9 +227,9 @@ struct Lobby {
   static constexpr float kModalMaxPlayersWidth = 180.0f;
   static constexpr float kPanelMargin = 32.0f;
   static constexpr float kHeaderTopPadding = 40.0f;
-  static constexpr float kHeaderTitleFontSize =
-      OptionsMenu::kButtonHeight * OptionsMenu::kButtonTextScale *
-      OptionsMenu::kTitleScaleFactor;
+  static constexpr float kHeaderTitleFontSize = OptionsMenu::kButtonHeight *
+                                                OptionsMenu::kButtonTextScale *
+                                                OptionsMenu::kTitleScaleFactor;
   static constexpr float kHeaderDecorationSpacing = 14.0f;
   static constexpr float kHeaderDecorationHeight =
       OptionsMenu::kWarningSlotHeight;
@@ -263,6 +263,9 @@ struct Lobby {
   static constexpr float kPortNameSpacing = 20.0f;
   static constexpr float kRefreshCreateSpacing = 12.0f;
   static constexpr float kModalPaddingX = 24.0f;
+  static constexpr float kModalToggleWidth = 145.0f;
+  static constexpr float kModalToggleSpacing = 15.0f;
+  static constexpr float kModalDifficultyLabelOffset = 20.0f;
   static constexpr float kModalTitleOffsetY = 34.0f;
   static constexpr float kModalTitleFontSize = 28.0f;
   static constexpr float kModalLabelFontSize = 16.0f;
@@ -296,7 +299,8 @@ struct Lobby {
   static constexpr std::string_view kHeaderFramePrefix =
       "assets/ui/Warning_Fleur";
   static constexpr std::string_view kHeaderFrameExtension = ".png";
-  static constexpr std::string_view kRoomFramePrefix = "assets/ui/profile_fleur";
+  static constexpr std::string_view kRoomFramePrefix =
+      "assets/ui/profile_fleur";
   static constexpr std::string_view kRoomFrameExtension = ".png";
   static constexpr engine::render::Color kPanelColor =
       engine::render::Color::FromBytes(18, 24, 40, 230);

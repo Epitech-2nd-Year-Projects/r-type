@@ -121,14 +121,18 @@ void LobbyModal::Layout(const engine::math::Vector2f& window_size) {
         {modal_x + constants::ui::Lobby::kModalPrivacyButtonX,
          max_players_input_->GetPosition().y -
              constants::ui::Lobby::kModalPrivacyButtonOffsetY});
-    privacy_button_->SetSize({145.0f, constants::ui::Lobby::kButtonHeight});
+    privacy_button_->SetSize({constants::ui::Lobby::kModalToggleWidth,
+                              constants::ui::Lobby::kButtonHeight});
 
-    const float difficulty_x =
-        constants::ui::Lobby::kModalPrivacyButtonX + 145.0f + 15.0f;
+    const float difficulty_x = constants::ui::Lobby::kModalPrivacyButtonX +
+                               constants::ui::Lobby::kModalToggleWidth +
+                               constants::ui::Lobby::kModalToggleSpacing;
     difficulty_button_->SetPosition(
-        {modal_x + difficulty_x, max_players_input_->GetPosition().y -
-                                     constants::ui::Lobby::kModalPrivacyButtonOffsetY});
-    difficulty_button_->SetSize({145.0f, constants::ui::Lobby::kButtonHeight});
+        {modal_x + difficulty_x,
+         max_players_input_->GetPosition().y -
+             constants::ui::Lobby::kModalPrivacyButtonOffsetY});
+    difficulty_button_->SetSize({constants::ui::Lobby::kModalToggleWidth,
+                                 constants::ui::Lobby::kButtonHeight});
 
     if (modal_private_) {
       password_input_->SetPosition(
@@ -211,12 +215,15 @@ void LobbyModal::Draw(engine::render::Renderer2D& renderer) const {
                       constants::ui::Lobby::kSoftTextColor);
 
     const float difficulty_label_x =
-        constants::ui::Lobby::kModalPrivacyButtonX + 145.0f + 15.0f + 20.0f;
-    renderer.DrawText("Difficulty",
-                      {x + difficulty_label_x,
-                       y + constants::ui::Lobby::kModalLabelRow2Y},
-                      constants::ui::Lobby::kModalLabelFontSize,
-                      constants::ui::Lobby::kSoftTextColor);
+        constants::ui::Lobby::kModalPrivacyButtonX +
+        constants::ui::Lobby::kModalToggleWidth +
+        constants::ui::Lobby::kModalToggleSpacing +
+        constants::ui::Lobby::kModalDifficultyLabelOffset;
+    renderer.DrawText(
+        "Difficulty",
+        {x + difficulty_label_x, y + constants::ui::Lobby::kModalLabelRow2Y},
+        constants::ui::Lobby::kModalLabelFontSize,
+        constants::ui::Lobby::kSoftTextColor);
     if (modal_private_) {
       renderer.DrawText(PasswordLabel(),
                         {x + constants::ui::Lobby::kModalPaddingX,
@@ -356,8 +363,8 @@ void LobbyModal::BuildModal() {
                              constants::ui::Lobby::kButtonHeight},
       "Cancel", [this]() { Close(); });
 
-  create_elements_ = {room_name_input_, max_players_input_, privacy_button_,
-                      difficulty_button_, primary_button_, cancel_button_};
+  create_elements_ = {room_name_input_,   max_players_input_, privacy_button_,
+                      difficulty_button_, primary_button_,    cancel_button_};
   join_elements_ = {password_input_, primary_button_, cancel_button_};
 }
 
