@@ -32,9 +32,11 @@
 
 namespace game_logic {
 
-GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
+GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players,
+                           Difficulty difficulty)
     : room_id_(room_id),
       max_players_(max_players),
+      difficulty_(difficulty),
       registry_(std::make_unique<engine::ecs::Registry>()),
       script_engine_(std::make_unique<engine::scripting::ScriptEngine>()),
       game_state_(),
@@ -71,6 +73,9 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/weapon_logic.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/collision_logic.lua");
+  script_engine_->LoadScript(config_dir + "/difficulty.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/spawn_helper.lua");
+  InitializeDifficultyModifiers();
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -199,6 +204,7 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
         "[GameInstance] Failed to spawn Player prefab");
     return std::nullopt;
   }
+  engine::util::Logger::Default().Info("[GameInstance Logic] Player Spawned");
   engine::ecs::EntityId entity = *opt_entity;
   registry_->EmplaceComponent<engine::ecs::PositionComponent>(
       entity, spawn_position.x, spawn_position.y);
@@ -211,6 +217,31 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
     pc.player_id = player_id;
     pc.room_id = room_id_;
     pc.player_slot = player_slot;
+  }
+
+  auto &lua = script_engine_->LuaState();
+  sol::optional<sol::function> apply_modifiers =
+      lua["SpawnHelper"]["ApplyPlayerModifiers"];
+  engine::util::Logger::Default().Info(
+      "[GameInstance Logic] Checking modifiers");
+  if (apply_modifiers.has_value()) {
+    sol::object registry_obj = lua["registry"];
+    if (registry_obj.valid()) {
+      try {
+        engine::util::Logger::Default().Info(
+            "[GameInstance Logic] Calling Lua ApplyPlayerModifiers");
+        apply_modifiers.value()(registry_obj, entity);
+        engine::util::Logger::Default().Info(
+            "[GameInstance Logic] Lua ApplyPlayerModifiers returned");
+      } catch (const sol::error &e) {
+        engine::util::Logger::Default().Error<std::string>(
+            "[GameInstance] Lua error in ApplyPlayerModifiers: " +
+            std::string(e.what()));
+      }
+    } else {
+      engine::util::Logger::Default().Error(
+          "[GameInstance] Lua registry global not found");
+    }
   }
 
   player_entities_.insert_or_assign(player_id, entity);
@@ -289,6 +320,38 @@ std::uint32_t GameInstance::MaxPlayers() const { return max_players_; }
 
 std::uint32_t GameInstance::ActivePlayerCount() const {
   return static_cast<std::uint32_t>(player_names_.size());
+}
+
+Difficulty GameInstance::GetDifficulty() const { return difficulty_; }
+
+void GameInstance::InitializeDifficultyModifiers() {
+  auto &lua = script_engine_->LuaState();
+
+  std::string_view difficulty_name = DifficultyToString(difficulty_);
+
+  sol::optional<sol::table> settings = lua["DifficultySettings"];
+  if (settings.has_value()) {
+    sol::optional<sol::table> modifiers =
+        settings.value()[std::string(difficulty_name)];
+    if (modifiers.has_value()) {
+      lua["DifficultyModifiers"] = modifiers.value();
+      engine::util::Logger::Default().Info("[GameInstance] Loaded difficulty: ",
+                                           difficulty_name);
+      return;
+    }
+  }
+
+  sol::table defaults = lua.create_table();
+  defaults["enemy_speed_multiplier"] = 1.0f;
+  defaults["enemy_health_multiplier"] = 1.0f;
+  defaults["enemy_damage_multiplier"] = 1.0f;
+  defaults["enemy_fire_rate_multiplier"] = 1.0f;
+  defaults["player_health"] = 100;
+  defaults["player_lives"] = 3;
+  defaults["score_multiplier"] = 1.0f;
+  lua["DifficultyModifiers"] = defaults;
+  engine::util::Logger::Default().Warn(
+      "[GameInstance] Using default difficulty modifiers");
 }
 
 void GameInstance::RegisterComponents() {
