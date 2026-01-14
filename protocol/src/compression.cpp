@@ -1,10 +1,11 @@
 #include "protocol/compression.h"
-#include "engine/net/packet_buffer.h"
 
 #include <lz4.h>
 
 #include <cstring>
 #include <limits>
+
+#include "engine/net/packet_buffer.h"
 
 namespace protocol {
 
