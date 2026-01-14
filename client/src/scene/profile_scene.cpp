@@ -305,7 +305,7 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 }
 
 void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.Window().GetSize());
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
   canvas_.LayoutAndDraw(renderer);
