@@ -433,7 +433,7 @@ void AudioSettingsScene::Draw(engine::render::Renderer2D& renderer) {
 
 void AudioSettingsScene::DrawBackground(engine::render::Renderer2D& renderer) {
   static_cast<void>(renderer);
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.RenderSize());
 }
 
 void AudioSettingsScene::DrawForeground(engine::render::Renderer2D& renderer) {
@@ -449,9 +449,9 @@ void AudioSettingsScene::DrawForeground(engine::render::Renderer2D& renderer) {
 }
 
 void AudioSettingsScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   canvas_.Layout(renderer);
   UpdateSliderLayout(renderer);
 }
