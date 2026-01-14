@@ -47,6 +47,10 @@ ProfileScene::ProfileScene(ClientContext& context)
   title_texture_ = assets.GetTexture("assets/ui/profile_text.png");
   stats_border_texture_ = assets.GetTexture("assets/ui/border.png");
   input_bg_texture_ = assets.GetTexture("assets/ui/case_profile.png");
+  arrow_left_texture_ = assets.GetTexture(
+      std::string(constants::ui::Profile::kAvatarArrowLeftTexturePath));
+  arrow_right_texture_ = assets.GetTexture(
+      std::string(constants::ui::Profile::kAvatarArrowRightTexturePath));
 
   avatar_renderer_ = std::make_unique<ui::AvatarRenderer>(context_.Assets());
   const auto& profile = context_.Profile();
@@ -102,7 +106,8 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
                              constants::ui::Profile::kAvatarArrowHeight},
-      "<", [this]() { SelectPrevAvatar(); });
+      "", [this]() { SelectPrevAvatar(); });
+  avatar_left_button_->SetColors(transparent, transparent, transparent);
   ui_elements_.push_back(avatar_left_button_);
 
   auto left_arrow_slot = std::make_shared<engine::ui::BoxElement>();
@@ -128,7 +133,8 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
                              constants::ui::Profile::kAvatarArrowHeight},
-      ">", [this]() { SelectNextAvatar(); });
+      "", [this]() { SelectNextAvatar(); });
+  avatar_right_button_->SetColors(transparent, transparent, transparent);
   ui_elements_.push_back(avatar_right_button_);
 
   auto right_arrow_slot = std::make_shared<engine::ui::BoxElement>();
@@ -342,6 +348,47 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
     button->Draw(renderer);
   }
   menu_effects_.DrawPointers(renderer, buttons_);
+
+  if (arrow_left_texture_) {
+    const auto tex_size = arrow_left_texture_->GetSize();
+    const auto btn_size = avatar_left_button_->GetSize();
+    auto pos = avatar_left_button_->GetPosition();
+    
+    
+    const float scaled_width = static_cast<float>(tex_size.x) * scale_val;
+    const float scaled_height = static_cast<float>(tex_size.y) * scale_val;
+    
+    const float draw_x = pos.x + (btn_size.x - scaled_width) * 0.5f;
+    const float draw_y = pos.y + (btn_size.y - scaled_height) * 0.5f;
+    
+    engine::render::SpriteDrawParams params;
+    params.position = {draw_x, draw_y};
+    params.scale = {scale_val, scale_val};
+    params.layer = engine::render::RenderLayer::kForeground;
+    
+    renderer.DrawTexture(*arrow_left_texture_, params);
+  }
+
+  if (arrow_right_texture_) {
+    const auto tex_size = arrow_right_texture_->GetSize();
+    const auto btn_size = avatar_right_button_->GetSize();
+    auto pos = avatar_right_button_->GetPosition();
+    
+    const float scale_val = 0.05f;
+    
+    const float scaled_width = static_cast<float>(tex_size.x) * scale_val;
+    const float scaled_height = static_cast<float>(tex_size.y) * scale_val;
+    
+    const float draw_x = pos.x + (btn_size.x - scaled_width) * 0.5f;
+    const float draw_y = pos.y + (btn_size.y - scaled_height) * 0.5f;
+    
+    engine::render::SpriteDrawParams params;
+    params.position = {draw_x, draw_y};
+    params.scale = {scale_val, scale_val};
+    params.layer = engine::render::RenderLayer::kForeground;
+    
+    renderer.DrawTexture(*arrow_right_texture_, params);
+  }
 }
 
 void ProfileScene::LayoutUi(engine::render::Renderer2D& renderer) {
