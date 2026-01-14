@@ -137,7 +137,9 @@ class FakeRenderContext final : public engine::render::RenderContext {
 class FakeWindow final : public engine::render::Window {
  public:
   FakeWindow()
-      : size_(1280, 720), context_(renderer2d_, renderer3d_), input_manager_() {}
+      : size_(1280, 720),
+        context_(renderer2d_, renderer3d_),
+        input_manager_() {}
 
   void PollEvents() override {}
   bool ShouldClose() const override { return false; }
@@ -241,8 +243,8 @@ class FakeClientContext final : public client::ClientContext {
 
   void CreateRoom(std::string host, std::uint16_t port,
                   const std::string& room_name, bool is_private,
-                  std::string room_password,
-                  std::uint16_t max_players) override {
+                  std::string room_password, std::uint16_t max_players,
+                  protocol::Difficulty difficulty) override {
     last_host_ = std::move(host);
     last_port_ = port;
     last_room_name_ = room_name;
