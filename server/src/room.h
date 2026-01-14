@@ -14,6 +14,7 @@
 #include "protocol/command.h"
 #include "protocol/header.h"
 #include "protocol/input_state.h"
+#include "protocol/lobby.h"
 #include "protocol/player_died.h"
 #include "protocol/snapshot_history.h"
 #include "protocol/world_snapshot.h"
@@ -35,11 +36,13 @@ class Room {
    * @param max_players Maximum allowed players for the room.
    * @param is_private Whether the room requires a private access code.
    * @param seed Seed for deterministic simulation.
+   * @param difficulty Difficulty level for this room.
    * @param logger Logger used for diagnostics.
    */
   Room(std::string room_code, std::string room_name, std::uint32_t room_id,
        std::uint16_t max_players, bool is_private, std::string password,
-       std::uint32_t seed, engine::util::Logger& logger);
+       std::uint32_t seed, protocol::Difficulty difficulty,
+       engine::util::Logger& logger);
 
   Room(const Room&) = delete;
   Room& operator=(const Room&) = delete;
@@ -136,6 +139,11 @@ class Room {
   std::uint32_t Seed() const;
 
   /**
+   * @brief Returns the room's difficulty level.
+   */
+  protocol::Difficulty Difficulty() const;
+
+  /**
    * @brief Returns current player count.
    */
   std::size_t PlayerCount() const;
@@ -168,6 +176,7 @@ class Room {
   bool is_private_;
   std::string password_;
   std::uint32_t seed_;
+  protocol::Difficulty difficulty_;
   std::uint32_t next_snapshot_id_{1};
   std::uint32_t room_tick_{0};
   std::uint32_t last_active_ms_{0};
