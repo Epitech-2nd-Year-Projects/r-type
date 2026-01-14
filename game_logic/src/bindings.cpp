@@ -6,6 +6,7 @@
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/zipper.h"
+#include "engine/util/logging.h"
 #include "game_logic/components/ai_component.h"
 #include "game_logic/components/damageable_component.h"
 #include "game_logic/components/health_component.h"
@@ -111,11 +112,30 @@ void BindRuntimeTypes(sol::state& lua,
 
   sol::usertype<engine::ecs::Registry> registry_type = lua["Registry"];
   registry_type["get_health"] = [](engine::ecs::Registry& r,
-                                   engine::ecs::EntityId e)
+                                   engine::ecs::EntityId e_id)
       -> std::optional<components::HealthComponent*> {
     try {
+      auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::HealthComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+      engine::util::Logger::Default().Error(
+          "[Bindings] get_health error for entity ", e_id);
+    }
+    return std::nullopt;
+  };
+
+  registry_type["get_damageable"] = [](engine::ecs::Registry& r,
+                                       engine::ecs::EntityId e_id)
+      -> std::optional<components::DamageableComponent*> {
+    try {
+      auto e = r.EntityFromIndex(e_id);
+      auto& sparse = r.GetComponents<components::DamageableComponent>();
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
         return &sparse[e].value();
       }
     } catch (...) {
@@ -123,25 +143,14 @@ void BindRuntimeTypes(sol::state& lua,
     return std::nullopt;
   };
 
-  registry_type["get_damageable"] = [](engine::ecs::Registry& r,
-                                       engine::ecs::EntityId e)
-      -> std::optional<components::DamageableComponent> {
-    try {
-      auto& sparse = r.GetComponents<components::DamageableComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
-        return sparse[e].value();
-      }
-    } catch (...) {
-    }
-    return std::nullopt;
-  };
-
   registry_type["get_player"] = [](engine::ecs::Registry& r,
-                                   engine::ecs::EntityId e)
+                                   engine::ecs::EntityId e_id)
       -> std::optional<components::PlayerComponent*> {
     try {
+      auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::PlayerComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
         return &sparse[e].value();
       }
     } catch (...) {
@@ -150,11 +159,13 @@ void BindRuntimeTypes(sol::state& lua,
   };
 
   registry_type["get_score_value"] = [](engine::ecs::Registry& r,
-                                        engine::ecs::EntityId e)
+                                        engine::ecs::EntityId e_id)
       -> std::optional<components::ScoreValueComponent*> {
     try {
+      auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::ScoreValueComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
         return &sparse[e].value();
       }
     } catch (...) {
@@ -163,11 +174,13 @@ void BindRuntimeTypes(sol::state& lua,
   };
 
   registry_type["get_drops_powerup"] = [](engine::ecs::Registry& r,
-                                          engine::ecs::EntityId e)
+                                          engine::ecs::EntityId e_id)
       -> std::optional<components::DropsPowerupComponent*> {
     try {
+      auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::DropsPowerupComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
         return &sparse[e].value();
       }
     } catch (...) {
@@ -176,11 +189,13 @@ void BindRuntimeTypes(sol::state& lua,
   };
 
   registry_type["get_powerup"] = [](engine::ecs::Registry& r,
-                                    engine::ecs::EntityId e)
+                                    engine::ecs::EntityId e_id)
       -> std::optional<components::PowerupComponent*> {
     try {
+      auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::PowerupComponent>();
-      if (e < sparse.size() && sparse[e].has_value()) {
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
         return &sparse[e].value();
       }
     } catch (...) {
