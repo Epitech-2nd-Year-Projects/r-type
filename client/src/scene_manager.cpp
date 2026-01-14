@@ -16,6 +16,7 @@
 #include "scene/options_menu_scene.h"
 #include "scene/pause_scene.h"
 #include "scene/splash_scene.h"
+#include "scene/video_settings_scene.h"
 
 namespace client {
 namespace {
@@ -33,7 +34,7 @@ bool AllowSettingsReturn(const SceneManager& manager, ClientState next_state) {
          manager.settings_return_state().value() == next_state;
 }
 
-constexpr std::array<TransitionRule, 42> kTransitionRules{{
+constexpr std::array<TransitionRule, 51> kTransitionRules{{
     {ClientState::kSplash, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kConnecting, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kLobby, &AllowAlways},
@@ -49,6 +50,7 @@ constexpr std::array<TransitionRule, 42> kTransitionRules{{
     {ClientState::kSettings, ClientState::kPaused, &AllowAlways},
     {ClientState::kSettings, ClientState::kInGame, &AllowAlways},
     {ClientState::kSettings, ClientState::kAudioSettings, &AllowAlways},
+    {ClientState::kSettings, ClientState::kVideoSettings, &AllowAlways},
     {ClientState::kSettings, ClientState::kConnecting, &AllowSettingsReturn},
     {ClientState::kSettings, ClientState::kGameOver, &AllowSettingsReturn},
     {ClientState::kSettings, ClientState::kDisconnected, &AllowSettingsReturn},
@@ -61,6 +63,16 @@ constexpr std::array<TransitionRule, 42> kTransitionRules{{
      &AllowSettingsReturn},
     {ClientState::kAudioSettings, ClientState::kGameOver, &AllowSettingsReturn},
     {ClientState::kAudioSettings, ClientState::kDisconnected,
+     &AllowSettingsReturn},
+    {ClientState::kVideoSettings, ClientState::kSettings, &AllowAlways},
+    {ClientState::kVideoSettings, ClientState::kMainMenu, &AllowAlways},
+    {ClientState::kVideoSettings, ClientState::kLobby, &AllowAlways},
+    {ClientState::kVideoSettings, ClientState::kPaused, &AllowAlways},
+    {ClientState::kVideoSettings, ClientState::kInGame, &AllowAlways},
+    {ClientState::kVideoSettings, ClientState::kConnecting,
+     &AllowSettingsReturn},
+    {ClientState::kVideoSettings, ClientState::kGameOver, &AllowSettingsReturn},
+    {ClientState::kVideoSettings, ClientState::kDisconnected,
      &AllowSettingsReturn},
     {ClientState::kConnecting, ClientState::kInGame, &AllowAlways},
     {ClientState::kConnecting, ClientState::kDisconnected, &AllowAlways},
@@ -92,6 +104,8 @@ std::string_view ToString(ClientState state) {
       return "Settings";
     case ClientState::kAudioSettings:
       return "AudioSettings";
+    case ClientState::kVideoSettings:
+      return "VideoSettings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -184,6 +198,13 @@ void SceneManager::OnOpenAudioSettings() {
   TransitionTo(ClientState::kAudioSettings);
 }
 
+void SceneManager::OnOpenVideoSettings() {
+  if (state_ == ClientState::kVideoSettings) {
+    return;
+  }
+  TransitionTo(ClientState::kVideoSettings);
+}
+
 void SceneManager::OnCloseSettings() {
   const ClientState target =
       settings_return_state_.value_or(ClientState::kMainMenu);
@@ -195,6 +216,10 @@ void SceneManager::OnCloseSettings() {
 }
 
 void SceneManager::OnCloseAudioSettings() {
+  TransitionTo(ClientState::kSettings);
+}
+
+void SceneManager::OnCloseVideoSettings() {
   TransitionTo(ClientState::kSettings);
 }
 
@@ -251,6 +276,9 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
       break;
     case ClientState::kAudioSettings:
       SwitchScene(std::make_shared<AudioSettingsScene>(context_));
+      break;
+    case ClientState::kVideoSettings:
+      SwitchScene(std::make_shared<VideoSettingsScene>(context_));
       break;
     case ClientState::kConnecting:
       SwitchScene(std::make_shared<ConnectingScene>(context_));
