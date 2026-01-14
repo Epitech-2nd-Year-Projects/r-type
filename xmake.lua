@@ -9,8 +9,8 @@ set_policy("package.requires_lock", true)
 
 add_requires("lz4")
 
--- Resolve conflict between raylib's dependency on libxrender 0.9.10 and others needing 0.9.12
 add_requireconfs("**.libxrender", {override = true, version = "0.9.12"})
+add_requireconfs("**.libxext", {override = true, version = "1.3.6"})
 
 if is_plat("windows") then
 	set_toolchains("clang-cl")
