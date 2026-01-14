@@ -30,18 +30,21 @@ jobs:
             libglu1-mesa-dev \
             libx11-dev \
             libxext-dev \
+            libxrender-dev \
             libxi-dev \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
             libxxf86vm-dev \
+            libdrm-dev \
             libasound2-dev \
             libpulse-dev \
             libavcodec-dev \
             libavformat-dev \
             libavutil-dev \
             libswresample-dev \
-            libswscale-dev
+            libswscale-dev \
+            nasm
 
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
