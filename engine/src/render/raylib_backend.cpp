@@ -402,6 +402,16 @@ class RaylibWindow final : public Window {
 
   void ToggleFullscreen() override { ::ToggleFullscreen(); }
 
+  void SetVsync(bool enabled) override {
+    if (enabled) {
+      ::SetWindowState(FLAG_VSYNC_HINT);
+    } else {
+      ::ClearWindowState(FLAG_VSYNC_HINT);
+    }
+  }
+
+  void SetTargetFps(int target_fps) override { ::SetTargetFPS(target_fps); }
+
   float GetFrameTime() const override { return ::GetFrameTime(); }
 
   RenderContext& GetRenderContext() override { return context_; }
