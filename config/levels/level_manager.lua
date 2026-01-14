@@ -68,14 +68,23 @@ function LevelManager.LoadLevel(id)
              final_y = math.random(50, 700)
         end
         local entity = Spawn(registry, type_name, x, final_y)
-        if entity and drops_powerup then
-             if AddDropsPowerup then AddDropsPowerup(registry, entity) end
+        if entity then
+            if SpawnHelper and SpawnHelper.ApplyEnemyModifiers then
+                SpawnHelper.ApplyEnemyModifiers(registry, entity)
+            end
+            if drops_powerup then
+                 if AddDropsPowerup then AddDropsPowerup(registry, entity) end
+            end
         end
         return entity
     end
 
     level_env.SpawnBoss = function(type_name)
-         Spawn(registry, type_name, 1200, 400)
+        local entity = Spawn(registry, type_name, 1200, 400)
+        if entity and SpawnHelper and SpawnHelper.ApplyEnemyModifiers then
+            SpawnHelper.ApplyEnemyModifiers(registry, entity)
+        end
+        return entity
     end
     
     local level_chunk, err = loadfile(path, "t", level_env)
