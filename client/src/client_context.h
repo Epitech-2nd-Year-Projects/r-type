@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "engine/math/vector2.h"
 #include "engine/render/window.h"
 #include "engine/util/config.h"
 #include "input/input_layer.h"
@@ -90,6 +91,11 @@ class ClientContext {
   virtual engine::render::Window& Window() = 0;
 
   /**
+   * @brief Access the virtual render size
+   */
+  virtual engine::math::Vector2i RenderSize() const = 0;
+
+  /**
    * @brief Access the audio engine when available
    */
   virtual std::shared_ptr<engine::audio::AudioEngine> Audio() = 0;
@@ -99,6 +105,13 @@ class ClientContext {
    */
   virtual void SetAudioVolumes(float master_volume, float music_volume,
                                float sfx_volume) = 0;
+
+  /**
+   * @brief Update video settings and persist them
+   */
+  virtual void SetVideoSettings(int resolution_width, int resolution_height,
+                                bool fullscreen, bool vsync,
+                                int target_fps) = 0;
 
   /**
    * @brief Access the asset manager
@@ -131,6 +144,11 @@ class ClientContext {
   virtual void OnOpenAudioSettings() = 0;
 
   /**
+   * @brief Open the video settings menu
+   */
+  virtual void OnOpenVideoSettings() = 0;
+
+  /**
    * @brief Close the settings menu
    */
   virtual void OnCloseSettings() = 0;
@@ -139,6 +157,11 @@ class ClientContext {
    * @brief Close the audio settings menu
    */
   virtual void OnCloseAudioSettings() = 0;
+
+  /**
+   * @brief Close the video settings menu
+   */
+  virtual void OnCloseVideoSettings() = 0;
 
   /**
    * @brief Quit the application

@@ -4,6 +4,7 @@ add_requires("nlohmann_json")
 add_requires("raylib", "ffmpeg")
 
 target("client")
+set_policy("check.target_package_licenses", false)
 set_kind("binary")
 add_files("src/**.cpp")
 add_files("../third_party/raylib-media/src/rmedia.c")

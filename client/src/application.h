@@ -51,9 +51,12 @@ class Application : public ClientContext {
   KeyBindingUpdateResult UpdateKeyBinding(GameAction action,
                                           engine::input::Key key) override;
   engine::render::Window& Window() override;
+  engine::math::Vector2i RenderSize() const override;
   std::shared_ptr<engine::audio::AudioEngine> Audio() override;
   void SetAudioVolumes(float master_volume, float music_volume,
                        float sfx_volume) override;
+  void SetVideoSettings(int resolution_width, int resolution_height,
+                        bool fullscreen, bool vsync, int target_fps) override;
   /**
    * @brief Access the asset manager
    */
@@ -66,8 +69,10 @@ class Application : public ClientContext {
   void OnPlay() override;
   void OnOpenSettings() override;
   void OnOpenAudioSettings() override;
+  void OnOpenVideoSettings() override;
   void OnCloseSettings() override;
   void OnCloseAudioSettings() override;
+  void OnCloseVideoSettings() override;
   void OnQuitApplication() override;
   void OnOpenProfile() override;
   void OnCloseProfile() override;

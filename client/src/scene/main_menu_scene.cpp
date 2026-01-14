@@ -208,7 +208,7 @@ void MainMenuScene::Draw(engine::render::Renderer2D& renderer) {
 
 void MainMenuScene::DrawBackground(engine::render::Renderer2D& renderer) {
   static_cast<void>(renderer);
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.RenderSize());
 }
 
 void MainMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
@@ -226,9 +226,9 @@ void MainMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
 
 void MainMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kBodyFont));
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   canvas_.Layout(renderer);
 }
 
@@ -265,9 +265,9 @@ void MainMenuScene::DrawVersion(engine::render::Renderer2D& renderer) {
   }
   const float font_size = constants::ui::MainMenu::kVersionFontSize;
   const auto text_size = renderer.MeasureText(version_text_, font_size);
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   const float x = constants::ui::MainMenu::kVersionPaddingX;
-  const float y = static_cast<float>(window_size.y) -
+  const float y = static_cast<float>(render_size.y) -
                   constants::ui::MainMenu::kVersionPaddingBottom - text_size.y;
   renderer.DrawText(version_text_, {x, y}, font_size,
                     constants::ui::MainMenu::kVersionColor);

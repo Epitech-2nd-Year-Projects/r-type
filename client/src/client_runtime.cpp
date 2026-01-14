@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <raylib.h>
 
+#include <algorithm>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -44,9 +45,92 @@ unsigned char ToByte(float value) {
                  ToByte(color.a)};
 }
 
+struct RenderViewport {
+  engine::math::Vector2f offset{};
+  engine::math::Vector2f size{};
+  float scale{1.0f};
+};
+
+RenderViewport ComputeRenderViewport(
+    const engine::math::Vector2i& window_size,
+    const engine::math::Vector2i& render_size) {
+  RenderViewport viewport{};
+  if (window_size.x <= 0 || window_size.y <= 0 || render_size.x <= 0 ||
+      render_size.y <= 0) {
+    return viewport;
+  }
+
+  const float window_width = static_cast<float>(window_size.x);
+  const float window_height = static_cast<float>(window_size.y);
+  const float render_width = static_cast<float>(render_size.x);
+  const float render_height = static_cast<float>(render_size.y);
+  const float scale_x = window_width / render_width;
+  const float scale_y = window_height / render_height;
+
+  viewport.scale = std::min(scale_x, scale_y);
+  viewport.size = {render_width * viewport.scale,
+                   render_height * viewport.scale};
+  viewport.offset = {(window_width - viewport.size.x) * 0.5f,
+                     (window_height - viewport.size.y) * 0.5f};
+  return viewport;
+}
+
 }  // namespace
 
 namespace client {
+
+struct ClientRuntime::FrameResources {
+  ~FrameResources() { Reset(); }
+
+  void EnsureTarget(const engine::math::Vector2i& size) {
+    if (size.x <= 0 || size.y <= 0) {
+      return;
+    }
+    if (target.id == 0 || target_size.x != size.x || target_size.y != size.y) {
+      if (target.id != 0) {
+        ::UnloadRenderTexture(target);
+      }
+      target = ::LoadRenderTexture(size.x, size.y);
+      target_size = size;
+    }
+  }
+
+  bool Ready() const { return target.id != 0; }
+
+  void BeginCapture(const engine::render::Color& clear_color) {
+    ::BeginTextureMode(target);
+    ::ClearBackground(ToRaylibColor(clear_color));
+  }
+
+  void EndCapture() { ::EndTextureMode(); }
+
+  void DrawCaptured(const RenderViewport& viewport) const {
+    if (!Ready()) {
+      return;
+    }
+    const float width = viewport.size.x;
+    const float height = viewport.size.y;
+    if (width <= 0.0f || height <= 0.0f) {
+      return;
+    }
+    const ::Rectangle source{0.0f, 0.0f,
+                             static_cast<float>(target.texture.width),
+                             -static_cast<float>(target.texture.height)};
+    const ::Rectangle dest{viewport.offset.x, viewport.offset.y, width, height};
+    ::DrawTexturePro(target.texture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
+  }
+
+  void Reset() {
+    if (::IsWindowReady() && target.id != 0) {
+      ::UnloadRenderTexture(target);
+    }
+    target = {};
+    target_size = {};
+  }
+
+  RenderTexture2D target{};
+  engine::math::Vector2i target_size{};
+};
 
 struct ClientRuntime::BloomResources {
   ~BloomResources() { Reset(); }
@@ -96,35 +180,35 @@ struct ClientRuntime::BloomResources {
 
   void EndCapture() { ::EndTextureMode(); }
 
-  void DrawCaptured(const engine::math::Vector2i& window_size) const {
+  void DrawCaptured(const RenderViewport& viewport) const {
     if (!Ready()) {
       return;
     }
-    const float width = static_cast<float>(window_size.x);
-    const float height = static_cast<float>(window_size.y);
+    const float width = viewport.size.x;
+    const float height = viewport.size.y;
     if (width <= 0.0f || height <= 0.0f) {
       return;
     }
     const ::Rectangle source{0.0f, 0.0f,
                              static_cast<float>(target.texture.width),
                              -static_cast<float>(target.texture.height)};
-    const ::Rectangle dest{0.0f, 0.0f, width, height};
+    const ::Rectangle dest{viewport.offset.x, viewport.offset.y, width, height};
     ::DrawTexturePro(target.texture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
   }
 
-  void DrawBloom(const engine::math::Vector2i& window_size) const {
+  void DrawBloom(const RenderViewport& viewport) const {
     if (!Ready()) {
       return;
     }
-    const float width = static_cast<float>(window_size.x);
-    const float height = static_cast<float>(window_size.y);
+    const float width = viewport.size.x;
+    const float height = viewport.size.y;
     if (width <= 0.0f || height <= 0.0f) {
       return;
     }
     const ::Rectangle source{0.0f, 0.0f,
                              static_cast<float>(target.texture.width),
                              -static_cast<float>(target.texture.height)};
-    const ::Rectangle dest{0.0f, 0.0f, width, height};
+    const ::Rectangle dest{viewport.offset.x, viewport.offset.y, width, height};
     ::BeginBlendMode(BLEND_ADDITIVE);
     ::BeginShaderMode(shader);
     ::DrawTexturePro(target.texture, source, dest, {0.0f, 0.0f}, 0.0f, WHITE);
@@ -187,10 +271,13 @@ bool ClientRuntime::Initialize(
   engine::app::EngineRuntimeConfig runtime_config;
   runtime_config.window_config.title =
       std::string(constants::client::kWindowTitle);
-  runtime_config.window_config.size = constants::client::kBaseResolution;
+  runtime_config.window_config.size = {config.resolution_width,
+                                       config.resolution_height};
   runtime_config.window_config.resizable = constants::client::kWindowResizable;
-  runtime_config.window_config.vsync = constants::client::kWindowVsync;
-  runtime_config.window_config.target_fps = constants::client::kTargetFps;
+  runtime_config.window_config.fullscreen = config.fullscreen;
+  runtime_config.window_config.vsync = config.vsync;
+  runtime_config.window_config.target_fps = std::max(0, config.target_fps);
+  SetRenderSize({config.resolution_width, config.resolution_height});
   runtime_config.log_level = config.log_level;
   runtime_config.window_backend_factory = engine::render::CreateRaylibBackend;
 
@@ -210,6 +297,7 @@ bool ClientRuntime::Initialize(
     return false;
   }
 
+  frame_resources_ = std::make_unique<FrameResources>();
   background_ = std::make_unique<ParallaxBackground>(engine_->Renderer());
   imgui_ = std::make_unique<engine::debug::ImGuiIntegration>();
   imgui_->SetEnabled(false);
@@ -264,7 +352,13 @@ void ClientRuntime::AttachWorld(engine::ecs::Registry& registry) {
   }
 }
 
-bool ClientRuntime::Pump() { return engine_ && engine_->Pump(); }
+bool ClientRuntime::Pump() {
+  if (!engine_ || !engine_->Pump()) {
+    return false;
+  }
+  SyncInputToRenderSize();
+  return true;
+}
 
 void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
                                 const std::shared_ptr<Scene>& scene,
@@ -294,47 +388,105 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     }
   }
 
-  context.Clear(constants::client::kClearColor);
-
   const bool render_gameplay = state == ClientState::kInGame ||
                                state == ClientState::kPaused ||
                                state == ClientState::kGameOver;
   const bool render_with_bloom = !render_gameplay && bloom_;
 
-  if (background_ && render_gameplay) {
-    background_->Update(dt, {static_cast<float>(window_size.x),
-                             static_cast<float>(window_size.y)});
-    background_->Draw();
+  engine::math::Vector2i render_size = render_size_;
+  if (render_size.x <= 0 || render_size.y <= 0) {
+    render_size = window_size;
   }
 
-  if (render_system_ && render_gameplay) {
-    render_system_->Render();
+  const auto render_viewport = ComputeRenderViewport(window_size, render_size);
+
+  bool frame_ready = false;
+  if (frame_resources_) {
+    frame_resources_->EnsureTarget(render_size);
+    frame_ready = frame_resources_->Ready();
   }
-  if (render_debug_ && render_gameplay) {
-    if (debug_path_system_) {
-      debug_path_system_->Update(dt);
+
+  const auto draw_gameplay = [&]() {
+    if (background_) {
+      background_->Update(dt, {static_cast<float>(render_size.x),
+                               static_cast<float>(render_size.y)});
+      background_->Draw();
     }
-    render_debug_->Draw();
-  }
 
-  if (render_with_bloom) {
-    bloom_->EnsureTarget(window_size);
-    if (bloom_->Ready()) {
+    if (render_system_) {
+      render_system_->Render();
+    }
+    if (render_debug_) {
+      if (debug_path_system_) {
+        debug_path_system_->Update(dt);
+      }
+      render_debug_->Draw();
+    }
+    if (scene) {
+      scene->Draw(renderer);
+    }
+  };
+
+  if (render_gameplay) {
+    if (frame_ready) {
+      frame_resources_->BeginCapture(constants::client::kClearColor);
+      draw_gameplay();
+      frame_resources_->EndCapture();
+
+      context.Clear(constants::client::kClearColor);
+      frame_resources_->DrawCaptured(render_viewport);
+    } else {
+      context.Clear(constants::client::kClearColor);
+      draw_gameplay();
+    }
+  } else if (render_with_bloom && bloom_) {
+    bloom_->EnsureTarget(render_size);
+    const bool bloom_ready = bloom_->Ready();
+
+    if (frame_ready && bloom_ready) {
+      frame_resources_->BeginCapture(constants::client::kClearColor);
       if (scene) {
         scene->DrawBackground(renderer);
       }
+      frame_resources_->EndCapture();
+
       bloom_->BeginCapture(engine::render::Color::Transparent());
       if (scene) {
         scene->DrawForeground(renderer);
       }
       bloom_->EndCapture();
-      bloom_->DrawCaptured(window_size);
-      bloom_->DrawBloom(window_size);
+
+      context.Clear(constants::client::kClearColor);
+      frame_resources_->DrawCaptured(render_viewport);
+      bloom_->DrawCaptured(render_viewport);
+      bloom_->DrawBloom(render_viewport);
+    } else if (frame_ready) {
+      frame_resources_->BeginCapture(constants::client::kClearColor);
+      if (scene) {
+        scene->Draw(renderer);
+      }
+      frame_resources_->EndCapture();
+
+      context.Clear(constants::client::kClearColor);
+      frame_resources_->DrawCaptured(render_viewport);
     } else if (scene) {
+      context.Clear(constants::client::kClearColor);
       scene->Draw(renderer);
     }
-  } else if (scene) {
-    scene->Draw(renderer);
+  } else {
+    if (frame_ready) {
+      frame_resources_->BeginCapture(constants::client::kClearColor);
+      if (scene) {
+        scene->Draw(renderer);
+      }
+      frame_resources_->EndCapture();
+
+      context.Clear(constants::client::kClearColor);
+      frame_resources_->DrawCaptured(render_viewport);
+    } else if (scene) {
+      context.Clear(constants::client::kClearColor);
+      scene->Draw(renderer);
+    }
   }
 
   profiling_overlay_.Draw(renderer, engine_->Window().GetSize());
@@ -356,6 +508,15 @@ engine::render::Renderer2D& ClientRuntime::Renderer() {
 engine::input::InputManager& ClientRuntime::Input() { return engine_->Input(); }
 
 engine::render::Window& ClientRuntime::Window() { return engine_->Window(); }
+
+engine::math::Vector2i ClientRuntime::RenderSize() const {
+  return render_size_;
+}
+
+void ClientRuntime::SetRenderSize(const engine::math::Vector2i& size) {
+  render_size_.x = std::max(1, size.x);
+  render_size_.y = std::max(1, size.y);
+}
 
 engine::render::RenderContext& ClientRuntime::RenderContext() {
   return engine_->RenderContext();
@@ -440,6 +601,32 @@ void ClientRuntime::UpdateConsoleOverlay(engine::time::TimeDelta dt) {
     return;
   }
   engine_->ConsoleOverlay().Update(dt, engine_->Input());
+}
+
+void ClientRuntime::SyncInputToRenderSize() {
+  if (!engine_) {
+    return;
+  }
+  const auto window_size = engine_->Window().GetSize();
+  if (window_size.x <= 0 || window_size.y <= 0) {
+    return;
+  }
+  engine::math::Vector2i render_size = render_size_;
+  if (render_size.x <= 0 || render_size.y <= 0) {
+    render_size = window_size;
+  }
+
+  const auto viewport = ComputeRenderViewport(window_size, render_size);
+  if (viewport.size.x <= 0.0f || viewport.size.y <= 0.0f ||
+      viewport.scale <= 0.0f) {
+    return;
+  }
+
+  auto& input = engine_->Input();
+  const auto mouse_pos = input.GetMousePosition();
+  const float mapped_x = (mouse_pos.x - viewport.offset.x) / viewport.scale;
+  const float mapped_y = (mouse_pos.y - viewport.offset.y) / viewport.scale;
+  input.SetMousePosition({mapped_x, mapped_y});
 }
 
 std::size_t ClientRuntime::RenderableEntityCount(

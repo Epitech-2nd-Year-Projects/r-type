@@ -31,6 +31,13 @@ inline constexpr std::string_view kClientRoomListRefreshMs =
 inline constexpr std::string_view kAudioMasterVolume = "audio.master_volume";
 inline constexpr std::string_view kAudioMusicVolume = "audio.music_volume";
 inline constexpr std::string_view kAudioSfxVolume = "audio.sfx_volume";
+inline constexpr std::string_view kVideoResolutionWidth =
+    "video.resolution_width";
+inline constexpr std::string_view kVideoResolutionHeight =
+    "video.resolution_height";
+inline constexpr std::string_view kVideoFullscreen = "video.fullscreen";
+inline constexpr std::string_view kVideoVsync = "video.vsync";
+inline constexpr std::string_view kVideoTargetFps = "video.target_fps";
 
 }  // namespace client::constants::config
 

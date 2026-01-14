@@ -153,6 +153,11 @@ class SceneManager {
   void OnOpenAudioSettings();
 
   /**
+   * @brief Open the video settings menu
+   */
+  void OnOpenVideoSettings();
+
+  /**
    * @brief Close the audio settings menu
    */
   void OnCloseAudioSettings();
@@ -171,6 +176,11 @@ class SceneManager {
    * @brief Close the profile editor
    */
   void OnCloseProfile();
+
+  /**
+   * @brief Close the video settings menu
+   */
+  void OnCloseVideoSettings();
 
   /**
    * @brief Transition to a new state

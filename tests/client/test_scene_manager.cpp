@@ -154,6 +154,8 @@ class FakeWindow final : public engine::render::Window {
   void SetSize(const engine::math::Vector2i& size) override { size_ = size; }
   void SetTitle(std::string_view /*title*/) override {}
   void ToggleFullscreen() override {}
+  void SetVsync(bool enabled) override { vsync_ = enabled; }
+  void SetTargetFps(int target_fps) override { target_fps_ = target_fps; }
   float GetFrameTime() const override { return 0.0f; }
   engine::render::RenderContext& GetRenderContext() override {
     return context_;
@@ -167,6 +169,8 @@ class FakeWindow final : public engine::render::Window {
   FakeRenderer3D renderer3d_;
   FakeRenderContext context_;
   std::shared_ptr<engine::input::InputManager> input_manager_;
+  bool vsync_{false};
+  int target_fps_{0};
 };
 
 class FakeClientContext final : public client::ClientContext {
@@ -192,6 +196,8 @@ class FakeClientContext final : public client::ClientContext {
 
   engine::render::Window& Window() override { return window_; }
 
+  engine::math::Vector2i RenderSize() const override { return render_size_; }
+
   std::shared_ptr<engine::audio::AudioEngine> Audio() override { return {}; }
 
   void SetAudioVolumes(float master_volume, float music_volume,
@@ -199,6 +205,16 @@ class FakeClientContext final : public client::ClientContext {
     last_master_volume_ = master_volume;
     last_music_volume_ = music_volume;
     last_sfx_volume_ = sfx_volume;
+  }
+
+  void SetVideoSettings(int resolution_width, int resolution_height,
+                        bool fullscreen, bool vsync, int target_fps) override {
+    last_resolution_width_ = resolution_width;
+    last_resolution_height_ = resolution_height;
+    render_size_ = {resolution_width, resolution_height};
+    last_fullscreen_ = fullscreen;
+    last_vsync_ = vsync;
+    last_target_fps_ = target_fps;
   }
 
   client::ClientAssetManager& Assets() override { return assets_; }
@@ -212,8 +228,10 @@ class FakeClientContext final : public client::ClientContext {
   void OnPlay() override { ++play_calls_; }
   void OnOpenSettings() override { ++open_settings_calls_; }
   void OnOpenAudioSettings() override { ++open_audio_settings_calls_; }
+  void OnOpenVideoSettings() override { ++open_video_settings_calls_; }
   void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
+  void OnCloseVideoSettings() override { ++close_video_settings_calls_; }
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
   void OnQuitApplication() override { ++quit_calls_; }
@@ -290,6 +308,7 @@ class FakeClientContext final : public client::ClientContext {
 
  private:
   FakeWindow window_;
+  engine::math::Vector2i render_size_{1280, 720};
   engine::input::InputManager input_;
   client::KeyBindingService key_binding_service_{};
   client::ClientAssetManager assets_;
@@ -304,12 +323,19 @@ class FakeClientContext final : public client::ClientContext {
   float last_master_volume_{0.0f};
   float last_music_volume_{0.0f};
   float last_sfx_volume_{0.0f};
+  int last_resolution_width_{0};
+  int last_resolution_height_{0};
+  bool last_fullscreen_{false};
+  bool last_vsync_{false};
+  int last_target_fps_{0};
 
   int play_calls_{0};
   int open_settings_calls_{0};
   int open_audio_settings_calls_{0};
+  int open_video_settings_calls_{0};
   int close_audio_settings_calls_{0};
   int close_settings_calls_{0};
+  int close_video_settings_calls_{0};
   int open_profile_calls_{0};
   int close_profile_calls_{0};
   int save_profile_calls_{0};

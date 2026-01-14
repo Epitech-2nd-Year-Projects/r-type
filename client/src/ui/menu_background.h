@@ -9,12 +9,12 @@
 #ifndef CLIENT_UI_MENU_BACKGROUND_H_
 #define CLIENT_UI_MENU_BACKGROUND_H_
 
+#include <raymedia.h>
+
 #include <string>
 #include <string_view>
 
-#include <raymedia.h>
-
-#include "engine/render/window.h"
+#include "engine/math/vector2.h"
 #include "engine/time/time_delta.h"
 
 namespace client::ui {
@@ -48,15 +48,15 @@ class MenuBackground {
 
   /**
    * @brief Draw background video
-   * @param window Window reference
+   * @param size Render size in pixels
    */
-  void Draw(const engine::render::Window& window) const;
+  void Draw(const engine::math::Vector2i& size) const;
   /**
    * @brief Draw background video with alpha
-   * @param window Window reference
+   * @param size Render size in pixels
    * @param alpha Opacity from 0 to 1
    */
-  void Draw(const engine::render::Window& window, float alpha) const;
+  void Draw(const engine::math::Vector2i& size, float alpha) const;
 
  private:
   std::string video_path_;
