@@ -145,14 +145,16 @@ struct ClientRuntime::BloomResources {
       ::SetShaderValue(shader, knee_loc, &knee, SHADER_UNIFORM_FLOAT);
     }
     if (intensity_loc >= 0) {
-      ::SetShaderValue(shader, intensity_loc, &current_intensity, SHADER_UNIFORM_FLOAT);
+      ::SetShaderValue(shader, intensity_loc, &current_intensity,
+                       SHADER_UNIFORM_FLOAT);
     }
   }
 
   void SetIntensity(float multiplier) {
     current_intensity = constants::client::kBloomIntensity * multiplier;
     if (shader_ready && intensity_loc >= 0) {
-      ::SetShaderValue(shader, intensity_loc, &current_intensity, SHADER_UNIFORM_FLOAT);
+      ::SetShaderValue(shader, intensity_loc, &current_intensity,
+                       SHADER_UNIFORM_FLOAT);
     }
   }
 
@@ -307,7 +309,8 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
                                state == ClientState::kPaused ||
                                state == ClientState::kGameOver;
   const float bloom_intensity = scene ? scene->GetBloomIntensity() : 1.0f;
-  const bool render_with_bloom = !render_gameplay && bloom_ && bloom_intensity > 0.0f;
+  const bool render_with_bloom =
+      !render_gameplay && bloom_ && bloom_intensity > 0.0f;
 
   if (background_ && render_gameplay) {
     background_->Update(dt, {static_cast<float>(window_size.x),
