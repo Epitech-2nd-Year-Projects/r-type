@@ -1,7 +1,12 @@
 add_rules("mode.debug", "mode.release")
 
 add_requires("nlohmann_json")
-add_requires("raylib", "ffmpeg")
+add_requires("raylib")
+if is_plat("windows") then
+    add_requires("ffmpeg", { system = true })
+else
+    add_requires("ffmpeg")
+end
 
 target("client")
 set_policy("check.target_package_licenses", false)
