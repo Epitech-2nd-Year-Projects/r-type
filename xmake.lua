@@ -7,8 +7,6 @@ set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
 
--- FORCE resolve conflict between raylib's dependency on libxrender 0.9.10 and others
--- Must be defined BEFORE add_requires
 add_requireconfs("**.libxrender", {override = true, version = "0.9.12"})
 add_requireconfs("**.libxext", {override = true, version = "1.3.6"})
 
