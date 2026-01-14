@@ -16,9 +16,12 @@ end
  add_deps("protocol", "game_logic", "engine", "engine_debug")
  add_packages("nlohmann_json", "raylib")
  if is_plat("windows") then
-     local ffmpeg_dir = os.getenv("FFMPEG_DIR")
-     assert(ffmpeg_dir and #ffmpeg_dir > 0, "FFMPEG_DIR must be set on Windows to use prebuilt FFmpeg")
-     add_includedirs(path.join(ffmpeg_dir, "include"))
+    local ffmpeg_dir = os.getenv("FFMPEG_DIR")
+    if not ffmpeg_dir or #ffmpeg_dir == 0 then
+        raise("FFMPEG_DIR must be set on Windows to use prebuilt FFmpeg")
+    end
+    add_includedirs(path.join(ffmpeg_dir, "include"))
+
      add_linkdirs(path.join(ffmpeg_dir, "lib"))
      add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
      add_runenvs("PATH", path.join(ffmpeg_dir, "bin"))
