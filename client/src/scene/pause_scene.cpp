@@ -190,9 +190,9 @@ void PauseScene::Update(engine::time::TimeDelta dt) {
 }
 
 void PauseScene::Draw(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
-  renderer.DrawRect({0.0f, 0.0f, static_cast<float>(window_size.x),
-                     static_cast<float>(window_size.y)},
+  const auto render_size = context_.RenderSize();
+  renderer.DrawRect({0.0f, 0.0f, static_cast<float>(render_size.x),
+                     static_cast<float>(render_size.y)},
                     constants::ui::Pause::kOverlayColor);
 
   canvas_.Draw(renderer);
@@ -286,10 +286,10 @@ void PauseScene::BuildUi() {
 }
 
 void PauseScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   renderer.SetFont(std::string(constants::ui::kBodyFont));
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   canvas_.Layout(renderer);
 }
 
