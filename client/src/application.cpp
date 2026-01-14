@@ -158,7 +158,7 @@ void Application::SetAudioVolumes(float master_volume, float music_volume,
 void Application::SetVideoSettings(int resolution_width, int resolution_height,
                                    bool fullscreen, bool vsync,
                                    int target_fps) {
-  const bool was_fullscreen = config_.fullscreen;
+  const bool previous_fullscreen = config_.fullscreen;
   config_.resolution_width = std::max(1, resolution_width);
   config_.resolution_height = std::max(1, resolution_height);
   config_.fullscreen = fullscreen;
@@ -169,7 +169,7 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
       {config_.resolution_width, config_.resolution_height});
 
   auto& window = runtime_->Window();
-  if (config_.fullscreen != was_fullscreen) {
+  if (config_.fullscreen != previous_fullscreen) {
     window.ToggleFullscreen();
   }
   if (!config_.fullscreen) {

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "constants/client_constants.h"
 #include "engine/math/rect.h"
 #include "engine/ui/button.h"
 #include "engine/ui/canvas.h"
@@ -99,7 +100,7 @@ class VideoSettingsScene : public Scene {
   int pending_resolution_width_{0};
   int pending_resolution_height_{0};
   bool pending_fullscreen_{false};
-  bool pending_vsync_{true};
+  bool pending_vsync_{constants::client::kWindowVsync};
   int pending_target_fps_{60};
 };
 
