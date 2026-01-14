@@ -14,6 +14,7 @@
 #include "client_state.h"
 #include "engine/console/console_overlay.h"
 #include "engine/debug/imgui_integration.h"
+#include "engine/math/vector2.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
 
@@ -136,6 +137,16 @@ class ClientRuntime {
   engine::render::Window& Window();
 
   /**
+   * @brief Access the virtual render size
+   */
+  engine::math::Vector2i RenderSize() const;
+
+  /**
+   * @brief Update the virtual render size
+   */
+  void SetRenderSize(const engine::math::Vector2i& size);
+
+  /**
    * @brief Access the render context
    */
   engine::render::RenderContext& RenderContext();
@@ -182,9 +193,11 @@ class ClientRuntime {
   void UpdateDebugToggle();
   void UpdateImGuiToggle();
   void UpdateConsoleOverlay(engine::time::TimeDelta dt);
+  void SyncInputToRenderSize();
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
 
+  struct FrameResources;
   struct BloomResources;
 
   std::unique_ptr<engine::app::EngineRuntime> engine_;
@@ -192,7 +205,9 @@ class ClientRuntime {
   std::unique_ptr<ecs::RenderDebug> render_debug_;
   std::unique_ptr<systems::DebugPathSystem> debug_path_system_;
   std::unique_ptr<ParallaxBackground> background_;
+  std::unique_ptr<FrameResources> frame_resources_;
   std::unique_ptr<BloomResources> bloom_;
+  engine::math::Vector2i render_size_{};
   engine::profiling::ProfilingOverlay profiling_overlay_{};
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
   std::unique_ptr<engine::debug::ComponentInspectorRegistry>
