@@ -50,6 +50,8 @@ class Window {
   virtual void SetSize(const math::Vector2i& size) = 0;
   virtual void SetTitle(std::string_view title) = 0;
   virtual void ToggleFullscreen() = 0;
+  virtual void SetVsync(bool enabled) = 0;
+  virtual void SetTargetFps(int target_fps) = 0;
 
   /**
    * @brief Time elapsed since last frame in seconds.
