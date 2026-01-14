@@ -48,8 +48,7 @@ class LobbyController {
    * @param dt Frame time delta
    * @param input Input manager reference
    */
-  void Update(engine::time::TimeDelta dt,
-              engine::input::InputManager& input);
+  void Update(engine::time::TimeDelta dt, engine::input::InputManager& input);
 
   /**
    * @brief Layout controls using the current viewport
@@ -87,11 +86,12 @@ class LobbyController {
    * @param max_players_text Raw max players input
    * @param is_private Privacy flag
    * @param password Room password
+   * @param difficulty Difficulty level
    * @return True when the request is accepted
    */
   bool TryCreateRoom(const std::string& room_name,
                      const std::string& max_players_text, bool is_private,
-                     std::string password);
+                     std::string password, protocol::Difficulty difficulty);
 
   /**
    * @brief Attempt to join a room
