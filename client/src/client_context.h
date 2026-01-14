@@ -193,8 +193,8 @@ class ClientContext {
    */
   virtual void CreateRoom(std::string host, std::uint16_t port,
                           const std::string& room_name, bool is_private,
-                          std::string room_password,
-                          std::uint16_t max_players) = 0;
+                          std::string password, std::uint16_t max_players,
+                          protocol::Difficulty difficulty) = 0;
 
   /**
    * @brief Snapshot of available rooms

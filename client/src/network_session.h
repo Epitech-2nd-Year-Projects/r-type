@@ -122,9 +122,9 @@ class NetworkSession {
   /**
    * @brief Ask the server to create a room
    */
-  void CreateRoom(std::string host, std::uint16_t port,
-                  const std::string& room_name, bool is_private,
-                  std::string room_password, std::uint16_t max_players);
+  void CreateRoom(std::string host, std::uint16_t port, std::string room_name,
+                  bool is_private, std::string room_password,
+                  std::uint16_t max_players, protocol::Difficulty difficulty);
 
   /**
    * @brief Access room summaries
