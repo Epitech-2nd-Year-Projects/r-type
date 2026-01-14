@@ -314,7 +314,6 @@ bool EncodePacket(const Packet& packet, engine::net::PacketBuffer& buffer) {
     return false;
   }
 
-  constexpr size_t kCompressionThreshold = 64;
   bool compressed = false;
   std::vector<std::uint8_t> compressed_data;
 

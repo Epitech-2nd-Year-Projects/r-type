@@ -1,4 +1,5 @@
 #include "protocol/compression.h"
+#include "engine/net/packet_buffer.h"
 
 #include <lz4.h>
 
@@ -22,7 +23,8 @@ bool CompressionService::Compress(std::span<const std::uint8_t> input,
   const int max_dst_size = LZ4_compressBound(input_size);
   output.resize(sizeof(std::uint32_t) + max_dst_size);
 
-  std::uint32_t size_header = static_cast<std::uint32_t>(input_size);
+  std::uint32_t size_header = engine::net::PacketBuffer::Endian::HostToNetwork(
+      static_cast<std::uint32_t>(input_size));
   std::memcpy(output.data(), &size_header, sizeof(std::uint32_t));
 
   const int compressed_bytes = LZ4_compress_default(
@@ -49,8 +51,10 @@ bool CompressionService::Decompress(std::span<const std::uint8_t> input,
     return false;
   }
 
-  std::uint32_t uncompressed_size = 0;
-  std::memcpy(&uncompressed_size, input.data(), sizeof(std::uint32_t));
+  std::uint32_t net_size_header = 0;
+  std::memcpy(&net_size_header, input.data(), sizeof(std::uint32_t));
+  std::uint32_t uncompressed_size =
+      engine::net::PacketBuffer::Endian::NetworkToHost(net_size_header);
 
   if (uncompressed_size == 0) {
     output.clear();
