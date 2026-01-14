@@ -27,11 +27,11 @@ void MenuBackground::Update(engine::time::TimeDelta dt) {
   UpdateMediaEx(&media_, static_cast<double>(dt.as_seconds()));
 }
 
-void MenuBackground::Draw(const engine::render::Window& window) const {
-  Draw(window, 1.0f);
+void MenuBackground::Draw(const engine::math::Vector2i& size) const {
+  Draw(size, 1.0f);
 }
 
-void MenuBackground::Draw(const engine::render::Window& window,
+void MenuBackground::Draw(const engine::math::Vector2i& size,
                           float alpha) const {
   if (!media_loaded_) {
     return;
@@ -39,9 +39,8 @@ void MenuBackground::Draw(const engine::render::Window& window,
   if (media_.videoTexture.id == 0) {
     return;
   }
-  const auto window_size = window.GetSize();
-  const float window_width = static_cast<float>(window_size.x);
-  const float window_height = static_cast<float>(window_size.y);
+  const float window_width = static_cast<float>(size.x);
+  const float window_height = static_cast<float>(size.y);
   if (window_width <= 0.0f || window_height <= 0.0f) {
     return;
   }
