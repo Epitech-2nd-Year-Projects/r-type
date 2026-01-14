@@ -61,7 +61,7 @@
             version = "1.5.2"
         },
         ["libxrender#a0c24696"] = {
-            version = "0.9.10"
+            version = "0.9.12"
         },
         ["lua#f56260b5"] = {
             version = "v5.4.7"

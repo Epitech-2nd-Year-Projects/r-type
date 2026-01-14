@@ -10,6 +10,7 @@ set_policy("package.requires_lock", true)
 add_requires("lz4")
 
 add_requireconfs("**.libxext", {override = true, version = "1.3.6"})
+add_requireconfs("**.libxrender", {override = true, version = "0.9.12"})
 
 if is_plat("windows") then
 	set_toolchains("clang-cl")
