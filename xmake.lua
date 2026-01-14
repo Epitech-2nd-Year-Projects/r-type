@@ -10,7 +10,6 @@ set_policy("package.requires_lock", false)
 add_requires("lz4")
 
 if is_plat("windows") then
-	set_toolchains("clang-cl")
 	add_defines("NODRAWTEXT")
 end
 

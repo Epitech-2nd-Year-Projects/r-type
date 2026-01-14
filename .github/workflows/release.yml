@@ -87,8 +87,6 @@ jobs:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
-      CC: clang-cl
-      CXX: clang-cl
 
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +95,7 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
-          build-cache: true
+          build-cache: false
 
       - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
         shell: pwsh
@@ -130,7 +128,7 @@ jobs:
       - name: Build Release
         shell: bash
         run: |
-          xmake f -p windows -a x64 -m release --toolchain=clang-cl --yes
+          xmake f -p windows -a x64 -m release --yes
           xmake build --yes
 
       - name: Package Windows
