@@ -2,13 +2,16 @@ set_project("r-type")
 set_version("0.1.0")
 set_xmakever("3.0.6")
 
-add_rules("mode.debug", "mode.release")
+add_rules("mode.debug",-- FORCE resolve conflict by aligning versions AND prefering system libs
+"mode.release")
 set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
 
-add_requireconfs("**.libxrender", {override = true, version = "0.9.12"})
-add_requireconfs("**.libxext", {override = true, version = "1.3.6"})
+add_requireconfs("**.libxrender", {override = true, version = "0.9.12", configs = {system = true}})
+add_requireconfs("**.libxext", {override = true, version = "1.3.6", configs = {system = true}})
+-- Avoid building nasm from source if possible
+add_requireconfs("**.nasm", {override = true, configs = {system = true}})
 
 add_requires("lz4")
 
