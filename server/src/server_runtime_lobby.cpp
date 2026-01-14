@@ -268,7 +268,7 @@ void ServerRuntime::HandleCreateRoomRequest(
 
   if (response.message.empty()) {
     Room& room = CreateRoom(room_code, request.room_name, request.is_private,
-                            password, requested_capacity);
+                            password, requested_capacity, request.difficulty);
     response.success = true;
     response.message = "Room created";
     response.room = BuildRoomSummary(room);
@@ -352,6 +352,7 @@ protocol::RoomSummary ServerRuntime::BuildRoomSummary(const Room& room) const {
       room.PlayerCount(),
       static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())));
   summary.started = room.HasStarted();
+  summary.difficulty = room.Difficulty();
   return summary;
 }
 
@@ -365,20 +366,20 @@ void ServerRuntime::EnsureDefaultRoom() {
   const std::uint16_t capacity = static_cast<std::uint16_t>(
       std::max<std::uint16_t>(1, config_.max_players));
   Room& room = CreateRoom(config_.default_room_code, config_.default_room_name,
-                          /*is_private=*/false, "", capacity);
+                          false, "", capacity, protocol::Difficulty::kNormal);
   logger_.Info("Bootstrapped room ", room.Code(), " capacity ",
                room.MaxPlayers());
 }
 
 Room& ServerRuntime::CreateRoom(const std::string& room_code,
                                 const std::string& room_name, bool is_private,
-                                std::string password,
-                                std::uint16_t max_players) {
+                                std::string password, std::uint16_t max_players,
+                                protocol::Difficulty difficulty) {
   const std::uint32_t room_id = next_room_id_++;
   const std::uint32_t seed = rng_();
   auto [inserted, _] = rooms_.emplace(
       room_code, Room{room_code, room_name, room_id, max_players, is_private,
-                      std::move(password), seed, logger_});
+                      std::move(password), seed, difficulty, logger_});
   inserted->second.MarkActive(NowMilliseconds());
   return inserted->second;
 }
