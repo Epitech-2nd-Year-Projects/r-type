@@ -3,7 +3,9 @@
 #include <functional>
 #include <optional>
 #include <utility>
+#include <vector>
 
+#include "protocol/compression.h"
 #include "protocol/message_type.h"
 
 namespace protocol {
@@ -271,9 +273,30 @@ bool DecodePacketInternal(
   }
 
   PacketPayload payload;
-  if (!DecodePayloadByType(buffer, type, payload)) {
-    if (out_error) out_error->get() = DecodeError::kInvalidPayload;
-    return false;
+
+  if (header.flags & kHeaderFlagCompressed) {
+    if (buffer.remaining() == 0) {
+      if (out_error) out_error->get() = DecodeError::kUnexpectedEndOfBuffer;
+      return false;
+    }
+
+    auto span = buffer.data().subspan(buffer.read_offset());
+    std::vector<std::uint8_t> decompressed_data;
+    if (!CompressionService::Decompress(span, decompressed_data)) {
+      if (out_error) out_error->get() = DecodeError::kInvalidPayload;
+      return false;
+    }
+
+    engine::net::PacketBuffer decompressed_buffer(decompressed_data);
+    if (!DecodePayloadByType(decompressed_buffer, type, payload)) {
+      if (out_error) out_error->get() = DecodeError::kInvalidPayload;
+      return false;
+    }
+  } else {
+    if (!DecodePayloadByType(buffer, type, payload)) {
+      if (out_error) out_error->get() = DecodeError::kInvalidPayload;
+      return false;
+    }
   }
 
   out_packet.header = header;
@@ -286,8 +309,39 @@ bool DecodePacketInternal(
 bool EncodePacket(const Packet& packet, engine::net::PacketBuffer& buffer) {
   const MessageType type = static_cast<MessageType>(packet.header.message_type);
 
-  EncodeHeader(packet.header, buffer);
-  return EncodePayloadByType(packet.payload, type, buffer);
+  engine::net::PacketBuffer payload_buffer;
+  if (!EncodePayloadByType(packet.payload, type, payload_buffer)) {
+    return false;
+  }
+
+  constexpr size_t kCompressionThreshold = 64;
+  bool compressed = false;
+  std::vector<std::uint8_t> compressed_data;
+
+  if (payload_buffer.size() > kCompressionThreshold) {
+    if (CompressionService::Compress(payload_buffer.data(), compressed_data)) {
+      if (compressed_data.size() < payload_buffer.size()) {
+        compressed = true;
+      }
+    }
+  }
+
+  Header header = packet.header;
+  if (compressed) {
+    header.flags |= kHeaderFlagCompressed;
+  } else {
+    header.flags &= ~kHeaderFlagCompressed;
+  }
+
+  EncodeHeader(header, buffer);
+
+  if (compressed) {
+    buffer.write_bytes(compressed_data);
+  } else {
+    buffer.write_bytes(payload_buffer.data());
+  }
+
+  return true;
 }
 
 bool DecodePacket(engine::net::PacketBuffer& buffer, Packet& out_packet) {
