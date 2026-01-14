@@ -2,17 +2,10 @@ set_project("r-type")
 set_version("0.1.0")
 set_xmakever("3.0.6")
 
-add_rules("mode.debug",
-"mode.release")
+add_rules("mode.debug", "mode.release")
 set_languages("cxx23")
 set_warnings("all")
 set_policy("package.requires_lock", true)
-
-add_requireconfs("**.libxrender", {override = true, configs = {system = true}})
-add_requireconfs("**.libxext", {override = true, configs = {system = true}})
-add_requireconfs("**.nasm", {override = true, configs = {system = true}})
-add_requireconfs("**.ffmpeg", {override = true, configs = {system = true}})
-add_requireconfs("**.libdrm", {override = true, configs = {system = true}})
 
 add_requires("lz4")
 
