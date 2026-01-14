@@ -5,12 +5,9 @@ set_xmakever("3.0.6")
 add_rules("mode.debug", "mode.release")
 set_languages("cxx23")
 set_warnings("all")
-set_policy("package.requires_lock", true)
+set_policy("package.requires_lock", false)
 
 add_requires("lz4")
-
-add_requireconfs("**.libxext", {override = true, version = "1.3.6"})
-add_requireconfs("**.libxrender", {override = true, version = "0.9.12"})
 
 if is_plat("windows") then
 	set_toolchains("clang-cl")
