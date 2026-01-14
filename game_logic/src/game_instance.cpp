@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "engine/ecs/component.h"
+#include "engine/ecs/components/compound_circle_collider_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
@@ -61,6 +62,7 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+  script_engine_->LoadScript(config_dir + "/prefabs/dobkeratops.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
@@ -200,6 +202,7 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
   engine::ecs::EntityId entity = *opt_entity;
   registry_->EmplaceComponent<engine::ecs::PositionComponent>(
       entity, spawn_position.x, spawn_position.y);
+  registry_->EmplaceComponent<components::ShootEventComponent>(entity);
 
   auto &players = registry_->GetComponents<components::PlayerComponent>();
   if (static_cast<std::size_t>(entity) < players.size() &&
@@ -235,8 +238,9 @@ void GameInstance::OnPlayerLeave(std::uint32_t player_id) {
   player_input_states_.erase(player_id);
 }
 
-void GameInstance::OnPlayerInput(std::uint32_t player_id,
-                                 InputEventType input_type) {
+void GameInstance::OnPlayerInput(
+    std::uint32_t player_id, InputEventType input_type,
+    std::optional<engine::math::Vector2f> spawn_pos, float latency_s) {
   if (player_entities_.find(player_id) == player_entities_.end()) {
     return;
   }
@@ -244,6 +248,8 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   QueuedInputEvent evt;
   evt.player_id = player_id;
   evt.type = input_type;
+  evt.spawn_pos = spawn_pos;
+  evt.latency_s = latency_s;
   pending_inputs_.push_back(evt);
 }
 
@@ -291,6 +297,7 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<engine::ecs::TransformComponent>();
   registry_->RegisterComponent<engine::ecs::BoundingBoxComponent>();
   registry_->RegisterComponent<engine::ecs::CircleColliderComponent>();
+  registry_->RegisterComponent<engine::ecs::CompoundCircleColliderComponent>();
   registry_->RegisterComponent<engine::ecs::LifetimeComponent>();
   registry_->RegisterComponent<engine::ecs::TagComponent>();
 
@@ -303,13 +310,15 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<components::ScoreValueComponent>();
   registry_->RegisterComponent<components::PowerupComponent>();
   registry_->RegisterComponent<components::DamageableComponent>();
+
   registry_->RegisterComponent<components::DropsPowerupComponent>();
+  registry_->RegisterComponent<components::ShootEventComponent>();
 }
 
 void GameInstance::RegisterSystems() {
   registry_
       ->AddSystem<components::PlayerComponent, engine::ecs::VelocityComponent,
-                  components::WeaponComponent>(
+                  components::WeaponComponent, components::ShootEventComponent>(
           systems::PlayerInputSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kHighPriority, std::ref(*this));
 

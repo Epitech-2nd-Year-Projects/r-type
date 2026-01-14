@@ -13,8 +13,8 @@ TEST(ParallaxCameraTest, MapsWorldToScreenWithParallax) {
   engine::render::ParallaxCamera camera({800.0f, 600.0f}, 0.0f, 100.0f);
   camera.SetFocusX(50.0f);
 
-  const auto mid = camera.WorldToScreen({50.0f, 0.0f},
-                                        engine::render::RenderLayer::kMidground);
+  const auto mid = camera.WorldToScreen(
+      {50.0f, 0.0f}, engine::render::RenderLayer::kMidground);
   EXPECT_NEAR(mid.x, 400.0f, kEpsilon);
   EXPECT_NEAR(mid.y, 0.0f, kEpsilon);
 

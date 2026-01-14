@@ -67,3 +67,19 @@ TEST(EventBusTest, MultipleEventTypes) {
   bus.Publish(AnotherEvent{0.0f});
   EXPECT_TRUE(t2_received);
 }
+
+TEST(EventBusTest, CrossThreadDispatch) {
+  engine::event::EventBus bus;
+  std::atomic<int> received_value{0};
+
+  bus.Subscribe<TestEvent>(
+      [&](const TestEvent& e) { received_value = e.value; });
+
+  bus.PostTo(engine::util::ThreadId::kLogic, TestEvent{99});
+
+  EXPECT_EQ(received_value, 0);
+
+  bus.FlushChannel(engine::util::ThreadId::kLogic);
+
+  EXPECT_EQ(received_value, 99);
+}

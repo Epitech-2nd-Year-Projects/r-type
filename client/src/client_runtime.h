@@ -7,6 +7,7 @@
 #define CLIENT_CLIENT_RUNTIME_H_
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -15,8 +16,10 @@
 #include "engine/console/console_overlay.h"
 #include "engine/debug/imgui_integration.h"
 #include "engine/math/vector2.h"
+#include "engine/profiling/frame_profiler.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
+#include "protocol/command.h"
 
 namespace engine::app {
 class EngineRuntime;
@@ -92,9 +95,12 @@ class ClientRuntime {
   /**
    * @brief Initialize engine systems
    * @param config Client configuration
+   * @param send_command_callback Callback to send network commands (for debug)
    * @return True when initialization succeeds
    */
-  bool Initialize(const ClientConfig& config);
+  bool Initialize(const ClientConfig& config,
+                  std::function<void(const protocol::CommandPayload&)>
+                      send_command_callback);
 
   /**
    * @brief Attach world systems for rendering
@@ -209,6 +215,7 @@ class ClientRuntime {
   std::unique_ptr<BloomResources> bloom_;
   engine::math::Vector2i render_size_{};
   engine::profiling::ProfilingOverlay profiling_overlay_{};
+  std::unique_ptr<engine::profiling::FrameProfiler> frame_profiler_;
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;
   std::unique_ptr<engine::debug::ComponentInspectorRegistry>
       component_registry_;

@@ -14,7 +14,11 @@
 
 #include "engine/input.h"
 #include "engine/math/vector2.h"
+#include "engine/math/vector3.h"
+#include "engine/render/camera3d.h"
+#include "engine/render/model.h"
 #include "engine/render/renderer2d.h"
+#include "engine/render/renderer3d.h"
 #include "engine/util/logging.h"
 
 namespace engine::render {
@@ -38,6 +42,10 @@ unsigned char ToByte(float value) {
 
 ::Vector2 ToRaylibVector(const math::Vector2f& vec) {
   return ::Vector2{vec.x, vec.y};
+}
+
+::Vector3 ToRaylibVector3(const math::Vector3f& vec) {
+  return ::Vector3{vec.x, vec.y, vec.z};
 }
 
 // Map physical QWERTY scancodes to AZERTY logical keys to keep gameplay and
@@ -279,10 +287,163 @@ class RaylibRenderer2D final : public Renderer2D {
   ::Font current_font_ = {0};
 };
 
+// ============================================================================
+// 3D Rendering
+// ============================================================================
+
+class RaylibModel final : public Model {
+ public:
+  explicit RaylibModel(::Model model) : model_(model) {
+    bounding_box_ = ::GetModelBoundingBox(model_);
+  }
+
+  ~RaylibModel() override {
+    if (model_.meshCount > 0 && ::IsWindowReady()) {
+      ::UnloadModel(model_);
+    }
+  }
+
+  RaylibModel(const RaylibModel&) = delete;
+  RaylibModel& operator=(const RaylibModel&) = delete;
+
+  math::Vector3f GetBoundingBoxSize() const override {
+    return math::Vector3f(bounding_box_.max.x - bounding_box_.min.x,
+                          bounding_box_.max.y - bounding_box_.min.y,
+                          bounding_box_.max.z - bounding_box_.min.z);
+  }
+
+  math::Vector3f GetBoundingBoxCenter() const override {
+    return math::Vector3f((bounding_box_.max.x + bounding_box_.min.x) / 2.0f,
+                          (bounding_box_.max.y + bounding_box_.min.y) / 2.0f,
+                          (bounding_box_.max.z + bounding_box_.min.z) / 2.0f);
+  }
+
+  const ::Model& GetNative() const { return model_; }
+
+ private:
+  ::Model model_{};
+  ::BoundingBox bounding_box_{};
+};
+
+class RaylibRenderer3D final : public Renderer3D {
+ public:
+  void Begin3D(const Camera3D& camera) override {
+    ::Camera3D raylib_camera{};
+    raylib_camera.position = ToRaylibVector3(camera.GetPosition());
+    raylib_camera.target = ToRaylibVector3(camera.GetTarget());
+    raylib_camera.up = ToRaylibVector3(camera.GetUp());
+    raylib_camera.fovy = camera.GetFov();
+    raylib_camera.projection = static_cast<int>(camera.GetProjection());
+    ::BeginMode3D(raylib_camera);
+  }
+
+  void End3D() override { ::EndMode3D(); }
+
+  void DrawCube(const math::Vector3f& position, const math::Vector3f& size,
+                const Color& color) override {
+    ::DrawCubeV(ToRaylibVector3(position), ToRaylibVector3(size),
+                ToRaylibColor(color));
+  }
+
+  void DrawCubeWires(const math::Vector3f& position, const math::Vector3f& size,
+                     const Color& color) override {
+    ::DrawCubeWiresV(ToRaylibVector3(position), ToRaylibVector3(size),
+                     ToRaylibColor(color));
+  }
+
+  void DrawSphere(const math::Vector3f& center, float radius,
+                  const Color& color) override {
+    ::DrawSphere(ToRaylibVector3(center), radius, ToRaylibColor(color));
+  }
+
+  void DrawSphereWires(const math::Vector3f& center, float radius, int rings,
+                       int slices, const Color& color) override {
+    ::DrawSphereWires(ToRaylibVector3(center), radius, rings, slices,
+                      ToRaylibColor(color));
+  }
+
+  void DrawCylinder(const math::Vector3f& position, float radius_top,
+                    float radius_bottom, float height, int slices,
+                    const Color& color) override {
+    ::DrawCylinder(ToRaylibVector3(position), radius_top, radius_bottom, height,
+                   slices, ToRaylibColor(color));
+  }
+
+  void DrawCylinderWires(const math::Vector3f& position, float radius_top,
+                         float radius_bottom, float height, int slices,
+                         const Color& color) override {
+    ::DrawCylinderWires(ToRaylibVector3(position), radius_top, radius_bottom,
+                        height, slices, ToRaylibColor(color));
+  }
+
+  void DrawPlane(const math::Vector3f& center, const math::Vector2f& size,
+                 const Color& color) override {
+    ::DrawPlane(ToRaylibVector3(center), ToRaylibVector(size),
+                ToRaylibColor(color));
+  }
+
+  void DrawGrid(int slices, float spacing) override {
+    ::DrawGrid(slices, spacing);
+  }
+
+  void DrawLine3D(const math::Vector3f& start, const math::Vector3f& end,
+                  const Color& color) override {
+    ::DrawLine3D(ToRaylibVector3(start), ToRaylibVector3(end),
+                 ToRaylibColor(color));
+  }
+
+  void DrawPoint3D(const math::Vector3f& position,
+                   const Color& color) override {
+    ::DrawPoint3D(ToRaylibVector3(position), ToRaylibColor(color));
+  }
+
+  void DrawModel(const Model& model, const ModelDrawParams& params) override {
+    const auto& raylib_model = dynamic_cast<const RaylibModel&>(model);
+    ::DrawModelEx(raylib_model.GetNative(), ToRaylibVector3(params.position),
+                  ToRaylibVector3(params.rotation_axis), params.rotation_angle,
+                  ToRaylibVector3(params.scale), ToRaylibColor(params.tint));
+  }
+
+  void DrawModelWires(const Model& model,
+                      const ModelDrawParams& params) override {
+    const auto& raylib_model = dynamic_cast<const RaylibModel&>(model);
+    ::DrawModelWiresEx(
+        raylib_model.GetNative(), ToRaylibVector3(params.position),
+        ToRaylibVector3(params.rotation_axis), params.rotation_angle,
+        ToRaylibVector3(params.scale), ToRaylibColor(params.tint));
+  }
+
+  std::shared_ptr<Model> LoadModelFromFile(const std::string& path) override {
+    ::Model model = ::LoadModel(path.c_str());
+    if (model.meshCount == 0) {
+      engine::util::Logger::Default().Error("Failed to load model from '", path,
+                                            "'");
+      return nullptr;
+    }
+    return std::make_shared<RaylibModel>(model);
+  }
+
+  void SetLighting(const LightingConfig& config) override {
+    // Basic lighting implementation stores the config for future shader-based
+    // lighting. For now, Raylib's default lighting is used.
+    lighting_enabled_ = true;
+    lighting_config_ = config;
+    // Note: Full lighting implementation would require loading and setting up
+    // custom shaders with uniforms for ambient and directional lights.
+  }
+
+  void DisableLighting() override { lighting_enabled_ = false; }
+
+ private:
+  bool lighting_enabled_{false};
+  LightingConfig lighting_config_;
+};
+
 class RaylibRenderContext final : public RenderContext {
  public:
-  explicit RaylibRenderContext(RaylibRenderer2D& renderer)
-      : renderer_(renderer) {}
+  RaylibRenderContext(RaylibRenderer2D& renderer2d,
+                      RaylibRenderer3D& renderer3d)
+      : renderer2d_(renderer2d), renderer3d_(renderer3d) {}
 
   void BeginFrame() override { ::BeginDrawing(); }
 
@@ -292,16 +453,19 @@ class RaylibRenderContext final : public RenderContext {
     ::ClearBackground(ToRaylibColor(color));
   }
 
-  Renderer2D& Get2DRenderer() override { return renderer_; }
+  Renderer2D& Get2DRenderer() override { return renderer2d_; }
+
+  Renderer3D& Get3DRenderer() override { return renderer3d_; }
 
  private:
-  RaylibRenderer2D& renderer_;
+  RaylibRenderer2D& renderer2d_;
+  RaylibRenderer3D& renderer3d_;
 };
 
 class RaylibWindow final : public Window {
  public:
   explicit RaylibWindow(const WindowConfig& config)
-      : config_(config), context_(renderer_) {
+      : config_(config), context_(renderer2d_, renderer3d_) {
     if (window_alive_) {
       throw std::runtime_error(
           "Only one Raylib window can exist at a time in this backend.");
@@ -331,7 +495,7 @@ class RaylibWindow final : public Window {
 
   ~RaylibWindow() override {
     if (window_alive_) {
-      renderer_.ReleaseFonts();
+      renderer2d_.ReleaseFonts();
       ::CloseWindow();
       window_alive_ = false;
     }
@@ -422,7 +586,8 @@ class RaylibWindow final : public Window {
   mutable bool close_logged_{false};
   bool input_manager_warning_logged_{false};
   std::shared_ptr<input::InputManager> input_manager_{};
-  RaylibRenderer2D renderer_;
+  RaylibRenderer2D renderer2d_;
+  RaylibRenderer3D renderer3d_;
   RaylibRenderContext context_;
 
   inline static bool window_alive_{false};

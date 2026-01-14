@@ -87,12 +87,14 @@ class RaylibAudioEngine final : public AudioEngine {
 
   void SetMasterVolume(float volume) override {
     master_volume_ = ClampVolume(volume);
-    ::SetMasterVolume(master_volume_);
+    if (::IsAudioDeviceReady()) {
+      ::SetMasterVolume(master_volume_);
+    }
   }
 
   void SetMusicVolume(float volume) override {
     music_volume_ = ClampVolume(volume);
-    if (music_loaded_) {
+    if (::IsAudioDeviceReady() && music_loaded_) {
       ::SetMusicVolume(current_music_, music_volume_);
     }
   }

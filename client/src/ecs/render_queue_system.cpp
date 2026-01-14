@@ -80,9 +80,9 @@ void RenderQueueSystem::Render() {
                               ? velocities[i]
                               : std::optional<ecs::VelocityComponent>{};
 
-    const auto params =
-        BuildParams(positions[i].value(), sprites[i].value(), layers[i].value(),
-                    velocity, nets[i]->type_code, texture);
+    const auto params = BuildParams(
+        positions[i].value(), sprites[i].value(), layers[i].value(), velocity,
+        nets[i]->type_code, texture, sprites[i]->texture_id);
 
     draw_queue_.push_back(
         DrawCommand{texture, params, layers[i]->layer, layers[i]->depth, i});
@@ -105,12 +105,14 @@ engine::render::SpriteDrawParams RenderQueueSystem::BuildParams(
     const ecs::RenderLayerComponent& layer,
     const std::optional<ecs::VelocityComponent>& velocity,
     std::uint16_t type_code,
-    const std::shared_ptr<engine::render::Texture2D>& texture) const {
+    const std::shared_ptr<engine::render::Texture2D>& texture,
+    const std::string& texture_id) const {
   engine::render::SpriteDrawParams params{};
   params.position = position.render_position;
   params.layer = ResolveRenderLayer(layer.layer);
 
-  const bool flip_x = ComputeFlipX(type_code, velocity, sprite.flip_x);
+  const bool flip_x =
+      ComputeFlipX(type_code, velocity, sprite.flip_x, texture_id);
   const bool flip_y = sprite.flip_y;
 
   const auto source = ApplyFlip(sprite.source_rect, flip_x, flip_y);
@@ -150,8 +152,11 @@ engine::math::Vector2f RenderQueueSystem::ComputeScale(
 
 bool RenderQueueSystem::ComputeFlipX(
     std::uint16_t type_code,
-    const std::optional<ecs::VelocityComponent>& velocity,
-    bool sprite_flip) const {
+    const std::optional<ecs::VelocityComponent>& velocity, bool sprite_flip,
+    const std::string& texture_id) const {
+  if (texture_id == "assets/sprites/Dobkeratops.png") {
+    return sprite_flip;
+  }
   bool flip = sprite_flip;
   if (velocity.has_value()) {
     const float vx = velocity->velocity.x;

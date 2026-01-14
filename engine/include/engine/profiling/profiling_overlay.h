@@ -1,6 +1,7 @@
 #ifndef ENGINE_PROFILING_PROFILING_OVERLAY_H_
 #define ENGINE_PROFILING_PROFILING_OVERLAY_H_
 
+#include <functional>
 #include <optional>
 
 #include "engine/math/vector2.h"
@@ -63,7 +64,10 @@ class ProfilingOverlay {
   OverlayConfig& config() { return config_; }
   const OverlayConfig& config() const { return config_; }
 
-  FrameProfiler& frame_profiler() { return frame_profiler_; }
+  void SetFrameProfiler(FrameProfiler& profiler) { frame_profiler_ = profiler; }
+  std::optional<std::reference_wrapper<FrameProfiler>> frame_profiler() {
+    return frame_profiler_;
+  }
   NetworkProfiler& network_profiler() { return network_profiler_; }
   ResourceMonitor& resource_monitor() { return resource_monitor_; }
 
@@ -78,7 +82,7 @@ class ProfilingOverlay {
   render::Color GetGraphColor(float value, float warning, float critical) const;
 
   OverlayConfig config_;
-  FrameProfiler frame_profiler_;
+  std::optional<std::reference_wrapper<FrameProfiler>> frame_profiler_;
   NetworkProfiler network_profiler_;
   ResourceMonitor resource_monitor_;
 

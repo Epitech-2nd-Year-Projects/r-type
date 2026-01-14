@@ -15,6 +15,7 @@
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
 #include "scene/pause_scene.h"
+#include "scene/profile_scene.h"
 #include "scene/splash_scene.h"
 #include "scene/video_settings_scene.h"
 
@@ -34,13 +35,15 @@ bool AllowSettingsReturn(const SceneManager& manager, ClientState next_state) {
          manager.settings_return_state().value() == next_state;
 }
 
-constexpr std::array<TransitionRule, 51> kTransitionRules{{
+constexpr std::array<TransitionRule, 53> kTransitionRules{{
     {ClientState::kSplash, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kConnecting, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kLobby, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kSettings, &AllowAlways},
+    {ClientState::kMainMenu, ClientState::kProfile, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kDisconnected, &AllowAlways},
+    {ClientState::kProfile, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kLobby, ClientState::kConnecting, &AllowAlways},
     {ClientState::kLobby, ClientState::kSettings, &AllowAlways},
     {ClientState::kLobby, ClientState::kMainMenu, &AllowAlways},
@@ -98,6 +101,8 @@ std::string_view ToString(ClientState state) {
       return "Splash";
     case ClientState::kMainMenu:
       return "MainMenu";
+    case ClientState::kProfile:
+      return "Profile";
     case ClientState::kLobby:
       return "Lobby";
     case ClientState::kSettings:
@@ -205,6 +210,10 @@ void SceneManager::OnOpenVideoSettings() {
   TransitionTo(ClientState::kVideoSettings);
 }
 
+void SceneManager::OnCloseAudioSettings() {
+  TransitionTo(ClientState::kSettings);
+}
+
 void SceneManager::OnCloseSettings() {
   const ClientState target =
       settings_return_state_.value_or(ClientState::kMainMenu);
@@ -215,9 +224,14 @@ void SceneManager::OnCloseSettings() {
   TransitionTo(ClientState::kMainMenu);
 }
 
-void SceneManager::OnCloseAudioSettings() {
-  TransitionTo(ClientState::kSettings);
+void SceneManager::OnOpenProfile() {
+  if (state_ == ClientState::kProfile) {
+    return;
+  }
+  TransitionTo(ClientState::kProfile);
 }
+
+void SceneManager::OnCloseProfile() { TransitionTo(ClientState::kMainMenu); }
 
 void SceneManager::OnCloseVideoSettings() {
   TransitionTo(ClientState::kSettings);
@@ -267,6 +281,9 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
       break;
     case ClientState::kMainMenu:
       SwitchScene(std::make_shared<MainMenuScene>(context_));
+      break;
+    case ClientState::kProfile:
+      SwitchScene(std::make_shared<ProfileScene>(context_));
       break;
     case ClientState::kLobby:
       SwitchScene(std::make_shared<LobbyScene>(context_));

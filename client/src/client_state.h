@@ -16,6 +16,7 @@ namespace client {
 enum class ClientState {
   kSplash,
   kMainMenu,
+  kProfile,
   kLobby,
   kSettings,
   kAudioSettings,

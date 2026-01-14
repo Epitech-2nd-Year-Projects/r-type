@@ -15,6 +15,7 @@
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/game_instance.h"
+#include "lag_compensation.h"
 #include "protocol/command.h"
 #include "protocol/input_state.h"
 #include "protocol/header.h"
@@ -212,6 +213,11 @@ class GameInstance {
   Phase phase_{Phase::kLobby};                              ///< Lobby vs active play.
 
   bool CheckStartCondition() const;
+  /**
+   * @brief Lag compensation history
+   */
+  LagCompensationHistory history_;
+  std::uint32_t current_tick_{0};
 };
 
 }  // namespace server

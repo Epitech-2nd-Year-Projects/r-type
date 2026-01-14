@@ -52,7 +52,7 @@ class ScopedEnvVar {
   std::string old_value_{};
 };
 
-}
+}  // namespace
 
 TEST(AssetPathTest, ResolvesFromCustomAssetRoot) {
   const auto temp_root =

@@ -1,24 +1,14 @@
-add_requires("gtest", "nlohmann_json")
+add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
 
 target("client_tests")
     set_kind("binary")
     set_default(false)
-    add_packages("gtest", "nlohmann_json")
+    add_packages("gtest", "nlohmann_json", "ffmpeg", "raylib")
     add_defines("RTYPE_TESTING")
     add_files("client/*.cpp")
     add_files("../client/src/**.cpp|main.cpp")
     add_files("../third_party/raylib-media/src/rmedia.c")
     add_includedirs("../client/src", "../third_party/raylib-media/src")
-    if is_plat("windows") then
-        local ffmpeg_dir = os.getenv("FFMPEG_DIR")
-        if ffmpeg_dir then
-            add_includedirs(path.join(ffmpeg_dir, "include"))
-            add_linkdirs(path.join(ffmpeg_dir, "lib"))
-        end
-        add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
-    else
-        add_syslinks("avcodec", "avformat", "avutil", "swresample", "swscale")
-    end
     add_deps("protocol", "engine", "game_logic")
     add_tests("client_tests")
 
@@ -27,8 +17,13 @@ target("engine_tests")
     set_default(false)
     add_packages("gtest")
     add_files("engine/*.cpp")
+    add_files("engine/util/*.cpp")
+    add_files("engine/math/*.cpp")
+    add_files("engine/render/*.cpp")
+    add_files("engine/net/*.cpp")
+    add_files("engine/audio/*.cpp")
     add_links("gtest_main")
-    add_deps("engine", "engine_debug")
+    add_deps("engine", "engine_debug", "protocol")
     add_tests("engine_tests")
 
 target("game_logic_tests")

@@ -1,9 +1,8 @@
-#include "hud_overlay.h"
-
 #include <gtest/gtest.h>
 
 #include "ecs/components.h"
 #include "engine/ecs/registry.h"
+#include "hud_overlay.h"
 
 TEST(HudOverlayTest, BuildsPlayerRowsFromRegistry) {
   engine::ecs::Registry registry;
@@ -14,14 +13,14 @@ TEST(HudOverlayTest, BuildsPlayerRowsFromRegistry) {
   auto first = registry.SpawnEntity();
   auto second = registry.SpawnEntity();
 
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      first, 5u, 1u, 1u);
-  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(
-      second, 7u, 1u, 1u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(first, 5u,
+                                                                   1u, 1u);
+  registry.EmplaceComponent<client::ecs::NetworkedEntityComponent>(second, 7u,
+                                                                   1u, 1u);
   registry.EmplaceComponent<client::ecs::HealthComponent>(first, 3u, 3u);
   registry.EmplaceComponent<client::ecs::HealthComponent>(second, 0u, 3u);
-  registry.EmplaceComponent<client::ecs::PlayerStateComponent>(first, 5u,
-                                                               120u, 3u);
+  registry.EmplaceComponent<client::ecs::PlayerStateComponent>(first, 5u, 120u,
+                                                               3u);
   registry.EmplaceComponent<client::ecs::PlayerStateComponent>(second, 7u, 0u,
                                                                0u);
 

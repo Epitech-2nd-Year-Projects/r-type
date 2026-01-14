@@ -11,6 +11,7 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
+#include "engine/math/vector2.h"
 #include "engine/time/time_delta.h"
 #include "game_logic/game_state.h"
 
@@ -221,13 +222,18 @@ class GameInstance {
    *
    * @param player_id Unique player identifier
    * @param input_type Input event type
+   * @param spawn_pos Optional rewind position (Lag Compensation)
+   * @param latency_s Optional latency in seconds (Lag Compensation)
    *
    * @details
    * - Queues the event for this frame
    * - Events are consumed by the internal player input system
    *   registered in RegisterSystems()
    */
-  void OnPlayerInput(std::uint32_t player_id, InputEventType input_type);
+  void OnPlayerInput(
+      std::uint32_t player_id, InputEventType input_type,
+      std::optional<engine::math::Vector2f> spawn_pos = std::nullopt,
+      float latency_s = 0.0f);
 
   /**
    * @brief Trigger a player death event
@@ -337,6 +343,12 @@ class GameInstance {
 
     /// @brief Input event type
     InputEventType type{InputEventType::kMoveLeftPressed};
+
+    /// @brief Rewind position for lag compensation
+    std::optional<engine::math::Vector2f> spawn_pos{std::nullopt};
+
+    /// @brief Latency for lag compensation
+    float latency_s{0.0f};
   };
 
   friend class systems::PlayerInputSystem;

@@ -89,6 +89,12 @@ MainMenuScene::MainMenuScene(ClientContext& context)
       engine::math::Vector2f{constants::ui::MainMenu::kButtonWidth,
                              constants::ui::MainMenu::kButtonHeight},
       "Start Game", menu_effects_.WrapClick([this]() { context_.OnPlay(); }));
+  profile_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{constants::ui::MainMenu::kButtonWidth,
+                             constants::ui::MainMenu::kButtonHeight},
+      "Profile",
+      menu_effects_.WrapClick([this]() { context_.OnOpenProfile(); }));
   settings_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::MainMenu::kButtonWidth,
@@ -103,6 +109,7 @@ MainMenuScene::MainMenuScene(ClientContext& context)
       menu_effects_.WrapClick([this]() { context_.OnQuitApplication(); }));
 
   ui_elements_.push_back(play_button_);
+  ui_elements_.push_back(profile_button_);
   ui_elements_.push_back(settings_button_);
   ui_elements_.push_back(quit_button_);
 
@@ -158,6 +165,7 @@ MainMenuScene::MainMenuScene(ClientContext& context)
   };
 
   add_slot(play_button_);
+  add_slot(profile_button_);
   add_slot(settings_button_);
   add_slot(quit_button_);
 
@@ -166,12 +174,15 @@ MainMenuScene::MainMenuScene(ClientContext& context)
   canvas_.SetRoot(root);
   const auto transparent = engine::render::Color::FromBytes(0, 0, 0, 0);
   play_button_->SetColors(transparent, transparent, transparent);
+  profile_button_->SetColors(transparent, transparent, transparent);
   settings_button_->SetColors(transparent, transparent, transparent);
   quit_button_->SetColors(transparent, transparent, transparent);
   play_button_->SetTextColor(white);
+  profile_button_->SetTextColor(white);
   settings_button_->SetTextColor(white);
   quit_button_->SetTextColor(white);
   play_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
+  profile_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
   settings_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
   quit_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
 }
