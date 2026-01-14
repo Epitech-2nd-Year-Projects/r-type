@@ -408,6 +408,10 @@ struct Profile {
   static constexpr float kAvatarSectionSpacing = 20.0f;
   static constexpr float kAvatarOffsetX = -25.0f;
   static constexpr float kAvatarOffsetY = -35.0f;
+  static constexpr std::string_view kAvatarArrowLeftTexturePath =
+      "assets/ui/fleche_avatar_g.png";
+  static constexpr std::string_view kAvatarArrowRightTexturePath =
+      "assets/ui/fleche_avatar_d.png";
 };
 
 }  // namespace client::constants::ui
