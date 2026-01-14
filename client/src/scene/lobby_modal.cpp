@@ -35,12 +35,42 @@ std::string PasswordPrompt() {
   return "Enter " + PasswordDigitsText() + "-digit password";
 }
 
+std::string DifficultyName(protocol::Difficulty d) {
+  switch (d) {
+    case protocol::Difficulty::kEasy:
+      return "Easy";
+    case protocol::Difficulty::kNormal:
+      return "Normal";
+    case protocol::Difficulty::kHard:
+      return "Hard";
+    case protocol::Difficulty::kHardcore:
+      return "Hardcore";
+    default:
+      return "Normal";
+  }
+}
+
+protocol::Difficulty NextDifficulty(protocol::Difficulty current) {
+  switch (current) {
+    case protocol::Difficulty::kEasy:
+      return protocol::Difficulty::kNormal;
+    case protocol::Difficulty::kNormal:
+      return protocol::Difficulty::kHard;
+    case protocol::Difficulty::kHard:
+      return protocol::Difficulty::kHardcore;
+    case protocol::Difficulty::kHardcore:
+      return protocol::Difficulty::kEasy;
+    default:
+      return protocol::Difficulty::kNormal;
+  }
+}
+
 }  // namespace
 
 LobbyModal::LobbyModal(
     std::function<bool(const std::string& room_name,
                        const std::string& max_players_text, bool is_private,
-                       std::string password)>
+                       std::string password, protocol::Difficulty difficulty)>
         on_create,
     std::function<bool(const protocol::RoomSummary& room,
                        const std::string& password)>
@@ -91,8 +121,14 @@ void LobbyModal::Layout(const engine::math::Vector2f& window_size) {
         {modal_x + constants::ui::Lobby::kModalPrivacyButtonX,
          max_players_input_->GetPosition().y -
              constants::ui::Lobby::kModalPrivacyButtonOffsetY});
-    privacy_button_->SetSize({constants::ui::Lobby::kModalActionButtonWidth,
-                              constants::ui::Lobby::kButtonHeight});
+    privacy_button_->SetSize({145.0f, constants::ui::Lobby::kButtonHeight});
+
+    const float difficulty_x =
+        constants::ui::Lobby::kModalPrivacyButtonX + 145.0f + 15.0f;
+    difficulty_button_->SetPosition(
+        {modal_x + difficulty_x, max_players_input_->GetPosition().y -
+                                     constants::ui::Lobby::kModalPrivacyButtonOffsetY});
+    difficulty_button_->SetSize({145.0f, constants::ui::Lobby::kButtonHeight});
 
     if (modal_private_) {
       password_input_->SetPosition(
@@ -173,6 +209,14 @@ void LobbyModal::Draw(engine::render::Renderer2D& renderer) const {
                        y + constants::ui::Lobby::kModalLabelRow2Y},
                       constants::ui::Lobby::kModalLabelFontSize,
                       constants::ui::Lobby::kSoftTextColor);
+
+    const float difficulty_label_x =
+        constants::ui::Lobby::kModalPrivacyButtonX + 145.0f + 15.0f + 20.0f;
+    renderer.DrawText("Difficulty",
+                      {x + difficulty_label_x,
+                       y + constants::ui::Lobby::kModalLabelRow2Y},
+                      constants::ui::Lobby::kModalLabelFontSize,
+                      constants::ui::Lobby::kSoftTextColor);
     if (modal_private_) {
       renderer.DrawText(PasswordLabel(),
                         {x + constants::ui::Lobby::kModalPaddingX,
@@ -222,8 +266,10 @@ void LobbyModal::HandleFocus(const engine::input::InputManager& input) {
 void LobbyModal::OpenCreate() {
   modal_mode_ = ModalMode::kCreate;
   modal_private_ = false;
+  modal_difficulty_ = protocol::Difficulty::kNormal;
   primary_button_->SetText("Create");
   privacy_button_->SetText("Public");
+  difficulty_button_->SetText(DifficultyName(modal_difficulty_));
   room_name_input_->SetText("");
   max_players_input_->SetText(DefaultMaxPlayersText());
   password_input_->SetPlaceholder("Private password (optional)");
@@ -285,6 +331,15 @@ void LobbyModal::BuildModal() {
         }
       });
 
+  difficulty_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{},
+      engine::math::Vector2f{constants::ui::Lobby::kModalActionButtonWidth,
+                             constants::ui::Lobby::kButtonHeight},
+      "Normal", [this]() {
+        modal_difficulty_ = NextDifficulty(modal_difficulty_);
+        difficulty_button_->SetText(DifficultyName(modal_difficulty_));
+      });
+
   password_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{}, engine::math::Vector2f{});
   password_input_->SetPlaceholder(PasswordPlaceholder());
@@ -302,7 +357,7 @@ void LobbyModal::BuildModal() {
       "Cancel", [this]() { Close(); });
 
   create_elements_ = {room_name_input_, max_players_input_, privacy_button_,
-                      primary_button_, cancel_button_};
+                      difficulty_button_, primary_button_, cancel_button_};
   join_elements_ = {password_input_, primary_button_, cancel_button_};
 }
 
@@ -314,8 +369,8 @@ void LobbyModal::ApplyPrimaryAction() {
     std::string name = room_name_input_->GetText();
     std::string max_players_text = max_players_input_->GetText();
     std::string password = password_input_->GetText();
-    const bool accepted =
-        on_create_(name, max_players_text, modal_private_, std::move(password));
+    const bool accepted = on_create_(name, max_players_text, modal_private_,
+                                     std::move(password), modal_difficulty_);
     if (accepted) {
       Close();
     }
