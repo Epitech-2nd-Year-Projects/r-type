@@ -110,9 +110,9 @@ bool LobbyScene::IsInputCaptured() const {
 }
 
 void LobbyScene::LayoutUi() {
-  const auto window_size = context_.Window().GetSize();
-  const engine::math::Vector2f size{static_cast<float>(window_size.x),
-                                    static_cast<float>(window_size.y)};
+  const auto render_size = context_.RenderSize();
+  const engine::math::Vector2f size{static_cast<float>(render_size.x),
+                                    static_cast<float>(render_size.y)};
   controller_.Layout(size);
   room_list_view_.Layout(size);
   if (modal_.IsOpen()) {
