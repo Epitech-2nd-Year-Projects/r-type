@@ -13,8 +13,12 @@
 #include <string_view>
 #include <thread>
 
+#include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/tag_component.h"
 #include "engine/net/endpoint.h"
 #include "engine/net/packet_buffer.h"
+#include "engine/scripting/prefab_factory.h"
+#include "engine/scripting/script_engine.h"
 #include "protocol/command.h"
 #include "protocol/join.h"
 #include "protocol/message_type.h"
@@ -78,7 +82,10 @@ ServerRuntime::ServerRuntime(ServerConfig config)
       fixed_delta_(engine::time::TimeDelta::from_seconds(
           1.0f /
           static_cast<float>(config_.tick_rate > 0 ? config_.tick_rate : 60))),
-      accumulator_(engine::time::TimeDelta::zero()) {}
+      accumulator_(engine::time::TimeDelta::zero()),
+      console_sink_(std::make_shared<engine::util::ConsoleSink>()),
+      file_sink_(std::make_shared<engine::util::FileSink>("server.log")),
+      start_time_(std::chrono::steady_clock::now()) {}
 
 std::error_code ServerRuntime::Start() {
   ConfigureLogging();
@@ -116,6 +123,7 @@ void ServerRuntime::RunMainLoop() {
     ++frame_time_samples_;
     accumulator_ += delta;
     PollNetwork();
+    ProcessAdminTasks();
     if (!running_) break;
     ProcessReliableResends();
 
@@ -155,6 +163,9 @@ void ServerRuntime::RunMainLoop() {
 void ServerRuntime::ConfigureLogging() {
   logger_.SetName("server");
   logger_.SetLevel(config_.log_level);
+  logger_.ClearSinks();
+  logger_.AddSink(console_sink_);
+  logger_.AddSink(file_sink_);
 }
 
 void ServerRuntime::TickRateSleep(const engine::time::TimeDelta& delta_time) {
@@ -329,6 +340,147 @@ void ServerRuntime::LogDecodeMetricsSummary(bool force) {
                " invalid_header=", m.invalid_header,
                " invalid_payload=", m.invalid_payload,
                " invalid_snapshot_id=", m.invalid_snapshot_id, "]");
+}
+
+void ServerRuntime::ProcessAdminTasks() {
+  std::function<void(ServerRuntime&)> task;
+  while (admin_tasks_.TryPop(task)) {
+    try {
+      task(*this);
+    } catch (const std::exception& e) {
+      logger_.Error("Admin task failed: ", e.what());
+    }
+  }
+}
+
+void ServerRuntime::EnqueueAdminTask(std::function<void(ServerRuntime&)> task) {
+  admin_tasks_.Push(std::move(task));
+}
+
+void ServerRuntime::RequestShutdown() { g_shutdown_requested.store(true); }
+
+void ServerRuntime::SetConsoleLogsEnabled(bool enabled) {
+  if (console_sink_) {
+    console_sink_->SetEnabled(enabled);
+  }
+}
+
+bool ServerRuntime::ConsoleLogsEnabled() const {
+  return console_sink_ && console_sink_->IsEnabled();
+}
+
+const std::unordered_map<std::string, PeerConnection>& ServerRuntime::Peers()
+    const {
+  return peers_;
+}
+
+std::unordered_map<std::string, PeerConnection>& ServerRuntime::Peers() {
+  return peers_;
+}
+
+const std::unordered_map<std::string, Room>& ServerRuntime::Rooms() const {
+  return rooms_;
+}
+
+std::unordered_map<std::string, Room>& ServerRuntime::Rooms() { return rooms_; }
+
+const std::unordered_map<std::uint32_t, ServerRuntime::PlayerSession>&
+ServerRuntime::Players() const {
+  return players_;
+}
+
+std::uint32_t ServerRuntime::ServerTick() const { return server_tick_; }
+
+const ServerConfig& ServerRuntime::Config() const { return config_; }
+
+std::chrono::steady_clock::time_point ServerRuntime::StartTime() const {
+  return start_time_;
+}
+
+engine::util::Logger& ServerRuntime::Logger() { return logger_; }
+
+bool ServerRuntime::KickPlayer(std::uint32_t player_id) {
+  auto peer_opt = FindPeerByPlayerId(player_id);
+  if (!peer_opt.has_value()) {
+    return false;
+  }
+  RemovePeer(peer_opt->get());
+  return true;
+}
+
+std::size_t ServerRuntime::RemoveEnemiesFromRoom(const std::string& room_code) {
+  auto room_opt = FindRoom(room_code);
+  if (!room_opt.has_value()) {
+    return 0;
+  }
+  auto& room = room_opt->get();
+  auto& registry = room.World();
+
+  std::vector<engine::ecs::EntityId> to_kill;
+  auto& tags = registry.GetComponents<engine::ecs::TagComponent>();
+
+  for (std::size_t i = 0; i < tags.size(); ++i) {
+    if (tags[i].has_value()) {
+      const auto& tag = tags[i]->tag;
+      if (tag == "Enemy" || tag == "enemy" || tag == "enemy_scout" ||
+          tag == "enemy_bomber" || tag == "boss" || tag == "enemy_basic") {
+        to_kill.push_back(registry.EntityFromIndex(i));
+      }
+    }
+  }
+
+  for (const auto& entity : to_kill) {
+    registry.KillEntity(entity);
+  }
+
+  return to_kill.size();
+}
+
+bool ServerRuntime::SpawnEntityInRoom(const std::string& room_code,
+                                      const std::string& prefab_name, float x,
+                                      float y) {
+  auto room_opt = FindRoom(room_code);
+  if (!room_opt.has_value()) {
+    return false;
+  }
+  auto& room = room_opt->get();
+  auto& logic = room.Logic();
+  auto& registry = room.World();
+  auto& prefab_factory = logic.ScriptEngine().GetPrefabFactory();
+
+  auto entity_opt = prefab_factory.Spawn(registry, prefab_name);
+  if (!entity_opt.has_value()) {
+    logger_.Warn("Spawn failed: unknown prefab '", prefab_name, "'");
+    return false;
+  }
+
+  std::size_t entity_idx = static_cast<std::size_t>(*entity_opt);
+  auto& positions = registry.GetComponents<engine::ecs::PositionComponent>();
+
+  if (entity_idx < positions.size() && positions[entity_idx].has_value()) {
+    positions[entity_idx]->position.x = x;
+    positions[entity_idx]->position.y = y;
+  } else {
+    registry.EmplaceComponent<engine::ecs::PositionComponent>(*entity_opt, x,
+                                                              y);
+  }
+
+  logger_.Info("Spawned '", prefab_name, "' at (", x, ", ", y, ") in room ",
+               room_code);
+  return true;
+}
+
+std::vector<std::string> ServerRuntime::GetAvailableEntities(
+    const std::string& room_code) {
+  auto room_opt = FindRoom(room_code);
+  if (!room_opt.has_value()) {
+    return {};
+  }
+  return room_opt->get()
+      .Logic()
+      .ScriptEngine()
+      .GetPrefabFactory()
+      .GetAvailablePrefabs();
 }
 
 }  // namespace server
