@@ -5,6 +5,7 @@
 #include "game_logic/components/ai_component.h"
 #include "game_logic/components/animation_component.h"
 #include "game_logic/components/damageable_component.h"
+#include "game_logic/components/enemy_type_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
 #include "game_logic/components/powerup_component.h"

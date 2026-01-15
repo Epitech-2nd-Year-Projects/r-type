@@ -12,8 +12,10 @@
 #include "engine/ecs/components/velocity_component.h"
 #include "engine/time/time_delta.h"
 #include "engine/util/logging.h"
+#include "game_logic/components/enemy_type_component.h"
 #include "game_logic/components/health_component.h"
 #include "game_logic/components/player_component.h"
+#include "game_logic/components/powerup_component.h"
 #include "game_logic/game_instance.h"
 #include "lag_compensation.h"
 #include "protocol/command.h"
@@ -186,7 +188,13 @@ class GameInstance {
           tag,
       std::optional<
           std::reference_wrapper<const game_logic::components::PlayerComponent>>
-          player) const;
+          player,
+      std::optional<std::reference_wrapper<
+          const game_logic::components::PowerupComponent>>
+          powerup,
+      std::optional<std::reference_wrapper<
+          const game_logic::components::EnemyTypeComponent>>
+          enemy_type) const;
   /**
    * @brief Per-player state tracked by the game instance.
    *

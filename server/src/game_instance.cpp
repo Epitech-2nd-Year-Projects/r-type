@@ -233,9 +233,21 @@ std::uint16_t GameInstance::ResolveEntityType(
     std::optional<std::reference_wrapper<const engine::ecs::TagComponent>> tag,
     std::optional<
         std::reference_wrapper<const game_logic::components::PlayerComponent>>
-        player) const {
+        player,
+    std::optional<
+        std::reference_wrapper<const game_logic::components::PowerupComponent>>
+        powerup,
+    std::optional<std::reference_wrapper<
+        const game_logic::components::EnemyTypeComponent>>
+        enemy_type) const {
   if (player.has_value()) {
     return 1;
+  }
+  if (powerup.has_value()) {
+    return 10 + static_cast<std::uint16_t>(powerup->get().type);
+  }
+  if (enemy_type.has_value()) {
+    return enemy_type->get().type_code;
   }
   if (!tag.has_value()) {
     return 0;
@@ -263,6 +275,10 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       registry.GetComponents<game_logic::components::PlayerComponent>();
   auto &healths =
       registry.GetComponents<game_logic::components::HealthComponent>();
+  auto &powerups =
+      registry.GetComponents<game_logic::components::PowerupComponent>();
+  auto &enemy_types =
+      registry.GetComponents<game_logic::components::EnemyTypeComponent>();
 
   const std::size_t count = position.size();
   snapshot.deltas.reserve(count);
@@ -294,9 +310,23 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
                   const game_logic::components::HealthComponent>>(
                   healths[i].value())
             : std::nullopt;
+    const auto powerup_opt =
+        (i < powerups.size() && powerups[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::PowerupComponent>>(
+                  powerups[i].value())
+            : std::nullopt;
+    const auto enemy_type_opt =
+        (i < enemy_types.size() && enemy_types[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::EnemyTypeComponent>>(
+                  enemy_types[i].value())
+            : std::nullopt;
+
     protocol::EntityNetState state{};
     state.entity_id = static_cast<std::uint32_t>(i);
-    state.type = ResolveEntityType(tag_opt, player_opt);
+    state.type =
+        ResolveEntityType(tag_opt, player_opt, powerup_opt, enemy_type_opt);
     state.x = static_cast<std::int16_t>(std::lround(pos.x));
     state.y = static_cast<std::int16_t>(std::lround(pos.y));
 

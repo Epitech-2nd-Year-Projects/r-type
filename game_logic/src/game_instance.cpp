@@ -64,6 +64,35 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players,
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+
+  {
+    auto &lua = script_engine_->LuaState();
+    sol::optional<sol::table> prefabs = lua["Prefabs"];
+    if (prefabs) {
+      std::vector<std::string> enemy_names;
+      for (auto &pair : prefabs.value()) {
+        if (pair.second.is<sol::table>()) {
+          sol::table t = pair.second;
+          if (t["Tag"].get_or(std::string("")) == "Enemy") {
+            enemy_names.push_back(pair.first.as<std::string>());
+          }
+        }
+      }
+      std::sort(enemy_names.begin(), enemy_names.end());
+
+      std::uint16_t id = 200;
+      for (const auto &name : enemy_names) {
+        sol::table t = prefabs.value()[name];
+        sol::table enemy_type = lua.create_table();
+        enemy_type["code"] = id++;
+        t["EnemyType"] = enemy_type;
+        engine::util::Logger::Default().Info(
+            "[GameLogic] Registered dynamic enemy type: " + name + " -> " +
+            std::to_string(id - 1));
+      }
+    }
+  }
+
   script_engine_->LoadScript(config_dir + "/prefabs/dobkeratops.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
@@ -373,6 +402,7 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<components::ScoreValueComponent>();
   registry_->RegisterComponent<components::PowerupComponent>();
   registry_->RegisterComponent<components::DamageableComponent>();
+  registry_->RegisterComponent<components::EnemyTypeComponent>();
 
   registry_->RegisterComponent<components::DropsPowerupComponent>();
   registry_->RegisterComponent<components::ShootEventComponent>();
