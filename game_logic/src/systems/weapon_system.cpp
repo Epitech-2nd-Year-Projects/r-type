@@ -38,6 +38,20 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
     auto& position = position_opt.value();
     auto& weapon = weapon_opt.value();
 
+    if (weapon.rapid_fire_timer > 0.0f) {
+      if (weapon.original_fire_rate <= 0.0f) {
+        weapon.original_fire_rate = weapon.fire_rate;
+        if (weapon.original_fire_rate <= 0.0f) weapon.original_fire_rate = 2.0f;
+        weapon.fire_rate = 15.0f;
+      }
+      weapon.rapid_fire_timer -= dt.as_seconds();
+      if (weapon.rapid_fire_timer <= 0.0f) {
+        weapon.fire_rate = weapon.original_fire_rate;
+        weapon.original_fire_rate = 0.0f;
+        weapon.rapid_fire_timer = 0.0f;
+      }
+    }
+
     bool use_lag_comp = false;
     engine::math::Vector2f lc_position = position.position;
     float lc_latency = 0.0f;
