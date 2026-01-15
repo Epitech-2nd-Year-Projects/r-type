@@ -95,7 +95,7 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
-          build-cache: false
+          build-cache: true
 
       - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
         shell: pwsh
