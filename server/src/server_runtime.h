@@ -240,6 +240,12 @@ class ServerRuntime {
    */
   void ConfigureLogging();
 
+  /**
+   * @brief Processes queued admin tasks on the main thread.
+   *
+   * Executes all lambdas currently in the admin task queue, granting them safe
+   * access to server state. Called once per main loop iteration.
+   */
   void ProcessAdminTasks();
 
   /**

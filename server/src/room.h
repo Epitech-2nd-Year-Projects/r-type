@@ -170,6 +170,7 @@ class Room {
 
   /**
    * @brief Returns a mutable reference to the game logic instance.
+   * @return Mutable reference to the internal game instance logic.
    */
   game_logic::GameInstance& Logic();
 
