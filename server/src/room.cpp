@@ -160,4 +160,6 @@ bool Room::HasStarted() const { return started_; }
 
 engine::ecs::Registry& Room::World() { return game_instance_->World(); }
 
+game_logic::GameInstance& Room::Logic() { return game_instance_->Logic(); }
+
 }  // namespace server
