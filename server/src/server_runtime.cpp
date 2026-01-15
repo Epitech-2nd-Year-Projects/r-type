@@ -421,9 +421,12 @@ std::size_t ServerRuntime::RemoveEnemiesFromRoom(const std::string& room_code) {
 
   for (std::size_t i = 0; i < tags.size(); ++i) {
     if (tags[i].has_value()) {
-      const auto& tag = tags[i]->tag;
-      if (tag == "Enemy" || tag == "enemy" || tag == "enemy_scout" ||
-          tag == "enemy_bomber" || tag == "boss" || tag == "enemy_basic") {
+      std::string tag_lower = tags[i]->tag;
+      std::transform(tag_lower.begin(), tag_lower.end(), tag_lower.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+
+      if (tag_lower.find("enemy") != std::string::npos ||
+          tag_lower.find("boss") != std::string::npos) {
         to_kill.push_back(registry.EntityFromIndex(i));
       }
     }
