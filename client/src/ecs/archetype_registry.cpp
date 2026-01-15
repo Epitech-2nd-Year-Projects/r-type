@@ -206,30 +206,92 @@ const std::array<ArchetypeDefinition, 5> &ArchetypeDefinitions() {
 }  // namespace
 
 const ArchetypeRegistry &ArchetypeRegistry::Get() {
-  static const ArchetypeRegistry registry;
+  static ArchetypeRegistry registry;
   return registry;
 }
 
-const ArchetypeDefinition *ArchetypeRegistry::Find(
-    std::uint16_t type_code) const {
+ArchetypeRegistry &ArchetypeRegistry::Mutable() {
+  return const_cast<ArchetypeRegistry &>(Get());
+}
+
+void ArchetypeRegistry::RegisterPowerupType(std::uint16_t type_code,
+                                            std::string_view texture_path,
+                                            float width, float height) {
+  auto &registry = Mutable();
+  SpriteDefinition def{};
+  def.texture_id = std::string(texture_path);
+  def.source_rect = engine::math::RectF(0.0f, 0.0f, 0.0f, 0.0f);
+  def.render_size = engine::math::Vector2f(width, height);
+  def.use_full_source = true;
+
+  def.layer = kEnemyRenderLayer;
+  def.depth = 0.5f;
+  def.face_left = false;
+  def.tint = engine::render::Color::White();
+
+  registry.custom_powerups_[type_code] = def;
+}
+
+void ArchetypeRegistry::RegisterEnemyType(std::uint16_t type_code,
+                                          std::string_view texture_path,
+                                          float width, float height,
+                                          float frame_width,
+                                          float frame_height) {
+  auto &registry = Mutable();
+  SpriteDefinition def{};
+  def.texture_id = std::string(texture_path);
+  def.source_rect = engine::math::RectF(0.0f, 0.0f, frame_width, frame_height);
+  def.render_size = engine::math::Vector2f(width, height);
+  def.use_full_source = false;
+  def.layer = kEnemyRenderLayer;
+  def.depth = 0.3f;
+  def.face_left = true;
+  def.tint = engine::render::Color::White();
+
+  registry.custom_enemies_[type_code] = def;
+}
+
+void ArchetypeRegistry::SetPlayerConfig(float width, float height,
+                                        float frame_width, float frame_height) {
+  auto &registry = Mutable();
+  registry.player_render_size_ = {width, height};
+  registry.player_frame_size_ = {frame_width, frame_height};
+}
+
+ArchetypeRegistry::ArchetypeRegistry()
+    : player_render_size_(kPlayerSpriteWidth, kPlayerSpriteHeight),
+      player_frame_size_(kPlayerSpriteWidth, kPlayerSpriteHeight) {}
+
+std::optional<std::reference_wrapper<const ArchetypeDefinition>>
+ArchetypeRegistry::Find(std::uint16_t type_code) const {
   const auto &definitions = ArchetypeDefinitions();
   for (const auto &def : definitions) {
     if (def.type_code == type_code) {
-      return &def;
+      return def;
     }
   }
-  return nullptr;
+  if (custom_powerups_.count(type_code)) {
+    static const ArchetypeDefinition kCustomPowerup{0, ArchetypeKind::kPowerup,
+                                                    false, false};
+    return kCustomPowerup;
+  }
+  if (custom_enemies_.count(type_code)) {
+    static const ArchetypeDefinition kCustomEnemy{0, ArchetypeKind::kEnemy,
+                                                  true, false};
+    return kCustomEnemy;
+  }
+  return std::nullopt;
 }
 
 ArchetypeKind ArchetypeRegistry::KindOf(std::uint16_t type_code) const {
-  const auto *def = Find(type_code);
-  return def ? def->kind : ArchetypeKind::kUnknown;
+  const auto def = Find(type_code);
+  return def ? def->get().kind : ArchetypeKind::kUnknown;
 }
 
 bool ArchetypeRegistry::IsKind(std::uint16_t type_code,
                                ArchetypeKind kind) const {
-  const auto *def = Find(type_code);
-  return def && def->kind == kind;
+  const auto def = Find(type_code);
+  return def && def->get().kind == kind;
 }
 
 bool ArchetypeRegistry::IsPlayer(std::uint16_t type_code) const {
@@ -253,20 +315,32 @@ bool ArchetypeRegistry::IsPowerup(std::uint16_t type_code) const {
 }
 
 bool ArchetypeRegistry::IsDamageable(std::uint16_t type_code) const {
-  const auto *def = Find(type_code);
-  return def && def->damageable;
+  const auto def = Find(type_code);
+  return def && def->get().damageable;
 }
 
 bool ArchetypeRegistry::IsExplosive(std::uint16_t type_code) const {
-  const auto *def = Find(type_code);
-  return def && def->explosive;
+  const auto def = Find(type_code);
+  return def && def->get().explosive;
 }
 
 std::optional<SpriteDefinition> ArchetypeRegistry::ResolveSprite(
     std::uint16_t type_code, const SpriteContext &context) const {
+  if (custom_powerups_.count(type_code)) {
+    return custom_powerups_.at(type_code);
+  }
+  if (custom_enemies_.count(type_code)) {
+    return custom_enemies_.at(type_code);
+  }
   switch (KindOf(type_code)) {
-    case ArchetypeKind::kPlayer:
-      return PlayerDefinition(context.network_id);
+    case ArchetypeKind::kPlayer: {
+      auto def = PlayerDefinition(context.network_id);
+      def.render_size = player_render_size_;
+      def.source_rect = engine::math::RectF(0.0f, 0.0f, player_frame_size_.x,
+                                            player_frame_size_.y);
+      def.use_full_source = false;
+      return def;
+    }
     case ArchetypeKind::kEnemy:
       return ResolveEnemySprite(context);
     case ArchetypeKind::kMissile:
