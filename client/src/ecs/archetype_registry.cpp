@@ -230,6 +230,8 @@ void ArchetypeRegistry::RegisterPowerupType(std::uint16_t type_code,
   def.tint = engine::render::Color::White();
 
   registry.custom_powerups_[type_code] = def;
+  registry.custom_definitions_[type_code] = {type_code, ArchetypeKind::kPowerup,
+                                             false, false};
 }
 
 void ArchetypeRegistry::RegisterEnemyType(std::uint16_t type_code,
@@ -249,6 +251,8 @@ void ArchetypeRegistry::RegisterEnemyType(std::uint16_t type_code,
   def.tint = engine::render::Color::White();
 
   registry.custom_enemies_[type_code] = def;
+  registry.custom_definitions_[type_code] = {type_code, ArchetypeKind::kEnemy,
+                                             true, false};
 }
 
 void ArchetypeRegistry::SetPlayerConfig(float width, float height,
@@ -270,15 +274,8 @@ ArchetypeRegistry::Find(std::uint16_t type_code) const {
       return def;
     }
   }
-  if (custom_powerups_.count(type_code)) {
-    static const ArchetypeDefinition kCustomPowerup{0, ArchetypeKind::kPowerup,
-                                                    false, false};
-    return kCustomPowerup;
-  }
-  if (custom_enemies_.count(type_code)) {
-    static const ArchetypeDefinition kCustomEnemy{0, ArchetypeKind::kEnemy,
-                                                  true, false};
-    return kCustomEnemy;
+  if (custom_definitions_.count(type_code)) {
+    return custom_definitions_.at(type_code);
   }
   return std::nullopt;
 }

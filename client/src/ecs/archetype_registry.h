@@ -202,6 +202,7 @@ class ArchetypeRegistry {
 
   std::unordered_map<std::uint16_t, SpriteDefinition> custom_powerups_;
   std::unordered_map<std::uint16_t, SpriteDefinition> custom_enemies_;
+  std::unordered_map<std::uint16_t, ArchetypeDefinition> custom_definitions_;
 
   engine::math::Vector2f player_render_size_{33.0f, 17.0f};
   engine::math::Vector2f player_frame_size_{33.0f, 17.0f};
