@@ -115,9 +115,16 @@ engine::render::SpriteDrawParams RenderQueueSystem::BuildParams(
       ComputeFlipX(type_code, velocity, sprite.flip_x, texture_id);
   const bool flip_y = sprite.flip_y;
 
-  const auto source = ApplyFlip(sprite.source_rect, flip_x, flip_y);
+  engine::math::RectF raw_source = sprite.source_rect;
+  if (sprite.use_full_source && texture) {
+    const auto size = texture->GetSize();
+    raw_source = engine::math::RectF(0.0f, 0.0f, static_cast<float>(size.x),
+                                     static_cast<float>(size.y));
+  }
+
+  const auto source = ApplyFlip(raw_source, flip_x, flip_y);
   params.source = source;
-  params.scale = ComputeScale(*texture, source);
+  params.scale = ComputeScale(*texture, source, sprite.render_size);
   params.rotation = 0.0f;
   params.tint = sprite.tint;
   return params;
@@ -138,11 +145,13 @@ engine::math::RectF RenderQueueSystem::ApplyFlip(
 }
 
 engine::math::Vector2f RenderQueueSystem::ComputeScale(
-    const engine::render::Texture2D& texture,
-    const engine::math::RectF& source) const {
+    const engine::render::Texture2D& texture, const engine::math::RectF& source,
+    const std::optional<engine::math::Vector2f>& render_size) const {
   const engine::math::Vector2i size = texture.GetSize();
-  const float width = std::abs(source.width_);
-  const float height = std::abs(source.height_);
+  const float width =
+      render_size.has_value() ? render_size->x : std::abs(source.width_);
+  const float height =
+      render_size.has_value() ? render_size->y : std::abs(source.height_);
   if (size.x == 0 || size.y == 0) {
     return {1.0f, 1.0f};
   }
