@@ -63,4 +63,22 @@ std::optional<ecs::EntityId> PrefabFactory::Spawn(
   return entity;
 }
 
+std::vector<std::string> PrefabFactory::GetAvailablePrefabs() const {
+  std::vector<std::string> names;
+  sol::optional<sol::table> prefabs_opt = lua_["Prefabs"];
+
+  if (!prefabs_opt) {
+    return names;
+  }
+
+  sol::table prefabs = prefabs_opt.value();
+  for (const auto& kv : prefabs) {
+    if (kv.first.is<std::string>()) {
+      names.push_back(kv.first.as<std::string>());
+    }
+  }
+
+  return names;
+}
+
 }  // namespace engine::scripting

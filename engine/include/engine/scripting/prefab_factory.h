@@ -54,6 +54,12 @@ class PrefabFactory {
   std::optional<ecs::EntityId> Spawn(ecs::Registry& registry,
                                      const std::string& prefab_name);
 
+  /**
+   * @brief Get a list of all available prefab names.
+   * @return Vector of strings containing keys from the 'Prefabs' table.
+   */
+  std::vector<std::string> GetAvailablePrefabs() const;
+
  private:
   sol::state& lua_;
   std::unordered_map<std::string, ComponentCreator> creators_;
