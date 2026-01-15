@@ -341,7 +341,7 @@ game_logic::GameInstance &GameInstance::Logic() { return *logic_; }
 const game_logic::GameInstance &GameInstance::Logic() const { return *logic_; }
 
 bool GameInstance::CheckStartCondition() const {
-  if (players_.size() < 1) {
+  if (players_.size() < 2) {
     return false;
   }
   for (const auto &[_, state] : players_) {
