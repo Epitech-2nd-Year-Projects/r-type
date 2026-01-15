@@ -105,8 +105,8 @@ class AdminConsole {
    * @param rows The table rows, each row is a vector of cell values.
    * @param headers The column headers.
    */
-  void PrintTable(const std::vector<std::vector<std::string>>& rows,
-                  const std::vector<std::string>& headers);
+  void PrintTableV2(const std::vector<std::string>& headers,
+                    const std::vector<std::vector<std::string>>& rows);
 
   void CmdHelp(const std::vector<std::string>& args);
   void CmdStop(const std::vector<std::string>& args);

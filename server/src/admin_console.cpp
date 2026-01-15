@@ -84,8 +84,9 @@ void AdminConsole::Stop() {
 
   linenoise::SaveHistory(history_file_.c_str());
 
+  running_ = false;
   if (input_thread_.joinable()) {
-    input_thread_.detach();
+    input_thread_.join();
   }
 }
 
@@ -209,8 +210,9 @@ void AdminConsole::PrintOk(const std::string& message) {
   std::cout << "\033[1;32m[OK]\033[0m " << message << "\n";
 }
 
-void AdminConsole::PrintTable(const std::vector<std::vector<std::string>>& rows,
-                              const std::vector<std::string>& headers) {
+void AdminConsole::PrintTableV2(
+    const std::vector<std::string>& headers,
+    const std::vector<std::vector<std::string>>& rows) {
   if (rows.empty()) {
     return;
   }
@@ -303,7 +305,7 @@ void AdminConsole::CmdVerbose(const std::vector<std::string>&) {
 }
 
 void AdminConsole::CmdPlayers(const std::vector<std::string>&) {
-  runtime_.EnqueueAdminTask([](ServerRuntime& rt) {
+  runtime_.EnqueueAdminTask([this](ServerRuntime& rt) {
     const auto& peers = rt.Peers();
     const auto& players = rt.Players();
 
@@ -336,37 +338,7 @@ void AdminConsole::CmdPlayers(const std::vector<std::string>&) {
                       session.room_code, state_str});
     }
 
-    std::cout << "\n";
-    std::vector<std::size_t> widths(headers.size(), 0);
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      widths[i] = headers[i].size();
-    }
-    for (const auto& row : rows) {
-      for (std::size_t i = 0; i < row.size() && i < widths.size(); ++i) {
-        widths[i] = std::max(widths[i], row[i].size());
-      }
-    }
-
-    std::cout << "\033[1;36m";
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      std::cout << std::setw(static_cast<int>(widths[i] + 2)) << std::left
-                << headers[i];
-    }
-    std::cout << "\033[0m\n";
-
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      std::cout << std::string(widths[i] + 2, '-');
-    }
-    std::cout << "\n";
-
-    for (const auto& row : rows) {
-      for (std::size_t i = 0; i < row.size() && i < widths.size(); ++i) {
-        std::cout << std::setw(static_cast<int>(widths[i] + 2)) << std::left
-                  << row[i];
-      }
-      std::cout << "\n";
-    }
-    std::cout << "\n";
+    PrintTableV2(headers, rows);
   });
 }
 
@@ -429,7 +401,7 @@ void AdminConsole::CmdWhisper(const std::vector<std::string>& args) {
 }
 
 void AdminConsole::CmdRooms(const std::vector<std::string>&) {
-  runtime_.EnqueueAdminTask([](ServerRuntime& rt) {
+  runtime_.EnqueueAdminTask([this](ServerRuntime& rt) {
     const auto& rooms = rt.Rooms();
 
     if (rooms.empty()) {
@@ -449,37 +421,7 @@ void AdminConsole::CmdRooms(const std::vector<std::string>&) {
                       room.HasStarted() ? "yes" : "no"});
     }
 
-    std::cout << "\n";
-    std::vector<std::size_t> widths(headers.size(), 0);
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      widths[i] = headers[i].size();
-    }
-    for (const auto& row : rows) {
-      for (std::size_t i = 0; i < row.size() && i < widths.size(); ++i) {
-        widths[i] = std::max(widths[i], row[i].size());
-      }
-    }
-
-    std::cout << "\033[1;36m";
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      std::cout << std::setw(static_cast<int>(widths[i] + 2)) << std::left
-                << headers[i];
-    }
-    std::cout << "\033[0m\n";
-
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-      std::cout << std::string(widths[i] + 2, '-');
-    }
-    std::cout << "\n";
-
-    for (const auto& row : rows) {
-      for (std::size_t i = 0; i < row.size() && i < widths.size(); ++i) {
-        std::cout << std::setw(static_cast<int>(widths[i] + 2)) << std::left
-                  << row[i];
-      }
-      std::cout << "\n";
-    }
-    std::cout << "\n";
+    PrintTableV2(headers, rows);
   });
 }
 
@@ -644,7 +586,8 @@ void AdminConsole::CmdListMobs(const std::vector<std::string>& args) {
     for (const auto& name : prefabs) {
       rows.push_back({name});
     }
-    PrintTable(rows, {"Available Prefabs"});
+    std::vector<std::string> headers = {"Available Prefabs"};
+    PrintTableV2(headers, rows);
     std::cout << std::flush;
   });
 }
