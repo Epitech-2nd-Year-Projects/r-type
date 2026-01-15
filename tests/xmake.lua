@@ -1,5 +1,6 @@
 if is_plat("windows") then
     add_requires("gtest", "nlohmann_json", "raylib")
+    add_requires("ffmpeg-prebuilt 7.1", {alias = "ffmpeg"})
 else
     add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
 end
@@ -7,18 +8,20 @@ end
  target("client_tests")
      set_kind("binary")
      set_default(false)
-     add_packages("gtest", "nlohmann_json", "raylib")
+     add_packages("gtest", "nlohmann_json", "raylib", "ffmpeg")
      if is_plat("windows") then
-         local ffmpeg_dir = os.getenv("FFMPEG_DIR")
-         if not ffmpeg_dir or #ffmpeg_dir == 0 then
-             raise("FFMPEG_DIR must be set on Windows to use prebuilt FFmpeg")
-         end
-         add_includedirs(path.join(ffmpeg_dir, "include"))
-         add_linkdirs(path.join(ffmpeg_dir, "lib"))
-         add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
-         add_runenvs("PATH", path.join(ffmpeg_dir, "bin"))
-     else
-         add_packages("ffmpeg")
+         after_load(function (target)
+             local ffmpeg = target:pkg("ffmpeg")
+             if ffmpeg then
+                 target:add("runenvs", "PATH", ffmpeg:installdir("bin"))
+             end
+         end)
+         after_build(function (target)
+             local ffmpeg = target:pkg("ffmpeg")
+             if ffmpeg then
+                 os.cp(path.join(ffmpeg:installdir("bin"), "*.dll"), target:targetdir())
+             end
+         end)
      end
      add_defines("RTYPE_TESTING")
      add_files("client/*.cpp")

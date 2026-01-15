@@ -3,6 +3,7 @@ add_rules("mode.debug", "mode.release")
 add_requires("nlohmann_json")
 if is_plat("windows") then
     add_requires("raylib")
+    add_requires("ffmpeg-prebuilt 7.1", {alias = "ffmpeg"})
 else
     add_requires("raylib", "ffmpeg")
 end
@@ -14,19 +15,20 @@ end
  add_files("../third_party/raylib-media/src/rmedia.c")
  add_includedirs("src", "../third_party/raylib-media/src")
  add_deps("protocol", "game_logic", "engine", "engine_debug")
- add_packages("nlohmann_json", "raylib")
+ add_packages("nlohmann_json", "raylib", "ffmpeg")
  if is_plat("windows") then
-    local ffmpeg_dir = os.getenv("FFMPEG_DIR")
-    if not ffmpeg_dir or #ffmpeg_dir == 0 then
-        raise("FFMPEG_DIR must be set on Windows to use prebuilt FFmpeg")
-    end
-    add_includedirs(path.join(ffmpeg_dir, "include"))
-
-     add_linkdirs(path.join(ffmpeg_dir, "lib"))
-     add_links("avcodec", "avformat", "avutil", "swresample", "swscale")
-     add_runenvs("PATH", path.join(ffmpeg_dir, "bin"))
- else
-     add_packages("ffmpeg")
+     after_load(function (target)
+         local ffmpeg = target:pkg("ffmpeg")
+         if ffmpeg then
+             target:add("runenvs", "PATH", ffmpeg:installdir("bin"))
+         end
+     end)
+     after_build(function (target)
+         local ffmpeg = target:pkg("ffmpeg")
+         if ffmpeg then
+             os.cp(path.join(ffmpeg:installdir("bin"), "*.dll"), target:targetdir())
+         end
+     end)
  end
  set_rundir("$(projectdir)")
 
