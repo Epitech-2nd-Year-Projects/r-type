@@ -108,7 +108,8 @@ void BindRuntimeTypes(sol::state& lua,
       &components::WeaponComponent::can_fire, "fire",
       &components::WeaponComponent::fire, "can_fire_big",
       &components::WeaponComponent::can_fire_big, "fire_big",
-      &components::WeaponComponent::fire_big);
+      &components::WeaponComponent::fire_big, "rapid_fire_timer",
+      &components::WeaponComponent::rapid_fire_timer);
 
   sol::usertype<engine::ecs::Registry> registry_type = lua["Registry"];
   registry_type["get_health"] = [](engine::ecs::Registry& r,
@@ -194,6 +195,21 @@ void BindRuntimeTypes(sol::state& lua,
     try {
       auto e = r.EntityFromIndex(e_id);
       auto& sparse = r.GetComponents<components::PowerupComponent>();
+      if (static_cast<std::size_t>(e) < sparse.size() &&
+          sparse[e].has_value()) {
+        return &sparse[e].value();
+      }
+    } catch (...) {
+    }
+    return std::nullopt;
+  };
+
+  registry_type["get_weapon"] = [](engine::ecs::Registry& r,
+                                   engine::ecs::EntityId e_id)
+      -> std::optional<components::WeaponComponent*> {
+    try {
+      auto e = r.EntityFromIndex(e_id);
+      auto& sparse = r.GetComponents<components::WeaponComponent>();
       if (static_cast<std::size_t>(e) < sparse.size() &&
           sparse[e].has_value()) {
         return &sparse[e].value();
