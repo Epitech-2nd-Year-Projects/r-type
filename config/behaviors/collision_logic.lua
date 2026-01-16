@@ -42,7 +42,13 @@ function OnCollision(e1, e2)
                       log_info("Powerup: Bonus Score " .. p_comp.value)
                  end
             elseif p_comp.type == PowerupType.WeaponUpgrade then
-                 log_info("Powerup: Weapon Upgrade Collected")
+                 local weapon_comp = registry:get_weapon(player_entity) 
+                 if weapon_comp then
+                      weapon_comp.rapid_fire_timer = p_comp.value
+                      log_info("Powerup: Weapon Upgrade Collected - Rapid Fire for " .. p_comp.value .. "s!")
+                 else
+                    log_info("Powerup: Weapon Upgrade Collected (No Weapon)")
+                 end
             end
             
             p_comp.active = false

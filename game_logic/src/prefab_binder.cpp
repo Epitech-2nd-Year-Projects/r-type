@@ -258,6 +258,16 @@ void BindGameComponents(engine::scripting::PrefabFactory &factory) {
           r.AddComponent<components::PowerupComponent>(e, std::move(powerup));
         }
       });
+
+  factory.RegisterComponent(
+      "EnemyType", [](engine::ecs::Registry &r, engine::ecs::EntityId e,
+                      const sol::object &value) {
+        if (value.is<sol::table>()) {
+          sol::table t = value;
+          std::uint16_t code = t["code"].get_or(0);
+          r.EmplaceComponent<components::EnemyTypeComponent>(e, code);
+        }
+      });
 }
 
 }  // namespace game_logic

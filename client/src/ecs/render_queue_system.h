@@ -64,8 +64,10 @@ class RenderQueueSystem {
       const std::string& texture_id) const;
   engine::math::RectF ApplyFlip(const engine::math::RectF& base, bool flip_x,
                                 bool flip_y) const;
-  engine::math::Vector2f ComputeScale(const engine::render::Texture2D& texture,
-                                      const engine::math::RectF& source) const;
+  engine::math::Vector2f ComputeScale(
+      const engine::render::Texture2D& texture,
+      const engine::math::RectF& source,
+      const std::optional<engine::math::Vector2f>& render_size) const;
   bool ComputeFlipX(std::uint16_t type_code,
                     const std::optional<ecs::VelocityComponent>& velocity,
                     bool sprite_flip, const std::string& texture_id) const;

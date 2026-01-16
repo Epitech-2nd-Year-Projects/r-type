@@ -66,6 +66,8 @@ void SpriteSyncSystem::ApplyDefinition(std::size_t index,
         ecs::SpriteComponent(definition.texture_id, definition.source_rect);
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
+    sprite->render_size = definition.render_size;
+    sprite->use_full_source = definition.use_full_source;
   } else {
     if (sprite->texture_id != definition.texture_id) {
       sprite->texture_id = definition.texture_id;
@@ -76,6 +78,8 @@ void SpriteSyncSystem::ApplyDefinition(std::size_t index,
     }
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
+    sprite->render_size = definition.render_size;
+    sprite->use_full_source = definition.use_full_source;
   }
 
   auto &layer = layers[index];

@@ -12,6 +12,7 @@
 
 #include "constants/client_constants.h"
 #include "debug/inspector_registration.h"
+#include "ecs/archetype_registry.h"
 #include "ecs/components.h"
 #include "ecs/render_debug.h"
 #include "ecs/render_system.h"
@@ -24,6 +25,9 @@
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/render.h"
+#include "engine/scripting/script_engine.h"
+#include "game_logic/bindings.h"
+#include "game_logic/components/powerup_component.h"
 #include "logging.h"
 #include "render/parallax_background.h"
 #include "scene/scene.h"
@@ -295,6 +299,91 @@ bool ClientRuntime::Initialize(
     LogLifecycle(engine::util::LogLevel::kCritical,
                  "Failed to initialize engine runtime");
     return false;
+  }
+
+  auto& script_engine = engine_->ScriptEngine();
+  game_logic::BindRuntimeTypes(script_engine.LuaState(),
+                               script_engine.GetPrefabFactory());
+  script_engine.LoadScript("config/prefabs/powerups.lua");
+
+  sol::table prefabs = script_engine.LuaState()["Prefabs"];
+  if (prefabs.valid()) {
+    for (const auto& pair : prefabs) {
+      if (!pair.second.is<sol::table>()) continue;
+      sol::table prefab = pair.second;
+
+      sol::optional<sol::table> powerup = prefab["Powerup"];
+      sol::optional<sol::table> sprite = prefab["Sprite"];
+
+      if (powerup && sprite) {
+        auto type = powerup->get<game_logic::components::PowerupType>("type");
+        std::string texture = sprite->get<std::string>("texture");
+        float width = sprite->get_or("width", 16.0f);
+        float height = sprite->get_or("height", 16.0f);
+
+        std::uint16_t type_code = 10 + static_cast<std::uint16_t>(type);
+        ecs::ArchetypeRegistry::RegisterPowerupType(type_code, texture, width,
+                                                    height);
+        LogLifecycle(engine::util::LogLevel::kInfo,
+                     "Registered dynamic powerup: " + texture);
+      }
+    }
+  }
+
+  script_engine.LoadScript("config/prefabs/enemies.lua");
+  sol::table all_prefabs = script_engine.LuaState()["Prefabs"];
+  if (all_prefabs.valid()) {
+    std::vector<std::string> enemy_names;
+    for (const auto& pair : all_prefabs) {
+      if (!pair.second.is<sol::table>()) continue;
+      sol::table t = pair.second;
+      if (t["Tag"].get_or(std::string("")) == "Enemy") {
+        enemy_names.push_back(pair.first.as<std::string>());
+      }
+    }
+    std::sort(enemy_names.begin(), enemy_names.end());
+
+    std::uint16_t id = 200;
+    for (const auto& name : enemy_names) {
+      sol::table t = all_prefabs[name];
+      sol::optional<sol::table> sprite = t["Sprite"];
+      if (sprite) {
+        std::string texture = sprite->get<std::string>("texture");
+        float width = sprite->get_or("width", 33.0f);
+        float height = sprite->get_or("height", 33.0f);
+        float frame_width = sprite->get_or("frame_width", width);
+        float frame_height = sprite->get_or("frame_height", height);
+        ecs::ArchetypeRegistry::RegisterEnemyType(id, texture, width, height,
+                                                  frame_width, frame_height);
+        LogLifecycle(engine::util::LogLevel::kInfo,
+                     "Registered dynamic enemy: " + name + " -> " +
+                         std::to_string(id) + " (Render: " +
+                         std::to_string(width) + "x" + std::to_string(height) +
+                         " Frame: " + std::to_string(frame_width) + "x" +
+                         std::to_string(frame_height) + ")");
+      }
+      id++;
+    }
+  }
+
+  script_engine.LoadScript("config/prefabs/players.lua");
+  sol::table player_prefabs = script_engine.LuaState()["Prefabs"];
+  if (player_prefabs.valid()) {
+    sol::optional<sol::table> player_t = player_prefabs["Player"];
+    if (player_t) {
+      sol::optional<sol::table> sprite = (*player_t)["Sprite"];
+      if (sprite) {
+        float width = sprite->get_or("width", 26.0f);
+        float height = sprite->get_or("height", 21.0f);
+        float frame_width = sprite->get_or("frame_width", 26.0f);
+        float frame_height = sprite->get_or("frame_height", 21.0f);
+        ecs::ArchetypeRegistry::SetPlayerConfig(width, height, frame_width,
+                                                frame_height);
+        LogLifecycle(engine::util::LogLevel::kInfo,
+                     "Configured player: Render " + std::to_string(width) +
+                         "x" + std::to_string(height));
+      }
+    }
   }
 
   frame_resources_ = std::make_unique<FrameResources>();
