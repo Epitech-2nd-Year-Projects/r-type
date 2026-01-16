@@ -1,16 +1,36 @@
-add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
+if is_plat("windows") then
+    add_requires("gtest", "nlohmann_json", "raylib")
+    add_requires("ffmpeg-prebuilt 7.1", {alias = "ffmpeg"})
+else
+    add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
+end
 
-target("client_tests")
-    set_kind("binary")
-    set_default(false)
-    add_packages("gtest", "nlohmann_json", "ffmpeg", "raylib")
-    add_defines("RTYPE_TESTING")
-    add_files("client/*.cpp")
-    add_files("../client/src/**.cpp|main.cpp")
-    add_files("../third_party/raylib-media/src/rmedia.c")
-    add_includedirs("../client/src", "../third_party/raylib-media/src")
-    add_deps("protocol", "engine", "game_logic")
-    add_tests("client_tests")
+ target("client_tests")
+     set_kind("binary")
+     set_default(false)
+     add_packages("gtest", "nlohmann_json", "raylib", "ffmpeg")
+     if is_plat("windows") then
+         after_load(function (target)
+             local ffmpeg = target:pkg("ffmpeg")
+             if ffmpeg then
+                 target:add("runenvs", "PATH", ffmpeg:installdir("bin"))
+             end
+         end)
+         after_build(function (target)
+             local ffmpeg = target:pkg("ffmpeg")
+             if ffmpeg then
+                 os.cp(path.join(ffmpeg:installdir("bin"), "*.dll"), target:targetdir())
+             end
+         end)
+     end
+     add_defines("RTYPE_TESTING")
+     add_files("client/*.cpp")
+     add_files("../client/src/**.cpp|main.cpp")
+     add_files("../third_party/raylib-media/src/rmedia.c")
+     add_includedirs("../client/src", "../third_party/raylib-media/src")
+     add_deps("protocol", "engine", "game_logic")
+     add_tests("client_tests")
+
 
 target("engine_tests")
     set_kind("binary")

@@ -13,11 +13,6 @@ jobs:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
-      CC: clang
-      CXX: clang++
-      AR: llvm-ar
-      NM: llvm-nm
-      RANLIB: llvm-ranlib
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +21,7 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
-          build-cache: true
+          build-cache: false
 
       - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
         shell: pwsh
@@ -39,22 +34,6 @@ jobs:
           }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "LLVM_BINDIR=$binDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Install FFmpeg (dev)
-        shell: pwsh
-        run: |
-          $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-lgpl-shared-7.1.zip"
-          $zipPath = Join-Path $env:RUNNER_TEMP "ffmpeg.zip"
-          $extractPath = Join-Path $env:RUNNER_TEMP "ffmpeg"
-          Invoke-WebRequest -Uri $ffmpegUrl -OutFile $zipPath
-          Expand-Archive -Path $zipPath -DestinationPath $extractPath
-          $ffmpegRoot = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
-          if (-not $ffmpegRoot) {
-            throw "FFmpeg archive did not contain a root directory."
-          }
-          $ffmpegDir = $ffmpegRoot.FullName
-          "$ffmpegDir\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "FFMPEG_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build
         run: bash scripts/build.sh
