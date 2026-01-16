@@ -1,6 +1,7 @@
 #ifndef SERVER_SERVER_RUNTIME_H_
 #define SERVER_SERVER_RUNTIME_H_
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -19,6 +20,7 @@
 #include "engine/net/packet_buffer.h"
 #include "engine/time/frame_timer.h"
 #include "engine/util/logging.h"
+#include "engine/util/thread_safe_queue.h"
 #include "peer_connection.h"
 #include "protocol/command.h"
 #include "protocol/error.h"
@@ -81,6 +83,139 @@ class ServerRuntime {
    */
   void RunMainLoop();
 
+  /**
+   * @brief Enqueue a task for execution on the main server thread.
+   * @param task Callable that receives a reference to the ServerRuntime.
+   *
+   * Used by the admin console to safely execute commands that access
+   * server state without data races. Tasks are processed at the start
+   * of each main loop iteration.
+   */
+  void EnqueueAdminTask(std::function<void(ServerRuntime&)> task);
+
+  /**
+   * @brief Request a graceful server shutdown.
+   *
+   * Sets the global shutdown flag, causing the main loop to exit
+   * after completing the current tick.
+   */
+  void RequestShutdown();
+
+  /**
+   * @brief Enable or disable console log output.
+   * @param enabled True to enable console logs, false to mute them.
+   *
+   * When disabled, logs continue to be written to server.log but
+   * are not displayed on stdout/stderr.
+   */
+  void SetConsoleLogsEnabled(bool enabled);
+
+  /**
+   * @brief Check if console logging is currently enabled.
+   * @return True if console logs are displayed, false if muted.
+   */
+  [[nodiscard]] bool ConsoleLogsEnabled() const;
+
+  /**
+   * @brief Get read-only access to the peer connections map.
+   * @return Const reference to endpoint-keyed peer connection map.
+   */
+  [[nodiscard]] const std::unordered_map<std::string, PeerConnection>& Peers()
+      const;
+
+  /**
+   * @brief Get mutable access to the peer connections map.
+   * @return Reference to endpoint-keyed peer connection map.
+   */
+  [[nodiscard]] std::unordered_map<std::string, PeerConnection>& Peers();
+
+  /**
+   * @brief Get read-only access to the rooms map.
+   * @return Const reference to room-code-keyed room map.
+   */
+  [[nodiscard]] const std::unordered_map<std::string, Room>& Rooms() const;
+
+  /**
+   * @brief Get mutable access to the rooms map.
+   * @return Reference to room-code-keyed room map.
+   */
+  [[nodiscard]] std::unordered_map<std::string, Room>& Rooms();
+
+  /**
+   * @brief Tracks session details for a connected player.
+   *
+   * Associates a player identifier with the endpoint they came from and
+   * the room they joined to support room-aware routing.
+   */
+  struct PlayerSession {
+    std::string endpoint_key;  ///< Key used to locate the peer connection.
+    std::string room_code;     ///< Room that the player is currently part of.
+  };
+
+  /**
+   * @brief Get read-only access to the player sessions map.
+   * @return Const reference to player-ID-keyed session map.
+   */
+  [[nodiscard]] const std::unordered_map<std::uint32_t, PlayerSession>&
+  Players() const;
+
+  /**
+   * @brief Get the current server tick count.
+   * @return Number of simulation ticks since server start.
+   */
+  [[nodiscard]] std::uint32_t ServerTick() const;
+
+  /**
+   * @brief Get read-only access to server configuration.
+   * @return Const reference to the server configuration.
+   */
+  [[nodiscard]] const ServerConfig& Config() const;
+
+  /**
+   * @brief Get the server start timestamp.
+   * @return Steady clock time point when the server started.
+   */
+  [[nodiscard]] std::chrono::steady_clock::time_point StartTime() const;
+
+  /**
+   * @brief Get a reference to the server logger.
+   * @return Reference to the logger instance.
+   */
+  [[nodiscard]] engine::util::Logger& Logger();
+
+  /**
+   * @brief Kick a player by ID, fully disconnecting them.
+   * @param player_id The player ID to disconnect.
+   * @return True if player was found and kicked, false otherwise.
+   */
+  bool KickPlayer(std::uint32_t player_id);
+
+  /**
+   * @brief Remove all enemy entities from a room.
+   * @param room_code The room code to clear enemies from.
+   * @return Number of enemies removed.
+   */
+  std::size_t RemoveEnemiesFromRoom(const std::string& room_code);
+
+  /**
+   * @brief Spawn an entity in a room using the prefab factory.
+   * @param room_code The room code where to spawn.
+   * @param prefab_name The prefab name to spawn (e.g., "EnemyBasic",
+   * "EnemyScout").
+   * @param x X coordinate to spawn at.
+   * @param y Y coordinate to spawn at.
+   * @return True if entity was spawned successfully.
+   */
+  bool SpawnEntityInRoom(const std::string& room_code,
+                         const std::string& prefab_name, float x, float y);
+
+  /**
+   * @brief Get a list of available entity prefabs from a room's script engine.
+   * @param room_code The room to query.
+   * @return Vector of prefab names, or empty if room not found.
+   */
+  std::vector<std::string> GetAvailableEntities(const std::string& room_code);
+
  private:
   static constexpr std::uint32_t kReliableResendTimeoutMs = 250;
   static constexpr std::size_t kReliableQueueMaxPending = 64;
@@ -104,6 +239,14 @@ class ServerRuntime {
    * the logger instance for server diagnostic output.
    */
   void ConfigureLogging();
+
+  /**
+   * @brief Processes queued admin tasks on the main thread.
+   *
+   * Executes all lambdas currently in the admin task queue, granting them safe
+   * access to server state. Called once per main loop iteration.
+   */
+  void ProcessAdminTasks();
 
   /**
    * @brief Polls the UDP socket for incoming packets.
@@ -399,17 +542,6 @@ class ServerRuntime {
   void BroadcastGameEvents();
 
   /**
-   * @brief Tracks session details for a connected player.
-   *
-   * Associates a player identifier with the endpoint they came from and
-   * the room they joined to support room-aware routing.
-   */
-  struct PlayerSession {
-    std::string endpoint_key;  ///< Key used to locate the peer connection.
-    std::string room_code;     ///< Room that the player is currently part of.
-  };
-
-  /**
    * @brief Finds a room by its code.
    * @param room_code Room code to search for.
    * @return Reference to the room if present.
@@ -490,6 +622,15 @@ class ServerRuntime {
       0};  ///< Frame count contributing to health averages.
   protocol::FragmentReassembler
       reassembler_;  ///< Handles reassembly of fragmented packets.
+
+  engine::util::ThreadSafeQueue<std::function<void(ServerRuntime&)>>
+      admin_tasks_;  ///< Thread-safe queue for admin console commands.
+  std::shared_ptr<engine::util::ConsoleSink>
+      console_sink_;  ///< Console log sink with mute toggle support.
+  std::shared_ptr<engine::util::FileSink>
+      file_sink_;  ///< File log sink writing to server.log.
+  std::chrono::steady_clock::time_point
+      start_time_;  ///< Server start timestamp for uptime calculation.
 };
 
 }  // namespace server

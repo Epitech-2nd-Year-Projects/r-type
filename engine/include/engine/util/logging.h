@@ -82,11 +82,15 @@ class ConsoleSink : public LogSink {
   void Write(const LogMessage& message) override;
   void Flush() override;
 
+  void SetEnabled(bool enabled);
+  [[nodiscard]] bool IsEnabled() const;
+
  private:
   std::ostream& out_;
   std::ostream& err_;
   bool colorize_;
   std::mutex mutex_;
+  std::atomic<bool> enabled_{true};
 };
 
 /**

@@ -106,6 +106,9 @@ ConsoleSink::ConsoleSink(std::ostream& out, std::ostream& err, bool colorize)
     : out_(out), err_(err), colorize_(colorize) {}
 
 void ConsoleSink::Write(const LogMessage& message) {
+  if (!enabled_.load(std::memory_order_relaxed)) {
+    return;
+  }
   const auto line = ComposeLine(message);
   std::lock_guard lock(mutex_);
   auto& stream = message.level >= LogLevel::kError ? err_ : out_;
@@ -120,6 +123,14 @@ void ConsoleSink::Flush() {
   std::lock_guard lock(mutex_);
   out_.flush();
   err_.flush();
+}
+
+void ConsoleSink::SetEnabled(bool enabled) {
+  enabled_.store(enabled, std::memory_order_relaxed);
+}
+
+bool ConsoleSink::IsEnabled() const {
+  return enabled_.load(std::memory_order_relaxed);
 }
 
 FileSink::FileSink(std::filesystem::path path, bool append)

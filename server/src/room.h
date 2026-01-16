@@ -168,6 +168,12 @@ class Room {
    */
   engine::ecs::Registry& World();
 
+  /**
+   * @brief Returns a mutable reference to the game logic instance.
+   * @return Mutable reference to the internal game instance logic.
+   */
+  game_logic::GameInstance& Logic();
+
  private:
   std::string room_code_;
   std::string room_name_;
