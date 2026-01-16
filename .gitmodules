@@ -1,0 +1,9 @@
+[submodule "third_party/rlImGui"]
+	path = third_party/rlImGui
+	url = https://github.com/raylib-extras/rlImGui
+[submodule "third_party/raylib-media"]
+	path = third_party/raylib-media
+	url = https://github.com/cloudofoz/raylib-media
+[submodule "third_party/linenoise"]
+	path = third_party/linenoise
+	url = https://github.com/yhirose/cpp-linenoise
