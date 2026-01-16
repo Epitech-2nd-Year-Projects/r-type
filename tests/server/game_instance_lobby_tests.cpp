@@ -23,7 +23,7 @@ TEST(GameInstanceLobbyTests, UnknownPlayerCommandIgnored) {
   EXPECT_FALSE(evt.has_value());
 }
 
-TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerNoStart) {
+TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerStarts) {
   auto& logger = engine::util::Logger::Default();
   server::GameInstance instance{2, 9999, 4, protocol::Difficulty::kNormal,
                                 logger};
@@ -34,7 +34,7 @@ TEST(GameInstanceLobbyTests, ReadyToggleSinglePlayerNoStart) {
       1, MakeCommand(protocol::CommandType::kSetReady));
   ASSERT_TRUE(evt_ready.has_value());
   EXPECT_TRUE(evt_ready->is_ready);
-  EXPECT_FALSE(evt_ready->game_started);
+  EXPECT_TRUE(evt_ready->game_started);
 
   auto evt_duplicate = instance.OnClientCommand(
       1, MakeCommand(protocol::CommandType::kSetReady));
