@@ -4,6 +4,7 @@
 #include "hud_overlay.h"
 #include "lobby_chat_view.h"
 #include "scene.h"
+#include "ui/ping_wheel.h"
 
 namespace client {
 
@@ -16,6 +17,7 @@ class InGameScene : public Scene {
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
   bool IsInputCaptured() const override;
+  void OnGameplayPing(const protocol::GameplayPingPayload& ping);
 
  private:
   void LayoutChat();
@@ -26,6 +28,9 @@ class InGameScene : public Scene {
   bool is_ready_{false};
   bool toggle_pressed_{false};
   bool pause_pressed_{false};
+  ui::PingWheel ping_wheel_;
+  bool ping_pressed_{false};
+  std::vector<std::pair<protocol::GameplayPingPayload, float>> received_pings_;
 };
 
 }  // namespace client

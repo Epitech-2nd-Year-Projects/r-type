@@ -234,6 +234,14 @@ void SceneManager::OnOpenProfile() {
   TransitionTo(ClientState::kProfile);
 }
 
+void SceneManager::OnGameplayPing(const protocol::GameplayPingPayload& ping) {
+  if (state_ == ClientState::kInGame) {
+    if (auto scene = std::dynamic_pointer_cast<InGameScene>(current_scene_)) {
+      scene->OnGameplayPing(ping);
+    }
+  }
+}
+
 void SceneManager::OnCloseProfile() { TransitionTo(ClientState::kMainMenu); }
 
 bool SceneManager::TransitionTo(ClientState next_state, std::string reason) {

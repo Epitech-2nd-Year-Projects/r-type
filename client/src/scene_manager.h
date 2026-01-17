@@ -12,6 +12,7 @@
 
 #include "client_state.h"
 #include "engine/time/time_delta.h"
+#include "protocol/gameplay_ping.h"
 
 namespace engine::render {
 class Renderer2D;
@@ -181,6 +182,11 @@ class SceneManager {
    * @brief Close the profile editor
    */
   void OnCloseProfile();
+  
+  /**
+   * @brief Handle incoming gameplay ping
+   */
+  void OnGameplayPing(const protocol::GameplayPingPayload& ping);
 
   /**
    * @brief Transition to a new state
