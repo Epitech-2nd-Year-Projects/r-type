@@ -16,7 +16,8 @@ enum MappingIndex : std::size_t {
   kMoveRightIndex = 3,
   kShootIndex = 4,
   kBigShootIndex = 5,
-  kReconnectIndex = 6
+  kReconnectIndex = 6,
+  kPingIndex = 7
 };
 
 struct Mapping {
@@ -37,7 +38,8 @@ constexpr std::array<Mapping, kGameActionCount> kMappings{
     Mapping{GameAction::kBigShoot,
             constants::input::kActionBigShoot},  // kBigShootIndex
     Mapping{GameAction::kReconnect,
-            constants::input::kActionReconnect}  // kReconnectIndex
+            constants::input::kActionReconnect},  // kReconnectIndex
+    Mapping{GameAction::kPing, constants::input::kActionPing} // kPingIndex
 };
 
 constexpr GameActionEventType ToGameActionEventType(
@@ -119,6 +121,7 @@ void InputLayer::RefreshState() {
   state_.move_right = manager.IsActionActive(action_names_[kMoveRightIndex]);
   state_.shoot = manager.IsActionActive(action_names_[kShootIndex]);
   state_.big_shoot = manager.IsActionActive(action_names_[kBigShootIndex]);
+  state_.ping = manager.IsActionActive(action_names_[kPingIndex]);
 }
 
 bool InputLayer::ConsumeReconnectRequest() {

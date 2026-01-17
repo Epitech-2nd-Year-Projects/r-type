@@ -32,13 +32,14 @@ enum class GameAction {
   kMoveRight,
   kShoot,
   kBigShoot,
-  kReconnect
+  kReconnect,
+  kPing
 };
 
 /**
  * @brief Count of gameplay actions
  */
-inline constexpr std::size_t kGameActionCount = 7;
+inline constexpr std::size_t kGameActionCount = 8;
 
 /**
  * @enum GameActionEventType
@@ -64,6 +65,7 @@ struct ActionState {
   bool move_right{false};
   bool shoot{false};
   bool big_shoot{false};
+  bool ping{false};
 };
 
 /**
