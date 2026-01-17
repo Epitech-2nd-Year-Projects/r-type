@@ -4,6 +4,7 @@
 
 #include "protocol/chat.h"
 #include "protocol/message_type.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/reliability_policy.h"
 #include "server_runtime.h"
 #include "server_runtime_helpers.h"
@@ -95,6 +96,14 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
         return;
       }
       HandlePing(peer, std::get<protocol::PingPayload>(decoded.payload));
+      break;
+    }
+    case MessageType::kGameplayPing: {
+      if (!std::holds_alternative<protocol::GameplayPingPayload>(decoded.payload)) {
+        logger_.Warn("Malformed gameplay ping from ", peer.endpoint_key);
+        return;
+      }
+      HandleGameplayPing(peer, std::get<protocol::GameplayPingPayload>(decoded.payload));
       break;
     }
     case MessageType::kInputState: {
@@ -498,6 +507,39 @@ void ServerRuntime::ProcessReliableResends() {
       if (any_error) {
         peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);
       }
+    }
+  }
+}
+
+void ServerRuntime::HandleGameplayPing(PeerConnection& peer,
+                                       const protocol::GameplayPingPayload& ping) {
+  if (peer.room_code.empty()) {
+    return;
+  }
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type = static_cast<std::uint8_t>(MessageType::kGameplayPing);
+  packet.header.flags = 0; // Unreliable is fine for pings, or maybe Reliable? Let's use Unreliable for speed.
+  packet.header.timestamp_ms = NowMilliseconds();
+  packet.payload = ping;
+
+  // Broadcast to other players in the same room
+  if (auto room = FindRoom(peer.room_code)) {
+    const auto& players = room->get().Players();
+    for (std::uint32_t player_id : players) {
+      // Don't send back to sender? Or do? Usually send back to verify. 
+      // User requested "Contextual ping", usually everyone sees it.
+      
+      auto peer_ref = FindPeerByPlayerId(player_id);
+      if (!peer_ref.has_value()) continue;
+      
+      PeerConnection& target = peer_ref->get();
+      if (target.state != PeerState::kJoined) continue;
+
+      packet.header.sequence = target.sequence_tracker.NextLocalSequence();
+      target.sequence_tracker.FillAckFields(packet.header);
+      SendPacket(target, packet);
     }
   }
 }

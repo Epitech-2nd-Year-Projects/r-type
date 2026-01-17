@@ -26,6 +26,7 @@
 #include "protocol/error.h"
 #include "protocol/fragmentation.h"
 #include "protocol/input_state.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/join.h"
 #include "protocol/lobby.h"
 #include "protocol/packet.h"
@@ -343,6 +344,11 @@ class ServerRuntime {
    * Updates the peer's last activity timestamp and may respond with a pong.
    */
   void HandlePing(PeerConnection& peer, const protocol::PingPayload& ping);
+  
+  /**
+   * @brief Handles an incoming gameplay ping message.
+   */
+  void HandleGameplayPing(PeerConnection& peer, const protocol::GameplayPingPayload& ping);
 
   /**
    * @brief Handles an incoming input state message from a peer.
