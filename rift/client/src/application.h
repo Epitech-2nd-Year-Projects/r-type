@@ -50,11 +50,14 @@ class Application : public RiftContext {
 
   FightActionState GetInputState() const override;
 
+  std::uint32_t RoundTimerMs() const override;
+
  private:
   bool Initialize();
   bool Tick(engine::time::TimeDelta dt);
   void HandleNetworkEvents(const NetworkEvents& events);
   void UpdateGameState();
+  void UpdateMatchOverState(engine::time::TimeDelta dt);
   void Render();
 
   RiftConfig config_;
@@ -67,6 +70,7 @@ class Application : public RiftContext {
   engine::math::Vector2i render_size_{1280, 720};
   bool ready_sent_{false};
   bool should_quit_{false};
+  float match_over_timer_{0.0f};
 };
 
 }  // namespace rift::client

@@ -100,6 +100,10 @@ bool Application::Tick(engine::time::TimeDelta dt) {
 
   UpdateGameState();
 
+  if (state_ == RiftClientState::kMatchOver) {
+    UpdateMatchOverState(dt);
+  }
+
   const bool sending_enabled =
       state_ == RiftClientState::kPlaying && IsConnected();
   input_sender_->Update(dt, sending_enabled);
@@ -135,6 +139,7 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
   if (events.match_over.has_value()) {
     LogNetwork(engine::util::LogLevel::kInfo, "Match over");
     state_ = RiftClientState::kMatchOver;
+    match_over_timer_ = 0.0f;
   }
 }
 
@@ -147,6 +152,14 @@ void Application::UpdateGameState() {
       ready_sent_ = true;
       LogNetwork(engine::util::LogLevel::kInfo, "Sent ready command");
     }
+  }
+}
+
+void Application::UpdateMatchOverState(engine::time::TimeDelta dt) {
+  constexpr float kMatchOverDelaySeconds = 3.0f;
+  match_over_timer_ += dt.as_seconds();
+  if (match_over_timer_ >= kMatchOverDelaySeconds) {
+    should_quit_ = true;
   }
 }
 
@@ -203,6 +216,10 @@ bool Application::IsConnected() const {
 
 FightActionState Application::GetInputState() const {
   return input_layer_ ? input_layer_->state() : FightActionState{};
+}
+
+std::uint32_t Application::RoundTimerMs() const {
+  return network_->RoundTimerMs();
 }
 
 }  // namespace rift::client
