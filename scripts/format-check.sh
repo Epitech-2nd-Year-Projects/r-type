@@ -9,7 +9,7 @@ echo "clang-format available at: $(command -v clang-format)"
 clang-format --version
 
 if [[ "${OS:-}" == "Windows_NT" ]]; then
-  xmake f -p windows -a x64 -m release --toolchain=clang
+  xmake f -p windows -a x64 -m release
 fi
 
-xmake format --dry-run --error
+xmake format --dry-run --error --files="**.c|third_party/**:**.cpp|third_party/**:**.h|third_party/**:**.hpp|third_party/**"

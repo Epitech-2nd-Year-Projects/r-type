@@ -67,6 +67,7 @@ bool EncodeRoomSummary(const RoomSummary& summary,
   buffer.WriteUint8(summary.player_count);
   buffer.WriteUint8(summary.max_players);
   buffer.WriteUint8(BoolToByte(summary.started));
+  buffer.WriteUint8(static_cast<std::uint8_t>(summary.difficulty));
   return true;
 }
 
@@ -100,6 +101,14 @@ bool DecodeRoomSummary(engine::net::PacketBuffer& buffer,
   summary.player_count = player_count;
   summary.max_players = max_players;
   summary.started = started;
+  std::uint8_t difficulty = 0;
+  if (!buffer.ReadUint8(difficulty)) {
+    return false;
+  }
+  if (difficulty >= kDifficultyCount) {
+    difficulty = static_cast<std::uint8_t>(Difficulty::kNormal);
+  }
+  summary.difficulty = static_cast<Difficulty>(difficulty);
   out_summary = std::move(summary);
   return true;
 }
@@ -164,6 +173,7 @@ bool EncodeCreateRoomRequest(const CreateRoomRequestPayload& request,
                               buffer)) {
     return false;
   }
+  buffer.WriteUint8(static_cast<std::uint8_t>(request.difficulty));
   return true;
 }
 
@@ -187,6 +197,14 @@ bool DecodeCreateRoomRequest(engine::net::PacketBuffer& buffer,
                               request.room_password)) {
     return false;
   }
+  std::uint8_t difficulty = 0;
+  if (!buffer.ReadUint8(difficulty)) {
+    return false;
+  }
+  if (difficulty >= kDifficultyCount) {
+    difficulty = static_cast<std::uint8_t>(Difficulty::kNormal);
+  }
+  request.difficulty = static_cast<Difficulty>(difficulty);
   out_request = std::move(request);
   return true;
 }

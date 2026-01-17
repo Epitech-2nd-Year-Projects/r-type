@@ -6,6 +6,7 @@
 #ifndef CLIENT_CONSTANTS_UI_CONSTANTS_H_
 #define CLIENT_CONSTANTS_UI_CONSTANTS_H_
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <string_view>
@@ -227,9 +228,9 @@ struct Lobby {
   static constexpr float kModalMaxPlayersWidth = 180.0f;
   static constexpr float kPanelMargin = 32.0f;
   static constexpr float kHeaderTopPadding = 40.0f;
-  static constexpr float kHeaderTitleFontSize =
-      OptionsMenu::kButtonHeight * OptionsMenu::kButtonTextScale *
-      OptionsMenu::kTitleScaleFactor;
+  static constexpr float kHeaderTitleFontSize = OptionsMenu::kButtonHeight *
+                                                OptionsMenu::kButtonTextScale *
+                                                OptionsMenu::kTitleScaleFactor;
   static constexpr float kHeaderDecorationSpacing = 14.0f;
   static constexpr float kHeaderDecorationHeight =
       OptionsMenu::kWarningSlotHeight;
@@ -263,6 +264,9 @@ struct Lobby {
   static constexpr float kPortNameSpacing = 20.0f;
   static constexpr float kRefreshCreateSpacing = 12.0f;
   static constexpr float kModalPaddingX = 24.0f;
+  static constexpr float kModalToggleWidth = 145.0f;
+  static constexpr float kModalToggleSpacing = 15.0f;
+  static constexpr float kModalDifficultyLabelOffset = 20.0f;
   static constexpr float kModalTitleOffsetY = 34.0f;
   static constexpr float kModalTitleFontSize = 28.0f;
   static constexpr float kModalLabelFontSize = 16.0f;
@@ -296,7 +300,8 @@ struct Lobby {
   static constexpr std::string_view kHeaderFramePrefix =
       "assets/ui/Warning_Fleur";
   static constexpr std::string_view kHeaderFrameExtension = ".png";
-  static constexpr std::string_view kRoomFramePrefix = "assets/ui/profile_fleur";
+  static constexpr std::string_view kRoomFramePrefix =
+      "assets/ui/profile_fleur";
   static constexpr std::string_view kRoomFrameExtension = ".png";
   static constexpr engine::render::Color kPanelColor =
       engine::render::Color::FromBytes(18, 24, 40, 230);
@@ -382,8 +387,8 @@ struct Profile {
   static constexpr float kRootPaddingTop = 40.0f;
   static constexpr float kRootSpacing = 14.0f;
   static constexpr float kTitleFontScale = 0.06f;
-  static constexpr float kLabelFontScale = 0.028f;
-  static constexpr float kValueFontScale = 0.024f;
+  static constexpr float kLabelFontScale = 0.015f;
+  static constexpr float kValueFontScale = 0.011f;
   static constexpr float kInputWidth = 300.0f;
   static constexpr float kInputHeight = 48.0f;
   static constexpr float kButtonWidth = 170.0f;
@@ -397,7 +402,7 @@ struct Profile {
   static constexpr float kSectionSpacing = 30.0f;
   static constexpr float kPointerHeightFactor = 0.85f;
   static constexpr float kPointerFrameDuration = 0.06f;
-  static constexpr float kPointerSpacing = 28.0f;
+  static constexpr float kPointerSpacing = 1.0f;
   static constexpr float kPointerScaleFactor = 0.6f;
   static constexpr float kTitleScaleFactor = 1.5f;
   static constexpr int kPointerFrameCount = 11;
@@ -405,7 +410,7 @@ struct Profile {
   static constexpr engine::render::Color kTitleColor =
       engine::render::Color::FromBytes(230, 235, 245);
   static constexpr engine::render::Color kLabelColor =
-      engine::render::Color::FromBytes(200, 210, 230);
+      engine::render::Color::FromBytes(255, 255, 255);
   static constexpr engine::render::Color kValueColor =
       engine::render::Color::FromBytes(140, 186, 255);
   static constexpr engine::render::Color kInputBgColor =
@@ -427,6 +432,22 @@ struct Profile {
   static constexpr float kAvatarSectionSpacing = 20.0f;
   static constexpr float kAvatarOffsetX = -25.0f;
   static constexpr float kAvatarOffsetY = -35.0f;
+  static constexpr std::string_view kAvatarArrowLeftTexturePath =
+      "assets/ui/fleche_avatar_g.png";
+  static constexpr std::string_view kAvatarArrowRightTexturePath =
+      "assets/ui/fleche_avatar_d.png";
+  static constexpr float kColorSelectorSize = 40.0f;
+};
+
+inline constexpr std::array<engine::render::Color, 8> kChatNameColors = {
+    engine::render::Color::White(),
+    engine::render::Color(1.0f, 0.0f, 0.0f),    // Red
+    engine::render::Color(0.0f, 1.0f, 0.0f),    // Green
+    engine::render::Color(0.0f, 0.0f, 1.0f),    // Blue
+    engine::render::Color(1.0f, 1.0f, 0.0f),    // Yellow
+    engine::render::Color(0.0f, 1.0f, 1.0f),    // Cyan
+    engine::render::Color(1.0f, 0.0f, 1.0f),    // Magenta
+    engine::render::Color::FromBytes(255, 165, 0)  // Orange
 };
 
 }  // namespace client::constants::ui

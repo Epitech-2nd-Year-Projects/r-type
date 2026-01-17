@@ -11,7 +11,9 @@
 
 #include "engine/ecs/registry.h"
 #include "engine/event.h"
+#include "engine/math/vector2.h"
 #include "engine/time/time_delta.h"
+#include "game_logic/difficulty.h"
 #include "game_logic/game_state.h"
 
 namespace engine::scripting {
@@ -114,8 +116,10 @@ class GameInstance {
    * @brief Create game instance
    * @param room_id Unique room identifier
    * @param max_players Maximum number of players (default: 4)
+   * @param difficulty Difficulty level for this instance (default: Normal)
    */
-  explicit GameInstance(std::uint32_t room_id, std::uint32_t max_players = 4);
+  explicit GameInstance(std::uint32_t room_id, std::uint32_t max_players = 4,
+                        Difficulty difficulty = Difficulty::kNormal);
 
   /**
    * @brief Destructor (calls Shutdown if not already called)
@@ -221,13 +225,18 @@ class GameInstance {
    *
    * @param player_id Unique player identifier
    * @param input_type Input event type
+   * @param spawn_pos Optional rewind position (Lag Compensation)
+   * @param latency_s Optional latency in seconds (Lag Compensation)
    *
    * @details
    * - Queues the event for this frame
    * - Events are consumed by the internal player input system
    *   registered in RegisterSystems()
    */
-  void OnPlayerInput(std::uint32_t player_id, InputEventType input_type);
+  void OnPlayerInput(
+      std::uint32_t player_id, InputEventType input_type,
+      std::optional<engine::math::Vector2f> spawn_pos = std::nullopt,
+      float latency_s = 0.0f);
 
   /**
    * @brief Trigger a player death event
@@ -323,6 +332,11 @@ class GameInstance {
   std::uint32_t MaxPlayers() const;
 
   /**
+   * @brief Get the difficulty level
+   */
+  Difficulty GetDifficulty() const;
+
+  /**
    * @brief Get current number of active players
    */
   std::uint32_t ActivePlayerCount() const;
@@ -337,6 +351,12 @@ class GameInstance {
 
     /// @brief Input event type
     InputEventType type{InputEventType::kMoveLeftPressed};
+
+    /// @brief Rewind position for lag compensation
+    std::optional<engine::math::Vector2f> spawn_pos{std::nullopt};
+
+    /// @brief Latency for lag compensation
+    float latency_s{0.0f};
   };
 
   friend class systems::PlayerInputSystem;
@@ -365,6 +385,15 @@ class GameInstance {
   void RegisterSystems();
 
   /**
+   * @brief Initialize difficulty modifiers in Lua
+   *
+   * @details
+   * Loads the DifficultyModifiers table from difficulty.lua
+   * based on the current difficulty setting.
+   */
+  void InitializeDifficultyModifiers();
+
+  /**
    * @brief Initialize game world (spawn initial entities)
    *
    * @details
@@ -388,6 +417,9 @@ class GameInstance {
 
   /// @brief Maximum allowed players
   std::uint32_t max_players_;
+
+  /// @brief Difficulty level for this instance
+  Difficulty difficulty_;
 
   /// @brief Owned ECS registry
   std::unique_ptr<engine::ecs::Registry> registry_;

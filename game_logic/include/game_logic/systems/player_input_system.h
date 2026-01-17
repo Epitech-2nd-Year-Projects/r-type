@@ -32,14 +32,13 @@ class PlayerInputSystem {
    * @param instance_ref Reference to owning GameInstance
    */
   static void Update(
-      engine::ecs::Registry& registry,
-      engine::ecs::SparseArray<game_logic::components::PlayerComponent>&
-          players,
-      engine::ecs::SparseArray<engine::ecs::VelocityComponent>& velocities,
-      engine::ecs::SparseArray<game_logic::components::WeaponComponent>&
-          weapons,
+      engine::ecs::Registry &registry,
+      engine::ecs::SparseArray<components::PlayerComponent> &players,
+      engine::ecs::SparseArray<engine::ecs::VelocityComponent> &velocities,
+      engine::ecs::SparseArray<components::WeaponComponent> &weapons,
+      engine::ecs::SparseArray<components::ShootEventComponent> &shoot_events,
       engine::time::TimeDelta dt,
-      std::reference_wrapper<game_logic::GameInstance> instance_ref);
+      std::reference_wrapper<GameInstance> instance_ref);
 };
 
 }  // namespace systems

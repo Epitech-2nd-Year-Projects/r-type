@@ -15,6 +15,11 @@ namespace protocol {
 inline constexpr std::uint16_t kProtocolVersion = 1;
 
 /**
+ * @brief Minimum payload size in bytes to trigger compression.
+ */
+inline constexpr std::size_t kCompressionThreshold = 64;
+
+/**
  * @brief Common header present at the beginning of every R-Type UDP packet.
  * 
  * This structure describes the logical fields of the header. It is NOT

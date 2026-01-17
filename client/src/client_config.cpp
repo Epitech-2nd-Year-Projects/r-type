@@ -40,6 +40,12 @@ constexpr int kMinLobbyAttempts = 1;
 constexpr int kMaxLobbyAttempts = 20;
 constexpr std::uint32_t kMinRoomListRefreshMs = 1'000;
 constexpr std::uint32_t kMaxRoomListRefreshMs = 60'000;
+constexpr int kMinResolutionWidth = 640;
+constexpr int kMaxResolutionWidth = 7'680;
+constexpr int kMinResolutionHeight = 360;
+constexpr int kMaxResolutionHeight = 4'320;
+constexpr int kMinTargetFps = 0;
+constexpr int kMaxTargetFps = 240;
 constexpr float kMinVolume = 0.0f;
 constexpr float kMaxVolume = 1.0f;
 
@@ -385,6 +391,13 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
   apply_range(constants::config::kClientRoomListRefreshMs,
               config.room_list_refresh_ms, kMinRoomListRefreshMs,
               kMaxRoomListRefreshMs);
+  apply_range(constants::config::kVideoResolutionWidth, config.resolution_width,
+              kMinResolutionWidth, kMaxResolutionWidth);
+  apply_range(constants::config::kVideoResolutionHeight,
+              config.resolution_height, kMinResolutionHeight,
+              kMaxResolutionHeight);
+  apply_range(constants::config::kVideoTargetFps, config.target_fps,
+              kMinTargetFps, kMaxTargetFps);
   apply_float_range(constants::config::kAudioMasterVolume, config.master_volume,
                     kMinVolume, kMaxVolume);
   apply_float_range(constants::config::kAudioMusicVolume, config.music_volume,
@@ -397,6 +410,23 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
     bool parsed = config.debug;
     if (TryParseBoolValue(*it, parsed)) {
       config.debug = parsed;
+    }
+  }
+
+  if (const auto it =
+          doc.find(std::string(constants::config::kVideoFullscreen));
+      it != doc.end()) {
+    bool parsed = config.fullscreen;
+    if (TryParseBoolValue(*it, parsed)) {
+      config.fullscreen = parsed;
+    }
+  }
+
+  if (const auto it = doc.find(std::string(constants::config::kVideoVsync));
+      it != doc.end()) {
+    bool parsed = config.vsync;
+    if (TryParseBoolValue(*it, parsed)) {
+      config.vsync = parsed;
     }
   }
 
@@ -442,6 +472,13 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
       config.lobby_max_attempts;
   doc[std::string(constants::config::kClientRoomListRefreshMs)] =
       config.room_list_refresh_ms;
+  doc[std::string(constants::config::kVideoResolutionWidth)] =
+      config.resolution_width;
+  doc[std::string(constants::config::kVideoResolutionHeight)] =
+      config.resolution_height;
+  doc[std::string(constants::config::kVideoFullscreen)] = config.fullscreen;
+  doc[std::string(constants::config::kVideoVsync)] = config.vsync;
+  doc[std::string(constants::config::kVideoTargetFps)] = config.target_fps;
   doc[std::string(constants::config::kAudioMasterVolume)] =
       config.master_volume;
   doc[std::string(constants::config::kAudioMusicVolume)] = config.music_volume;

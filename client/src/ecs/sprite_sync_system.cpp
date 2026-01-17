@@ -2,7 +2,7 @@
 
 namespace client::ecs {
 
-SpriteSyncSystem::SpriteSyncSystem(engine::ecs::Registry& registry)
+SpriteSyncSystem::SpriteSyncSystem(engine::ecs::Registry &registry)
     : registry_(registry), archetypes_(ArchetypeRegistry::Get()) {
   RegisterComponents();
 }
@@ -17,10 +17,10 @@ void SpriteSyncSystem::RegisterComponents() {
 }
 
 void SpriteSyncSystem::SyncSprites() {
-  const auto& positions = registry_.GetComponents<ecs::PositionComponent>();
-  const auto& nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
-  const auto& velocities = registry_.GetComponents<ecs::VelocityComponent>();
-  const auto& healths = registry_.GetComponents<ecs::HealthComponent>();
+  const auto &positions = registry_.GetComponents<ecs::PositionComponent>();
+  const auto &nets = registry_.GetComponents<ecs::NetworkedEntityComponent>();
+  const auto &velocities = registry_.GetComponents<ecs::VelocityComponent>();
+  const auto &healths = registry_.GetComponents<ecs::HealthComponent>();
 
   const std::size_t count = positions.size();
 
@@ -56,29 +56,33 @@ void SpriteSyncSystem::SyncSprites() {
 }
 
 void SpriteSyncSystem::ApplyDefinition(std::size_t index,
-                                       const SpriteDefinition& definition) {
-  auto& sprites = registry_.GetComponents<ecs::SpriteComponent>();
-  auto& layers = registry_.GetComponents<ecs::RenderLayerComponent>();
+                                       const SpriteDefinition &definition) {
+  auto &sprites = registry_.GetComponents<ecs::SpriteComponent>();
+  auto &layers = registry_.GetComponents<ecs::RenderLayerComponent>();
 
-  auto& sprite = sprites[index];
+  auto &sprite = sprites[index];
   if (!sprite.has_value()) {
     sprite =
         ecs::SpriteComponent(definition.texture_id, definition.source_rect);
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
+    sprite->render_size = definition.render_size;
+    sprite->use_full_source = definition.use_full_source;
   } else {
-    if (sprite->texture_id.empty()) {
+    if (sprite->texture_id != definition.texture_id) {
       sprite->texture_id = definition.texture_id;
-    }
-    if (sprite->source_rect.width_ == 0.0f ||
-        sprite->source_rect.height_ == 0.0f) {
+      sprite->source_rect = definition.source_rect;
+    } else if (sprite->source_rect.width_ == 0.0f ||
+               sprite->source_rect.height_ == 0.0f) {
       sprite->source_rect = definition.source_rect;
     }
     sprite->flip_x = definition.face_left;
     sprite->tint = definition.tint;
+    sprite->render_size = definition.render_size;
+    sprite->use_full_source = definition.use_full_source;
   }
 
-  auto& layer = layers[index];
+  auto &layer = layers[index];
   if (!layer.has_value()) {
     layer = ecs::RenderLayerComponent(definition.layer, definition.depth);
   } else {

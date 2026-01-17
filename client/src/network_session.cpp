@@ -253,17 +253,19 @@ void NetworkSession::RefreshRoomList(std::string host, std::uint16_t port) {
 }
 
 void NetworkSession::CreateRoom(std::string host, std::uint16_t port,
-                                const std::string& room_name, bool is_private,
+                                std::string room_name, bool is_private,
                                 std::string room_password,
-                                std::uint16_t max_players) {
+                                std::uint16_t max_players,
+                                protocol::Difficulty difficulty) {
   if (!lobby_service_) {
     return;
   }
   if (!lobby_service_->Connect(std::move(host), port)) {
     return;
   }
-  lobby_service_->RequestCreateRoom(room_name, is_private,
-                                    std::move(room_password), max_players);
+  lobby_service_->RequestCreateRoom(std::move(room_name), is_private,
+                                    std::move(room_password), max_players,
+                                    difficulty);
 }
 
 const std::vector<protocol::RoomSummary>& NetworkSession::RoomDirectoryRooms()

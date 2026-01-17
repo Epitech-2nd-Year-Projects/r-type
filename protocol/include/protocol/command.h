@@ -10,22 +10,34 @@ namespace protocol {
 
 /**
  * @brief Optional enumeration for well-known commands.
- * 
+ *
  * The actual on-the-wire value is stored as a uint16_t command_id.
  * You can extend this later as needed.
  */
 enum class CommandType : std::uint16_t {
-  kUnknown = 0,      ///< Unknown command.
-  kStartGame = 1,    ///< Start the game.
-  kSetReady = 2,     ///< Player ready status.
-  kUnready = 3,      ///< Player unready status.
-  kChatMessage = 4,  ///< Chat message.
-  kDisconnectNotice = 5,  ///< Server-initiated disconnect notice (payload: disconnect reason string).
+  kUnknown = 0,                ///< Unknown command.
+  kStartGame = 1,              ///< Start the game.
+  kSetReady = 2,               ///< Player ready status.
+  kUnready = 3,                ///< Player unready status.
+  kChatMessage = 4,            ///< Chat message.
+  kDisconnectNotice = 5,       ///< Server-initiated disconnect notice (payload:
+                               ///< disconnect reason string).
+  kDebugUpdateComponent = 99,  ///< Debug command to update component state.
+};
+
+enum class DebugComponentId : std::uint32_t {
+  kUnknown = 0,
+  kTransform = 1,
+  kVelocity = 2,
+  kHealth = 3,
+  kPlayerState = 4,
+  kSprite = 5,
+  kRenderLayer = 6,
 };
 
 /**
  * @brief Generic command payload structure.
- * 
+ *
  * Contains a command identifier and an arbitrary string payload.
  */
 struct CommandPayload {

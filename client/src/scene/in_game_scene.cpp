@@ -79,9 +79,8 @@ void InGameScene::LayoutChat() {
 
   const float chat_width = ui_config::Lobby::kChatPanelWidth;
   const float chat_padding = ui_config::Lobby::kPanelMargin;
-  const float chat_height = height * 0.4f;  // Use 40% of screen height
+  const float chat_height = height * 0.4f;
 
-  // Position chat at bottom-right of screen
   const engine::math::RectF chat_rect{width - chat_width - chat_padding,
                                       height - chat_height - chat_padding,
                                       chat_width, chat_height};

@@ -5,4 +5,5 @@ target("protocol")
     add_includedirs("include", {public = true})
     add_headerfiles("include/protocol/**.h|**.hpp")
     add_deps("engine_net", "engine_core")
+    add_packages("lz4")
 

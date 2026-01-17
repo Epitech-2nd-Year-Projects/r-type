@@ -8,10 +8,15 @@ namespace server {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
                            std::uint32_t max_players,
+                           protocol::Difficulty difficulty,
                            engine::util::Logger &logger)
     : rng_(seed),
-      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
-      logger_(logger) {}
+      logic_(std::make_unique<game_logic::GameInstance>(
+          room_id, max_players,
+          static_cast<game_logic::Difficulty>(difficulty))),
+      logger_(logger),
+      history_(1000),
+      current_tick_(0) {}
 
 void GameInstance::OnPlayerJoined(std::uint32_t player_id,
                                   std::string_view player_name) {
@@ -26,7 +31,9 @@ void GameInstance::OnPlayerJoined(std::uint32_t player_id,
     const std::string name = player_name.empty()
                                  ? "Player_" + std::to_string(player_id)
                                  : std::string{player_name};
+    logger_.Info("[GameInstance] Calling Logic OnPlayerJoin");
     logic_->OnPlayerJoin(player_id, name);
+    logger_.Info("[GameInstance] Logic OnPlayerJoin returned");
   }
 }
 
@@ -88,8 +95,27 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
     const bool is_set =
         (newest->get().buttons & static_cast<std::uint8_t>(flag)) != 0;
     if (!logic_) return;
+    std::optional<engine::math::Vector2f> spawn_pos = std::nullopt;
+    float latency_s = 0.0f;
+
+    if ((flag == protocol::InputButton::kInputFire ||
+         flag == protocol::InputButton::kInputBigFire) &&
+        !was_pressed && is_set) {
+      std::uint32_t current_server_time = static_cast<std::uint32_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::steady_clock::now().time_since_epoch())
+              .count());
+      std::uint32_t client_time = newest->get().client_time_ms;
+
+      std::uint32_t delta = current_server_time - client_time;
+      if (delta < 0x80000000u) {
+        latency_s = static_cast<float>(delta) / 1000.0f;
+        spawn_pos = history_.GetPlayerPositionAt(player_id, client_time);
+      }
+    }
+
     if (!was_pressed && is_set) {
-      logic_->OnPlayerInput(player_id, event_type);
+      logic_->OnPlayerInput(player_id, event_type, spawn_pos, latency_s);
     } else if (was_pressed && !is_set) {
       logic_->OnPlayerInput(player_id, released_evt);
     }
@@ -181,6 +207,25 @@ void GameInstance::Update(const engine::time::TimeDelta &delta) {
   }
   if (logic_) {
     logic_->Update(delta);
+
+    auto current_time_ms = static_cast<std::uint32_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count());
+
+    current_tick_++;
+
+    auto &registry = logic_->World();
+    auto &players =
+        registry.GetComponents<game_logic::components::PlayerComponent>();
+    auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
+
+    for (size_t i = 0; i < players.size() && i < positions.size(); ++i) {
+      if (players[i].has_value() && positions[i].has_value()) {
+        history_.RecordSnapshot(current_tick_, current_time_ms,
+                                players[i]->player_id, positions[i]->position);
+      }
+    }
   }
 }
 
@@ -188,9 +233,21 @@ std::uint16_t GameInstance::ResolveEntityType(
     std::optional<std::reference_wrapper<const engine::ecs::TagComponent>> tag,
     std::optional<
         std::reference_wrapper<const game_logic::components::PlayerComponent>>
-        player) const {
+        player,
+    std::optional<
+        std::reference_wrapper<const game_logic::components::PowerupComponent>>
+        powerup,
+    std::optional<std::reference_wrapper<
+        const game_logic::components::EnemyTypeComponent>>
+        enemy_type) const {
   if (player.has_value()) {
     return 1;
+  }
+  if (powerup.has_value()) {
+    return 10 + static_cast<std::uint16_t>(powerup->get().type);
+  }
+  if (enemy_type.has_value()) {
+    return enemy_type->get().type_code;
   }
   if (!tag.has_value()) {
     return 0;
@@ -218,6 +275,10 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       registry.GetComponents<game_logic::components::PlayerComponent>();
   auto &healths =
       registry.GetComponents<game_logic::components::HealthComponent>();
+  auto &powerups =
+      registry.GetComponents<game_logic::components::PowerupComponent>();
+  auto &enemy_types =
+      registry.GetComponents<game_logic::components::EnemyTypeComponent>();
 
   const std::size_t count = position.size();
   snapshot.deltas.reserve(count);
@@ -249,9 +310,23 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
                   const game_logic::components::HealthComponent>>(
                   healths[i].value())
             : std::nullopt;
+    const auto powerup_opt =
+        (i < powerups.size() && powerups[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::PowerupComponent>>(
+                  powerups[i].value())
+            : std::nullopt;
+    const auto enemy_type_opt =
+        (i < enemy_types.size() && enemy_types[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::EnemyTypeComponent>>(
+                  enemy_types[i].value())
+            : std::nullopt;
+
     protocol::EntityNetState state{};
     state.entity_id = static_cast<std::uint32_t>(i);
-    state.type = ResolveEntityType(tag_opt, player_opt);
+    state.type =
+        ResolveEntityType(tag_opt, player_opt, powerup_opt, enemy_type_opt);
     state.x = static_cast<std::int16_t>(std::lround(pos.x));
     state.y = static_cast<std::int16_t>(std::lround(pos.y));
 
@@ -260,8 +335,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       state.vy = static_cast<std::int16_t>(std::lround(vel_opt->y));
     }
     if (health_opt.has_value()) {
-      state.hp = static_cast<std::uint8_t>(
-          std::min<std::uint32_t>(health_opt->get().current_health, 255u));
+      state.hp = health_opt->get().current_health;
       state.flags = health_opt->get().invulnerable ? 1u : 0u;
     } else {
       state.hp = 0;

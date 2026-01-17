@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "engine/ecs/component.h"
+#include "engine/ecs/components/compound_circle_collider_component.h"
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/systems/lifetime_system.h"
@@ -31,9 +32,11 @@
 
 namespace game_logic {
 
-GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
+GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players,
+                           Difficulty difficulty)
     : room_id_(room_id),
       max_players_(max_players),
+      difficulty_(difficulty),
       registry_(std::make_unique<engine::ecs::Registry>()),
       script_engine_(std::make_unique<engine::scripting::ScriptEngine>()),
       game_state_(),
@@ -61,6 +64,36 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
 
   std::string config_dir = GameConfig::Get().GetConfigDirectory();
   script_engine_->LoadScript(config_dir + "/prefabs/enemies.lua");
+
+  {
+    auto &lua = script_engine_->LuaState();
+    sol::optional<sol::table> prefabs = lua["Prefabs"];
+    if (prefabs) {
+      std::vector<std::string> enemy_names;
+      for (auto &pair : prefabs.value()) {
+        if (pair.second.is<sol::table>()) {
+          sol::table t = pair.second;
+          if (t["Tag"].get_or(std::string("")) == "Enemy") {
+            enemy_names.push_back(pair.first.as<std::string>());
+          }
+        }
+      }
+      std::sort(enemy_names.begin(), enemy_names.end());
+
+      std::uint16_t id = 200;
+      for (const auto &name : enemy_names) {
+        sol::table t = prefabs.value()[name];
+        sol::table enemy_type = lua.create_table();
+        enemy_type["code"] = id++;
+        t["EnemyType"] = enemy_type;
+        engine::util::Logger::Default().Info(
+            "[GameLogic] Registered dynamic enemy type: " + name + " -> " +
+            std::to_string(id - 1));
+      }
+    }
+  }
+
+  script_engine_->LoadScript(config_dir + "/prefabs/dobkeratops.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/players.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/weapons.lua");
   script_engine_->LoadScript(config_dir + "/prefabs/obstacles.lua");
@@ -69,6 +102,9 @@ GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
   script_engine_->LoadScript(config_dir + "/behaviors/ai.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/weapon_logic.lua");
   script_engine_->LoadScript(config_dir + "/behaviors/collision_logic.lua");
+  script_engine_->LoadScript(config_dir + "/difficulty.lua");
+  script_engine_->LoadScript(config_dir + "/behaviors/spawn_helper.lua");
+  InitializeDifficultyModifiers();
 
   event_bus_.Subscribe<systems::EntityCollisionEvent>(
       [this](const systems::EntityCollisionEvent &e) {
@@ -197,9 +233,11 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
         "[GameInstance] Failed to spawn Player prefab");
     return std::nullopt;
   }
+  engine::util::Logger::Default().Info("[GameInstance Logic] Player Spawned");
   engine::ecs::EntityId entity = *opt_entity;
   registry_->EmplaceComponent<engine::ecs::PositionComponent>(
       entity, spawn_position.x, spawn_position.y);
+  registry_->EmplaceComponent<components::ShootEventComponent>(entity);
 
   auto &players = registry_->GetComponents<components::PlayerComponent>();
   if (static_cast<std::size_t>(entity) < players.size() &&
@@ -208,6 +246,31 @@ std::optional<engine::ecs::EntityId> GameInstance::OnPlayerJoin(
     pc.player_id = player_id;
     pc.room_id = room_id_;
     pc.player_slot = player_slot;
+  }
+
+  auto &lua = script_engine_->LuaState();
+  sol::optional<sol::function> apply_modifiers =
+      lua["SpawnHelper"]["ApplyPlayerModifiers"];
+  engine::util::Logger::Default().Info(
+      "[GameInstance Logic] Checking modifiers");
+  if (apply_modifiers.has_value()) {
+    sol::object registry_obj = lua["registry"];
+    if (registry_obj.valid()) {
+      try {
+        engine::util::Logger::Default().Info(
+            "[GameInstance Logic] Calling Lua ApplyPlayerModifiers");
+        apply_modifiers.value()(registry_obj, entity);
+        engine::util::Logger::Default().Info(
+            "[GameInstance Logic] Lua ApplyPlayerModifiers returned");
+      } catch (const sol::error &e) {
+        engine::util::Logger::Default().Error<std::string>(
+            "[GameInstance] Lua error in ApplyPlayerModifiers: " +
+            std::string(e.what()));
+      }
+    } else {
+      engine::util::Logger::Default().Error(
+          "[GameInstance] Lua registry global not found");
+    }
   }
 
   player_entities_.insert_or_assign(player_id, entity);
@@ -235,8 +298,9 @@ void GameInstance::OnPlayerLeave(std::uint32_t player_id) {
   player_input_states_.erase(player_id);
 }
 
-void GameInstance::OnPlayerInput(std::uint32_t player_id,
-                                 InputEventType input_type) {
+void GameInstance::OnPlayerInput(
+    std::uint32_t player_id, InputEventType input_type,
+    std::optional<engine::math::Vector2f> spawn_pos, float latency_s) {
   if (player_entities_.find(player_id) == player_entities_.end()) {
     return;
   }
@@ -244,6 +308,8 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
   QueuedInputEvent evt;
   evt.player_id = player_id;
   evt.type = input_type;
+  evt.spawn_pos = spawn_pos;
+  evt.latency_s = latency_s;
   pending_inputs_.push_back(evt);
 }
 
@@ -285,12 +351,45 @@ std::uint32_t GameInstance::ActivePlayerCount() const {
   return static_cast<std::uint32_t>(player_names_.size());
 }
 
+Difficulty GameInstance::GetDifficulty() const { return difficulty_; }
+
+void GameInstance::InitializeDifficultyModifiers() {
+  auto &lua = script_engine_->LuaState();
+
+  std::string_view difficulty_name = DifficultyToString(difficulty_);
+
+  sol::optional<sol::table> settings = lua["DifficultySettings"];
+  if (settings.has_value()) {
+    sol::optional<sol::table> modifiers =
+        settings.value()[std::string(difficulty_name)];
+    if (modifiers.has_value()) {
+      lua["DifficultyModifiers"] = modifiers.value();
+      engine::util::Logger::Default().Info("[GameInstance] Loaded difficulty: ",
+                                           difficulty_name);
+      return;
+    }
+  }
+
+  sol::table defaults = lua.create_table();
+  defaults["enemy_speed_multiplier"] = 1.0f;
+  defaults["enemy_health_multiplier"] = 1.0f;
+  defaults["enemy_damage_multiplier"] = 1.0f;
+  defaults["enemy_fire_rate_multiplier"] = 1.0f;
+  defaults["player_health"] = 100;
+  defaults["player_lives"] = 3;
+  defaults["score_multiplier"] = 1.0f;
+  lua["DifficultyModifiers"] = defaults;
+  engine::util::Logger::Default().Warn(
+      "[GameInstance] Using default difficulty modifiers");
+}
+
 void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<engine::ecs::PositionComponent>();
   registry_->RegisterComponent<engine::ecs::VelocityComponent>();
   registry_->RegisterComponent<engine::ecs::TransformComponent>();
   registry_->RegisterComponent<engine::ecs::BoundingBoxComponent>();
   registry_->RegisterComponent<engine::ecs::CircleColliderComponent>();
+  registry_->RegisterComponent<engine::ecs::CompoundCircleColliderComponent>();
   registry_->RegisterComponent<engine::ecs::LifetimeComponent>();
   registry_->RegisterComponent<engine::ecs::TagComponent>();
 
@@ -303,13 +402,16 @@ void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<components::ScoreValueComponent>();
   registry_->RegisterComponent<components::PowerupComponent>();
   registry_->RegisterComponent<components::DamageableComponent>();
+  registry_->RegisterComponent<components::EnemyTypeComponent>();
+
   registry_->RegisterComponent<components::DropsPowerupComponent>();
+  registry_->RegisterComponent<components::ShootEventComponent>();
 }
 
 void GameInstance::RegisterSystems() {
   registry_
       ->AddSystem<components::PlayerComponent, engine::ecs::VelocityComponent,
-                  components::WeaponComponent>(
+                  components::WeaponComponent, components::ShootEventComponent>(
           systems::PlayerInputSystem::Update, engine::ecs::SystemType::Variable,
           engine::ecs::kHighPriority, std::ref(*this));
 

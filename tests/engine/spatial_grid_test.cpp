@@ -60,10 +60,10 @@ TEST(SpatialGridTest, SpatialGrid_ClearsAllEntries) {
 
 TEST(SpatialGridTest, SpatialGrid_HandlesNegativeCoordinates) {
   SpatialGrid<int> grid(100.0f);
-  
+
   grid.Insert(1, RectF(-150.0f, -150.0f, 50.0f, 50.0f));
   grid.Insert(2, RectF(-140.0f, -140.0f, 50.0f, 50.0f));
-  
+
   int count = 0;
   grid.ForEachPotentialCollision([&](int a, int b) { count++; });
   EXPECT_EQ(count, 1);
@@ -79,7 +79,7 @@ TEST(SpatialGridTest, SpatialGrid_HandlesEmptyGrid) {
 TEST(SpatialGridTest, SpatialGrid_HandlesSingleEntity) {
   SpatialGrid<int> grid(100.0f);
   grid.Insert(1, RectF(0.0f, 0.0f, 50.0f, 50.0f));
-  
+
   int count = 0;
   grid.ForEachPotentialCollision([&](int, int) { count++; });
   EXPECT_EQ(count, 0);

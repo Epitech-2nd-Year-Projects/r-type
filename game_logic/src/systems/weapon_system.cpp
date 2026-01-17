@@ -7,6 +7,7 @@
 #include "engine/ecs/indexed_zipper.h"
 #include "engine/scripting/script_engine.h"
 #include "game_logic/components.h"
+#include "game_logic/components/shoot_event_component.h"
 
 namespace game_logic::systems {
 
@@ -20,6 +21,8 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
       registry.GetComponents<game_logic::components::WeaponComponent>();
   auto& sprites =
       registry.GetComponents<game_logic::components::SpriteComponent>();
+  auto& shoot_events =
+      registry.GetComponents<game_logic::components::ShootEventComponent>();
 
   engine::scripting::PrefabFactory& prefab_factory =
       script_engine_.GetPrefabFactory();
@@ -34,6 +37,34 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
 
     auto& position = position_opt.value();
     auto& weapon = weapon_opt.value();
+
+    if (weapon.rapid_fire_timer > 0.0f) {
+      if (weapon.original_fire_rate <= 0.0f) {
+        weapon.original_fire_rate = weapon.fire_rate;
+        if (weapon.original_fire_rate <= 0.0f) weapon.original_fire_rate = 2.0f;
+        weapon.fire_rate = 15.0f;
+      }
+      weapon.rapid_fire_timer -= dt.as_seconds();
+      if (weapon.rapid_fire_timer <= 0.0f) {
+        weapon.fire_rate = weapon.original_fire_rate;
+        weapon.original_fire_rate = 0.0f;
+        weapon.rapid_fire_timer = 0.0f;
+      }
+    }
+
+    bool use_lag_comp = false;
+    engine::math::Vector2f lc_position = position.position;
+    float lc_latency = 0.0f;
+
+    if (idx < shoot_events.size() && shoot_events[idx].has_value()) {
+      auto& evt = shoot_events[idx].value();
+      if (evt.fired) {
+        use_lag_comp = true;
+        lc_position = evt.spawn_position;
+        lc_latency = evt.latency_s;
+        evt.fired = false;
+      }
+    }
 
     if (!weapon.weapon_script.empty() && weapon_logic.valid()) {
       sol::function script_func = weapon_logic[weapon.weapon_script];
@@ -64,7 +95,7 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
       }
     }
 
-    engine::math::Vector2f spawn_position = position.position;
+    engine::math::Vector2f spawn_position = lc_position;
 
     float speed_multiplier = 1.0f;
     if (weapon.faction == entities::ProjectileFaction::kEnemy) {
@@ -83,10 +114,21 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
           engine::ecs::EntityId missile = *opt_missile;
           registry.EmplaceComponent<engine::ecs::PositionComponent>(
               missile, spawn_position.x, spawn_position.y);
+
+          float missile_vx = weapon.big_projectile_speed * speed_multiplier;
           if (weapon.big_projectile_speed > 0.0f) {
             registry.EmplaceComponent<engine::ecs::VelocityComponent>(
-                missile, weapon.big_projectile_speed * speed_multiplier, 0.0f);
+                missile, missile_vx, 0.0f);
           }
+
+          if (use_lag_comp && lc_latency > 0.0f) {
+            auto& pos_comp =
+                registry
+                    .GetComponents<engine::ecs::PositionComponent>()[missile]
+                    .value();
+            pos_comp.position.x += missile_vx * lc_latency;
+          }
+
           try {
             auto& damageables =
                 registry.GetComponents<components::DamageableComponent>();
@@ -112,9 +154,18 @@ void WeaponSystem::Update(engine::ecs::Registry& registry,
 
           float speed = weapon.projectile_speed;
           if (speed <= 0.0f) speed = 300.0f;
+          float missile_vx = speed * speed_multiplier;
 
           registry.EmplaceComponent<engine::ecs::VelocityComponent>(
-              missile, speed * speed_multiplier, 0.0f);
+              missile, missile_vx, 0.0f);
+
+          if (use_lag_comp && lc_latency > 0.0f) {
+            auto& pos_comp =
+                registry
+                    .GetComponents<engine::ecs::PositionComponent>()[missile]
+                    .value();
+            pos_comp.position.x += missile_vx * lc_latency;
+          }
 
           try {
             auto& damageables =

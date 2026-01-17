@@ -34,12 +34,16 @@ std::string_view ToString(ClientState state) {
       return "Splash";
     case ClientState::kMainMenu:
       return "MainMenu";
+    case ClientState::kProfile:
+      return "Profile";
     case ClientState::kLobby:
       return "Lobby";
     case ClientState::kSettings:
       return "Settings";
     case ClientState::kAudioSettings:
       return "AudioSettings";
+    case ClientState::kVideoSettings:
+      return "VideoSettings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -77,7 +81,10 @@ int Application::Run() {
   LogConnectionStatus(engine::util::LogLevel::kInfo, config_.host, config_.port,
                       "target configured");
 
-  if (!runtime_->Initialize(config_)) {
+  if (!runtime_->Initialize(config_,
+                            [this](const protocol::CommandPayload& payload) {
+                              EnqueueCommand(payload);
+                            })) {
     return 1;
   }
 
@@ -133,6 +140,10 @@ KeyBindingUpdateResult Application::UpdateKeyBinding(GameAction action,
 
 engine::render::Window& Application::Window() { return runtime_->Window(); }
 
+engine::math::Vector2i Application::RenderSize() const {
+  return runtime_->RenderSize();
+}
+
 std::shared_ptr<engine::audio::AudioEngine> Application::Audio() {
   return runtime_->Audio();
 }
@@ -147,6 +158,32 @@ void Application::SetAudioVolumes(float master_volume, float music_volume,
     audio_engine->SetMusicVolume(config_.music_volume);
     audio_engine->SetSfxVolume(config_.sfx_volume);
   }
+  UpdateRuntimeConfig();
+}
+
+void Application::SetVideoSettings(int resolution_width, int resolution_height,
+                                   bool fullscreen, bool vsync,
+                                   int target_fps) {
+  const bool previous_fullscreen = config_.fullscreen;
+  config_.resolution_width = std::max(1, resolution_width);
+  config_.resolution_height = std::max(1, resolution_height);
+  config_.fullscreen = fullscreen;
+  config_.vsync = vsync;
+  config_.target_fps = std::max(0, target_fps);
+
+  runtime_->SetRenderSize(
+      {config_.resolution_width, config_.resolution_height});
+
+  auto& window = runtime_->Window();
+  if (config_.fullscreen != previous_fullscreen) {
+    window.ToggleFullscreen();
+  }
+  if (!config_.fullscreen) {
+    window.SetSize({config_.resolution_width, config_.resolution_height});
+  }
+  window.SetVsync(config_.vsync);
+  window.SetTargetFps(config_.target_fps);
+
   UpdateRuntimeConfig();
 }
 
@@ -166,10 +203,18 @@ void Application::OnOpenAudioSettings() {
   scene_manager_->OnOpenAudioSettings();
 }
 
+void Application::OnOpenVideoSettings() {
+  scene_manager_->OnOpenVideoSettings();
+}
+
 void Application::OnCloseSettings() { scene_manager_->OnCloseSettings(); }
 
 void Application::OnCloseAudioSettings() {
   scene_manager_->OnCloseAudioSettings();
+}
+
+void Application::OnCloseVideoSettings() {
+  scene_manager_->OnCloseVideoSettings();
 }
 
 void Application::OnQuitApplication() {
@@ -238,9 +283,10 @@ void Application::RefreshRoomList(std::string host, std::uint16_t port) {
 void Application::CreateRoom(std::string host, std::uint16_t port,
                              const std::string& room_name, bool is_private,
                              std::string room_password,
-                             std::uint16_t max_players) {
+                             std::uint16_t max_players,
+                             protocol::Difficulty difficulty) {
   network_->CreateRoom(std::move(host), port, room_name, is_private,
-                       std::move(room_password), max_players);
+                       std::move(room_password), max_players, difficulty);
 }
 
 const std::vector<protocol::RoomSummary>& Application::RoomDirectoryRooms()
@@ -417,6 +463,18 @@ void Application::UpdateRuntimeConfig() {
   runtime_config_store.Set(
       std::string(constants::config::kClientRoomListRefreshMs),
       std::to_string(config_.room_list_refresh_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kVideoResolutionWidth),
+      std::to_string(config_.resolution_width));
+  runtime_config_store.Set(
+      std::string(constants::config::kVideoResolutionHeight),
+      std::to_string(config_.resolution_height));
+  runtime_config_store.Set(std::string(constants::config::kVideoFullscreen),
+                           config_.fullscreen ? "true" : "false");
+  runtime_config_store.Set(std::string(constants::config::kVideoVsync),
+                           config_.vsync ? "true" : "false");
+  runtime_config_store.Set(std::string(constants::config::kVideoTargetFps),
+                           std::to_string(config_.target_fps));
   runtime_config_store.Set(std::string(constants::config::kAudioMasterVolume),
                            std::to_string(config_.master_volume));
   runtime_config_store.Set(std::string(constants::config::kAudioMusicVolume),

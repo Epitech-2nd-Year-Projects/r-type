@@ -12,7 +12,7 @@ namespace {
 constexpr std::uint16_t kJoinPort = 49001;
 constexpr std::uint16_t kLobbyPort = 49002;
 
-}
+}  // namespace
 
 TEST(JoinFlowTest, FailsWhenTransportNotRunning) {
   client::NetworkTransport transport;

@@ -74,9 +74,9 @@ void GameOverScene::UpdateMenuVisuals() {
 }
 
 void GameOverScene::Draw(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   canvas_.LayoutAndDraw(renderer);
 }
 

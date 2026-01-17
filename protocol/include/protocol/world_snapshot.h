@@ -13,21 +13,22 @@ inline constexpr std::uint32_t kNoBaseSnapshotId = 0xFFFFFFFFu;
 
 /**
  * @brief Compact representation of an entity's network-relevant state.
- * 
+ *
  * Quantization is handled by game/engine code before filling this struct.
  */
 struct EntityNetState {
   std::uint32_t entity_id = 0;  ///< Stable ID for the entity.
-  std::uint16_t type = 0;       ///< Archetype code (player, enemy, missile, ...).
-  std::int16_t x = 0;           ///< Quantized position X.
-  std::int16_t y = 0;           ///< Quantized position Y.
-  std::int16_t vx = 0;          ///< Quantized velocity X.
-  std::int16_t vy = 0;          ///< Quantized velocity Y.
-  std::uint8_t hp = 0;          ///< Hit points (0 = dead).
-  std::uint8_t flags = 0;       ///< Status flags (alive, invincible, shield, etc.).
-  std::uint32_t score = 0;      ///< Player score (player entities only).
-  std::uint8_t lives = 0;       ///< Remaining lives (player entities only).
-  std::uint32_t player_id = 0;  ///< Logical player identifier (player entities).
+  std::uint16_t type = 0;   ///< Archetype code (player, enemy, missile, ...).
+  std::int16_t x = 0;       ///< Quantized position X.
+  std::int16_t y = 0;       ///< Quantized position Y.
+  std::int16_t vx = 0;      ///< Quantized velocity X.
+  std::int16_t vy = 0;      ///< Quantized velocity Y.
+  std::uint32_t hp = 0;     ///< Hit points (0 = dead).
+  std::uint8_t flags = 0;   ///< Status flags (alive, invincible, shield, etc.).
+  std::uint32_t score = 0;  ///< Player score (player entities only).
+  std::uint8_t lives = 0;   ///< Remaining lives (player entities only).
+  std::uint32_t player_id =
+      0;  ///< Logical player identifier (player entities).
 };
 
 /**
@@ -41,25 +42,25 @@ enum class EntityDeltaOp : std::uint8_t {
 
 /**
  * @brief Bitmask for fields that may be present in an update delta.
- * 
+ *
  * The mask applies to EntityNetState fields for the entity.
  */
 enum EntityFieldMask : std::uint16_t {
-  kFieldType = 1u << 0,   ///< Entity type field mask.
-  kFieldX = 1u << 1,      ///< Position X field mask.
-  kFieldY = 1u << 2,      ///< Position Y field mask.
-  kFieldVx = 1u << 3,     ///< Velocity X field mask.
-  kFieldVy = 1u << 4,     ///< Velocity Y field mask.
-  kFieldHp = 1u << 5,     ///< Hit points field mask.
-  kFieldFlags = 1u << 6,  ///< Flags field mask.
-  kFieldScore = 1u << 7,  ///< Player score field mask.
-  kFieldLives = 1u << 8,  ///< Remaining lives field mask.
+  kFieldType = 1u << 0,      ///< Entity type field mask.
+  kFieldX = 1u << 1,         ///< Position X field mask.
+  kFieldY = 1u << 2,         ///< Position Y field mask.
+  kFieldVx = 1u << 3,        ///< Velocity X field mask.
+  kFieldVy = 1u << 4,        ///< Velocity Y field mask.
+  kFieldHp = 1u << 5,        ///< Hit points field mask.
+  kFieldFlags = 1u << 6,     ///< Flags field mask.
+  kFieldScore = 1u << 7,     ///< Player score field mask.
+  kFieldLives = 1u << 8,     ///< Remaining lives field mask.
   kFieldPlayerId = 1u << 9,  ///< Logical player id field mask.
 };
 
 /**
  * @brief Representation of a single entity delta in a snapshot payload.
- * 
+ *
  * Semantics:
  *   - For kCreate:
  *       - entity_id and all fields in state are meaningful.
@@ -73,27 +74,28 @@ enum EntityFieldMask : std::uint16_t {
  *         Other fields should be treated as "unset".
  */
 struct EntityDelta {
-  EntityDeltaOp op = EntityDeltaOp::kCreate;  ///< Operation type (create/update/delete).
-  std::uint32_t entity_id = 0;                ///< Entity identifier.
-  std::uint16_t field_mask = 0;               ///< Bitmask of fields present in update.
-  EntityNetState state{};                     ///< Entity state data.
+  EntityDeltaOp op =
+      EntityDeltaOp::kCreate;    ///< Operation type (create/update/delete).
+  std::uint32_t entity_id = 0;   ///< Entity identifier.
+  std::uint16_t field_mask = 0;  ///< Bitmask of fields present in update.
+  EntityNetState state{};        ///< Entity state data.
 };
 
 /**
  * @brief Payload for MessageType::kWorldSnapshot.
- * 
+ *
  * Wire format:
  *   - uint32  snapshot_id
  *   - uint32  base_snapshot_id  (kNoBaseSnapshotId for full snapshot)
  *   - uint32  server_tick
  *   - uint16  entity_delta_count
  *   - [entity_delta_count x EntityDelta encoded as below]
- * 
+ *
  * EntityDelta encoding:
- * 
+ *
  *   - uint8  op
  *   - uint32 entity_id
- * 
+ *
  *   if op == kCreate:
  *     - uint16 type
  *     - int16  x
@@ -105,10 +107,10 @@ struct EntityDelta {
  *     - uint32 score
  *     - uint8  lives
  *     - uint32 player_id
- * 
+ *
  *   if op == kDelete:
  *     - (no additional data)
- * 
+ *
  *   if op == kUpdate:
  *     - uint16 field_mask
  *     - [if field_mask & kFieldType]  uint16 type
@@ -123,53 +125,57 @@ struct EntityDelta {
  *     - [if field_mask & kFieldPlayerId] uint32 player_id
  */
 struct WorldSnapshotPayload {
-  std::uint32_t snapshot_id = 0;                         ///< Current snapshot identifier.
-  std::uint32_t base_snapshot_id = kNoBaseSnapshotId;   ///< Base snapshot for delta (or kNoBaseSnapshotId).
-  std::uint32_t server_tick = 0;                         ///< Server simulation tick.
-  std::uint32_t current_wave = 0;                        ///< Current wave number (0 if unknown).
-  std::vector<EntityDelta> deltas;                       ///< Entity deltas in this snapshot.
+  std::uint32_t snapshot_id = 0;  ///< Current snapshot identifier.
+  std::uint32_t base_snapshot_id =
+      kNoBaseSnapshotId;  ///< Base snapshot for delta (or kNoBaseSnapshotId).
+  std::uint32_t server_tick = 0;    ///< Server simulation tick.
+  std::uint32_t current_wave = 0;   ///< Current wave number (0 if unknown).
+  std::vector<EntityDelta> deltas;  ///< Entity deltas in this snapshot.
 };
 
 /**
  * @brief Encodes a WorldSnapshotPayload into the buffer.
  * @param payload The world snapshot to serialize.
  * @param buffer The packet buffer to write to.
- * @return false if the number of deltas exceeds what fits in uint16, true otherwise.
+ * @return false if the number of deltas exceeds what fits in uint16, true
+ * otherwise.
  */
-bool EncodeWorldSnapshot(const WorldSnapshotPayload& payload,
-                         engine::net::PacketBuffer& buffer);
+bool EncodeWorldSnapshot(const WorldSnapshotPayload &payload,
+                         engine::net::PacketBuffer &buffer);
 
 /**
  * @brief Decodes a WorldSnapshotPayload from the buffer.
  * @param buffer The packet buffer to read from.
  * @param out_payload Output parameter for the deserialized world snapshot.
- * @return false if the buffer does not contain a valid snapshot, true otherwise.
+ * @return false if the buffer does not contain a valid snapshot, true
+ * otherwise.
  */
-bool DecodeWorldSnapshot(engine::net::PacketBuffer& buffer,
-                         WorldSnapshotPayload& out_payload);
+bool DecodeWorldSnapshot(engine::net::PacketBuffer &buffer,
+                         WorldSnapshotPayload &out_payload);
 
 /**
- * @brief Computes a delta snapshot representing the difference between current and base.
+ * @brief Computes a delta snapshot representing the difference between current
+ * and base.
  * @param current The full current world snapshot.
  * @param base The full base world snapshot (acknowledged by client).
  * @return A new WorldSnapshotPayload containing only the differences (deltas).
- * 
+ *
  * The returned snapshot will have:
  * - base_snapshot_id = base.snapshot_id
  * - snapshot_id = current.snapshot_id
  * - deltas containing kCreate, kUpdate (with mask), or kDelete ops.
  */
-WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload& current,
-                                  const WorldSnapshotPayload& base);
+WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload &current,
+                                  const WorldSnapshotPayload &base);
 
 /**
-* @brief Reconstructs a full snapshot by applying deltas to a base snapshot.
-* @param base The base full snapshot.
-* @param delta The delta snapshot containing changes.
-* @return The reconstructed full snapshot.
-*/
-WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload& base,
-                                const WorldSnapshotPayload& delta);
+ * @brief Reconstructs a full snapshot by applying deltas to a base snapshot.
+ * @param base The base full snapshot.
+ * @param delta The delta snapshot containing changes.
+ * @return The reconstructed full snapshot.
+ */
+WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload &base,
+                                const WorldSnapshotPayload &delta);
 
 }  // namespace protocol
 

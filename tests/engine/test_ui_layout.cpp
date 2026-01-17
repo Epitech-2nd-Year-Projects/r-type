@@ -25,9 +25,9 @@ class FakeRenderer : public engine::render::Renderer2D {
                 const engine::math::Vector2f& /*end*/, float /*thickness*/,
                 const engine::render::Color& /*color*/) override {}
 
-  void DrawTexture(const engine::render::Texture2D& /*texture*/,
-                   const engine::render::SpriteDrawParams& /*params*/) override {
-  }
+  void DrawTexture(
+      const engine::render::Texture2D& /*texture*/,
+      const engine::render::SpriteDrawParams& /*params*/) override {}
 
   void DrawText(std::string_view /*text*/,
                 const engine::math::Vector2f& /*position*/, float /*font_size*/,
@@ -36,8 +36,7 @@ class FakeRenderer : public engine::render::Renderer2D {
   engine::math::Vector2f MeasureText(std::string_view text,
                                      float font_size) override {
     last_measured_font_size = font_size;
-    const float width =
-        static_cast<float>(text.size()) * font_size * 0.5f;
+    const float width = static_cast<float>(text.size()) * font_size * 0.5f;
     return {width, font_size};
   }
 
@@ -60,8 +59,8 @@ TEST(UiLayoutTest, VerticalStackCentersChildren) {
   FakeRenderer renderer;
   engine::ui::Canvas canvas({800.0f, 600.0f});
 
-  auto root = std::make_shared<engine::ui::StackContainer>(
-      engine::ui::Axis::kVertical);
+  auto root =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
   root->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
   root->Layout().size.height = engine::ui::LayoutValue::Percent(1.0f);
   root->Layout().alignment.horizontal =
@@ -117,8 +116,8 @@ TEST(UiLayoutTest, RelativeFontSizeUsesViewport) {
   FakeRenderer renderer;
   engine::ui::Canvas canvas({800.0f, 600.0f});
 
-  auto root = std::make_shared<engine::ui::StackContainer>(
-      engine::ui::Axis::kVertical);
+  auto root =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
   root->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
   root->Layout().size.height = engine::ui::LayoutValue::Percent(1.0f);
   root->Layout().alignment.horizontal =

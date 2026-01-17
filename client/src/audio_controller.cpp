@@ -15,12 +15,13 @@ struct MusicCueEntry {
   std::optional<MusicType> cue;
 };
 
-constexpr std::array<MusicCueEntry, 10> kMusicCueTable{{
+constexpr std::array<MusicCueEntry, 11> kMusicCueTable{{
     {ClientState::kSplash, MusicType::kMainMenu},
     {ClientState::kMainMenu, MusicType::kMainMenu},
     {ClientState::kLobby, MusicType::kMainMenu},
     {ClientState::kSettings, MusicType::kMainMenu},
     {ClientState::kAudioSettings, MusicType::kMainMenu},
+    {ClientState::kVideoSettings, MusicType::kMainMenu},
     {ClientState::kConnecting, std::nullopt},
     {ClientState::kInGame, MusicType::kBackground},
     {ClientState::kPaused, MusicType::kBackground},
@@ -31,7 +32,8 @@ constexpr std::array<MusicCueEntry, 10> kMusicCueTable{{
 std::optional<MusicType> ResolveMusicCue(
     ClientState state, std::optional<ClientState> settings_return_state) {
   if ((state == ClientState::kSettings ||
-       state == ClientState::kAudioSettings) &&
+       state == ClientState::kAudioSettings ||
+       state == ClientState::kVideoSettings) &&
       settings_return_state.has_value()) {
     const ClientState return_state = *settings_return_state;
     if (return_state == ClientState::kInGame ||

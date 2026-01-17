@@ -7,6 +7,7 @@
 #define CLIENT_CLIENT_RUNTIME_H_
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -14,9 +15,11 @@
 #include "client_state.h"
 #include "engine/console/console_overlay.h"
 #include "engine/debug/imgui_integration.h"
+#include "engine/math/vector2.h"
 #include "engine/profiling/frame_profiler.h"
 #include "engine/profiling/profiling_overlay.h"
 #include "engine/time/time_delta.h"
+#include "protocol/command.h"
 
 namespace engine::app {
 class EngineRuntime;
@@ -92,9 +95,12 @@ class ClientRuntime {
   /**
    * @brief Initialize engine systems
    * @param config Client configuration
+   * @param send_command_callback Callback to send network commands (for debug)
    * @return True when initialization succeeds
    */
-  bool Initialize(const ClientConfig& config);
+  bool Initialize(const ClientConfig& config,
+                  std::function<void(const protocol::CommandPayload&)>
+                      send_command_callback);
 
   /**
    * @brief Attach world systems for rendering
@@ -135,6 +141,16 @@ class ClientRuntime {
    * @brief Access the active window
    */
   engine::render::Window& Window();
+
+  /**
+   * @brief Access the virtual render size
+   */
+  engine::math::Vector2i RenderSize() const;
+
+  /**
+   * @brief Update the virtual render size
+   */
+  void SetRenderSize(const engine::math::Vector2i& size);
 
   /**
    * @brief Access the render context
@@ -183,9 +199,11 @@ class ClientRuntime {
   void UpdateDebugToggle();
   void UpdateImGuiToggle();
   void UpdateConsoleOverlay(engine::time::TimeDelta dt);
+  void SyncInputToRenderSize();
   std::size_t RenderableEntityCount(
       const engine::ecs::Registry& registry) const;
 
+  struct FrameResources;
   struct BloomResources;
 
   std::unique_ptr<engine::app::EngineRuntime> engine_;
@@ -193,7 +211,9 @@ class ClientRuntime {
   std::unique_ptr<ecs::RenderDebug> render_debug_;
   std::unique_ptr<systems::DebugPathSystem> debug_path_system_;
   std::unique_ptr<ParallaxBackground> background_;
+  std::unique_ptr<FrameResources> frame_resources_;
   std::unique_ptr<BloomResources> bloom_;
+  engine::math::Vector2i render_size_{};
   engine::profiling::ProfilingOverlay profiling_overlay_{};
   std::unique_ptr<engine::profiling::FrameProfiler> frame_profiler_;
   std::unique_ptr<engine::debug::ImGuiIntegration> imgui_;

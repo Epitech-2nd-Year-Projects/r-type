@@ -50,6 +50,7 @@ const std::string_view kNeutralMissileTexture =
 const std::string_view kWallTexture = "assets/sprites/obstacle_wall.png";
 const std::string_view kBarrierTexture =
     "assets/sprites/obstacle_destructible.png";
+const std::string_view kDobkeratopsTexture = "assets/sprites/Dobkeratops.png";
 const std::string_view kPowerupTexture = "assets/sprites/powerup_green.png";
 
 SpriteDefinition MakeDefinition(
@@ -112,6 +113,12 @@ SpriteDefinition EnemyDefinition(std::string_view texture, float depth) {
                         kEnemyRenderLayer, depth, true);
 }
 
+SpriteDefinition BossDefinition(std::string_view texture, float width,
+                                float height, float depth) {
+  return MakeDefinition(texture, width, height, kEnemyRenderLayer, depth,
+                        false);
+}
+
 SpriteDefinition MissileDefinition(std::string_view texture, bool face_left) {
   return MakeDefinition(texture, kMissileSpriteWidth, kMissileSpriteHeight,
                         kMissileRenderLayer, 0.0f, face_left);
@@ -123,13 +130,16 @@ SpriteDefinition ObstacleDefinition(std::string_view texture, float scale) {
 }
 
 std::optional<SpriteDefinition> ResolveEnemySprite(
-    const SpriteContext& context) {
+    const SpriteContext &context) {
   const auto hp = context.health.has_value()
                       ? static_cast<std::uint32_t>(context.health->max)
                       : 0u;
   const float speed =
       context.velocity.has_value() ? context.velocity->velocity.Length() : 0.0f;
 
+  if (hp >= 500u) {
+    return BossDefinition(kDobkeratopsTexture, 165.0f, 200.0f, 0.4f);
+  }
   if (hp >= kTankHealthThreshold) {
     return EnemyDefinition(kEnemyTankTexture, 0.3f);
   }
@@ -149,7 +159,7 @@ std::optional<SpriteDefinition> ResolveEnemySprite(
 }
 
 std::optional<SpriteDefinition> ResolveMissileSprite(
-    const SpriteContext& context) {
+    const SpriteContext &context) {
   const float vx =
       context.velocity.has_value() ? context.velocity->velocity.x : 1.0f;
   const float speed =
@@ -168,7 +178,7 @@ std::optional<SpriteDefinition> ResolveMissileSprite(
 }
 
 std::optional<SpriteDefinition> ResolveObstacleSprite(
-    const SpriteContext& context) {
+    const SpriteContext &context) {
   if (context.health.has_value() && context.health->max == 0u) {
     return ObstacleDefinition(kWallTexture, 1.0f);
   }
@@ -180,7 +190,7 @@ std::optional<SpriteDefinition> ResolvePowerupSprite() {
                         kPowerupSpriteHeight, kEnemyRenderLayer, 0.5f, false);
 }
 
-const std::array<ArchetypeDefinition, 5>& ArchetypeDefinitions() {
+const std::array<ArchetypeDefinition, 5> &ArchetypeDefinitions() {
   static const std::array<ArchetypeDefinition, 5> definitions = {
       ArchetypeDefinition{kPlayerTypeCode, ArchetypeKind::kPlayer, true, false},
       ArchetypeDefinition{kEnemyTypeCode, ArchetypeKind::kEnemy, true, false},
@@ -195,31 +205,90 @@ const std::array<ArchetypeDefinition, 5>& ArchetypeDefinitions() {
 
 }  // namespace
 
-const ArchetypeRegistry& ArchetypeRegistry::Get() {
-  static const ArchetypeRegistry registry;
+const ArchetypeRegistry &ArchetypeRegistry::Get() {
+  static ArchetypeRegistry registry;
   return registry;
 }
 
-const ArchetypeDefinition* ArchetypeRegistry::Find(
-    std::uint16_t type_code) const {
-  const auto& definitions = ArchetypeDefinitions();
-  for (const auto& def : definitions) {
+ArchetypeRegistry &ArchetypeRegistry::Mutable() {
+  return const_cast<ArchetypeRegistry &>(Get());
+}
+
+void ArchetypeRegistry::RegisterPowerupType(std::uint16_t type_code,
+                                            std::string_view texture_path,
+                                            float width, float height) {
+  auto &registry = Mutable();
+  SpriteDefinition def{};
+  def.texture_id = std::string(texture_path);
+  def.source_rect = engine::math::RectF(0.0f, 0.0f, 0.0f, 0.0f);
+  def.render_size = engine::math::Vector2f(width, height);
+  def.use_full_source = true;
+
+  def.layer = kEnemyRenderLayer;
+  def.depth = 0.5f;
+  def.face_left = false;
+  def.tint = engine::render::Color::White();
+
+  registry.custom_powerups_[type_code] = def;
+  registry.custom_definitions_[type_code] = {type_code, ArchetypeKind::kPowerup,
+                                             false, false};
+}
+
+void ArchetypeRegistry::RegisterEnemyType(std::uint16_t type_code,
+                                          std::string_view texture_path,
+                                          float width, float height,
+                                          float frame_width,
+                                          float frame_height) {
+  auto &registry = Mutable();
+  SpriteDefinition def{};
+  def.texture_id = std::string(texture_path);
+  def.source_rect = engine::math::RectF(0.0f, 0.0f, frame_width, frame_height);
+  def.render_size = engine::math::Vector2f(width, height);
+  def.use_full_source = false;
+  def.layer = kEnemyRenderLayer;
+  def.depth = 0.3f;
+  def.face_left = true;
+  def.tint = engine::render::Color::White();
+
+  registry.custom_enemies_[type_code] = def;
+  registry.custom_definitions_[type_code] = {type_code, ArchetypeKind::kEnemy,
+                                             true, false};
+}
+
+void ArchetypeRegistry::SetPlayerConfig(float width, float height,
+                                        float frame_width, float frame_height) {
+  auto &registry = Mutable();
+  registry.player_render_size_ = {width, height};
+  registry.player_frame_size_ = {frame_width, frame_height};
+}
+
+ArchetypeRegistry::ArchetypeRegistry()
+    : player_render_size_(kPlayerSpriteWidth, kPlayerSpriteHeight),
+      player_frame_size_(kPlayerSpriteWidth, kPlayerSpriteHeight) {}
+
+std::optional<std::reference_wrapper<const ArchetypeDefinition>>
+ArchetypeRegistry::Find(std::uint16_t type_code) const {
+  const auto &definitions = ArchetypeDefinitions();
+  for (const auto &def : definitions) {
     if (def.type_code == type_code) {
-      return &def;
+      return def;
     }
   }
-  return nullptr;
+  if (custom_definitions_.count(type_code)) {
+    return custom_definitions_.at(type_code);
+  }
+  return std::nullopt;
 }
 
 ArchetypeKind ArchetypeRegistry::KindOf(std::uint16_t type_code) const {
-  const auto* def = Find(type_code);
-  return def ? def->kind : ArchetypeKind::kUnknown;
+  const auto def = Find(type_code);
+  return def ? def->get().kind : ArchetypeKind::kUnknown;
 }
 
 bool ArchetypeRegistry::IsKind(std::uint16_t type_code,
                                ArchetypeKind kind) const {
-  const auto* def = Find(type_code);
-  return def && def->kind == kind;
+  const auto def = Find(type_code);
+  return def && def->get().kind == kind;
 }
 
 bool ArchetypeRegistry::IsPlayer(std::uint16_t type_code) const {
@@ -243,20 +312,32 @@ bool ArchetypeRegistry::IsPowerup(std::uint16_t type_code) const {
 }
 
 bool ArchetypeRegistry::IsDamageable(std::uint16_t type_code) const {
-  const auto* def = Find(type_code);
-  return def && def->damageable;
+  const auto def = Find(type_code);
+  return def && def->get().damageable;
 }
 
 bool ArchetypeRegistry::IsExplosive(std::uint16_t type_code) const {
-  const auto* def = Find(type_code);
-  return def && def->explosive;
+  const auto def = Find(type_code);
+  return def && def->get().explosive;
 }
 
 std::optional<SpriteDefinition> ArchetypeRegistry::ResolveSprite(
-    std::uint16_t type_code, const SpriteContext& context) const {
+    std::uint16_t type_code, const SpriteContext &context) const {
+  if (custom_powerups_.count(type_code)) {
+    return custom_powerups_.at(type_code);
+  }
+  if (custom_enemies_.count(type_code)) {
+    return custom_enemies_.at(type_code);
+  }
   switch (KindOf(type_code)) {
-    case ArchetypeKind::kPlayer:
-      return PlayerDefinition(context.network_id);
+    case ArchetypeKind::kPlayer: {
+      auto def = PlayerDefinition(context.network_id);
+      def.render_size = player_render_size_;
+      def.source_rect = engine::math::RectF(0.0f, 0.0f, player_frame_size_.x,
+                                            player_frame_size_.y);
+      def.use_full_source = false;
+      return def;
+    }
     case ArchetypeKind::kEnemy:
       return ResolveEnemySprite(context);
     case ArchetypeKind::kMissile:

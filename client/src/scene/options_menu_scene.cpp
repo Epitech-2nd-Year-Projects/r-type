@@ -125,7 +125,8 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Video", menu_effects_.WrapClick({}));
+      "Video",
+      menu_effects_.WrapClick([this]() { context_.OnOpenVideoSettings(); }));
   auto keyboard_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
@@ -204,7 +205,7 @@ void OptionsMenuScene::Draw(engine::render::Renderer2D& renderer) {
 
 void OptionsMenuScene::DrawBackground(engine::render::Renderer2D& renderer) {
   static_cast<void>(renderer);
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.RenderSize());
 }
 
 void OptionsMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
@@ -220,9 +221,9 @@ void OptionsMenuScene::DrawForeground(engine::render::Renderer2D& renderer) {
 }
 
 void OptionsMenuScene::LayoutUi(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   canvas_.Layout(renderer);
 }
 

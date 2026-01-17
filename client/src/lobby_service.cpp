@@ -94,7 +94,8 @@ void LobbyService::RequestRoomList() {
 
 void LobbyService::RequestCreateRoom(const std::string& room_name,
                                      bool is_private, std::string room_password,
-                                     std::uint16_t max_players) {
+                                     std::uint16_t max_players,
+                                     protocol::Difficulty difficulty) {
   pending_list_.reset();
   protocol::CreateRoomRequestPayload request{};
   request.room_name = room_name;
@@ -102,6 +103,7 @@ void LobbyService::RequestCreateRoom(const std::string& room_name,
   request.room_password = std::move(room_password);
   request.max_players = static_cast<std::uint8_t>(std::min<std::uint16_t>(
       max_players, std::numeric_limits<std::uint8_t>::max()));
+  request.difficulty = difficulty;
   pending_create_ = request;
   active_operation_ = Operation::kCreate;
   attempts_ = 0;

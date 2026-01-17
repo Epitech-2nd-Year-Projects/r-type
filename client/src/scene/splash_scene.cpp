@@ -78,10 +78,10 @@ void SplashScene::Draw(engine::render::Renderer2D& renderer) {
 
 void SplashScene::DrawBackground(engine::render::Renderer2D& renderer) {
   static_cast<void>(renderer);
-  background_.Draw(context_.Window());
+  background_.Draw(context_.RenderSize());
   const float transition_alpha = TransitionAlpha();
   if (transition_alpha > 0.0f) {
-    context_.MenuBackground().Draw(context_.Window(), transition_alpha);
+    context_.MenuBackground().Draw(context_.RenderSize(), transition_alpha);
   }
 }
 
@@ -115,9 +115,9 @@ void SplashScene::DrawLogo(engine::render::Renderer2D& renderer) {
   if (!title_texture_) {
     return;
   }
-  const auto window_size = context_.Window().GetSize();
-  const float width = static_cast<float>(window_size.x);
-  const float height = static_cast<float>(window_size.y);
+  const auto render_size = context_.RenderSize();
+  const float width = static_cast<float>(render_size.x);
+  const float height = static_cast<float>(render_size.y);
   if (width <= 0.0f || height <= 0.0f) {
     return;
   }
@@ -153,9 +153,9 @@ void SplashScene::DrawPrompt(engine::render::Renderer2D& renderer) {
   if (prompt_text_.empty()) {
     return;
   }
-  const auto window_size = context_.Window().GetSize();
-  const float width = static_cast<float>(window_size.x);
-  const float height = static_cast<float>(window_size.y);
+  const auto render_size = context_.RenderSize();
+  const float width = static_cast<float>(render_size.x);
+  const float height = static_cast<float>(render_size.y);
   if (width <= 0.0f || height <= 0.0f) {
     return;
   }
@@ -178,9 +178,9 @@ void SplashScene::DrawCopyright(engine::render::Renderer2D& renderer) {
   if (copyright_text_.empty()) {
     return;
   }
-  const auto window_size = context_.Window().GetSize();
-  const float width = static_cast<float>(window_size.x);
-  const float height = static_cast<float>(window_size.y);
+  const auto render_size = context_.RenderSize();
+  const float width = static_cast<float>(render_size.x);
+  const float height = static_cast<float>(render_size.y);
   if (width <= 0.0f || height <= 0.0f) {
     return;
   }

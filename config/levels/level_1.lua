@@ -2,22 +2,23 @@ local Level = {
     info = { name = "Level 1", id = 1 },
     run = function()
         Wait(2.0)
-        Spawn("Scout", 1650.0, 0.0, true, false)
+
+        Spawn("Scout", 1650.0, 0.0, true, true)
         
         Wait(1.0)
         Spawn("Scout", 1650.0, 0.0, true, true)
         
         Wait(1.0)
-        Spawn("Scout", 1650.0, 0.0, true, false)
+        Spawn("Scout", 1650.0, 0.0, true, true)
         
         Wait(4.0)
-        Spawn("Bomber", 1700.0, 0.0, true, false)
+        Spawn("Bomber", 1700.0, 0.0, true, true)
         
         Wait(0.5)
-        Spawn("Bomber", 1700.0, 0.0, true, false)
+        Spawn("Bomber", 1700.0, 0.0, true, true)
         
         Wait(0.5)
-        Spawn("Bomber", 1700.0, 0.0, true, false)
+        Spawn("Bomber", 1700.0, 0.0, true, true)
         
         Wait(3.0)
         Spawn("Interceptor", 1700.0, 0.0, true, false)

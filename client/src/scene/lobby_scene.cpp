@@ -24,9 +24,10 @@ LobbyScene::LobbyScene(ClientContext& context)
       modal_(
           [this](const std::string& room_name,
                  const std::string& max_players_text, bool is_private,
-                 std::string password) {
+                 std::string password, protocol::Difficulty difficulty) {
             return controller_.TryCreateRoom(room_name, max_players_text,
-                                             is_private, std::move(password));
+                                             is_private, std::move(password),
+                                             difficulty);
           },
           [this](const protocol::RoomSummary& room,
                  const std::string& password) {
@@ -110,9 +111,9 @@ bool LobbyScene::IsInputCaptured() const {
 }
 
 void LobbyScene::LayoutUi() {
-  const auto window_size = context_.Window().GetSize();
-  const engine::math::Vector2f size{static_cast<float>(window_size.x),
-                                    static_cast<float>(window_size.y)};
+  const auto render_size = context_.RenderSize();
+  const engine::math::Vector2f size{static_cast<float>(render_size.x),
+                                    static_cast<float>(render_size.y)};
   controller_.Layout(size);
   room_list_view_.Layout(size);
   if (modal_.IsOpen()) {

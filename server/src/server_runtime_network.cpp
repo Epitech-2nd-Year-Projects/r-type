@@ -1,3 +1,4 @@
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -112,6 +113,113 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
         logger_.Warn("Malformed client command from ", peer.endpoint_key);
         return;
       }
+      auto& command = std::get<protocol::CommandPayload>(decoded.payload);
+      if (command.command_id ==
+          static_cast<std::uint16_t>(
+              protocol::CommandType::kDebugUpdateComponent)) {
+        if (command.payload.size() < 8) {
+          return;
+        }
+
+        std::uint32_t entity_id = 0;
+        std::uint32_t component_id_raw = 0;
+
+        std::span<const char> payload_span(command.payload);
+        auto bytes = std::as_bytes(payload_span);
+
+        if (bytes.size() < sizeof(entity_id) + sizeof(component_id_raw)) {
+          return;
+        }
+
+        std::memcpy(&entity_id, bytes.data(), sizeof(entity_id));
+        bytes = bytes.subspan(sizeof(entity_id));
+        std::memcpy(&component_id_raw, bytes.data(), sizeof(component_id_raw));
+        bytes = bytes.subspan(sizeof(component_id_raw));
+
+        auto room = FindRoom(peer.room_code);
+        if (!room.has_value()) {
+          return;
+        }
+
+        auto& registry = room->get().World();
+        const auto comp_id =
+            static_cast<protocol::DebugComponentId>(component_id_raw);
+        switch (comp_id) {
+          case protocol::DebugComponentId::kTransform: {
+            auto& components =
+                registry.GetComponents<engine::ecs::PositionComponent>();
+            if (entity_id < components.size() &&
+                components[entity_id].has_value()) {
+              if (bytes.size() >= sizeof(engine::ecs::PositionComponent)) {
+                std::memcpy(&components[entity_id].value(), bytes.data(),
+                            sizeof(engine::ecs::PositionComponent));
+              }
+            }
+            break;
+          }
+          case protocol::DebugComponentId::kVelocity: {
+            auto& components =
+                registry.GetComponents<engine::ecs::VelocityComponent>();
+            if (entity_id < components.size() &&
+                components[entity_id].has_value()) {
+              if (bytes.size() >= sizeof(engine::ecs::VelocityComponent)) {
+                std::memcpy(&components[entity_id].value(), bytes.data(),
+                            sizeof(engine::ecs::VelocityComponent));
+              }
+            }
+            break;
+          }
+          case protocol::DebugComponentId::kHealth: {
+            struct ClientHealthComponent {
+              std::uint8_t current;
+              std::uint8_t max;
+            };
+            auto& components =
+                registry
+                    .GetComponents<game_logic::components::HealthComponent>();
+            if (entity_id < components.size() &&
+                components[entity_id].has_value()) {
+              if (bytes.size() >= sizeof(ClientHealthComponent)) {
+                ClientHealthComponent incoming;
+                std::memcpy(&incoming, bytes.data(), sizeof(incoming));
+                auto& server_comp = components[entity_id].value();
+                server_comp.current_health =
+                    static_cast<std::uint32_t>(incoming.current);
+                server_comp.max_health =
+                    static_cast<std::uint32_t>(incoming.max);
+              }
+            }
+            break;
+          }
+          case protocol::DebugComponentId::kPlayerState: {
+            struct ClientPlayerState {
+              std::uint32_t player_id;
+              std::uint32_t score;
+              std::uint8_t lives;
+            };
+
+            auto& components =
+                registry
+                    .GetComponents<game_logic::components::PlayerComponent>();
+            if (entity_id < components.size() &&
+                components[entity_id].has_value()) {
+              if (bytes.size() >= sizeof(ClientPlayerState)) {
+                ClientPlayerState incoming;
+                std::memcpy(&incoming, bytes.data(), sizeof(incoming));
+                auto& server_comp = components[entity_id].value();
+
+                server_comp.score = incoming.score;
+                server_comp.lives = static_cast<std::uint32_t>(incoming.lives);
+              }
+            }
+            break;
+          }
+          default:
+            break;
+        }
+        return;
+      }
+
       HandleClientCommand(peer,
                           std::get<protocol::CommandPayload>(decoded.payload),
                           decoded.header);
@@ -212,7 +320,7 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
   if (command.command_id ==
       static_cast<std::uint16_t>(protocol::CommandType::kDisconnectNotice)) {
     logger_.Info("Peer requested disconnect ", peer.endpoint_key);
-    DisconnectPeer(peer, "client disconnect", /*notify_client=*/false);
+    DisconnectPeer(peer, "client disconnect", false);
     peers_.erase(peer.endpoint_key);
     return;
   }

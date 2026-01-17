@@ -41,9 +41,9 @@ void ConnectingScene::Update(engine::time::TimeDelta /*dt*/) {
 }
 
 void ConnectingScene::Draw(engine::render::Renderer2D& renderer) {
-  const auto window_size = context_.Window().GetSize();
+  const auto render_size = context_.RenderSize();
   canvas_.SetViewportSize(
-      {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
+      {static_cast<float>(render_size.x), static_cast<float>(render_size.y)});
   status_text_->SetText(std::string(context_.ConnectionStatus()));
   canvas_.LayoutAndDraw(renderer);
 }
