@@ -153,4 +153,19 @@ bool Room::IsEmpty() const { return players_.empty(); }
 
 bool Room::HasStarted() const { return started_; }
 
+bool Room::IsFinished() const {
+  return game_instance_ && game_instance_->Logic().IsFinished();
+}
+
+bool Room::PollMatchOver() {
+  if (match_over_sent_) {
+    return false;
+  }
+  if (IsFinished()) {
+    match_over_sent_ = true;
+    return true;
+  }
+  return false;
+}
+
 }  // namespace server
