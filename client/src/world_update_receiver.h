@@ -38,11 +38,9 @@ namespace client {
  */
 struct OutgoingMessage {
   protocol::message_type::MessageType type{
-      protocol::message_type::MessageType::kInvalid};  ///< Message type to
-                                                       ///< send.
+      protocol::message_type::MessageType::kInvalid};  ///< Message type to send.
   protocol::InputStatePayload input_state{};  ///< Populated for kInputState.
-  protocol::CommandPayload
-      command_payload{};            ///< Populated for kClientCommand.
+  protocol::CommandPayload command_payload{};  ///< Populated for kClientCommand.
   std::uint32_t client_time_ms{0};  ///< Client timestamp for inputs.
 };
 
