@@ -109,6 +109,13 @@ bool EncodePayloadByType(const PacketPayload& payload, MessageType type,
       const auto& value = std::get<CommandPayload>(payload);
       return EncodeCommand(value, buffer);
     }
+    case MessageType::kGameplayPing: {
+      if (!std::holds_alternative<GameplayPingPayload>(payload)) {
+        return false;
+      }
+      const auto& value = std::get<GameplayPingPayload>(payload);
+      return EncodeGameplayPing(value, buffer);
+    }
     default:
       return false;
   }
@@ -222,6 +229,14 @@ bool DecodePayloadByType(engine::net::PacketBuffer& buffer, MessageType type,
       out_payload = std::move(value);
       return true;
     }
+    case MessageType::kGameplayPing: {
+      GameplayPingPayload value;
+      if (!DecodeGameplayPing(buffer, value)) {
+        return false;
+      }
+      out_payload = std::move(value);
+      return true;
+    }
     default:
       return false;
   }
@@ -265,6 +280,7 @@ bool DecodePacketInternal(
     case MessageType::kRoomListResponse:
     case MessageType::kCreateRoomRequest:
     case MessageType::kCreateRoomResponse:
+    case MessageType::kGameplayPing:
       break;
     case MessageType::kInvalid:
     default:
