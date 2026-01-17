@@ -3,6 +3,9 @@ local Level = {
     run = function()
         Wait(2.0)
 
+        Spawn("Tank", 1650.0, 0.0, true, true)
+        Wait(5.0)
+
         Spawn("Scout", 1650.0, 0.0, true, true)
         
         Wait(1.0)
