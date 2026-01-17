@@ -9,8 +9,11 @@ namespace rift::systems {
 
 class FighterMovementSystem : public engine::ecs::ISystem {
  public:
-  static constexpr float kArenaWidth = 800.0f;
+  static constexpr float kArenaWidth = 1280.0f;
+  static constexpr float kFighterWidth = 60.0f;
   static constexpr float kMinDistance = 20.0f;
+  static constexpr float kGravity = 980.0f;
+  static constexpr float kGroundY = 380.0f;
 
   FighterMovementSystem() = default;
   ~FighterMovementSystem() override = default;
