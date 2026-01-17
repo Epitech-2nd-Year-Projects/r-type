@@ -18,6 +18,7 @@ jobs:
       AR: llvm-ar
       NM: llvm-nm
       RANLIB: llvm-ranlib
+      BUILD_RIFT: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -73,9 +74,11 @@ jobs:
           mkdir -p release/r-type-linux
           cp build/linux/x86_64/release/client release/r-type-linux/r-type-client
           cp build/linux/x86_64/release/server release/r-type-linux/r-type-server
+          cp build/linux/x86_64/release/rift_client release/r-type-linux/rift-client
+          cp build/linux/x86_64/release/rift_server release/r-type-linux/rift-server
           cp -r assets release/r-type-linux/
           cp -r config release/r-type-linux/
-          
+
           cd release
           tar -czvf r-type-linux.tar.gz r-type-linux
 
@@ -89,6 +92,7 @@ jobs:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
+      BUILD_RIFT: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -125,10 +129,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path release/r-type-windows
           Copy-Item build/windows/x64/release/client.exe -Destination release/r-type-windows/r-type-client.exe
           Copy-Item build/windows/x64/release/server.exe -Destination release/r-type-windows/r-type-server.exe
+          Copy-Item build/windows/x64/release/rift_client.exe -Destination release/r-type-windows/rift-client.exe
+          Copy-Item build/windows/x64/release/rift_server.exe -Destination release/r-type-windows/rift-server.exe
           Copy-Item -Recurse -Path assets -Destination release/r-type-windows/assets
           Copy-Item -Recurse -Path config -Destination release/r-type-windows/config
           Copy-Item -Path build/windows/x64/release/*.dll -Destination release/r-type-windows -Force
-          
+
           Compress-Archive -Path release/r-type-windows -DestinationPath release/r-type-windows.zip
 
       - name: Upload Artifact
