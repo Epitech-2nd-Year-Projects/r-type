@@ -510,7 +510,6 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   if (background_) {
     background_->Update(dt, {static_cast<float>(render_size.x),
                              static_cast<float>(render_size.y)});
-    background_->Draw();
   }
 
   if (render_with_bloom) {
@@ -518,6 +517,12 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     bloom_->EnsureTarget(window_size);
     if (bloom_->Ready()) {
       frame_resources_->BeginCapture(constants::client::kClearColor);
+      if (background_) {
+        background_->Draw();
+      }
+      if (render_gameplay && render_system_) {
+        render_system_->Render();
+      }
       if (scene) {
         scene->DrawBackground(renderer);
       }
@@ -535,6 +540,12 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       bloom_->DrawBloom(render_viewport);
     } else if (frame_ready) {
       frame_resources_->BeginCapture(constants::client::kClearColor);
+      if (background_) {
+        background_->Draw();
+      }
+      if (render_gameplay && render_system_) {
+        render_system_->Render();
+      }
       if (scene) {
         scene->Draw(renderer);
       }
@@ -544,11 +555,23 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       frame_resources_->DrawCaptured(render_viewport);
     } else if (scene) {
       context.Clear(constants::client::kClearColor);
+      if (background_) {
+        background_->Draw();
+      }
+      if (render_gameplay && render_system_) {
+        render_system_->Render();
+      }
       scene->Draw(renderer);
     }
   } else {
     if (frame_ready) {
       frame_resources_->BeginCapture(constants::client::kClearColor);
+      if (background_) {
+        background_->Draw();
+      }
+      if (render_gameplay && render_system_) {
+        render_system_->Render();
+      }
       if (scene) {
         scene->Draw(renderer);
       }
@@ -558,6 +581,12 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       frame_resources_->DrawCaptured(render_viewport);
     } else if (scene) {
       context.Clear(constants::client::kClearColor);
+      if (background_) {
+        background_->Draw();
+      }
+      if (render_gameplay && render_system_) {
+        render_system_->Render();
+      }
       scene->Draw(renderer);
     }
   }
