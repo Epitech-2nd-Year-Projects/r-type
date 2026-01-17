@@ -1,6 +1,8 @@
 #include "ecs/world_state_system.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <optional>
 #include <unordered_set>
 #include <utility>
 
@@ -42,14 +44,57 @@ void WorldStateSystem::Reset() {
   }
   network_to_entity_.clear();
   last_snapshot_id_ = 0;
+  local_player_entity_.reset();
+  server_tick_rate_hz_.reset();
+  server_time_anchor_ms_.reset();
+  server_tick_anchor_.reset();
 }
 
 void WorldStateSystem::ApplySnapshot(
     const protocol::WorldSnapshotPayload &snapshot,
-    std::uint64_t receipt_timestamp_ms) {
+    std::uint64_t receipt_timestamp_ms,
+    std::optional<std::uint32_t> local_player_id,
+    std::optional<std::uint32_t> server_tick_rate_hz,
+    std::optional<std::uint64_t> snapshot_time_ms) {
   if (snapshot.snapshot_id <= last_snapshot_id_) {
     return;
   }
+
+  if (server_tick_rate_hz.has_value()) {
+    server_tick_rate_hz_ = server_tick_rate_hz;
+  }
+
+  const std::uint64_t observation_ms =
+      snapshot_time_ms.value_or(receipt_timestamp_ms);
+  const std::uint32_t tick_rate =
+      server_tick_rate_hz.value_or(server_tick_rate_hz_.value_or(0));
+  if (tick_rate > 0) {
+    const std::uint64_t tick_ms =
+        static_cast<std::uint64_t>(1000.0 / static_cast<double>(tick_rate));
+    if (!server_time_anchor_ms_.has_value() ||
+        !server_tick_anchor_.has_value()) {
+      server_time_anchor_ms_ = observation_ms;
+      server_tick_anchor_ = snapshot.server_tick;
+    } else {
+      const std::uint64_t anchor_tick = server_tick_anchor_.value();
+      const std::uint64_t anchor_time = server_time_anchor_ms_.value();
+      const std::uint64_t tick_delta = snapshot.server_tick >= anchor_tick
+                                           ? snapshot.server_tick - anchor_tick
+                                           : 0u;
+      const std::uint64_t predicted_time = anchor_time + tick_delta * tick_ms;
+      const std::uint64_t time_gap = observation_ms >= predicted_time
+                                         ? observation_ms - predicted_time
+                                         : predicted_time - observation_ms;
+      if (time_gap > (tick_ms * 2u)) {
+        server_time_anchor_ms_ = observation_ms;
+        server_tick_anchor_ = snapshot.server_tick;
+      }
+    }
+  }
+
+  const auto resolved_time_ms =
+      ResolveSnapshotTimeMs(snapshot, server_tick_rate_hz,
+                            std::optional<std::uint64_t>(observation_ms));
 
   const bool full_snapshot =
       snapshot.base_snapshot_id == protocol::kNoBaseSnapshotId;
@@ -59,11 +104,13 @@ void WorldStateSystem::ApplySnapshot(
   for (const auto &delta : snapshot.deltas) {
     switch (delta.op) {
       case protocol::EntityDeltaOp::kCreate:
-        ApplyCreate(delta, snapshot.snapshot_id, receipt_timestamp_ms);
+        ApplyCreate(delta, snapshot.snapshot_id, receipt_timestamp_ms,
+                    resolved_time_ms);
         seen.insert(delta.entity_id);
         break;
       case protocol::EntityDeltaOp::kUpdate:
-        ApplyUpdate(delta, snapshot.snapshot_id, receipt_timestamp_ms);
+        ApplyUpdate(delta, snapshot.snapshot_id, receipt_timestamp_ms,
+                    resolved_time_ms);
         seen.insert(delta.entity_id);
         break;
       case protocol::EntityDeltaOp::kDelete:
@@ -84,12 +131,39 @@ void WorldStateSystem::ApplySnapshot(
     }
   }
 
+  if (local_player_id.has_value()) {
+    const auto &player_states = registry_.GetComponents<PlayerStateComponent>();
+    const auto &net = registry_.GetComponents<NetworkedEntityComponent>();
+    bool tagged = false;
+    for (std::size_t i = 0; i < player_states.size(); ++i) {
+      if (!player_states[i].has_value()) {
+        continue;
+      }
+      if (player_states[i]->player_id != local_player_id.value()) {
+        continue;
+      }
+      if (i >= net.size() || !net[i].has_value()) {
+        continue;
+      }
+      const auto entity = registry_.EntityFromIndex(i);
+      UpdateLocalPlayerTag(entity, local_player_id);
+      tagged = true;
+      break;
+    }
+    if (!tagged && local_player_entity_.has_value()) {
+      UpdateLocalPlayerTag(local_player_entity_.value(), std::nullopt);
+    }
+  } else if (local_player_entity_.has_value()) {
+    UpdateLocalPlayerTag(local_player_entity_.value(), std::nullopt);
+  }
+
   last_snapshot_id_ = snapshot.snapshot_id;
 }
 
-void WorldStateSystem::ApplyCreate(const protocol::EntityDelta &delta,
-                                   std::uint32_t snapshot_id,
-                                   std::uint64_t receipt_timestamp_ms) {
+void WorldStateSystem::ApplyCreate(
+    const protocol::EntityDelta &delta, std::uint32_t snapshot_id,
+    std::uint64_t receipt_timestamp_ms,
+    std::optional<std::uint64_t> snapshot_time_ms) {
   const auto entity =
       ResolveOrCreateEntity(delta.entity_id, snapshot_id, delta.state.type);
 
@@ -129,14 +203,16 @@ void WorldStateSystem::ApplyCreate(const protocol::EntityDelta &delta,
         delta.state.player_id, delta.state.score, delta.state.lives);
   }
 
+  const std::uint64_t timing_ms =
+      snapshot_time_ms.value_or(receipt_timestamp_ms);
   auto &snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
-  snapshots[entity] = SnapshotInterpolationComponent(receipt_timestamp_ms,
-                                                     receipt_timestamp_ms);
+  snapshots[entity] = SnapshotInterpolationComponent(timing_ms, timing_ms);
 }
 
-void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta &delta,
-                                   std::uint32_t snapshot_id,
-                                   std::uint64_t receipt_timestamp_ms) {
+void WorldStateSystem::ApplyUpdate(
+    const protocol::EntityDelta &delta, std::uint32_t snapshot_id,
+    std::uint64_t receipt_timestamp_ms,
+    std::optional<std::uint64_t> snapshot_time_ms) {
   const auto it = network_to_entity_.find(delta.entity_id);
   const bool created = it == network_to_entity_.end();
   const auto entity = created
@@ -254,14 +330,17 @@ void WorldStateSystem::ApplyUpdate(const protocol::EntityDelta &delta,
     player_states[entity].reset();
   }
 
+  const std::uint64_t timing_ms =
+      snapshot_time_ms.value_or(receipt_timestamp_ms);
   auto &snapshots = registry_.GetComponents<SnapshotInterpolationComponent>();
   auto &snapshot = snapshots[entity];
   if (!snapshot.has_value()) {
-    snapshot = SnapshotInterpolationComponent(receipt_timestamp_ms,
-                                              receipt_timestamp_ms);
+    snapshot = SnapshotInterpolationComponent(timing_ms, timing_ms);
   } else {
-    snapshot->previous_snapshot_ms = snapshot->last_snapshot_ms;
-    snapshot->last_snapshot_ms = receipt_timestamp_ms;
+    if (timing_ms >= snapshot->last_snapshot_ms) {
+      snapshot->previous_snapshot_ms = snapshot->last_snapshot_ms;
+      snapshot->last_snapshot_ms = timing_ms;
+    }
   }
 }
 
@@ -322,6 +401,57 @@ engine::math::Vector2f WorldStateSystem::ToVector(std::int16_t x,
                                                   std::int16_t y) {
   return {static_cast<float>(x) * kQuantizationScale,
           static_cast<float>(y) * kQuantizationScale};
+}
+
+void WorldStateSystem::UpdateLocalPlayerTag(
+    engine::ecs::EntityId entity,
+    std::optional<std::uint32_t> local_player_id) {
+  auto &locals = registry_.GetComponents<LocalPlayerTag>();
+  if (!local_player_id.has_value()) {
+    if (locals[entity].has_value()) {
+      locals[entity].reset();
+    }
+    if (local_player_entity_.has_value() &&
+        local_player_entity_.value() == entity) {
+      local_player_entity_.reset();
+    }
+    return;
+  }
+  locals[entity] = LocalPlayerTag{};
+  local_player_entity_ = entity;
+}
+
+std::optional<std::uint64_t> WorldStateSystem::ResolveSnapshotTimeMs(
+    const protocol::WorldSnapshotPayload &snapshot,
+    std::optional<std::uint32_t> server_tick_rate_hz,
+    std::optional<std::uint64_t> snapshot_time_ms) const {
+  if (!snapshot_time_ms.has_value()) {
+    return std::nullopt;
+  }
+  const std::uint64_t server_time_value = snapshot_time_ms.value();
+  const std::uint32_t tick_rate =
+      server_tick_rate_hz.value_or(server_tick_rate_hz_.value_or(0));
+  if (tick_rate == 0) {
+    return std::nullopt;
+  }
+  const std::uint64_t tick_ms =
+      static_cast<std::uint64_t>(1000.0 / static_cast<double>(tick_rate));
+  if (!server_time_anchor_ms_.has_value() || !server_tick_anchor_.has_value()) {
+    return server_time_value;
+  }
+  const std::uint64_t anchor_tick = server_tick_anchor_.value();
+  const std::uint64_t anchor_time = server_time_anchor_ms_.value();
+  const std::uint64_t tick_delta = snapshot.server_tick >= anchor_tick
+                                       ? snapshot.server_tick - anchor_tick
+                                       : 0u;
+  const std::uint64_t predicted_time = anchor_time + tick_delta * tick_ms;
+  const std::uint64_t time_gap = server_time_value >= predicted_time
+                                     ? server_time_value - predicted_time
+                                     : predicted_time - server_time_value;
+  if (time_gap > (tick_ms * 2u)) {
+    return server_time_value;
+  }
+  return predicted_time;
 }
 
 }  // namespace client::ecs
