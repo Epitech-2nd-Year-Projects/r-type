@@ -75,6 +75,7 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt) {
                 std::get_if<protocol::WorldSnapshotPayload>(&message.payload)) {
           const auto now_ms = engine::time::NowMilliseconds();
           world_state_system_->ApplySnapshot(*snapshot, LocalPlayerId(), now_ms);
+          round_timer_ms_ = snapshot->round_timer_ms;
         }
       }
       if (message.type == protocol::message_type::MessageType::kServerCommand) {
@@ -219,6 +220,10 @@ void NetworkSession::HandleServerCommand(
   if (payload.command_id ==
       static_cast<std::uint16_t>(protocol::CommandType::kStartGame)) {
     events.match_started = true;
+  }
+  if (payload.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kMatchOver)) {
+    events.match_over = MatchOverStats{};
   }
 }
 

@@ -70,6 +70,8 @@ class NetworkSession {
 
   WorldUpdateReceiver& UpdateReceiver();
 
+  std::uint32_t RoundTimerMs() const { return round_timer_ms_; }
+
  private:
   void HandleServerCommand(const protocol::CommandPayload& payload,
                            NetworkEvents& events);
@@ -87,6 +89,7 @@ class NetworkSession {
   WorldUpdateReceiver world_update_receiver_;
   JoinState last_join_state_{JoinState::kIdle};
   bool disconnect_notice_sent_{false};
+  std::uint32_t round_timer_ms_{0};
 };
 
 }  // namespace rift::client
