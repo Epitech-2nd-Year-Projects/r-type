@@ -215,6 +215,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.server_tick = server_tick;
   snapshot.current_wave = logic_ ? logic_->State().round_number : 0;
+  snapshot.round_timer_ms = logic_ ? logic_->State().round_timer_ms : 0;
 
   auto &registry = World();
   auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
