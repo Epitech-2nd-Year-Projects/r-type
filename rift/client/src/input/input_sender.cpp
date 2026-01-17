@@ -20,6 +20,8 @@ std::uint8_t BuildButtonMask(const rift::client::FightActionState& state) {
   std::uint8_t buttons = 0;
   if (state.move_left) buttons |= protocol::kInputLeft;
   if (state.move_right) buttons |= protocol::kInputRight;
+  if (state.block) buttons |= protocol::kInputUp;
+  if (state.dodge) buttons |= protocol::kInputDown;
   if (state.light_attack) buttons |= protocol::kInputFire;
   if (state.heavy_attack) buttons |= protocol::kInputBigFire;
   return buttons;
@@ -88,10 +90,8 @@ protocol::InputCommand InputSender::BuildCommand(
 
   command.buttons = BuildButtonMask(sample.state);
 
-  command.analog_x =
-      static_cast<std::int16_t>(sample.state.block ? 1 : 0);
-  command.analog_y =
-      static_cast<std::int16_t>(sample.state.dodge ? 1 : 0);
+  command.analog_x = 0;
+  command.analog_y = 0;
   command.client_time_ms = sample.client_time_ms;
   return command;
 }
