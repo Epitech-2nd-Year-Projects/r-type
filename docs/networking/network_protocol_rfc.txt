@@ -296,3 +296,17 @@ Table of Contents
      missing, wait for or request a full snapshot (base_snapshot_id =
      NO_BASE_SNAPSHOT).
    - Enforce string length bounds before encoding.
+
+   12.1 Packet Decoding Errors
+
+   Implementations should robustly handle and reject malformed packets.
+   Recommended error conditions to detect include:
+
+   - UnexpectedEndOfBuffer: Processing reading past the end of the
+     received datagram.
+   - InvalidHeader: Header flags or fields inconsistent.
+   - UnknownMessageType: Message ID not recognized (see Section 7).
+   - VersionMismatch: Packet version does not match expected protocol
+     version.
+   - InvalidPayload: Payload structure malformed or values out of range.
+   - InvalidSnapshotId: Snapshot ID referenced is unknown or invalid.
