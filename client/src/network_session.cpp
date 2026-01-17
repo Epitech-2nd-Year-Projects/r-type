@@ -100,6 +100,7 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
                   static_cast<std::int64_t>(clock_offset_ms.value());
               const std::int64_t server_stamp =
                   static_cast<std::int64_t>(message.header.timestamp_ms);
+              // clock_offset_ms is server minus client, so subtract to convert.
               const std::int64_t client_time = server_stamp - offset;
               snapshot_time_ms = client_time > 0
                                      ? static_cast<std::uint64_t>(client_time)
