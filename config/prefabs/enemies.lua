@@ -69,6 +69,15 @@ Prefabs.Tank = {
     AI = {
         behavior = "Patrol",
         speed = 50,
+    },
+    Weapon = {
+        projectile_name = "EnemyMissile",
+        projectile_speed = 300,
+        fire_rate = 0.5,
+        damage = 35,
+        faction = 1,
+        trigger_held = true,
+        weapon_script = "BasicEnemyWeapon",
     }
 }
 
