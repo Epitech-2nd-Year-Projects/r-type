@@ -357,7 +357,7 @@ void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
 
 void ProfileScene::DrawBackground(engine::render::Renderer2D& renderer) {
   static_cast<void>(renderer);
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.Window().GetSize());
 }
 
 void ProfileScene::DrawForeground(engine::render::Renderer2D& renderer) {
