@@ -31,9 +31,9 @@ FightScene::FightScene(RiftContext& context)
 
 void FightScene::Update(engine::time::TimeDelta dt) {
   hud_.Update(context_.World(), context_.LocalPlayerId());
+  hud_.SetRoundTimer(context_.RoundTimerMs());
   UpdateCamera();
 
-  // Update animations with input state for local player prediction.
   if (animations_initialized_) {
     animation_system_->Update(context_.World(), dt, context_.GetInputState(),
                               context_.LocalPlayerId());
