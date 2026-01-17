@@ -12,6 +12,11 @@ local Level = {
         Spawn("Bomber", 1700.0, 400.0, true, true)
         Wait(1.0)
         Spawn("Bomber", 1700.0, 500.0, true, false)
+
+        Wait(2.0)
+        Spawn("Interceptor", 1700.0, 200.0, true, false)
+        Spawn("Interceptor", 1700.0, 400.0, true, false)
+        Spawn("Interceptor", 1700.0, 600.0, true, false)
         Wait(1.0)
         Spawn("Bomber", 1700.0, 150.0, true, false)
         Wait(1.0)
