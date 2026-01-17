@@ -313,6 +313,10 @@ bool Application::EnqueueCommand(const protocol::CommandPayload& payload) {
   return network_->EnqueueCommand(payload);
 }
 
+bool Application::EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) {
+  return network_->EnqueueGameplayPing(payload);
+}
+
 std::optional<std::uint32_t> Application::CurrentWave() const {
   return network_->CurrentWave();
 }
@@ -425,6 +429,11 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
   // Forward chat messages to the chat service
   for (const auto& message : events.chat_messages) {
     chat_service_->OnChatMessageReceived(message);
+  }
+  
+  // Forward gameplay pings
+  for (const auto& ping : events.gameplay_pings) {
+    scene_manager_->OnGameplayPing(ping);
   }
 }
 

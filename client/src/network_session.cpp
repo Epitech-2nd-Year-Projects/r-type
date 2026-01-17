@@ -113,6 +113,11 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
           HandleServerCommand(*command, events);
         }
       }
+      if (message.type == protocol::message_type::MessageType::kGameplayPing) {
+        if (std::holds_alternative<protocol::GameplayPingPayload>(message.payload)) {
+          events.gameplay_pings.push_back(std::get<protocol::GameplayPingPayload>(message.payload));
+        }
+      }
       if (join_flow_.state() != JoinState::kConnected) {
         break;
       }
@@ -300,6 +305,10 @@ bool NetworkSession::TransportRunning() const {
 
 bool NetworkSession::EnqueueCommand(const protocol::CommandPayload& payload) {
   return world_update_receiver_.EnqueueCommand(payload);
+}
+
+bool NetworkSession::EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) {
+  return world_update_receiver_.EnqueueGameplayPing(payload);
 }
 
 engine::ecs::Registry& NetworkSession::World() { return *world_registry_; }

@@ -20,6 +20,7 @@
 #include "input/key_binding_service.h"
 #include "player_profile.h"
 #include "protocol/command.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/lobby.h"
 
 namespace engine::audio {
@@ -251,6 +252,11 @@ class ClientContext {
    * @brief Enqueue a server command
    */
   virtual bool EnqueueCommand(const protocol::CommandPayload& payload) = 0;
+
+  /**
+   * @brief Enqueue a gameplay ping
+   */
+  virtual bool EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) = 0;
 
   /**
    * @brief Current wave number
