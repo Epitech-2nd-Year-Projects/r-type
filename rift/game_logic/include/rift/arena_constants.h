@@ -16,6 +16,9 @@ struct ArenaConstants {
 
   static constexpr float kPlayer1SpawnX = 340.0f;
   static constexpr float kPlayer2SpawnX = 880.0f;
+
+  static constexpr float kHurtboxWidth = 45.0f;
+  static constexpr float kHurtboxHeight = 100.0f;
 };
 
 }  // namespace rift
