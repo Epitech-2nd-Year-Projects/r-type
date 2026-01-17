@@ -44,7 +44,17 @@ ProfileScene::ProfileScene(ClientContext& context)
 
   menu_effects_.Load();
 
-  title_texture_ = assets.GetTexture("assets/ui/profile_text.png");
+  for (int i = 0; i < constants::ui::Pause::kFleurFrameCount; ++i) {
+    std::ostringstream path;
+    path << constants::ui::Pause::kBottomFleurFramePrefix << std::setw(4)
+         << std::setfill('0') << i
+         << constants::ui::Pause::kFleurFrameExtension;
+    auto tex = assets.GetTexture(path.str());
+    if (tex) {
+      fleur_frames_.push_back(tex);
+    }
+  }
+
   stats_border_texture_ = assets.GetTexture("assets/ui/border.png");
   input_bg_texture_ = assets.GetTexture("assets/ui/case_profile.png");
   arrow_left_texture_ = assets.GetTexture(
@@ -74,19 +84,27 @@ ProfileScene::ProfileScene(ClientContext& context)
   root->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
                            engine::ui::VerticalAlignment::kCenter});
 
-  auto title_slot = std::make_shared<engine::ui::BoxElement>();
-  title_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
-  title_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Profile::kButtonHeight *
-      constants::ui::Profile::kButtonTextScale *
-      constants::ui::Profile::kTitleScaleFactor);
-  title_slot->Layout().alignment.horizontal =
+  auto title_text = std::make_shared<engine::ui::TextElement>(
+      "Profile",
+      engine::ui::FontSize::Pixels(
+          constants::ui::OptionsMenu::kButtonHeight *
+          constants::ui::OptionsMenu::kButtonTextScale *
+          constants::ui::OptionsMenu::kTitleScaleFactor),
+      white);
+  title_text->SetFont(std::string(constants::ui::kTitleFont));
+  title_text->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
-  title_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
-    title_rect_ = {rect.top_left_x_, rect.top_left_y_, rect.width_,
-                   rect.height_};
-  });
-  root->AddChild(title_slot);
+  root->AddChild(title_text);
+
+  auto fleur_slot = std::make_shared<engine::ui::BoxElement>();
+  fleur_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
+  fleur_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Pause::kBottomFleurSlotHeight);
+  fleur_slot->Layout().alignment.horizontal =
+      engine::ui::HorizontalAlignment::kCenter;
+  fleur_slot->SetLayoutCallback(
+      [this](const engine::math::RectF& rect) { fleur_rect_ = rect; });
+  root->AddChild(fleur_slot);
 
   auto avatar_label = std::make_shared<engine::ui::TextElement>(
       "Avatar",
@@ -307,6 +325,16 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 
   context_.MenuBackground().Update(dt);
 
+  if (!fleur_frames_.empty() && fleur_animating_) {
+    const float max_elapsed = static_cast<float>(fleur_frames_.size() - 1) *
+                              constants::ui::Pause::kFleurFrameDuration;
+    fleur_elapsed_ += dt.as_seconds();
+    if (fleur_elapsed_ >= max_elapsed) {
+      fleur_elapsed_ = max_elapsed;
+      fleur_animating_ = false;
+    }
+  }
+
   menu_effects_.Update(dt, input, buttons_);
 
   for (auto& elem : ui_elements_) {
@@ -323,14 +351,23 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 }
 
 void ProfileScene::Draw(engine::render::Renderer2D& renderer) {
+  DrawBackground(renderer);
+  DrawForeground(renderer);
+}
+
+void ProfileScene::DrawBackground(engine::render::Renderer2D& renderer) {
+  static_cast<void>(renderer);
   context_.MenuBackground().Draw(context_.Window());
+}
+
+void ProfileScene::DrawForeground(engine::render::Renderer2D& renderer) {
   renderer.SetFont(std::string(constants::ui::kTitleFont));
   LayoutUi(renderer);
   DrawStatsBorder(renderer);
   DrawInputBackground(renderer);
   canvas_.LayoutAndDraw(renderer);
 
-  DrawTitle(renderer);
+  DrawTitleFleur(renderer);
 
   if (avatar_renderer_) {
     const float avatar_offset_y = 0.0f;
@@ -399,35 +436,39 @@ void ProfileScene::LayoutUi(engine::render::Renderer2D& renderer) {
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
 }
 
-void ProfileScene::DrawTitle(engine::render::Renderer2D& renderer) {
-  if (!title_texture_) {
+void ProfileScene::DrawTitleFleur(engine::render::Renderer2D& renderer) {
+  if (fleur_frames_.empty()) {
     return;
   }
-  const auto tex_size = title_texture_->GetSize();
-  if (tex_size.x == 0 || tex_size.y == 0) {
+  const std::size_t frame_count = fleur_frames_.size();
+  const float frame_pos =
+      fleur_elapsed_ / constants::ui::Pause::kFleurFrameDuration;
+  const std::size_t frame_index =
+      std::min(frame_count - 1, static_cast<std::size_t>(frame_pos));
+  auto texture = fleur_frames_[frame_index];
+  if (!texture) {
     return;
   }
-
+  const auto tex_size = texture->GetSize();
+  if (tex_size.y == 0) {
+    return;
+  }
   const float scale =
-      std::min(title_rect_.width_ / static_cast<float>(tex_size.x),
-               title_rect_.height_ / static_cast<float>(tex_size.y));
+      std::min(fleur_rect_.width_ / static_cast<float>(tex_size.x),
+               fleur_rect_.height_ / static_cast<float>(tex_size.y));
   if (scale <= 0.0f) {
     return;
   }
-
-  const float draw_scale = scale * 6.5f;
-  const float draw_width = static_cast<float>(tex_size.x) * draw_scale;
-  const float draw_height = static_cast<float>(tex_size.y) * draw_scale;
+  const float draw_width = static_cast<float>(tex_size.x) * scale;
+  const float draw_height = static_cast<float>(tex_size.y) * scale;
   const float x =
-      title_rect_.top_left_x_ + (title_rect_.width_ - draw_width) * 0.5f;
-  const float title_offset_y = -20.0f;
-  const float y = title_rect_.top_left_y_ +
-                  (title_rect_.height_ - draw_height) * 0.5f + title_offset_y;
-
+      fleur_rect_.top_left_x_ + (fleur_rect_.width_ - draw_width) * 0.5f;
+  const float y =
+      fleur_rect_.top_left_y_ + (fleur_rect_.height_ - draw_height) * 0.5f;
   engine::render::SpriteDrawParams params;
   params.position = {x, y};
-  params.scale = {draw_scale, draw_scale};
-  renderer.DrawTexture(*title_texture_, params);
+  params.scale = {scale, scale};
+  renderer.DrawTexture(*texture, params);
 }
 
 void ProfileScene::DrawStatsBorder(engine::render::Renderer2D& renderer) {

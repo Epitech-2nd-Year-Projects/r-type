@@ -26,12 +26,13 @@ class ProfileScene : public Scene {
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
   bool IsInputCaptured() const override { return text_input_focused_; }
-  float GetBloomIntensity() const override { return 0.3f; }
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
-  void DrawTitle(engine::render::Renderer2D& renderer);
+  void DrawTitleFleur(engine::render::Renderer2D& renderer);
   void DrawStatsBorder(engine::render::Renderer2D& renderer);
   void DrawInputBackground(engine::render::Renderer2D& renderer);
   void SaveAndClose();
@@ -42,8 +43,11 @@ class ProfileScene : public Scene {
   ClientContext& context_;
   engine::ui::Canvas canvas_;
 
-  std::shared_ptr<engine::render::Texture2D> title_texture_;
   engine::math::RectF title_rect_{};
+  std::vector<std::shared_ptr<engine::render::Texture2D>> fleur_frames_;
+  engine::math::RectF fleur_rect_{};
+  float fleur_elapsed_{0.0f};
+  bool fleur_animating_{true};
   std::shared_ptr<engine::render::Texture2D> stats_border_texture_;
   engine::math::RectF stats_rect_{};
   std::shared_ptr<engine::render::Texture2D> input_bg_texture_;
