@@ -512,6 +512,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
                                static_cast<float>(render_size.y)});
       background_->Draw();
     }
+  };
 
   if (render_with_bloom) {
     bloom_->SetIntensity(bloom_intensity);
