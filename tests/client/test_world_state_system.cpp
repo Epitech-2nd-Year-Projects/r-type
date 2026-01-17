@@ -43,7 +43,8 @@ protocol::EntityDelta MakeCreateDelta(std::uint32_t id, std::uint16_t type,
 void ApplyAt(client::ecs::WorldStateSystem& system,
              const protocol::WorldSnapshotPayload& snapshot,
              std::uint64_t timestamp_ms) {
-  system.ApplySnapshot(snapshot, timestamp_ms);
+  system.ApplySnapshot(snapshot, timestamp_ms, std::nullopt, std::nullopt,
+                       std::make_optional(timestamp_ms));
 }
 
 }  // namespace
