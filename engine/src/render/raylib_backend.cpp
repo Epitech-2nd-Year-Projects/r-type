@@ -518,8 +518,8 @@ class RaylibRenderer3D final : public Renderer3D {
     int anim_count = 0;
     ::ModelAnimation* anims = ::LoadModelAnimations(path.c_str(), &anim_count);
     if (!anims || anim_count == 0) {
-      engine::util::Logger::Default().Error(
-          "Failed to load animations from '", path, "'");
+      engine::util::Logger::Default().Error("Failed to load animations from '",
+                                            path, "'");
       return nullptr;
     }
     engine::util::Logger::Default().Info("Loaded ", anim_count,
@@ -532,8 +532,8 @@ class RaylibRenderer3D final : public Renderer3D {
     auto& raylib_model = dynamic_cast<RaylibModel&>(model);
     const auto& raylib_anim = dynamic_cast<const RaylibAnimation&>(animation);
 
-    const int safe_frame = static_cast<int>(
-        std::min(frame, animation.GetFrameCount() - 1));
+    const int safe_frame =
+        static_cast<int>(std::min(frame, animation.GetFrameCount() - 1));
 
     ::UpdateModelAnimation(raylib_model.GetNativeMutable(),
                            raylib_anim.GetNative(), safe_frame);

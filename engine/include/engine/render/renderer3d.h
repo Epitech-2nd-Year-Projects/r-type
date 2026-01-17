@@ -189,7 +189,8 @@ class Renderer3D {
    * @param texture_path Path to the texture file.
    * @return True if texture was loaded and applied successfully.
    */
-  virtual bool SetModelTexture(Model& model, const std::string& texture_path) = 0;
+  virtual bool SetModelTexture(Model& model,
+                               const std::string& texture_path) = 0;
 
   /**
    * @brief Set the lighting configuration for subsequent draws.
