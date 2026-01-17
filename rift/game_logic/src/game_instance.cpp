@@ -3,6 +3,7 @@
 #include "engine/ecs/components/position_component.h"
 #include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/components/velocity_component.h"
+#include "rift/arena_constants.h"
 #include "rift/components/fighter_component.h"
 #include "rift/systems/attack_system.h"
 #include "rift/systems/block_system.h"
@@ -18,11 +19,11 @@
 namespace rift {
 
 namespace {
-constexpr float kArenaWidth = 1280.0f;
+constexpr float kArenaWidth = ArenaConstants::kArenaWidth;
 constexpr float kArenaCenter = kArenaWidth / 2.0f;
 constexpr float kSpawnOffset = 300.0f;
 constexpr float kFighterSpeed = 150.0f;
-constexpr float kGroundY = 380.0f;
+constexpr float kGroundY = ArenaConstants::kGroundY;
 }  // namespace
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
