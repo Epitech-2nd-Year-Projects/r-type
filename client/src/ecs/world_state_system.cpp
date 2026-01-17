@@ -12,15 +12,13 @@ namespace {
 
 constexpr float kQuantizationScale = 1.0f;
 
-std::uint64_t TickDelta(std::uint32_t current_tick,
-                        std::uint32_t anchor_tick) {
+std::uint64_t TickDelta(std::uint32_t current_tick, std::uint32_t anchor_tick) {
   // Unsigned wraparound keeps server tick rollover monotonic.
   return static_cast<std::uint32_t>(current_tick - anchor_tick);
 }
 
 std::uint64_t TickDurationMs(std::uint32_t tick_rate_hz) {
-  return static_cast<std::uint64_t>(1000.0 /
-                                    static_cast<double>(tick_rate_hz));
+  return static_cast<std::uint64_t>(1000.0 / static_cast<double>(tick_rate_hz));
 }
 
 struct SnapshotTiming {
@@ -104,12 +102,10 @@ void WorldStateSystem::ApplySnapshot(
       server_time_anchor_ms_ = observation_ms;
       server_tick_anchor_ = snapshot.server_tick;
     } else {
-      const auto timing =
-          PredictSnapshotTiming(snapshot.server_tick,
-                                static_cast<std::uint32_t>(
-                                    server_tick_anchor_.value()),
-                                server_time_anchor_ms_.value(), tick_ms,
-                                observation_ms);
+      const auto timing = PredictSnapshotTiming(
+          snapshot.server_tick,
+          static_cast<std::uint32_t>(server_tick_anchor_.value()),
+          server_time_anchor_ms_.value(), tick_ms, observation_ms);
       if (timing.gap_ms > (tick_ms * 2u)) {
         server_time_anchor_ms_ = observation_ms;
         server_tick_anchor_ = snapshot.server_tick;
