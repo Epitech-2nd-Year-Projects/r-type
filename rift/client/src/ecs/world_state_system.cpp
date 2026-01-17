@@ -1,6 +1,7 @@
 #include "ecs/world_state_system.h"
 
 #include <algorithm>
+#include <cmath>
 #include <unordered_set>
 
 #include "ecs/components.h"
@@ -257,18 +258,12 @@ void WorldStateSystem::SetupFighterComponents(
   auto& stamina_bars = registry_.GetComponents<StaminaBarComponent>();
 
   std::uint8_t slot = 0;
-  if (local_player_id.has_value()) {
-    slot = (state.player_id == local_player_id.value()) ? 0 : 1;
+  if (fighters[entity].has_value()) {
+    slot = fighters[entity]->slot;
   } else {
-    for (std::size_t i = 0; i < fighters.size(); ++i) {
-      if (fighters[i].has_value() &&
-          i != static_cast<std::size_t>(entity)) {
-        if (state.player_id > fighters[i]->player_id) {
-          slot = 1;
-        }
-        break;
-      }
-    }
+    const float arena_center = rift::ArenaConstants::kArenaWidth / 2.0f;
+    const float spawn_x = static_cast<float>(state.x);
+    slot = (spawn_x < arena_center) ? 0 : 1;
   }
 
   fighters[entity] = FighterStateComponent(state.player_id, slot);
