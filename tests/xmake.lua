@@ -1,9 +1,5 @@
-if is_plat("windows") then
-    add_requires("gtest", "nlohmann_json", "raylib")
-    add_requires("ffmpeg-prebuilt 7.1", {alias = "ffmpeg"})
-else
-    add_requires("gtest", "nlohmann_json", "ffmpeg", "raylib")
-end
+add_requires("gtest", "nlohmann_json", "raylib")
+add_requires("ffmpeg-prebuilt 7.1", {alias = "ffmpeg"})
 
  target("client_tests")
      set_kind("binary")
