@@ -28,6 +28,8 @@ struct ClientConfig {
   std::uint32_t lobby_retry_delay_ms{400};
   int lobby_max_attempts{4};
   std::uint32_t room_list_refresh_ms{5'000};
+  std::uint32_t interpolation_delay_ms{100};
+  std::uint32_t max_extrapolation_ms{150};
   float master_volume{1.0f};
   float music_volume{1.0f};
   float sfx_volume{1.0f};
@@ -68,8 +70,11 @@ struct ConnectionValidationResult {
  *  - RTYPE_CLIENT_LOBBY_RETRY_MS
  *  - RTYPE_CLIENT_LOBBY_MAX_ATTEMPTS
  *  - RTYPE_CLIENT_ROOM_LIST_REFRESH_MS
+ *  - RTYPE_CLIENT_INTERPOLATION_DELAY_MS
+ *  - RTYPE_CLIENT_MAX_EXTRAPOLATION_MS
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
+
 ClientConfig LoadClientConfig();
 
 /**
