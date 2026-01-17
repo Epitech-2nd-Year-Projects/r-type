@@ -50,6 +50,8 @@ NetworkSession::NetworkSession(ClientConfig config)
   world_update_receiver_.Configure(
       std::chrono::milliseconds(config_.ping_interval_ms),
       config_.network_queue_size);
+  SetInterpolationConfig(config_.interpolation_delay_ms,
+                         config_.max_extrapolation_ms);
 }
 
 NetworkSession::~NetworkSession() { Shutdown(); }
@@ -88,8 +90,26 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
             last_wave_ = snapshot->current_wave;
           }
           if (world_state_system_) {
-            world_state_system_->ApplySnapshot(*snapshot, receipt_ms);
+            const auto local_player = join_flow_.player_id();
+            const auto tick_rate_hz = join_flow_.server_tick_rate_hz();
+            const auto clock_offset_ms =
+                world_update_receiver_.LatestClockOffsetMs();
+            std::optional<std::uint64_t> snapshot_time_ms;
+            if (clock_offset_ms.has_value()) {
+              const std::int64_t offset =
+                  static_cast<std::int64_t>(clock_offset_ms.value());
+              const std::int64_t server_stamp =
+                  static_cast<std::int64_t>(message.header.timestamp_ms);
+              const std::int64_t client_time = server_stamp - offset;
+              snapshot_time_ms = client_time > 0
+                                     ? static_cast<std::uint64_t>(client_time)
+                                     : 0u;
+            }
+            world_state_system_->ApplySnapshot(*snapshot, receipt_ms,
+                                               local_player, tick_rate_hz,
+                                               snapshot_time_ms);
           }
+
           if (world_registry_) {
             audio.OnSnapshotApplied(*world_registry_);
           }
@@ -300,6 +320,15 @@ bool NetworkSession::TransportRunning() const {
 
 bool NetworkSession::EnqueueCommand(const protocol::CommandPayload& payload) {
   return world_update_receiver_.EnqueueCommand(payload);
+}
+
+void NetworkSession::SetInterpolationConfig(
+    std::uint32_t interpolation_delay_ms, std::uint32_t max_extrapolation_ms) {
+  if (!interpolation_system_) {
+    return;
+  }
+  interpolation_system_->SetInterpolationDelayMs(interpolation_delay_ms);
+  interpolation_system_->SetMaxExtrapolationMs(max_extrapolation_ms);
 }
 
 engine::ecs::Registry& NetworkSession::World() { return *world_registry_; }
