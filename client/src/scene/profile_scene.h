@@ -26,10 +26,15 @@ class ProfileScene : public Scene {
 
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
   bool IsInputCaptured() const override { return text_input_focused_; }
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
+  void DrawTitleFleur(engine::render::Renderer2D& renderer);
+  void DrawStatsBorder(engine::render::Renderer2D& renderer);
+  void DrawInputBackground(engine::render::Renderer2D& renderer);
   void SaveAndClose();
   void FormatPlaytime(std::uint64_t seconds, std::string& out) const;
   void SelectPrevAvatar();
@@ -38,7 +43,16 @@ class ProfileScene : public Scene {
   ClientContext& context_;
   engine::ui::Canvas canvas_;
 
-  std::shared_ptr<engine::ui::TextElement> title_;
+  engine::math::RectF title_rect_{};
+  std::vector<std::shared_ptr<engine::render::Texture2D>> fleur_frames_;
+  engine::math::RectF fleur_rect_{};
+  float fleur_elapsed_{0.0f};
+  bool fleur_animating_{true};
+  std::shared_ptr<engine::render::Texture2D> stats_border_texture_;
+  engine::math::RectF stats_rect_{};
+  std::shared_ptr<engine::render::Texture2D> input_bg_texture_;
+  std::shared_ptr<engine::render::Texture2D> arrow_left_texture_;
+  std::shared_ptr<engine::render::Texture2D> arrow_right_texture_;
   std::shared_ptr<engine::ui::TextElement> nickname_label_;
   std::shared_ptr<engine::ui::TextInput> nickname_input_;
   std::shared_ptr<engine::ui::TextElement> stats_header_;

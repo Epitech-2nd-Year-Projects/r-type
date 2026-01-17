@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "animation.h"
 #include "camera3d.h"
 #include "color.h"
 #include "engine/math/vector2.h"
@@ -182,6 +183,16 @@ class Renderer3D {
   virtual std::shared_ptr<Model> LoadModelFromFile(const std::string& path) = 0;
 
   /**
+   * @brief Set the diffuse texture for all materials in a model.
+   *
+   * @param model The model to update.
+   * @param texture_path Path to the texture file.
+   * @return True if texture was loaded and applied successfully.
+   */
+  virtual bool SetModelTexture(Model& model,
+                               const std::string& texture_path) = 0;
+
+  /**
    * @brief Set the lighting configuration for subsequent draws.
    *
    * Note: Basic implementation uses Raylib's built-in lighting.
@@ -193,6 +204,27 @@ class Renderer3D {
    * @brief Disable lighting (use flat colors).
    */
   virtual void DisableLighting() = 0;
+
+  /**
+   * @brief Load animations from a file.
+   *
+   * Supports .glb files with embedded animations.
+   * @param path Path to the animation file.
+   * @return AnimationSet containing all animations, or nullptr on failure.
+   */
+  virtual std::shared_ptr<AnimationSet> LoadAnimationsFromFile(
+      const std::string& path) = 0;
+
+  /**
+   * @brief Update a model's bone transforms for a specific animation frame.
+   *
+   * The model and animation must have compatible bone structures.
+   * @param model The model to update.
+   * @param animation The animation to apply.
+   * @param frame The frame number (0 to frameCount-1).
+   */
+  virtual void UpdateModelAnimation(Model& model, const Animation& animation,
+                                    std::uint32_t frame) = 0;
 };
 
 }  // namespace engine::render

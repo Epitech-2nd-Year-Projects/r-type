@@ -461,6 +461,12 @@ void Application::UpdateRuntimeConfig() {
       std::string(constants::config::kClientRoomListRefreshMs),
       std::to_string(config_.room_list_refresh_ms));
   runtime_config_store.Set(
+      std::string(constants::config::kClientInterpolationDelayMs),
+      std::to_string(config_.interpolation_delay_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientMaxExtrapolationMs),
+      std::to_string(config_.max_extrapolation_ms));
+  runtime_config_store.Set(
       std::string(constants::config::kVideoResolutionWidth),
       std::to_string(config_.resolution_width));
   runtime_config_store.Set(
@@ -478,6 +484,16 @@ void Application::UpdateRuntimeConfig() {
                            std::to_string(config_.music_volume));
   runtime_config_store.Set(std::string(constants::config::kAudioSfxVolume),
                            std::to_string(config_.sfx_volume));
+
+  if (network_) {
+    network_->SetInterpolationConfig(config_.interpolation_delay_ms,
+                                     config_.max_extrapolation_ms);
+  }
+
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 }  // namespace client

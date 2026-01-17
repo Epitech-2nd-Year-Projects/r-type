@@ -22,6 +22,7 @@ enum class CommandType : std::uint16_t {
   kChatMessage = 4,            ///< Chat message.
   kDisconnectNotice = 5,       ///< Server-initiated disconnect notice (payload:
                                ///< disconnect reason string).
+  kMatchOver = 6,              ///< Match has ended.
   kDebugUpdateComponent = 99,  ///< Debug command to update component state.
 };
 

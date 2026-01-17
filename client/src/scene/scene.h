@@ -47,6 +47,13 @@ class Scene {
    * hotkeys should be suppressed
    */
   virtual bool IsInputCaptured() const { return false; }
+
+  /**
+   * @brief Get the bloom intensity for this scene
+   * @return Bloom intensity multiplier (0.0 = no bloom, 1.0 = full intensity)
+   * Values are multiplied with the base bloom intensity constant
+   */
+  virtual float GetBloomIntensity() const { return 1.0f; }
 };
 
 }  // namespace client

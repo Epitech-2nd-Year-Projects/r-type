@@ -135,6 +135,16 @@ class Room {
   bool HasStarted() const;
 
   /**
+   * @brief Whether the match has finished.
+   */
+  bool IsFinished() const;
+
+  /**
+   * @brief Check if match just finished (returns true only once).
+   */
+  bool PollMatchOver();
+
+  /**
    * @brief Returns the deterministic seed used by the room.
    */
   std::uint32_t Seed() const;
@@ -171,6 +181,7 @@ class Room {
   std::uint32_t room_tick_{0};
   std::uint32_t last_active_ms_{0};
   bool started_{false};
+  bool match_over_sent_{false};
   std::unordered_set<std::uint32_t> players_;
   std::unique_ptr<GameInstance> game_instance_;
   protocol::SnapshotHistory snapshot_history_;

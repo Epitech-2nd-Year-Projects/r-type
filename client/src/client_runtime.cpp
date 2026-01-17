@@ -226,7 +226,6 @@ struct ClientRuntime::BloomResources {
     }
     const float threshold = constants::client::kBloomThreshold;
     const float knee = constants::client::kBloomKnee;
-    const float intensity = constants::client::kBloomIntensity;
     if (threshold_loc >= 0) {
       ::SetShaderValue(shader, threshold_loc, &threshold, SHADER_UNIFORM_FLOAT);
     }
@@ -234,7 +233,16 @@ struct ClientRuntime::BloomResources {
       ::SetShaderValue(shader, knee_loc, &knee, SHADER_UNIFORM_FLOAT);
     }
     if (intensity_loc >= 0) {
-      ::SetShaderValue(shader, intensity_loc, &intensity, SHADER_UNIFORM_FLOAT);
+      ::SetShaderValue(shader, intensity_loc, &current_intensity,
+                       SHADER_UNIFORM_FLOAT);
+    }
+  }
+
+  void SetIntensity(float multiplier) {
+    current_intensity = constants::client::kBloomIntensity * multiplier;
+    if (shader_ready && intensity_loc >= 0) {
+      ::SetShaderValue(shader, intensity_loc, &current_intensity,
+                       SHADER_UNIFORM_FLOAT);
     }
   }
 
@@ -261,6 +269,7 @@ struct ClientRuntime::BloomResources {
   int threshold_loc{-1};
   int knee_loc{-1};
   int intensity_loc{-1};
+  float current_intensity{constants::client::kBloomIntensity};
   bool shader_ready{false};
 };
 
@@ -481,7 +490,9 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
   const bool render_gameplay = state == ClientState::kInGame ||
                                state == ClientState::kPaused ||
                                state == ClientState::kGameOver;
-  const bool render_with_bloom = !render_gameplay && bloom_;
+  const float bloom_intensity = scene ? scene->GetBloomIntensity() : 1.0f;
+  const bool render_with_bloom =
+      !render_gameplay && bloom_ && bloom_intensity > 0.0f;
 
   engine::math::Vector2i render_size = render_size_;
   if (render_size.x <= 0 || render_size.y <= 0) {
@@ -496,44 +507,16 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     frame_ready = frame_resources_->Ready();
   }
 
-  const auto draw_gameplay = [&]() {
-    if (background_) {
-      background_->Update(dt, {static_cast<float>(render_size.x),
-                               static_cast<float>(render_size.y)});
-      background_->Draw();
-    }
+  if (background_) {
+    background_->Update(dt, {static_cast<float>(render_size.x),
+                             static_cast<float>(render_size.y)});
+    background_->Draw();
+  }
 
-    if (render_system_) {
-      render_system_->Render();
-    }
-    if (render_debug_) {
-      if (debug_path_system_) {
-        debug_path_system_->Update(dt);
-      }
-      render_debug_->Draw();
-    }
-    if (scene) {
-      scene->Draw(renderer);
-    }
-  };
-
-  if (render_gameplay) {
-    if (frame_ready) {
-      frame_resources_->BeginCapture(constants::client::kClearColor);
-      draw_gameplay();
-      frame_resources_->EndCapture();
-
-      context.Clear(constants::client::kClearColor);
-      frame_resources_->DrawCaptured(render_viewport);
-    } else {
-      context.Clear(constants::client::kClearColor);
-      draw_gameplay();
-    }
-  } else if (render_with_bloom && bloom_) {
-    bloom_->EnsureTarget(render_size);
-    const bool bloom_ready = bloom_->Ready();
-
-    if (frame_ready && bloom_ready) {
+  if (render_with_bloom) {
+    bloom_->SetIntensity(bloom_intensity);
+    bloom_->EnsureTarget(window_size);
+    if (bloom_->Ready()) {
       frame_resources_->BeginCapture(constants::client::kClearColor);
       if (scene) {
         scene->DrawBackground(renderer);

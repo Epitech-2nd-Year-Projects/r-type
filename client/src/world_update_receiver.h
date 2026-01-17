@@ -7,8 +7,8 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -18,6 +18,7 @@
 
 #include "network_transport.h"
 #include "protocol/command.h"
+#include "protocol/fragmentation.h"
 #include "protocol/input_state.h"
 #include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
@@ -25,9 +26,8 @@
 #include "protocol/ping.h"
 #include "protocol/player_died.h"
 #include "protocol/sequence_tracker.h"
-#include "protocol/world_snapshot.h"
 #include "protocol/snapshot_history.h"
-#include "protocol/fragmentation.h"
+#include "protocol/world_snapshot.h"
 
 class WorldUpdateReceiverTestPeer;
 
@@ -39,9 +39,9 @@ namespace client {
 struct OutgoingMessage {
   protocol::message_type::MessageType type{
       protocol::message_type::MessageType::kInvalid};  ///< Message type to send.
-  protocol::InputStatePayload input_state{};           ///< Populated for kInputState.
-  protocol::CommandPayload command_payload{};          ///< Populated for kClientCommand.
-  std::uint32_t client_time_ms{0};                     ///< Client timestamp for inputs.
+  protocol::InputStatePayload input_state{};  ///< Populated for kInputState.
+  protocol::CommandPayload command_payload{};  ///< Populated for kClientCommand.
+  std::uint32_t client_time_ms{0};  ///< Client timestamp for inputs.
 };
 
 /**
@@ -106,18 +106,22 @@ class WorldUpdateReceiver {
   bool TryPop(WorldUpdateMessage& out_message);
 
   /**
-   * @brief Enqueue an input state payload to be encoded and sent on the network thread
+   * @brief Enqueue an input state payload to be encoded and sent on the network
+   * thread
    * @param payload Input payload to encode and send
    * @param client_time_ms Client timestamp for the packet header
-   * @return true when queued, false if the worker is not running or queue is full
+   * @return true when queued, false if the worker is not running or queue is
+   * full
    */
   bool EnqueueInputState(const protocol::InputStatePayload& payload,
                          std::uint32_t client_time_ms);
 
   /**
-   * @brief Enqueue a command payload to be encoded and sent on the network thread
+   * @brief Enqueue a command payload to be encoded and sent on the network
+   * thread
    * @param payload Command payload to encode and send
-   * @return true when queued, false if the worker is not running or queue is full
+   * @return true when queued, false if the worker is not running or queue is
+   * full
    */
   bool EnqueueCommand(const protocol::CommandPayload& payload);
 
@@ -134,11 +138,15 @@ class WorldUpdateReceiver {
   std::optional<float> LatestRttMs() const;
 
   /**
-   * @brief Returns the ID of the last successfully received and processed snapshot
+   * @brief Latest estimated clock offset (server - client) in milliseconds
+   */
+  std::optional<float> LatestClockOffsetMs() const;
+
+  /**
+   * @brief Returns the ID of the last successfully received and processed
+   * snapshot
    */
   std::uint32_t LatestSnapshotId() const;
-
-
 
  private:
   friend class ::WorldUpdateReceiverTestPeer;
@@ -173,8 +181,10 @@ class WorldUpdateReceiver {
   protocol::LatencyEstimator latency_estimator_{};
   std::atomic<bool> has_latency_estimate_{false};
   std::atomic<float> latest_rtt_ms_{0.0f};
+  std::atomic<float> latest_clock_offset_ms_{0.0f};
   std::atomic<std::uint64_t> last_pong_ms_{0};
   protocol::SnapshotHistory snapshot_history_{32};
+
   std::atomic<std::uint32_t> last_received_snapshot_id_{0};
   protocol::FragmentReassembler reassembler_;
 };

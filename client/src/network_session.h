@@ -152,6 +152,12 @@ class NetworkSession {
   std::optional<std::uint32_t> LocalPlayerId() const;
 
   /**
+   * @brief Update interpolation settings at runtime
+   */
+  void SetInterpolationConfig(std::uint32_t interpolation_delay_ms,
+                              std::uint32_t max_extrapolation_ms);
+
+  /**
    * @brief Access join state
    */
   JoinState join_state() const { return join_flow_.state(); }
