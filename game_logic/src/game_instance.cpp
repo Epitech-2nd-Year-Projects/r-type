@@ -424,10 +424,9 @@ void GameInstance::RegisterSystems() {
       engine::ecs::MovementSystem::Update, engine::ecs::SystemType::Fixed,
       engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::BoundarySystem>(
-                                kGameWidth, kGameHeight),
-                            engine::ecs::SystemType::Fixed,
-                            engine::ecs::kDefaultPriority);
+  registry_->AddSystemClass(
+      std::make_shared<systems::BoundarySystem>(kGameWidth, kGameHeight),
+      engine::ecs::SystemType::Fixed, engine::ecs::kDefaultPriority);
 
   registry_->AddSystemClass(
       std::make_shared<systems::CollisionSystem>(event_bus_, *script_engine_),
