@@ -7,6 +7,7 @@
 #include "engine/input.h"
 #include "engine/render/context.h"
 #include "engine/render/renderer2d.h"
+#include "engine/render/renderer3d.h"
 #include "engine/render/window.h"
 #include "engine/time/game_loop.h"
 #include "logging.h"
@@ -166,6 +167,10 @@ engine::render::Renderer2D& Application::Renderer() {
   return engine_->Renderer();
 }
 
+engine::render::Renderer3D& Application::Renderer3D() {
+  return engine_->RenderContext().Get3DRenderer();
+}
+
 engine::input::InputManager& Application::Input() { return engine_->Input(); }
 
 engine::render::Window& Application::Window() { return engine_->Window(); }
@@ -194,6 +199,10 @@ RiftClientState Application::State() const { return state_; }
 
 bool Application::IsConnected() const {
   return network_->join_state() == JoinState::kConnected;
+}
+
+FightActionState Application::GetInputState() const {
+  return input_layer_ ? input_layer_->state() : FightActionState{};
 }
 
 }  // namespace rift::client

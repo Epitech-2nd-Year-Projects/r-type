@@ -33,6 +33,7 @@ class Application : public RiftContext {
   int Run();
 
   engine::render::Renderer2D& Renderer() override;
+  engine::render::Renderer3D& Renderer3D() override;
   engine::input::InputManager& Input() override;
   engine::render::Window& Window() override;
   engine::math::Vector2i RenderSize() const override;
@@ -46,6 +47,8 @@ class Application : public RiftContext {
 
   RiftClientState State() const override;
   bool IsConnected() const override;
+
+  FightActionState GetInputState() const override;
 
  private:
   bool Initialize();
