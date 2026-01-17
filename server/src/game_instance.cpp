@@ -8,9 +8,12 @@ namespace server {
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t seed,
                            std::uint32_t max_players,
+                           protocol::Difficulty difficulty,
                            engine::util::Logger &logger)
     : rng_(seed),
-      logic_(std::make_unique<game_logic::GameInstance>(room_id, max_players)),
+      logic_(std::make_unique<game_logic::GameInstance>(
+          room_id, max_players,
+          static_cast<game_logic::Difficulty>(difficulty))),
       logger_(logger),
       history_(1000),
       current_tick_(0) {}
@@ -28,7 +31,9 @@ void GameInstance::OnPlayerJoined(std::uint32_t player_id,
     const std::string name = player_name.empty()
                                  ? "Player_" + std::to_string(player_id)
                                  : std::string{player_name};
+    logger_.Info("[GameInstance] Calling Logic OnPlayerJoin");
     logic_->OnPlayerJoin(player_id, name);
+    logger_.Info("[GameInstance] Logic OnPlayerJoin returned");
   }
 }
 
@@ -228,9 +233,21 @@ std::uint16_t GameInstance::ResolveEntityType(
     std::optional<std::reference_wrapper<const engine::ecs::TagComponent>> tag,
     std::optional<
         std::reference_wrapper<const game_logic::components::PlayerComponent>>
-        player) const {
+        player,
+    std::optional<
+        std::reference_wrapper<const game_logic::components::PowerupComponent>>
+        powerup,
+    std::optional<std::reference_wrapper<
+        const game_logic::components::EnemyTypeComponent>>
+        enemy_type) const {
   if (player.has_value()) {
     return 1;
+  }
+  if (powerup.has_value()) {
+    return 10 + static_cast<std::uint16_t>(powerup->get().type);
+  }
+  if (enemy_type.has_value()) {
+    return enemy_type->get().type_code;
   }
   if (!tag.has_value()) {
     return 0;
@@ -258,6 +275,10 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
       registry.GetComponents<game_logic::components::PlayerComponent>();
   auto &healths =
       registry.GetComponents<game_logic::components::HealthComponent>();
+  auto &powerups =
+      registry.GetComponents<game_logic::components::PowerupComponent>();
+  auto &enemy_types =
+      registry.GetComponents<game_logic::components::EnemyTypeComponent>();
 
   const std::size_t count = position.size();
   snapshot.deltas.reserve(count);
@@ -289,9 +310,23 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
                   const game_logic::components::HealthComponent>>(
                   healths[i].value())
             : std::nullopt;
+    const auto powerup_opt =
+        (i < powerups.size() && powerups[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::PowerupComponent>>(
+                  powerups[i].value())
+            : std::nullopt;
+    const auto enemy_type_opt =
+        (i < enemy_types.size() && enemy_types[i].has_value())
+            ? std::optional<std::reference_wrapper<
+                  const game_logic::components::EnemyTypeComponent>>(
+                  enemy_types[i].value())
+            : std::nullopt;
+
     protocol::EntityNetState state{};
     state.entity_id = static_cast<std::uint32_t>(i);
-    state.type = ResolveEntityType(tag_opt, player_opt);
+    state.type =
+        ResolveEntityType(tag_opt, player_opt, powerup_opt, enemy_type_opt);
     state.x = static_cast<std::int16_t>(std::lround(pos.x));
     state.y = static_cast<std::int16_t>(std::lround(pos.y));
 

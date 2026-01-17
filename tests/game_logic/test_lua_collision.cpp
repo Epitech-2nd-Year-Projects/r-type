@@ -91,6 +91,7 @@ TEST_F(LuaCollisionTest, ProjectileHitsTarget) {
   registry->EmplaceComponent<HealthComponent>(enemy, 50, 50);
 
   auto projectile = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(projectile, "Missile");
   registry->EmplaceComponent<DamageableComponent>(projectile, 0, 25, 0);
 
   script_engine->OnCollision(projectile, enemy);
@@ -158,6 +159,7 @@ TEST_F(LuaCollisionTest, EnemyDropsPowerupOnDeath) {
                                                              200.0f);
 
   auto projectile = registry->SpawnEntity();
+  registry->EmplaceComponent<TagComponent>(projectile, "Missile");
   registry->EmplaceComponent<DamageableComponent>(projectile, 0, 25, 0);
 
   script_engine->OnCollision(projectile, enemy);

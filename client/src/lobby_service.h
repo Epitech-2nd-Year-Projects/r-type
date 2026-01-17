@@ -54,8 +54,7 @@ class LobbyService {
    * @param callbacks Callback bundle for lobby updates
    */
   LobbyService(std::shared_ptr<NetworkTransport> transport,
-               LobbyRetryPolicy retry_policy,
-               LobbyCallbacks callbacks = {});
+               LobbyRetryPolicy retry_policy, LobbyCallbacks callbacks = {});
 
   /**
    * @brief Connect to a lobby endpoint
@@ -81,10 +80,11 @@ class LobbyService {
    * @param is_private Privacy flag
    * @param room_password Room password
    * @param max_players Maximum player count
+   * @param difficulty Difficulty level
    */
   void RequestCreateRoom(const std::string& room_name, bool is_private,
-                         std::string room_password,
-                         std::uint16_t max_players);
+                         std::string room_password, std::uint16_t max_players,
+                         protocol::Difficulty difficulty);
 
   /**
    * @brief Pump lobby network traffic

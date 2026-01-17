@@ -563,7 +563,7 @@ void LobbyRoomListView::DrawScrollBar(
 }
 
 void LobbyRoomListView::DrawBackground() const {
-  context_.MenuBackground().Draw(context_.Window());
+  context_.MenuBackground().Draw(context_.RenderSize());
 }
 
 void LobbyRoomListView::DrawForeground(engine::render::Renderer2D& renderer,

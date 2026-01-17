@@ -7,7 +7,8 @@ namespace server {
 
 Room::Room(std::string room_code, std::string room_name, std::uint32_t room_id,
            std::uint16_t max_players, bool is_private, std::string password,
-           std::uint32_t seed, engine::util::Logger& logger)
+           std::uint32_t seed, protocol::Difficulty difficulty,
+           engine::util::Logger& logger)
     : room_code_(std::move(room_code)),
       room_name_(std::move(room_name)),
       room_id_(room_id),
@@ -15,9 +16,10 @@ Room::Room(std::string room_code, std::string room_name, std::uint32_t room_id,
       is_private_(is_private),
       password_(std::move(password)),
       seed_(seed),
+      difficulty_(difficulty),
       started_(false),
-      game_instance_(
-          std::make_unique<GameInstance>(room_id, seed, max_players, logger)),
+      game_instance_(std::make_unique<GameInstance>(room_id, seed, max_players,
+                                                    difficulty, logger)),
       snapshot_history_(32),
       logger_(logger) {}
 
@@ -29,6 +31,7 @@ Room::Room(Room&& other) noexcept
       is_private_(other.is_private_),
       password_(std::move(other.password_)),
       seed_(other.seed_),
+      difficulty_(other.difficulty_),
       next_snapshot_id_(other.next_snapshot_id_),
       room_tick_(other.room_tick_),
       last_active_ms_(other.last_active_ms_),
@@ -141,6 +144,8 @@ const std::string& Room::Password() const { return password_; }
 
 std::uint32_t Room::Seed() const { return seed_; }
 
+protocol::Difficulty Room::Difficulty() const { return difficulty_; }
+
 std::size_t Room::PlayerCount() const { return players_.size(); }
 
 const std::unordered_set<std::uint32_t>& Room::Players() const {
@@ -154,5 +159,7 @@ bool Room::IsEmpty() const { return players_.empty(); }
 bool Room::HasStarted() const { return started_; }
 
 engine::ecs::Registry& Room::World() { return game_instance_->World(); }
+
+game_logic::GameInstance& Room::Logic() { return game_instance_->Logic(); }
 
 }  // namespace server

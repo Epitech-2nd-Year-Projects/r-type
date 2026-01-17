@@ -97,6 +97,8 @@ struct SpriteComponent {
   bool flip_x{false};                      ///< Flip horizontally.
   bool flip_y{false};                      ///< Flip vertically.
   engine::render::Color tint{engine::render::Color::White()};  ///< Color tint.
+  std::optional<engine::math::Vector2f> render_size;
+  bool use_full_source{false};
 
   SpriteComponent() = default;
   explicit SpriteComponent(std::string id) : texture_id(std::move(id)) {}

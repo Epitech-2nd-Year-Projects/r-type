@@ -4,11 +4,13 @@ Prefabs.Player = {
     Tag = "Player",
     Health = { max_health = 100 },
     Velocity = { x = 0, y = 0 },
-    BoundingBox = { width = 32, height = 16 },
+    BoundingBox = { width = 36, height = 18 },
     Sprite = {
         texture = "assets/sprites/player.png",
-        width = 32,
-        height = 16,
+        width = 36,
+        height = 18,
+        frame_width = 26,
+        frame_height = 21,
         layer = 10,
     },
     Weapon = {

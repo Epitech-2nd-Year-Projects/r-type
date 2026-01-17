@@ -12,8 +12,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "ecs/components.h"
 
@@ -43,6 +45,8 @@ struct SpriteDefinition {
   float depth{0.0f};
   bool face_left{false};
   engine::render::Color tint{engine::render::Color::White()};
+  std::optional<engine::math::Vector2f> render_size;
+  bool use_full_source{false};
 };
 
 /**
@@ -84,7 +88,8 @@ class ArchetypeRegistry {
    * @param type_code Type code from the network snapshot
    * @return Definition pointer or null when unknown
    */
-  const ArchetypeDefinition* Find(std::uint16_t type_code) const;
+  std::optional<std::reference_wrapper<const ArchetypeDefinition>> Find(
+      std::uint16_t type_code) const;
 
   /**
    * @brief Resolve the archetype kind for a type code
@@ -159,8 +164,48 @@ class ArchetypeRegistry {
   std::optional<SpriteDefinition> ResolveSprite(
       std::uint16_t type_code, const SpriteContext& context) const;
 
+  /**
+   * @brief Register a dynamic powerup type from configuration
+   * @param type_code Network type code (10 + PowerupType)
+   * @param texture_path Path to the sprite texture
+   */
+  static void RegisterPowerupType(std::uint16_t type_code,
+                                  std::string_view texture_path, float width,
+                                  float height);
+
+  /**
+   * @brief Register a dynamic enemy type from configuration
+   * @param type_code Network type code
+   * @param texture_path Path to the sprite texture
+   * @param width Render width associated with the type
+   * @param height Render height associated with the type
+   */
+  static void RegisterEnemyType(std::uint16_t type_code,
+                                std::string_view texture_path, float width,
+                                float height, float frame_width,
+                                float frame_height);
+
+  /**
+   * @brief Configure player sprite dimensions
+   * @param width Render width
+   * @param height Render height
+   * @param frame_width Source frame width
+   * @param frame_height Source frame height
+   */
+  static void SetPlayerConfig(float width, float height, float frame_width,
+                              float frame_height);
+
  private:
-  ArchetypeRegistry() = default;
+  ArchetypeRegistry();
+
+  static ArchetypeRegistry& Mutable();
+
+  std::unordered_map<std::uint16_t, SpriteDefinition> custom_powerups_;
+  std::unordered_map<std::uint16_t, SpriteDefinition> custom_enemies_;
+  std::unordered_map<std::uint16_t, ArchetypeDefinition> custom_definitions_;
+
+  engine::math::Vector2f player_render_size_{33.0f, 17.0f};
+  engine::math::Vector2f player_frame_size_{33.0f, 17.0f};
 };
 
 }  // namespace client::ecs

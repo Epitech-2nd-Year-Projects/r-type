@@ -1,6 +1,9 @@
 function OnCollision(e1, e2)
-    local tag1 = registry:get_tag(e1)
-    local tag2 = registry:get_tag(e2)
+    local t1 = registry:get_tag(e1)
+    local t2 = registry:get_tag(e2)
+    if not t1 or not t2 then return end
+    local tag1 = t1.tag
+    local tag2 = t2.tag
 
     local function GetRandomPowerup()
         if not Prefabs or not Prefabs.PowerupDropTable then
@@ -39,7 +42,13 @@ function OnCollision(e1, e2)
                       log_info("Powerup: Bonus Score " .. p_comp.value)
                  end
             elseif p_comp.type == PowerupType.WeaponUpgrade then
-                 log_info("Powerup: Weapon Upgrade Collected")
+                 local weapon_comp = registry:get_weapon(player_entity) 
+                 if weapon_comp then
+                      weapon_comp.rapid_fire_timer = p_comp.value
+                      log_info("Powerup: Weapon Upgrade Collected - Rapid Fire for " .. p_comp.value .. "s!")
+                 else
+                    log_info("Powerup: Weapon Upgrade Collected (No Weapon)")
+                 end
             end
             
             p_comp.active = false
@@ -99,10 +108,11 @@ function OnCollision(e1, e2)
 
     local function HandleProjectile(proj_id, target_id)
         local dmg_comp = registry:get_damageable(proj_id)
-        local target_tag = registry:get_tag(target_id)
+        local target_tag_comp = registry:get_tag(target_id)
         
-        if not dmg_comp or not target_tag then return end
-
+        if not dmg_comp or not target_tag_comp then return end
+        local target_tag = target_tag_comp.tag
+        
         local hit = false
         if dmg_comp.faction == 0 and target_tag == "Enemy" then
             hit = true
@@ -149,9 +159,10 @@ function OnCollision(e1, e2)
     local dmg1 = registry:get_damageable(e1)
     local dmg2 = registry:get_damageable(e2)
 
-    if dmg1 and not dmg2 then
+    if dmg1 then
         HandleProjectile(e1, e2)
-    elseif not dmg1 and dmg2 then
+    end
+    if dmg2 then
         HandleProjectile(e2, e1)
     end
 end

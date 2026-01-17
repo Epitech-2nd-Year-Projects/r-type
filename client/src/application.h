@@ -6,8 +6,8 @@
 
 #include "client_config.h"
 #include "client_context.h"
-#include "player_profile.h"
 #include "engine/time/time_delta.h"
+#include "player_profile.h"
 
 namespace client {
 
@@ -51,9 +51,12 @@ class Application : public ClientContext {
   KeyBindingUpdateResult UpdateKeyBinding(GameAction action,
                                           engine::input::Key key) override;
   engine::render::Window& Window() override;
+  engine::math::Vector2i RenderSize() const override;
   std::shared_ptr<engine::audio::AudioEngine> Audio() override;
   void SetAudioVolumes(float master_volume, float music_volume,
                        float sfx_volume) override;
+  void SetVideoSettings(int resolution_width, int resolution_height,
+                        bool fullscreen, bool vsync, int target_fps) override;
   /**
    * @brief Access the asset manager
    */
@@ -66,8 +69,10 @@ class Application : public ClientContext {
   void OnPlay() override;
   void OnOpenSettings() override;
   void OnOpenAudioSettings() override;
+  void OnOpenVideoSettings() override;
   void OnCloseSettings() override;
   void OnCloseAudioSettings() override;
+  void OnCloseVideoSettings() override;
   void OnQuitApplication() override;
   void OnOpenProfile() override;
   void OnCloseProfile() override;
@@ -81,8 +86,8 @@ class Application : public ClientContext {
   void RefreshRoomList(std::string host, std::uint16_t port) override;
   void CreateRoom(std::string host, std::uint16_t port,
                   const std::string& room_name, bool is_private,
-                  std::string room_password,
-                  std::uint16_t max_players) override;
+                  std::string password, std::uint16_t max_players,
+                  protocol::Difficulty difficulty) override;
   const std::vector<protocol::RoomSummary>& RoomDirectoryRooms() const override;
   std::string RoomDirectoryStatus() const override;
   std::optional<protocol::CreateRoomResponsePayload> ConsumeLastRoomCreation()

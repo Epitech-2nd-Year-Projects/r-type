@@ -26,7 +26,7 @@ namespace server {
 struct ServerConfig {
   std::uint16_t port{4243};                                       ///< UDP port to bind the server socket (default: 4243).
   std::uint16_t max_players{2};                                   ///< Default capacity for 1v1 matches.
-  std::uint16_t tick_rate{60};                                    ///< Server simulation ticks per second (default: 60 Hz).
+  std::uint16_t tick_rate{30};                                    ///< Server simulation ticks per second (default: 30 Hz).
   std::uint32_t peer_timeout_ms{15'000};                          ///< Milliseconds of inactivity before a peer is considered disconnected (default: 15000 ms).
   std::uint32_t room_idle_timeout_ms{30'000};                     ///< Milliseconds of inactivity before an empty room is reclaimed (default: 30000 ms).
   std::string default_room_code{""};                              ///< Optional default room code (unused when empty).

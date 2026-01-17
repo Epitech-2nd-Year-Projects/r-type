@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include "constants/client_constants.h"
 #include "engine/util/logging.h"
 
 namespace client {
@@ -30,6 +31,11 @@ struct ClientConfig {
   float master_volume{1.0f};
   float music_volume{1.0f};
   float sfx_volume{1.0f};
+  int resolution_width{constants::client::kBaseResolution.x};
+  int resolution_height{constants::client::kBaseResolution.y};
+  bool fullscreen{false};
+  bool vsync{constants::client::kWindowVsync};
+  int target_fps{constants::client::kTargetFps};
   engine::util::LogLevel log_level{engine::util::LogLevel::kDebug};
 };
 

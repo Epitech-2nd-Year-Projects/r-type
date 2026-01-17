@@ -1,5 +1,12 @@
 WeaponLogic = WeaponLogic or {}
 
+local function GetFireRateMultiplier()
+    if DifficultyModifiers and DifficultyModifiers.enemy_fire_rate_multiplier then
+        return DifficultyModifiers.enemy_fire_rate_multiplier
+    end
+    return 1.0
+end
+
 function WeaponLogic.BasicPlayerWeapon(entity_id, dt, weapon, position)
     if weapon.cooldown_remaining > 0 then
         weapon.cooldown_remaining = weapon.cooldown_remaining - dt
@@ -48,6 +55,8 @@ function WeaponLogic.BasicPlayerWeapon(entity_id, dt, weapon, position)
 end
 
 function WeaponLogic.BasicEnemyWeapon(entity_id, dt, weapon, position)
+    local fire_mult = GetFireRateMultiplier()
+    
     if weapon.cooldown_remaining > 0 then
         weapon.cooldown_remaining = weapon.cooldown_remaining - dt
     end
@@ -55,11 +64,9 @@ function WeaponLogic.BasicEnemyWeapon(entity_id, dt, weapon, position)
 
 
     if weapon.is_trigger_held and weapon.cooldown_remaining <= 0 then
-        if weapon.fire_rate > 0 then
-             weapon:fire(weapon.fire_rate)
-        else
-             weapon:fire(0.5)
-        end
+        local base_rate = weapon.fire_rate > 0 and weapon.fire_rate or 0.5
+        local adjusted_rate = base_rate / fire_mult
+        weapon:fire(adjusted_rate)
         
         local prefab_name = weapon.projectile_prefab
         if prefab_name == "" then prefab_name = "EnemyMissile" end
@@ -78,12 +85,15 @@ function WeaponLogic.BasicEnemyWeapon(entity_id, dt, weapon, position)
 end
 
 function WeaponLogic.DobkeratopsWeapon(entity_id, dt, weapon, position)
+    local fire_mult = GetFireRateMultiplier()
+    
     if weapon.cooldown_remaining > 0 then
         weapon.cooldown_remaining = weapon.cooldown_remaining - dt
     end
     
     if weapon.is_trigger_held and weapon.cooldown_remaining <= 0 then
-        weapon:fire(weapon.fire_rate)
+        local adjusted_rate = weapon.fire_rate / fire_mult
+        weapon:fire(adjusted_rate)
         
         local prefab_name = weapon.projectile_prefab
         if prefab_name == "" then prefab_name = "EnemyMissile" end

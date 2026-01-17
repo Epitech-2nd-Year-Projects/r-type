@@ -144,6 +144,12 @@ struct WeaponComponent {
   /// @brief Faction of the projectile
   entities::ProjectileFaction faction{entities::ProjectileFaction::kPlayer};
 
+  /// @brief Timer for rapid fire powerup
+  float rapid_fire_timer{0.0f};
+
+  /// @brief Original fire rate stored during rapid fire
+  float original_fire_rate{0.0f};
+
   /// @brief Lua script function name for custom weapon logic
   std::string weapon_script;
 };

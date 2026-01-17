@@ -9,9 +9,8 @@
 
 TEST(LobbyModalTest, CapturesInputWhenTextFieldFocused) {
   client::LobbyModal modal(
-      [](const std::string&, const std::string&, bool, std::string) {
-        return false;
-      },
+      [](const std::string&, const std::string&, bool, std::string,
+         protocol::Difficulty) { return false; },
       [](const protocol::RoomSummary&, const std::string&) { return false; });
 
   modal.OpenCreate();
@@ -35,9 +34,8 @@ TEST(LobbyModalTest, CapturesInputWhenTextFieldFocused) {
 
 TEST(LobbyModalTest, DoesNotCaptureInputWhenClosed) {
   client::LobbyModal modal(
-      [](const std::string&, const std::string&, bool, std::string) {
-        return false;
-      },
+      [](const std::string&, const std::string&, bool, std::string,
+         protocol::Difficulty) { return false; },
       [](const protocol::RoomSummary&, const std::string&) { return false; });
 
   EXPECT_FALSE(modal.IsOpen());

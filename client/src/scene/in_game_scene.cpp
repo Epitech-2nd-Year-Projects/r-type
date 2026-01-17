@@ -47,7 +47,7 @@ void InGameScene::Update(engine::time::TimeDelta /*dt*/) {
 }
 
 void InGameScene::Draw(engine::render::Renderer2D& renderer) {
-  hud_.Draw(renderer, context_.Window().GetSize());
+  hud_.Draw(renderer, context_.RenderSize());
 }
 
 }  // namespace client

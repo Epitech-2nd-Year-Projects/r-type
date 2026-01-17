@@ -39,7 +39,7 @@ class LobbyModal {
   LobbyModal(
       std::function<bool(const std::string& room_name,
                          const std::string& max_players_text, bool is_private,
-                         std::string password)>
+                         std::string password, protocol::Difficulty difficulty)>
           on_create,
       std::function<bool(const protocol::RoomSummary& room,
                          const std::string& password)>
@@ -50,8 +50,7 @@ class LobbyModal {
    * @param dt Frame time delta
    * @param input Input manager reference
    */
-  void Update(engine::time::TimeDelta dt,
-              engine::input::InputManager& input);
+  void Update(engine::time::TimeDelta dt, engine::input::InputManager& input);
 
   /**
    * @brief Layout modal widgets
@@ -108,7 +107,7 @@ class LobbyModal {
 
   std::function<bool(const std::string& room_name,
                      const std::string& max_players_text, bool is_private,
-                     std::string password)>
+                     std::string password, protocol::Difficulty difficulty)>
       on_create_;
   std::function<bool(const protocol::RoomSummary& room,
                      const std::string& password)>
@@ -117,6 +116,7 @@ class LobbyModal {
   std::shared_ptr<engine::ui::TextInput> room_name_input_;
   std::shared_ptr<engine::ui::TextInput> max_players_input_;
   std::shared_ptr<engine::ui::Button> privacy_button_;
+  std::shared_ptr<engine::ui::Button> difficulty_button_;
   std::shared_ptr<engine::ui::TextInput> password_input_;
   std::shared_ptr<engine::ui::Button> primary_button_;
   std::shared_ptr<engine::ui::Button> cancel_button_;
@@ -129,6 +129,7 @@ class LobbyModal {
   bool show_modal_{false};
   bool modal_private_{false};
   ModalMode modal_mode_{ModalMode::kCreate};
+  protocol::Difficulty modal_difficulty_{protocol::Difficulty::kNormal};
   std::string pending_join_room_code_;
   std::string pending_join_room_name_;
 };
