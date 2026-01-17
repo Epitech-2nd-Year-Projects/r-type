@@ -46,6 +46,8 @@ class RiftContext {
   virtual bool IsConnected() const = 0;
 
   virtual FightActionState GetInputState() const = 0;
+
+  virtual std::uint32_t RoundTimerMs() const = 0;
 };
 
 }  // namespace rift::client
