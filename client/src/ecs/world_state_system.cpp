@@ -12,6 +12,35 @@ namespace {
 
 constexpr float kQuantizationScale = 1.0f;
 
+std::uint64_t TickDelta(std::uint32_t current_tick,
+                        std::uint32_t anchor_tick) {
+  // Unsigned wraparound keeps server tick rollover monotonic.
+  return static_cast<std::uint32_t>(current_tick - anchor_tick);
+}
+
+std::uint64_t TickDurationMs(std::uint32_t tick_rate_hz) {
+  return static_cast<std::uint64_t>(1000.0 /
+                                    static_cast<double>(tick_rate_hz));
+}
+
+struct SnapshotTiming {
+  std::uint64_t predicted_ms;
+  std::uint64_t gap_ms;
+};
+
+SnapshotTiming PredictSnapshotTiming(std::uint32_t server_tick,
+                                     std::uint32_t anchor_tick,
+                                     std::uint64_t anchor_time_ms,
+                                     std::uint64_t tick_ms,
+                                     std::uint64_t observation_ms) {
+  const std::uint64_t tick_delta = TickDelta(server_tick, anchor_tick);
+  const std::uint64_t predicted_time = anchor_time_ms + tick_delta * tick_ms;
+  const std::uint64_t gap_ms = observation_ms >= predicted_time
+                                   ? observation_ms - predicted_time
+                                   : predicted_time - observation_ms;
+  return {predicted_time, gap_ms};
+}
+
 }  // namespace
 
 WorldStateSystem::WorldStateSystem(engine::ecs::Registry &registry)
@@ -69,23 +98,19 @@ void WorldStateSystem::ApplySnapshot(
   const std::uint32_t tick_rate =
       server_tick_rate_hz.value_or(server_tick_rate_hz_.value_or(0));
   if (tick_rate > 0) {
-    const std::uint64_t tick_ms =
-        static_cast<std::uint64_t>(1000.0 / static_cast<double>(tick_rate));
+    const std::uint64_t tick_ms = TickDurationMs(tick_rate);
     if (!server_time_anchor_ms_.has_value() ||
         !server_tick_anchor_.has_value()) {
       server_time_anchor_ms_ = observation_ms;
       server_tick_anchor_ = snapshot.server_tick;
     } else {
-      const std::uint64_t anchor_tick = server_tick_anchor_.value();
-      const std::uint64_t anchor_time = server_time_anchor_ms_.value();
-      const std::uint64_t tick_delta = snapshot.server_tick >= anchor_tick
-                                           ? snapshot.server_tick - anchor_tick
-                                           : 0u;
-      const std::uint64_t predicted_time = anchor_time + tick_delta * tick_ms;
-      const std::uint64_t time_gap = observation_ms >= predicted_time
-                                         ? observation_ms - predicted_time
-                                         : predicted_time - observation_ms;
-      if (time_gap > (tick_ms * 2u)) {
+      const auto timing =
+          PredictSnapshotTiming(snapshot.server_tick,
+                                static_cast<std::uint32_t>(
+                                    server_tick_anchor_.value()),
+                                server_time_anchor_ms_.value(), tick_ms,
+                                observation_ms);
+      if (timing.gap_ms > (tick_ms * 2u)) {
         server_time_anchor_ms_ = observation_ms;
         server_tick_anchor_ = snapshot.server_tick;
       }
@@ -434,24 +459,18 @@ std::optional<std::uint64_t> WorldStateSystem::ResolveSnapshotTimeMs(
   if (tick_rate == 0) {
     return std::nullopt;
   }
-  const std::uint64_t tick_ms =
-      static_cast<std::uint64_t>(1000.0 / static_cast<double>(tick_rate));
+  const std::uint64_t tick_ms = TickDurationMs(tick_rate);
   if (!server_time_anchor_ms_.has_value() || !server_tick_anchor_.has_value()) {
     return server_time_value;
   }
-  const std::uint64_t anchor_tick = server_tick_anchor_.value();
-  const std::uint64_t anchor_time = server_time_anchor_ms_.value();
-  const std::uint64_t tick_delta = snapshot.server_tick >= anchor_tick
-                                       ? snapshot.server_tick - anchor_tick
-                                       : 0u;
-  const std::uint64_t predicted_time = anchor_time + tick_delta * tick_ms;
-  const std::uint64_t time_gap = server_time_value >= predicted_time
-                                     ? server_time_value - predicted_time
-                                     : predicted_time - server_time_value;
-  if (time_gap > (tick_ms * 2u)) {
+  const auto timing = PredictSnapshotTiming(
+      snapshot.server_tick,
+      static_cast<std::uint32_t>(server_tick_anchor_.value()),
+      server_time_anchor_ms_.value(), tick_ms, server_time_value);
+  if (timing.gap_ms > (tick_ms * 2u)) {
     return server_time_value;
   }
-  return predicted_time;
+  return timing.predicted_ms;
 }
 
 }  // namespace client::ecs
