@@ -40,7 +40,16 @@ void LobbyChatService::OnChatMessageReceived(
   std::string_view content;
   if (protocol::ParseChatMessage(formatted_message, sender, content)) {
     msg.sender = std::string(sender);
-    msg.content = std::string(content);
+
+    // Check for color index prefix (control characters used as markers)
+    // We assume color indices are small numbers (e.g. 0-10) which are control
+    // chars
+    if (!content.empty() && static_cast<unsigned char>(content[0]) < 32) {
+      msg.color_index = static_cast<std::uint8_t>(content[0]);
+      msg.content = std::string(content.substr(1));
+    } else {
+      msg.content = std::string(content);
+    }
   } else {
     // Fallback: treat entire message as content
     msg.sender.clear();

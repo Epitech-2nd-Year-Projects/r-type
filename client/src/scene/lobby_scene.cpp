@@ -130,5 +130,3 @@ void LobbyScene::HandleRoomSelected(const protocol::RoomSummary& room) {
 }
 
 }  // namespace client
-
-

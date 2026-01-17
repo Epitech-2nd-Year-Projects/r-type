@@ -28,9 +28,11 @@ constexpr engine::render::Color kResizeHandleColor =
     engine::render::Color::FromBytes(60, 80, 120, 200);
 constexpr float kTitleFontSize = 14.0f;
 
-engine::render::Color GenerateNameColor(std::string_view name) {
-  if (name.empty()) {
-    return engine::render::Color::White();
+engine::render::Color GenerateNameColor(
+    std::string_view name, std::optional<std::uint8_t> color_index = {}) {
+  if (color_index.has_value() &&
+      *color_index < ui_constants::kChatNameColors.size()) {
+    return ui_constants::kChatNameColors[*color_index];
   }
 
   static const std::vector<engine::render::Color> kNameColors = {
@@ -45,6 +47,10 @@ engine::render::Color GenerateNameColor(std::string_view name) {
       engine::render::Color::FromBytes(255, 192, 203, 255),  // Pink
       engine::render::Color::FromBytes(0, 255, 127, 255)     // SpringGreen
   };
+
+  if (name.empty()) {
+    return engine::render::Color::White();
+  }
 
   std::size_t hash = 0;
   for (char c : name) {
@@ -233,7 +239,7 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
     // Draw sender name
     if (!msg.sender.empty()) {
       const std::string sender_text = msg.sender + ": ";
-      const auto name_color = GenerateNameColor(msg.sender);
+      const auto name_color = GenerateNameColor(msg.sender, msg.color_index);
       renderer.DrawText(
           sender_text,
           engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,

@@ -23,6 +23,8 @@ struct ChatMessage {
   std::string sender;   ///< Name of the message sender.
   std::string content;  ///< Message content.
   std::string raw;      ///< Full formatted message (sender: content).
+  std::optional<std::uint8_t>
+      color_index;  ///< Optional color index for sender name.
 };
 
 /**

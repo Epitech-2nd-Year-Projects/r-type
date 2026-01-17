@@ -16,7 +16,11 @@ namespace ui_config = constants::ui;
 
 InGameScene::InGameScene(ClientContext& context)
     : context_(context), chat_view_(context, [this](std::string_view message) {
-        return context_.ChatService().SendMessage(message);
+        std::string full_message;
+        full_message.push_back(
+            static_cast<char>(context_.Profile().chat_color_index));
+        full_message.append(message);
+        return context_.ChatService().SendMessage(full_message);
       }) {
   auto& input = context_.Input();
   pause_pressed_ =
