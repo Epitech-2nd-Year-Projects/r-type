@@ -442,6 +442,17 @@ class ServerRuntime {
                    std::uint16_t max_players);
 
   /**
+   * @brief Finds an existing room for auto-matching or creates a new one.
+   *
+   * Used for quick-match/auto-matching when clients join without specifying
+   * a room code. Finds a room with space (<2 players, not started) or creates
+   * a new room with a UUID-based code.
+   *
+   * @return Reference to the matched or newly created room.
+   */
+  Room& FindOrCreateMatchingRoom();
+
+  /**
    * @brief Removes a room when no peers remain.
    * @param room_code Room code to check and remove if empty or idle.
    * @param now_ms Current timestamp for idle evaluation.
