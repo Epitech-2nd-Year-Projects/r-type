@@ -248,7 +248,7 @@ Table of Contents
          connectionless and reliable; usable before joining a room.
 
    9.3 Gameplay Loop
-       - Inputs: Client sends InputState at 30–120 Hz (default ~30 Hz)
+       - Inputs: Client sends InputState at 30–120 Hz (default ~60 Hz)
          with the most recent 1..4 commands for redundancy.
        - Snapshots: Server ticks (default 30 Hz) and sends one
          WorldSnapshot per tick; may be full or delta.
@@ -278,7 +278,7 @@ Table of Contents
 11. Timing Parameters (defaults)
 
    - Server tick rate: 30 Hz (configurable).
-   - Client input send rate: 30 Hz default; 30–120 Hz clamp.
+   - Client input send rate: 60 Hz default; 60–120 Hz clamp.
    - Ping interval: ~1000 ms.
    - Reliable resend timeout: 250 ms.
    - Reliable queue capacity: 64 pending packets.
