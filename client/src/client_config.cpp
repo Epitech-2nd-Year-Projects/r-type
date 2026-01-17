@@ -494,7 +494,7 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
 
 }  // namespace
 
-ClientConfig LoadClientConfig() {
+ClientConfig LoadClientConfig(int argc, char** argv) {
   ClientConfig config;
   LoadClientConfigFromFile(
       std::filesystem::path(constants::client::kClientConfigPath), config);
@@ -563,6 +563,23 @@ ClientConfig LoadClientConfig() {
 
   if (config.debug && config.log_level > engine::util::LogLevel::kDebug) {
     config.log_level = engine::util::LogLevel::kDebug;
+  }
+
+  for (int i = 1; i < argc; ++i) {
+    const std::string_view arg = argv[i];
+    if ((arg == "--host" || arg == "-h") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::string host;
+      if (TryParseHost(val, host)) {
+        config.host = host;
+      }
+    } else if ((arg == "--port" || arg == "-p") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::uint16_t port = 0;
+      if (TryParsePort(val, port)) {
+        config.port = port;
+      }
+    }
   }
 
   return config;

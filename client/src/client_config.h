@@ -70,7 +70,7 @@ struct ConnectionValidationResult {
  *  - RTYPE_CLIENT_ROOM_LIST_REFRESH_MS
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
-ClientConfig LoadClientConfig();
+ClientConfig LoadClientConfig(int argc, char** argv);
 
 /**
  * @brief Persist client configuration to disk
