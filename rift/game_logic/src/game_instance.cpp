@@ -1,7 +1,9 @@
 #include "rift/game_instance.h"
 
 #include "engine/ecs/components/position_component.h"
+#include "engine/ecs/components/tag_component.h"
 #include "engine/ecs/components/velocity_component.h"
+#include "rift/arena_constants.h"
 #include "rift/components/fighter_component.h"
 #include "rift/systems/attack_system.h"
 #include "rift/systems/block_system.h"
@@ -17,10 +19,11 @@
 namespace rift {
 
 namespace {
-constexpr float kArenaWidth = 800.0f;
+constexpr float kArenaWidth = ArenaConstants::kArenaWidth;
 constexpr float kArenaCenter = kArenaWidth / 2.0f;
-constexpr float kSpawnOffset = 200.0f;
+constexpr float kSpawnOffset = 300.0f;
 constexpr float kFighterSpeed = 150.0f;
+constexpr float kGroundY = ArenaConstants::kGroundY;
 }  // namespace
 
 GameInstance::GameInstance(std::uint32_t room_id, std::uint32_t max_players)
@@ -37,6 +40,7 @@ GameInstance::~GameInstance() { Shutdown(); }
 void GameInstance::RegisterComponents() {
   registry_->RegisterComponent<engine::ecs::PositionComponent>();
   registry_->RegisterComponent<engine::ecs::VelocityComponent>();
+  registry_->RegisterComponent<engine::ecs::TagComponent>();
   registry_->RegisterComponent<components::FighterComponent>();
   registry_->RegisterComponent<components::HealthComponent>();
   registry_->RegisterComponent<components::StaminaComponent>();
@@ -88,7 +92,7 @@ void GameInstance::InitializeGame() {
             ? kArenaCenter - kSpawnOffset
             : kArenaCenter + kSpawnOffset;
         positions[entity_id]->position.x = spawn_x;
-        positions[entity_id]->position.y = 0.0f;
+        positions[entity_id]->position.y = kGroundY;
         fighter->facing_right = (fighter->slot == 0);
       }
     }
@@ -156,7 +160,7 @@ void GameInstance::SpawnFighter(std::uint32_t player_id, std::uint8_t slot) {
       : kArenaCenter + kSpawnOffset;
 
   registry_->AddComponent<engine::ecs::PositionComponent>(
-      entity, engine::ecs::PositionComponent{{spawn_x, 0.0f}});
+      entity, engine::ecs::PositionComponent{{spawn_x, kGroundY}});
   registry_->AddComponent<engine::ecs::VelocityComponent>(
       entity, engine::ecs::VelocityComponent{{0.0f, 0.0f}});
 

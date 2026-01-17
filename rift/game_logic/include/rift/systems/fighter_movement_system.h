@@ -4,13 +4,17 @@
 #include "engine/ecs/registry.h"
 #include "engine/ecs/system.h"
 #include "engine/time/time_delta.h"
+#include "rift/arena_constants.h"
 
 namespace rift::systems {
 
 class FighterMovementSystem : public engine::ecs::ISystem {
  public:
-  static constexpr float kArenaWidth = 800.0f;
-  static constexpr float kMinDistance = 20.0f;
+  static constexpr float kArenaWidth = ArenaConstants::kArenaWidth;
+  static constexpr float kFighterWidth = ArenaConstants::kFighterWidth;
+  static constexpr float kMinDistance = ArenaConstants::kMinDistance;
+  static constexpr float kGravity = ArenaConstants::kGravity;
+  static constexpr float kGroundY = ArenaConstants::kGroundY;
 
   FighterMovementSystem() = default;
   ~FighterMovementSystem() override = default;

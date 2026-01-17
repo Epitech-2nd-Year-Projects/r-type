@@ -115,6 +115,17 @@ class FakeRenderer3D final : public engine::render::Renderer3D {
   }
   void SetLighting(const engine::render::LightingConfig& /*config*/) override {}
   void DisableLighting() override {}
+  bool SetModelTexture(engine::render::Model& /*model*/,
+                       const std::string& /*texture_path*/) override {
+    return false;
+  }
+  std::shared_ptr<engine::render::AnimationSet> LoadAnimationsFromFile(
+      const std::string& /*path*/) override {
+    return nullptr;
+  }
+  void UpdateModelAnimation(engine::render::Model& /*model*/,
+                            const engine::render::Animation& /*animation*/,
+                            uint32_t /*frame*/) override {}
 };
 
 class FakeRenderContext final : public engine::render::RenderContext {
