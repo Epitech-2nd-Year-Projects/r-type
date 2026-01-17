@@ -39,28 +39,14 @@ package("ffmpeg-prebuilt")
     set_homepage("https://github.com/BtbN/FFmpeg-Builds")
     set_description("Prebuilt FFmpeg binaries (LGPL)")
     set_license("LGPL-2.1")
-
-    if is_plat("windows") then
-        set_urls("https://github.com/BtbN/FFmpeg-Builds/releases/download/" .. FFMPEG_AUTOBUILD_TAG .. "/ffmpeg-n" .. FFMPEG_BUILD_SUFFIX .. "-win64-lgpl-shared-$(version).zip")
-        add_versions("7.1", "5d8d4378582bf75039e9d114d345ae73e44cd5fe674c9b0d52ccf05a8ad7c68b")
-    elseif is_plat("linux") then
-        set_urls("https://github.com/BtbN/FFmpeg-Builds/releases/download/" .. FFMPEG_AUTOBUILD_TAG .. "/ffmpeg-n" .. FFMPEG_BUILD_SUFFIX .. "-linux64-lgpl-shared-$(version).tar.xz")
-        add_versions("7.1", "690a44fe5f34b9dec8d3e5d7a68d87e57fb8a0a000028ee61d0d4fa8f539741e")
-    end
-
+    set_urls("https://github.com/BtbN/FFmpeg-Builds/releases/download/" .. FFMPEG_AUTOBUILD_TAG .. "/ffmpeg-n" .. FFMPEG_BUILD_SUFFIX .. "-win64-lgpl-shared-$(version).zip")
+    add_versions("7.1", "5d8d4378582bf75039e9d114d345ae73e44cd5fe674c9b0d52ccf05a8ad7c68b")
     on_load("windows", function (package)
         package:add("links", "avcodec", "avformat", "avutil", "swresample", "swscale")
         package:add("includedirs", "include")
         package:add("linkdirs", "lib")
         package:add("bindirs", "bin")
     end)
-
-    on_load("linux", function (package)
-        package:add("links", "avcodec", "avformat", "avutil", "swresample", "swscale")
-        package:add("includedirs", "include")
-        package:add("linkdirs", "lib")
-    end)
-
     on_install("windows", function (package)
         local version = package:version_str()
         local root = "ffmpeg-n" .. FFMPEG_BUILD_SUFFIX .. "-win64-lgpl-shared-" .. version
@@ -70,16 +56,6 @@ package("ffmpeg-prebuilt")
         os.cp("include", package:installdir())
         os.cp("lib", package:installdir())
         os.cp("bin", package:installdir())
-    end)
-
-    on_install("linux", function (package)
-        local version = package:version_str()
-        local root = "ffmpeg-n" .. FFMPEG_BUILD_SUFFIX .. "-linux64-lgpl-shared-" .. version
-        if os.isdir(root) then
-            os.cd(root)
-        end
-        os.cp("include", package:installdir())
-        os.cp("lib", package:installdir())
     end)
 package_end()
 
