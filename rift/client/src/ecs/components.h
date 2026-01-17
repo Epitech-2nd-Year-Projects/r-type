@@ -2,9 +2,12 @@
 #define RIFT_CLIENT_ECS_COMPONENTS_H_
 
 #include <cstdint>
+#include <memory>
 
 #include "engine/math/vector2.h"
+#include "engine/render/animation.h"
 #include "engine/render/color.h"
+#include "engine/render/model.h"
 #include "rift/components/fighter_component.h"
 
 namespace rift::client::ecs {
@@ -104,6 +107,24 @@ struct SnapshotInterpolationComponent {
   SnapshotInterpolationComponent() = default;
   SnapshotInterpolationComponent(std::uint64_t last, std::uint64_t prev)
       : previous_snapshot_ms(prev), last_snapshot_ms(last) {}
+};
+
+struct Fighter3DRenderComponent {
+  std::shared_ptr<engine::render::Model> model;
+  float scale{1.0f};
+
+  Fighter3DRenderComponent() = default;
+};
+
+struct AnimationComponent {
+  std::shared_ptr<engine::render::AnimationSet> animation_set;
+  std::size_t current_animation_index{0};
+  float current_frame{0.0f};
+  float speed{1.0f};
+  bool playing{true};
+  bool looping{true};
+
+  AnimationComponent() = default;
 };
 
 }  // namespace rift::client::ecs
