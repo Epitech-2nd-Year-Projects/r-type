@@ -58,6 +58,9 @@ void FightHud::Draw(engine::render::Renderer2D& renderer,
                     engine::math::Vector2i render_size) {
   const float screen_width = static_cast<float>(render_size.x);
 
+  const int p1_lives_lost = player2_.has_value() ? player2_->rounds_won : 0;
+  const int p2_lives_lost = player1_.has_value() ? player1_->rounds_won : 0;
+
   if (player1_.has_value()) {
     DrawHealthBar(renderer, kHudMargin, kHudTopMargin, kHealthBarWidth,
                   kHealthBarHeight, player1_->health_percent, false);
@@ -67,10 +70,10 @@ void FightHud::Draw(engine::render::Renderer2D& renderer,
                    kStaminaBarWidth, kStaminaBarHeight,
                    player1_->stamina_percent, false);
 
-    DrawRoundIndicators(renderer, kHudMargin,
-                        kHudTopMargin + kHealthBarHeight + kStaminaBarHeight +
-                            kBarSpacing * 2,
-                        player1_->rounds_won, false);
+    DrawLifeIndicators(renderer, kHudMargin,
+                       kHudTopMargin + kHealthBarHeight + kStaminaBarHeight +
+                           kBarSpacing * 2,
+                       p1_lives_lost, false);
   }
 
   if (player2_.has_value()) {
@@ -83,12 +86,12 @@ void FightHud::Draw(engine::render::Renderer2D& renderer,
         kHudTopMargin + kHealthBarHeight + kBarSpacing, kStaminaBarWidth,
         kStaminaBarHeight, player2_->stamina_percent, true);
 
-    DrawRoundIndicators(
+    DrawLifeIndicators(
         renderer,
         screen_width - kHudMargin - kRoundIndicatorSize * 2 -
             kRoundIndicatorSpacing,
         kHudTopMargin + kHealthBarHeight + kStaminaBarHeight + kBarSpacing * 2,
-        player2_->rounds_won, true);
+        p2_lives_lost, true);
   }
 
   DrawTimer(renderer, screen_width / 2.0f, kHudTopMargin, round_timer_ms_);
@@ -123,11 +126,10 @@ void FightHud::DrawStaminaBar(engine::render::Renderer2D& renderer, float x,
                     engine::render::Color::FromBytes(255, 200, 0));
 }
 
-void FightHud::DrawRoundIndicators(engine::render::Renderer2D& renderer,
-                                   float x, float y, int rounds_won,
-                                   bool flip) {
-  const int max_rounds = 2;
-  for (int i = 0; i < max_rounds; ++i) {
+void FightHud::DrawLifeIndicators(engine::render::Renderer2D& renderer, float x,
+                                  float y, int lives_lost, bool flip) {
+  const int max_lives = 2;
+  for (int i = 0; i < max_lives; ++i) {
     const float indicator_x =
         flip ? x - static_cast<float>(i) *
                        (kRoundIndicatorSize + kRoundIndicatorSpacing)
@@ -135,8 +137,8 @@ void FightHud::DrawRoundIndicators(engine::render::Renderer2D& renderer,
                        (kRoundIndicatorSize + kRoundIndicatorSpacing);
 
     engine::render::Color color =
-        i < rounds_won ? engine::render::Color::FromBytes(255, 215, 0)
-                       : engine::render::Color::FromBytes(60, 60, 60);
+        i < lives_lost ? engine::render::Color::FromBytes(60, 60, 60)
+                       : engine::render::Color::FromBytes(200, 0, 0);
 
     renderer.DrawRect({indicator_x, y, kRoundIndicatorSize, kRoundIndicatorSize},
                       color);
@@ -147,9 +149,20 @@ void FightHud::DrawTimer(engine::render::Renderer2D& renderer, float x, float y,
                          std::uint32_t timer_ms) {
   const float timer_width = 60.0f;
   const float timer_height = 40.0f;
+  const float font_size = 28.0f;
 
   renderer.DrawRect({x - timer_width / 2.0f, y, timer_width, timer_height},
                     engine::render::Color::FromBytes(20, 20, 20));
+
+  const std::uint32_t seconds = timer_ms / 1000;
+  const std::string timer_text = std::to_string(seconds);
+
+  const auto text_size = renderer.MeasureText(timer_text, font_size);
+  const float text_x = x - text_size.x / 2.0f;
+  const float text_y = y + (timer_height - text_size.y) / 2.0f;
+
+  renderer.DrawText(timer_text, {text_x, text_y}, font_size,
+                    engine::render::Color::White());
 }
 
 }  // namespace rift::client

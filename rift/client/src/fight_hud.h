@@ -20,6 +20,8 @@ class FightHud {
   void Update(const engine::ecs::Registry& world,
               std::optional<std::uint32_t> local_player_id);
 
+  void SetRoundTimer(std::uint32_t timer_ms) { round_timer_ms_ = timer_ms; }
+
   void Draw(engine::render::Renderer2D& renderer,
             engine::math::Vector2i render_size);
 
@@ -30,8 +32,8 @@ class FightHud {
   void DrawStaminaBar(engine::render::Renderer2D& renderer, float x, float y,
                       float width, float height, float percent, bool flip);
 
-  void DrawRoundIndicators(engine::render::Renderer2D& renderer, float x,
-                           float y, int rounds_won, bool flip);
+  void DrawLifeIndicators(engine::render::Renderer2D& renderer, float x,
+                          float y, int lives_lost, bool flip);
 
   void DrawTimer(engine::render::Renderer2D& renderer, float x, float y,
                  std::uint32_t timer_ms);
