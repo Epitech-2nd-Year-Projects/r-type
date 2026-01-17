@@ -26,6 +26,7 @@ enum class MessageType : std::uint8_t {
   kSpawnEntity = 7,    ///< Server → Client: explicit spawn (optional).
   kDestroyEntity = 8,  ///< Server → Client: explicit destroy (optional).
   kPlayerDied = 9,     ///< Server → Client: notification that a player died.
+  kGameplayPing = 18,  ///< Client <-> Server: gameplay ping (contextual).
 
   // Generic commands / events.
   kClientCommand = 10,  ///< Client → Server: generic reliable commands.
