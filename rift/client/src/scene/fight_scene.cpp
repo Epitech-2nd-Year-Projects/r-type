@@ -4,14 +4,15 @@
 #include "engine/ecs/registry.h"
 #include "engine/math/rect.h"
 #include "engine/render/color.h"
+#include "rift/arena_constants.h"
 
 namespace rift::client {
 
 namespace {
 
-constexpr float kArenaFloorY = 500.0f;
-constexpr float kFighterWidth = 60.0f;
-constexpr float kFighterHeight = 120.0f;
+constexpr float kArenaFloorY = ArenaConstants::kFloorRenderY;
+constexpr float kFighterWidth = ArenaConstants::kFighterWidth;
+constexpr float kFighterHeight = ArenaConstants::kFighterHeight;
 
 }  // namespace
 
@@ -95,7 +96,8 @@ void FightScene::DrawFighters(engine::render::Renderer2D& renderer) {
       x = positions[i]->render_position.x;
       y = positions[i]->render_position.y;
     } else {
-      x = fighters[i]->slot == 0 ? 340.0f : 880.0f;
+      x = fighters[i]->slot == 0 ? ArenaConstants::kPlayer1SpawnX
+                                 : ArenaConstants::kPlayer2SpawnX;
     }
 
     engine::render::Color color =
