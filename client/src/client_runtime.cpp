@@ -506,18 +506,17 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
     frame_ready = frame_resources_->Ready();
   }
 
-  const auto draw_gameplay = [&]() {
-    if (background_) {
-      background_->Update(dt, {static_cast<float>(render_size.x),
-                               static_cast<float>(render_size.y)});
-      background_->Draw();
-    }
-  };
+  if (background_) {
+    background_->Update(dt, {static_cast<float>(render_size.x),
+                             static_cast<float>(render_size.y)});
+    background_->Draw();
+  }
 
   if (render_with_bloom) {
     bloom_->SetIntensity(bloom_intensity);
     bloom_->EnsureTarget(window_size);
     if (bloom_->Ready()) {
+      frame_resources_->BeginCapture(constants::client::kClearColor);
       if (scene) {
         scene->DrawBackground(renderer);
       }
