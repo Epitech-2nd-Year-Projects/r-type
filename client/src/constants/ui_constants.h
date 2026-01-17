@@ -378,7 +378,7 @@ struct Profile {
   static constexpr float kSectionSpacing = 30.0f;
   static constexpr float kPointerHeightFactor = 0.85f;
   static constexpr float kPointerFrameDuration = 0.06f;
-  static constexpr float kPointerSpacing = 28.0f;
+  static constexpr float kPointerSpacing = 1.0f;
   static constexpr float kPointerScaleFactor = 0.6f;
   static constexpr float kTitleScaleFactor = 1.5f;
   static constexpr int kPointerFrameCount = 11;
@@ -386,7 +386,7 @@ struct Profile {
   static constexpr engine::render::Color kTitleColor =
       engine::render::Color::FromBytes(230, 235, 245);
   static constexpr engine::render::Color kLabelColor =
-      engine::render::Color::FromBytes(0, 0, 0);
+      engine::render::Color::FromBytes(255, 255, 255);
   static constexpr engine::render::Color kValueColor =
       engine::render::Color::FromBytes(140, 186, 255);
   static constexpr engine::render::Color kInputBgColor =
