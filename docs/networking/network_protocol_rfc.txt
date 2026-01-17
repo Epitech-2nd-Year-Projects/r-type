@@ -151,6 +151,7 @@ Table of Contents
        - u8 msg_len (0..63), message
 
    8.5 InputState (0x05)
+       - u32 ack_snapshot_id
        - u8 command_count (1..4)
        - For each command:
          - u32 input_sequence
@@ -163,15 +164,16 @@ Table of Contents
        - u32 snapshot_id
        - u32 base_snapshot_id (NO_BASE_SNAPSHOT = 0xFFFFFFFF means full)
        - u32 server_tick
+       - u32 current_wave
        - u16 delta_count
        - For each delta:
          - u8 op (Section 6)
          - u32 entity_id
-         - If Create: u16 type, i16 x, i16 y, i16 vx, i16 vy, u8 hp, u8 flags
+         - If Create: u16 type, i16 x, i16 y, i16 vx, i16 vy, u32 hp, u8 flags, u32 score, u8 lives, u32 player_id
          - If Delete: no further fields
          - If Update:
-           - u8 field_mask (bit0 type, bit1 x, bit2 y, bit3 vx,
-             bit4 vy, bit5 hp, bit6 flags)
+           - u16 field_mask (bit0 type, bit1 x, bit2 y, bit3 vx,
+             bit4 vy, bit5 hp, bit6 flags, bit7 score, bit8 lives, bit9 player_id)
            - Only fields whose bits are set appear, in the Create order
 
    8.7 SpawnEntity (0x07)
@@ -210,12 +212,15 @@ Table of Contents
          - u8 is_private (0/1)
          - u8 player_count
          - u8 max_players
+         - u8 started (0/1)
+         - u8 difficulty (0: Easy, 1: Normal, 2: Hard, 3: Nightmare)
 
    8.15 CreateRoomRequest (0x10)
        - u8 name_len (<=31), room_name
        - u8 is_private (0/1)
        - u8 max_players (1..255; clamped)
        - u8 pass_len (<=15), room_password (optional)
+       - u8 difficulty (0: Easy, 1: Normal, 2: Hard, 3: Nightmare)
 
    8.16 CreateRoomResponse (0x11)
        - u8 success (0/1)
@@ -223,6 +228,8 @@ Table of Contents
        - u8 has_room (0/1)
        - If has_room: RoomSummary (same layout as in RoomList)
        - u8 pass_len (<=15), room_password (always present; populated for private rooms)
+
+
 
 9. Communication Flows
 
@@ -243,7 +250,7 @@ Table of Contents
    9.3 Gameplay Loop
        - Inputs: Client sends InputState at 30–120 Hz (default ~60 Hz)
          with the most recent 1..4 commands for redundancy.
-       - Snapshots: Server ticks (default 60 Hz) and sends one
+       - Snapshots: Server ticks (default 30 Hz) and sends one
          WorldSnapshot per tick; may be full or delta.
        - Events: PlayerDied and ServerCommand are reliable and re-sent
          until acknowledged.
@@ -270,8 +277,8 @@ Table of Contents
 
 11. Timing Parameters (defaults)
 
-   - Server tick rate: 60 Hz (configurable).
-   - Client input send rate: 60 Hz default; 30–120 Hz clamp.
+   - Server tick rate: 30 Hz (configurable).
+   - Client input send rate: 60 Hz default; 60–120 Hz clamp.
    - Ping interval: ~1000 ms.
    - Reliable resend timeout: 250 ms.
    - Reliable queue capacity: 64 pending packets.
@@ -289,3 +296,17 @@ Table of Contents
      missing, wait for or request a full snapshot (base_snapshot_id =
      NO_BASE_SNAPSHOT).
    - Enforce string length bounds before encoding.
+
+   12.1 Packet Decoding Errors
+
+   Implementations should robustly handle and reject malformed packets.
+   Recommended error conditions to detect include:
+
+   - UnexpectedEndOfBuffer: Processing reading past the end of the
+     received datagram.
+   - InvalidHeader: Header flags or fields inconsistent.
+   - UnknownMessageType: Message ID not recognized (see Section 7).
+   - VersionMismatch: Packet version does not match expected protocol
+     version.
+   - InvalidPayload: Payload structure malformed or values out of range.
+   - InvalidSnapshotId: Snapshot ID referenced is unknown or invalid.
