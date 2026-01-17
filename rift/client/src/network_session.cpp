@@ -39,6 +39,8 @@ NetworkSession::NetworkSession(RiftConfig config)
   world_registry_->RegisterComponent<ecs::HealthBarComponent>();
   world_registry_->RegisterComponent<ecs::StaminaBarComponent>();
   world_registry_->RegisterComponent<ecs::FighterRenderComponent>();
+  world_registry_->RegisterComponent<ecs::Fighter3DRenderComponent>();
+  world_registry_->RegisterComponent<ecs::AnimationComponent>();
   world_registry_->RegisterComponent<ecs::SnapshotInterpolationComponent>();
 
   world_state_system_ =
