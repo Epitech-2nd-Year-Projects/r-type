@@ -106,11 +106,11 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
 
   // Up = Block, Down = Dodge
   emit_edge(protocol::InputButton::kInputUp,
-            rift::GameInstance::InputEventType::kMoveUpPressed,
-            rift::GameInstance::InputEventType::kMoveUpReleased);
+            rift::GameInstance::InputEventType::kBlockPressed,
+            rift::GameInstance::InputEventType::kBlockReleased);
   emit_edge(protocol::InputButton::kInputDown,
-            rift::GameInstance::InputEventType::kMoveDownPressed,
-            rift::GameInstance::InputEventType::kMoveDownReleased);
+            rift::GameInstance::InputEventType::kDodgePressed,
+            rift::GameInstance::InputEventType::kDodgeReleased);
 
   // Fire = Light Attack, BigFire = Heavy Attack
   emit_edge(protocol::InputButton::kInputFire,
