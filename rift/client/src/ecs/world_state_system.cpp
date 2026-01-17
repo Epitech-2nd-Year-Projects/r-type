@@ -5,6 +5,7 @@
 
 #include "ecs/components.h"
 #include "engine/render/color.h"
+#include "rift/arena_constants.h"
 
 namespace rift::client::ecs {
 
@@ -16,8 +17,8 @@ constexpr std::uint8_t kFlagReady = 2u;
 constexpr std::uint8_t kFlagFacingLeft = 4u;
 
 /// @brief Default fighter rendering dimensions.
-constexpr float kFighterWidth = 60.0f;
-constexpr float kFighterHeight = 120.0f;
+constexpr float kFighterWidth = rift::ArenaConstants::kFighterWidth;
+constexpr float kFighterHeight = rift::ArenaConstants::kFighterHeight;
 
 }  // namespace
 
