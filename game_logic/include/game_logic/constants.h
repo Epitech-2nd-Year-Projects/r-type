@@ -8,6 +8,10 @@ namespace game_logic {
 // Grid Configuration
 constexpr float kGridCellSize = 100.0f;
 
+// World Dimensions
+constexpr float kGameWidth = 1600.0f;
+constexpr float kGameHeight = 880.0f;
+
 // Player Spawn Configuration
 constexpr float kPlayerSpawnBaseX = 100.0f;
 constexpr float kPlayerSpawnOffsetX = 50.0f;

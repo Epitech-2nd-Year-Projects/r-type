@@ -424,7 +424,8 @@ void GameInstance::RegisterSystems() {
       engine::ecs::MovementSystem::Update, engine::ecs::SystemType::Fixed,
       engine::ecs::kDefaultPriority);
 
-  registry_->AddSystemClass(std::make_shared<systems::BoundarySystem>(),
+  registry_->AddSystemClass(std::make_shared<systems::BoundarySystem>(
+                                kGameWidth, kGameHeight),
                             engine::ecs::SystemType::Fixed,
                             engine::ecs::kDefaultPriority);
 
