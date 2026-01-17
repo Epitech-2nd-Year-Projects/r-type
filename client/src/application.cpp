@@ -165,9 +165,6 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   config_.vsync = vsync;
   config_.target_fps = std::max(0, target_fps);
 
-  runtime_->SetRenderSize(
-      {config_.resolution_width, config_.resolution_height});
-
   auto& window = runtime_->Window();
   if (config_.fullscreen != previous_fullscreen) {
     window.ToggleFullscreen();
