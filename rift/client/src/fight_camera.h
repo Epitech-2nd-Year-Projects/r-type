@@ -16,9 +16,7 @@ class FightCamera {
  private:
   engine::render::Camera3D camera_;
   float height_offset_{1.5f};
-  float min_distance_{8.0f};
-  float max_distance_{20.0f};
-  float distance_per_separation_{0.8f};
+  float fixed_distance_{12.0f};
 };
 
 }  // namespace rift::client
