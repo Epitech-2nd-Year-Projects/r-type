@@ -1,4 +1,4 @@
-name: Release
+name: Release R-Type
 
 on:
   push:
@@ -18,7 +18,6 @@ jobs:
       AR: llvm-ar
       NM: llvm-nm
       RANLIB: llvm-ranlib
-      BUILD_RIFT: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -76,34 +75,19 @@ jobs:
           cp build/linux/x86_64/release/server release/r-type-linux/r-type-server
           cp -r assets release/r-type-linux/
           cp -r config release/r-type-linux/
-
-          mkdir -p release/rift-linux
-          cp build/linux/x86_64/release/rift_client release/rift-linux/rift-client
-          cp build/linux/x86_64/release/rift_server release/rift-linux/rift-server
-          cp -r assets release/rift-linux/
-          cp -r config release/rift-linux/
-
           cd release
           tar -czvf r-type-linux.tar.gz r-type-linux
-          tar -czvf rift-linux.tar.gz rift-linux
 
-      - name: Upload R-Type Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: r-type-linux
           path: release/r-type-linux.tar.gz
 
-      - name: Upload Rift Artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: rift-linux
-          path: release/rift-linux.tar.gz
-
   build-windows:
     runs-on: windows-latest
     env:
       LLVM_VERSION: "19.1.7"
-      BUILD_RIFT: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -143,28 +127,13 @@ jobs:
           Copy-Item -Recurse -Path assets -Destination release/r-type-windows/assets
           Copy-Item -Recurse -Path config -Destination release/r-type-windows/config
           Copy-Item -Path build/windows/x64/release/*.dll -Destination release/r-type-windows -Force
-
-          New-Item -ItemType Directory -Force -Path release/rift-windows
-          Copy-Item build/windows/x64/release/rift_client.exe -Destination release/rift-windows/rift-client.exe
-          Copy-Item build/windows/x64/release/rift_server.exe -Destination release/rift-windows/rift-server.exe
-          Copy-Item -Recurse -Path assets -Destination release/rift-windows/assets
-          Copy-Item -Recurse -Path config -Destination release/rift-windows/config
-          Copy-Item -Path build/windows/x64/release/*.dll -Destination release/rift-windows -Force
-
           Compress-Archive -Path release/r-type-windows -DestinationPath release/r-type-windows.zip
-          Compress-Archive -Path release/rift-windows -DestinationPath release/rift-windows.zip
 
-      - name: Upload R-Type Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: r-type-windows
           path: release/r-type-windows.zip
-
-      - name: Upload Rift Artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: rift-windows
-          path: release/rift-windows.zip
 
   release:
     needs: [build-linux, build-windows]
@@ -183,25 +152,11 @@ jobs:
           name: r-type-windows
           path: .
 
-      - name: Download Rift Linux Artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: rift-linux
-          path: .
-
-      - name: Download Rift Windows Artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: rift-windows
-          path: .
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             r-type-linux.tar.gz
             r-type-windows.zip
-            rift-linux.tar.gz
-            rift-windows.zip
           draft: false
           prerelease: false
