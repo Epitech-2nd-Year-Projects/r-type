@@ -2,6 +2,31 @@ set_project("r-type")
 set_version("0.1.0")
 set_xmakever("3.0.6")
 
+rule("submodules")
+    on_config(function()
+        local submodules = {
+            "third_party/rlImGui",
+            "third_party/raylib-media",
+            "third_party/linenoise"
+        }
+        local needs_update = false
+        for _, submodule in ipairs(submodules) do
+            local submodule_path = path.join(os.projectdir(), submodule)
+            if not os.isdir(path.join(submodule_path, ".git")) and
+               not os.isfile(path.join(submodule_path, ".git")) then
+                needs_update = true
+                break
+            end
+        end
+        if needs_update then
+            print("Initializing git submodules...")
+            os.runv("git", {"submodule", "update", "--init", "--recursive"})
+        end
+    end)
+rule_end()
+
+add_rules("submodules")
+
 add_rules("mode.debug", "mode.release")
 set_languages("cxx23")
 set_warnings("all")
