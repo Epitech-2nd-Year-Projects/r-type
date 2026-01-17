@@ -74,8 +74,8 @@ struct ConnectionValidationResult {
  *  - RTYPE_CLIENT_MAX_EXTRAPOLATION_MS
  *  - RTYPE_CLIENT_LOG_LEVEL
  */
+ClientConfig LoadClientConfig(int argc, char** argv);
 
-ClientConfig LoadClientConfig();
 
 /**
  * @brief Persist client configuration to disk

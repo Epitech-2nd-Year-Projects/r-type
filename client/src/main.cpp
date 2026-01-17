@@ -1,8 +1,8 @@
 #include "application.h"
 #include "client_config.h"
 
-int main(int /*argc*/, char** /*argv*/) {
-  const client::ClientConfig config = client::LoadClientConfig();
+int main(int argc, char** argv) {
+  const client::ClientConfig config = client::LoadClientConfig(argc, argv);
   client::Application app(config);
   return app.Run();
 }

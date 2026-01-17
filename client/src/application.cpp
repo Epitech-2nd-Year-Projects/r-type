@@ -153,6 +153,10 @@ void Application::SetAudioVolumes(float master_volume, float music_volume,
     audio_engine->SetSfxVolume(config_.sfx_volume);
   }
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 void Application::SetVideoSettings(int resolution_width, int resolution_height,
@@ -165,9 +169,6 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   config_.vsync = vsync;
   config_.target_fps = std::max(0, target_fps);
 
-  runtime_->SetRenderSize(
-      {config_.resolution_width, config_.resolution_height});
-
   auto& window = runtime_->Window();
   if (config_.fullscreen != previous_fullscreen) {
     window.ToggleFullscreen();
@@ -179,6 +180,10 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   window.SetTargetFps(config_.target_fps);
 
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 ClientAssetManager& Application::Assets() { return *assets_; }
@@ -244,6 +249,10 @@ void Application::SetConnectionConfig(std::string host, int port,
   network_->SetConnectionConfig(config_.host, config_.port, config_.player_name,
                                 config_.room_code, std::move(room_password));
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 bool Application::StartConnection() {

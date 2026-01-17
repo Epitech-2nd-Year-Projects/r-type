@@ -59,8 +59,8 @@ Prefabs.Tank = {
     Velocity = { x = -50, y = 0 },
     Sprite = {
         texture = "assets/sprites/enemy_tank.png",
-        width = 38,
-        height = 38,
+        width = 36,
+        height = 36,
         frame_width = 33,
         frame_height = 33,
         layer = 2,
@@ -69,6 +69,15 @@ Prefabs.Tank = {
     AI = {
         behavior = "Patrol",
         speed = 50,
+    },
+    Weapon = {
+        projectile_name = "EnemyMissile",
+        projectile_speed = 300,
+        fire_rate = 0.5,
+        damage = 35,
+        faction = 1,
+        trigger_held = true,
+        weapon_script = "BasicEnemyWeapon",
     }
 }
 
@@ -79,8 +88,8 @@ Prefabs.Interceptor = {
     Velocity = { x = -150, y = 0 },
     Sprite = {
         texture = "assets/sprites/enemy_interceptor.png",
-        width = 38,
-        height = 38,
+        width = 36,
+        height = 36,
         frame_width = 33,
         frame_height = 33,
         layer = 2,

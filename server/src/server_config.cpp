@@ -69,7 +69,7 @@ bool ValidateLength(std::string_view value, std::size_t max_length) {
 
 }  // namespace
 
-ServerConfig LoadServerConfig() {
+ServerConfig LoadServerConfig(int argc, char** argv) {
   ServerConfig config;
   auto& logger = engine::util::Logger::Default();
 
@@ -124,6 +124,19 @@ ServerConfig LoadServerConfig() {
     engine::util::LogLevel level;
     if (TryParseLogLevel(log_level, level)) {
       config.log_level = level;
+    }
+  }
+
+  for (int i = 1; i < argc; ++i) {
+    const std::string_view arg = argv[i];
+    if ((arg == "--port" || arg == "-p") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::uint16_t port = 0;
+      if (TryParseBounded(val, kMinPort, kMaxPort, port)) {
+        config.port = port;
+      } else {
+        logger.Warn("Ignoring invalid port argument: ", val);
+      }
     }
   }
 
