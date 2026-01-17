@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "engine/math/vector2.h"
+#include "input/fight_input.h"
 #include "protocol/command.h"
 #include "rift_state.h"
 
@@ -18,6 +19,7 @@ class InputManager;
 
 namespace engine::render {
 class Renderer2D;
+class Renderer3D;
 class Window;
 }  // namespace engine::render
 
@@ -28,6 +30,7 @@ class RiftContext {
   virtual ~RiftContext() = default;
 
   virtual engine::render::Renderer2D& Renderer() = 0;
+  virtual engine::render::Renderer3D& Renderer3D() = 0;
   virtual engine::input::InputManager& Input() = 0;
   virtual engine::render::Window& Window() = 0;
   virtual engine::math::Vector2i RenderSize() const = 0;
@@ -41,6 +44,8 @@ class RiftContext {
 
   virtual RiftClientState State() const = 0;
   virtual bool IsConnected() const = 0;
+
+  virtual FightActionState GetInputState() const = 0;
 };
 
 }  // namespace rift::client
