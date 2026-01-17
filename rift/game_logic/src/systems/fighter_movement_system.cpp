@@ -18,13 +18,25 @@ void FighterMovementSystem::Update(engine::ecs::Registry& registry,
 
   for (auto [idx, pos, vel, fighter, combat] :
        engine::ecs::IndexedZipper(positions, velocities, fighters, combat_states)) {
+    if (pos->position.y < kGroundY) {
+      vel->velocity.y += kGravity * dt_sec;
+    }
+
+    pos->position.y += vel->velocity.y * dt_sec;
+
+    if (pos->position.y >= kGroundY) {
+      pos->position.y = kGroundY;
+      vel->velocity.y = 0.0f;
+    }
+
     if (combat->state == components::CombatState::kStunned ||
         combat->state == components::CombatState::kDodging) {
       continue;
     }
 
     pos->position.x += vel->velocity.x * dt_sec;
-    pos->position.x = std::clamp(pos->position.x, 0.0f, kArenaWidth);
+    pos->position.x =
+        std::clamp(pos->position.x, 0.0f, kArenaWidth - kFighterWidth);
 
     if (vel->velocity.x != 0.0f) {
       fighter->facing_right = vel->velocity.x > 0.0f;
@@ -51,8 +63,10 @@ void FighterMovementSystem::Update(engine::ecs::Registry& registry,
       p1->position.x -= push;
       p2->position.x += push;
 
-      p1->position.x = std::clamp(p1->position.x, 0.0f, kArenaWidth);
-      p2->position.x = std::clamp(p2->position.x, 0.0f, kArenaWidth);
+      p1->position.x =
+          std::clamp(p1->position.x, 0.0f, kArenaWidth - kFighterWidth);
+      p2->position.x =
+          std::clamp(p2->position.x, 0.0f, kArenaWidth - kFighterWidth);
     }
   }
 }
