@@ -73,7 +73,8 @@ Application::Application(ClientConfig config)
           [this](const protocol::CommandPayload& payload) {
             return EnqueueCommand(payload);
           })),
-      player_prediction_system_(std::make_unique<ecs::PlayerPredictionSystem>(network_->World())) {}
+      player_prediction_system_(
+          std::make_unique<ecs::PlayerPredictionSystem>(network_->World())) {}
 
 Application::~Application() = default;
 

@@ -6,9 +6,8 @@
 
 #include "client_config.h"
 #include "client_context.h"
-#include "lobby_chat_service.h"
-#include "player_profile.h"
 #include "engine/time/time_delta.h"
+#include "lobby_chat_service.h"
 #include "player_profile.h"
 
 namespace client {
@@ -100,7 +99,8 @@ class Application : public ClientContext {
   engine::ecs::Registry& World() override;
   const engine::ecs::Registry& World() const override;
   bool EnqueueCommand(const protocol::CommandPayload& payload) override;
-  bool EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) override;
+  bool EnqueueGameplayPing(
+      const protocol::GameplayPingPayload& payload) override;
   std::optional<std::uint32_t> CurrentWave() const override;
   std::optional<float> LatestLatencyMs() const override;
   std::optional<std::uint32_t> LocalPlayerId() const override;
