@@ -17,13 +17,13 @@ R-Type is a modern, multiplayer implementation of the classic horizontal shoot-'
 To ensure all dependencies and submodules are correctly initialized, please clone the repository recursively:
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone --recursive git@github.com:Epitech-2nd-Year-Projects/r-type.git
+git clone --recursive git@github.com:EpitechPGE3-2025/G-CPP-500-PAR-5-2-rtype-1.git
 cd r-type
 ```
 
 > **Note**: If you have already cloned the repository without the `--recursive` flag, you can initialize the submodules manually:
 > ```bash
-> GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
+> git submodule update --init --recursive
 > ```
 
 ### Prerequisites
