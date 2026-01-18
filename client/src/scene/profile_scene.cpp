@@ -45,14 +45,14 @@ ProfileScene::ProfileScene(ClientContext& context)
 
   menu_effects_.Load();
 
-  for (int i = 0; i < constants::ui::Pause::kFleurFrameCount; ++i) {
+  for (int i = 0; i < constants::ui::OptionsMenu::kWarningFrameCount; ++i) {
     std::ostringstream path;
-    path << constants::ui::Pause::kBottomFleurFramePrefix << std::setw(4)
+    path << constants::ui::OptionsMenu::kWarningFramePrefix << std::setw(4)
          << std::setfill('0') << i
-         << constants::ui::Pause::kFleurFrameExtension;
+         << constants::ui::OptionsMenu::kWarningFrameExtension;
     auto tex = assets.GetTexture(path.str());
     if (tex) {
-      fleur_frames_.push_back(tex);
+      warning_frames_.push_back(tex);
     }
   }
 
@@ -97,15 +97,15 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::ui::HorizontalAlignment::kCenter;
   root->AddChild(title_text);
 
-  auto fleur_slot = std::make_shared<engine::ui::BoxElement>();
-  fleur_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
-  fleur_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
-      constants::ui::Pause::kBottomFleurSlotHeight);
-  fleur_slot->Layout().alignment.horizontal =
+  auto warning_slot = std::make_shared<engine::ui::BoxElement>();
+  warning_slot->Layout().size.width = engine::ui::LayoutValue::Percent(1.0f);
+  warning_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::OptionsMenu::kWarningSlotHeight);
+  warning_slot->Layout().alignment.horizontal =
       engine::ui::HorizontalAlignment::kCenter;
-  fleur_slot->SetLayoutCallback(
-      [this](const engine::math::RectF& rect) { fleur_rect_ = rect; });
-  root->AddChild(fleur_slot);
+  warning_slot->SetLayoutCallback(
+      [this](const engine::math::RectF& rect) { warning_rect_ = rect; });
+  root->AddChild(warning_slot);
 
   auto main_content = std::make_shared<engine::ui::StackContainer>(
       engine::ui::Axis::kHorizontal);
@@ -415,13 +415,13 @@ void ProfileScene::Update(engine::time::TimeDelta dt) {
 
   context_.MenuBackground().Update(dt);
 
-  if (!fleur_frames_.empty() && fleur_animating_) {
-    const float max_elapsed = static_cast<float>(fleur_frames_.size() - 1) *
-                              constants::ui::Pause::kFleurFrameDuration;
-    fleur_elapsed_ += dt.as_seconds();
-    if (fleur_elapsed_ >= max_elapsed) {
-      fleur_elapsed_ = max_elapsed;
-      fleur_animating_ = false;
+  if (!warning_frames_.empty() && warning_animating_) {
+    const float max_elapsed = static_cast<float>(warning_frames_.size() - 1) *
+                              constants::ui::OptionsMenu::kWarningFrameDuration;
+    warning_elapsed_ += dt.as_seconds();
+    if (warning_elapsed_ >= max_elapsed) {
+      warning_elapsed_ = max_elapsed;
+      warning_animating_ = false;
     }
   }
 
@@ -457,7 +457,7 @@ void ProfileScene::DrawForeground(engine::render::Renderer2D& renderer) {
   DrawInputBackground(renderer);
   canvas_.LayoutAndDraw(renderer);
 
-  DrawTitleFleur(renderer);
+  DrawWarning(renderer);
 
   if (avatar_renderer_) {
     const float avatar_offset_y = 0.0f;
@@ -577,16 +577,16 @@ void ProfileScene::LayoutUi(engine::render::Renderer2D& renderer) {
       {static_cast<float>(window_size.x), static_cast<float>(window_size.y)});
 }
 
-void ProfileScene::DrawTitleFleur(engine::render::Renderer2D& renderer) {
-  if (fleur_frames_.empty()) {
+void ProfileScene::DrawWarning(engine::render::Renderer2D& renderer) {
+  if (warning_frames_.empty()) {
     return;
   }
-  const std::size_t frame_count = fleur_frames_.size();
+  const std::size_t frame_count = warning_frames_.size();
   const float frame_pos =
-      fleur_elapsed_ / constants::ui::Pause::kFleurFrameDuration;
+      warning_elapsed_ / constants::ui::OptionsMenu::kWarningFrameDuration;
   const std::size_t frame_index =
       std::min(frame_count - 1, static_cast<std::size_t>(frame_pos));
-  auto texture = fleur_frames_[frame_index];
+  auto texture = warning_frames_[frame_index];
   if (!texture) {
     return;
   }
@@ -595,17 +595,17 @@ void ProfileScene::DrawTitleFleur(engine::render::Renderer2D& renderer) {
     return;
   }
   const float scale =
-      std::min(fleur_rect_.width_ / static_cast<float>(tex_size.x),
-               fleur_rect_.height_ / static_cast<float>(tex_size.y));
+      std::min(warning_rect_.width_ / static_cast<float>(tex_size.x),
+               warning_rect_.height_ / static_cast<float>(tex_size.y));
   if (scale <= 0.0f) {
     return;
   }
   const float draw_width = static_cast<float>(tex_size.x) * scale;
   const float draw_height = static_cast<float>(tex_size.y) * scale;
   const float x =
-      fleur_rect_.top_left_x_ + (fleur_rect_.width_ - draw_width) * 0.5f;
+      warning_rect_.top_left_x_ + (warning_rect_.width_ - draw_width) * 0.5f;
   const float y =
-      fleur_rect_.top_left_y_ + (fleur_rect_.height_ - draw_height) * 0.5f;
+      warning_rect_.top_left_y_ + (warning_rect_.height_ - draw_height) * 0.5f;
   engine::render::SpriteDrawParams params;
   params.position = {x, y};
   params.scale = {scale, scale};
