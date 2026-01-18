@@ -249,6 +249,8 @@ class FakeClientContext final : public client::ClientContext {
   void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
   void OnCloseVideoSettings() override { ++close_video_settings_calls_; }
+  void OnOpenKeyBindings() override {}
+  void OnCloseKeyBindings() override {}
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
   void OnQuitApplication() override { ++quit_calls_; }
