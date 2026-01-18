@@ -11,6 +11,7 @@
 #include "scene/disconnected_scene.h"
 #include "scene/game_over_scene.h"
 #include "scene/in_game_scene.h"
+#include "scene/key_bindings_scene.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
@@ -54,6 +55,7 @@ constexpr TransitionRule kTransitionRules[] = {
     {ClientState::kSettings, ClientState::kInGame, &AllowAlways},
     {ClientState::kSettings, ClientState::kAudioSettings, &AllowAlways},
     {ClientState::kSettings, ClientState::kVideoSettings, &AllowAlways},
+    {ClientState::kSettings, ClientState::kKeyBindings, &AllowAlways},
     {ClientState::kSettings, ClientState::kConnecting, &AllowSettingsReturn},
     {ClientState::kSettings, ClientState::kGameOver, &AllowSettingsReturn},
     {ClientState::kSettings, ClientState::kDisconnected, &AllowSettingsReturn},
@@ -76,6 +78,15 @@ constexpr TransitionRule kTransitionRules[] = {
      &AllowSettingsReturn},
     {ClientState::kVideoSettings, ClientState::kGameOver, &AllowSettingsReturn},
     {ClientState::kVideoSettings, ClientState::kDisconnected,
+     &AllowSettingsReturn},
+    {ClientState::kKeyBindings, ClientState::kSettings, &AllowAlways},
+    {ClientState::kKeyBindings, ClientState::kMainMenu, &AllowAlways},
+    {ClientState::kKeyBindings, ClientState::kLobby, &AllowAlways},
+    {ClientState::kKeyBindings, ClientState::kPaused, &AllowAlways},
+    {ClientState::kKeyBindings, ClientState::kInGame, &AllowAlways},
+    {ClientState::kKeyBindings, ClientState::kConnecting, &AllowSettingsReturn},
+    {ClientState::kKeyBindings, ClientState::kGameOver, &AllowSettingsReturn},
+    {ClientState::kKeyBindings, ClientState::kDisconnected,
      &AllowSettingsReturn},
     {ClientState::kConnecting, ClientState::kInGame, &AllowAlways},
     {ClientState::kConnecting, ClientState::kDisconnected, &AllowAlways},
@@ -111,6 +122,8 @@ std::string_view ToString(ClientState state) {
       return "AudioSettings";
     case ClientState::kVideoSettings:
       return "VideoSettings";
+    case ClientState::kKeyBindings:
+      return "KeyBindings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -210,11 +223,22 @@ void SceneManager::OnOpenVideoSettings() {
   TransitionTo(ClientState::kVideoSettings);
 }
 
+void SceneManager::OnOpenKeyBindings() {
+  if (state_ == ClientState::kKeyBindings) {
+    return;
+  }
+  TransitionTo(ClientState::kKeyBindings);
+}
+
 void SceneManager::OnCloseAudioSettings() {
   TransitionTo(ClientState::kSettings);
 }
 
 void SceneManager::OnCloseVideoSettings() {
+  TransitionTo(ClientState::kSettings);
+}
+
+void SceneManager::OnCloseKeyBindings() {
   TransitionTo(ClientState::kSettings);
 }
 
@@ -303,6 +327,9 @@ void SceneManager::ApplyState(ClientState next_state, std::string reason) {
       break;
     case ClientState::kVideoSettings:
       SwitchScene(std::make_shared<VideoSettingsScene>(context_));
+      break;
+    case ClientState::kKeyBindings:
+      SwitchScene(std::make_shared<KeyBindingsScene>(context_));
       break;
     case ClientState::kConnecting:
       SwitchScene(std::make_shared<ConnectingScene>(context_));
