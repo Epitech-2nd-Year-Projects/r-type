@@ -7,14 +7,6 @@
 
 namespace client::ecs {
 
-namespace {
-
-float Clamp(float value, float min_value, float max_value) {
-  return std::max(min_value, std::min(value, max_value));
-}
-
-}  // namespace
-
 PlayerPredictionSystem::PlayerPredictionSystem(engine::ecs::Registry& registry)
     : registry_(registry) {
   RegisterComponents();
@@ -120,9 +112,9 @@ void PlayerPredictionSystem::Update(engine::time::TimeDelta dt,
   const engine::math::Vector2f predicted_velocity = BuildVelocity(action_state);
   predicted_position_ += predicted_velocity * dt_seconds;
   predicted_position_.x =
-      Clamp(predicted_position_.x, 0.0f, game_logic::kGameWidth);
+      std::clamp(predicted_position_.x, 0.0f, game_logic::kGameWidth);
   predicted_position_.y =
-      Clamp(predicted_position_.y, 0.0f, game_logic::kGameHeight);
+      std::clamp(predicted_position_.y, 0.0f, game_logic::kGameHeight);
 
   position.render_position = predicted_position_;
 }
