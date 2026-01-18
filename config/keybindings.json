@@ -1,9 +1,9 @@
 {
   "BigShoot": "LeftShift",
-  "MoveDown": "A",
+  "MoveDown": "S",
   "MoveLeft": "Q",
   "MoveRight": "D",
-  "MoveUp": "W",
+  "MoveUp": "Z",
   "Ping": "G",
   "Reconnect": "R",
   "Shoot": "Space"
