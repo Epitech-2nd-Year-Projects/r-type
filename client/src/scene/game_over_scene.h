@@ -3,10 +3,13 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
-#include "scene.h"
+#include "engine/ui/button.h"
 #include "engine/ui/canvas.h"
 #include "engine/ui/text.h"
+#include "scene.h"
+#include "ui/menu_effects.h"
 
 namespace client {
 
@@ -24,8 +27,11 @@ class GameOverScene : public Scene {
   void Update(engine::time::TimeDelta dt) override;
   void Draw(engine::render::Renderer2D& renderer) override;
 
+  void DrawBackground(engine::render::Renderer2D& renderer) override;
+  void DrawForeground(engine::render::Renderer2D& renderer) override;
+
  private:
-  void UpdateMenuVisuals();
+  void LayoutUi(engine::render::Renderer2D& renderer);
 
   ClientContext& context_;
   Stats stats_;
@@ -33,7 +39,9 @@ class GameOverScene : public Scene {
   std::shared_ptr<engine::ui::TextElement> title_;
   std::shared_ptr<engine::ui::TextElement> score_text_;
   std::shared_ptr<engine::ui::TextElement> wave_level_text_;
-  std::shared_ptr<engine::ui::TextElement> menu_main_exit_;
+  std::shared_ptr<engine::ui::Button> menu_main_exit_button_;
+  std::vector<std::shared_ptr<engine::ui::Button>> ui_elements_;
+  ui::MenuEffects menu_effects_;
 };
 
 }  // namespace client
