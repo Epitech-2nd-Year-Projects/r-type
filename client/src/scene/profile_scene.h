@@ -32,7 +32,7 @@ class ProfileScene : public Scene {
 
  private:
   void LayoutUi(engine::render::Renderer2D& renderer);
-  void DrawTitleFleur(engine::render::Renderer2D& renderer);
+  void DrawWarning(engine::render::Renderer2D& renderer);
   void DrawStatsBorder(engine::render::Renderer2D& renderer);
   void DrawInputBackground(engine::render::Renderer2D& renderer);
   void SaveAndClose();
@@ -46,10 +46,10 @@ class ProfileScene : public Scene {
   engine::ui::Canvas canvas_;
 
   engine::math::RectF title_rect_{};
-  std::vector<std::shared_ptr<engine::render::Texture2D>> fleur_frames_;
-  engine::math::RectF fleur_rect_{};
-  float fleur_elapsed_{0.0f};
-  bool fleur_animating_{true};
+  std::vector<std::shared_ptr<engine::render::Texture2D>> warning_frames_;
+  engine::math::RectF warning_rect_{};
+  float warning_elapsed_{0.0f};
+  bool warning_animating_{true};
   std::shared_ptr<engine::render::Texture2D> stats_border_texture_;
   engine::math::RectF stats_rect_{};
   std::shared_ptr<engine::render::Texture2D> input_bg_texture_;
