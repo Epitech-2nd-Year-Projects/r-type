@@ -41,9 +41,6 @@ void LobbyChatService::OnChatMessageReceived(
   if (protocol::ParseChatMessage(formatted_message, sender, content)) {
     msg.sender = std::string(sender);
 
-    // Check for color index prefix (control characters used as markers)
-    // We assume color indices are small numbers (e.g. 0-10) which are control
-    // chars
     if (!content.empty() && static_cast<unsigned char>(content[0]) < 32) {
       msg.color_index = static_cast<std::uint8_t>(content[0]);
       msg.content = std::string(content.substr(1));
@@ -51,14 +48,12 @@ void LobbyChatService::OnChatMessageReceived(
       msg.content = std::string(content);
     }
   } else {
-    // Fallback: treat entire message as content
     msg.sender.clear();
     msg.content = msg.raw;
   }
 
   messages_.push_back(std::move(msg));
 
-  // Trim history if needed
   while (messages_.size() > kMaxMessageHistory) {
     messages_.pop_front();
   }

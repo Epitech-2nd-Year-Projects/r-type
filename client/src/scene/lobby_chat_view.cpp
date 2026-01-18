@@ -89,14 +89,12 @@ void LobbyChatView::Update(engine::time::TimeDelta dt,
   const bool mouse_down =
       input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
 
-  // Handle minimize button click
   if (mouse_down && !mouse_was_down_ && minimize_button_rect_.Contains(mouse)) {
     ToggleMinimized();
     mouse_was_down_ = mouse_down;
     return;
   }
 
-  // Handle dragging and resizing
   UpdateDragging(input);
   if (!minimized_) {
     UpdateResizing(input);
@@ -112,7 +110,6 @@ void LobbyChatView::Update(engine::time::TimeDelta dt,
   message_input_->Update(dt, input);
   send_button_->Update(dt, input);
 
-  // Handle Enter key to send message
   const bool enter_down = input.IsKeyDown(engine::input::Key::kEnter);
   if (enter_down && !enter_pressed_ && message_input_->IsFocused()) {
     HandleSendAction();
@@ -133,18 +130,15 @@ void LobbyChatView::Layout() {
   const float send_width = ui_constants::Lobby::kChatSendButtonWidth;
   const float send_height = ui_constants::Lobby::kChatSendButtonHeight;
 
-  // Title bar at top
   title_bar_rect_ =
       engine::math::RectF{panel_rect_.top_left_x_, panel_rect_.top_left_y_,
                           panel_rect_.width_, kTitleBarHeight};
 
-  // Minimize button in title bar (right side)
   const float min_btn_size = kTitleBarHeight - 8.0f;
   minimize_button_rect_ = engine::math::RectF{
       panel_rect_.top_left_x_ + panel_rect_.width_ - min_btn_size - 4.0f,
       panel_rect_.top_left_y_ + 4.0f, min_btn_size, min_btn_size};
 
-  // Resize handle at bottom-right corner
   resize_handle_rect_ = engine::math::RectF{
       panel_rect_.top_left_x_ + panel_rect_.width_ - kResizeHandleSize,
       panel_rect_.top_left_y_ + panel_rect_.height_ - kResizeHandleSize,
@@ -156,26 +150,22 @@ void LobbyChatView::Layout() {
 
   const float content_top = panel_rect_.top_left_y_ + kTitleBarHeight + padding;
 
-  // Input area at bottom
   input_rect_ = engine::math::RectF{
       panel_rect_.top_left_x_ + padding,
       panel_rect_.top_left_y_ + panel_rect_.height_ - padding - input_height,
       panel_rect_.width_ - padding * 2.0f - send_width - input_spacing,
       input_height};
 
-  // Send button to the right of input
   send_button_rect_ = engine::math::RectF{
       input_rect_.top_left_x_ + input_rect_.width_ + input_spacing,
       input_rect_.top_left_y_ + (input_height - send_height) * 0.5f, send_width,
       send_height};
 
-  // Messages area between title bar and input
   messages_rect_ = engine::math::RectF{
       panel_rect_.top_left_x_ + padding, content_top,
       panel_rect_.width_ - padding * 2.0f,
       input_rect_.top_left_y_ - content_top - input_spacing};
 
-  // Position UI elements
   message_input_->SetPosition(
       engine::math::Vector2f{input_rect_.top_left_x_, input_rect_.top_left_y_});
   message_input_->SetSize(
@@ -193,7 +183,6 @@ void LobbyChatView::Layout(const engine::math::RectF& panel_rect) {
 }
 
 void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
-  // Draw panel background
   if (minimized_) {
     renderer.DrawRect(title_bar_rect_, kTitleBarColor);
   } else {
@@ -201,13 +190,11 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
     renderer.DrawRect(title_bar_rect_, kTitleBarColor);
   }
 
-  // Draw title text
   renderer.DrawText("Chat",
                     engine::math::Vector2f{title_bar_rect_.top_left_x_ + 8.0f,
                                            title_bar_rect_.top_left_y_ + 6.0f},
                     kTitleFontSize, engine::render::Color::White());
 
-  // Draw minimize button
   renderer.DrawRect(minimize_button_rect_, kMinimizeButtonColor);
   const char* min_text = minimized_ ? "+" : "-";
   renderer.DrawText(
@@ -220,10 +207,8 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
     return;
   }
 
-  // Draw resize handle
   renderer.DrawRect(resize_handle_rect_, kResizeHandleColor);
 
-  // Draw messages
   const float font_size = ui_constants::Lobby::kChatMessageFontSize;
   const float line_spacing = ui_constants::Lobby::kChatMessageSpacing;
   const float line_height = font_size + line_spacing;
@@ -236,7 +221,6 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
        it != display_messages_.rend() && y_pos >= min_y; ++it) {
     const auto& msg = *it;
 
-    // Draw sender name
     if (!msg.sender.empty()) {
       const std::string sender_text = msg.sender + ": ";
       const auto name_color = GenerateNameColor(msg.sender, msg.color_index);
@@ -245,7 +229,6 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
           engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
           name_color);
 
-      // Measure name width to offset message content
       const float name_width = renderer.MeasureText(sender_text, font_size).x;
 
       renderer.DrawText(msg.content,
@@ -253,7 +236,6 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
                             messages_rect_.top_left_x_ + name_width, y_pos},
                         font_size, ui_constants::Lobby::kChatMessageColor);
     } else {
-      // System message or self
       renderer.DrawText(
           msg.content,
           engine::math::Vector2f{messages_rect_.top_left_x_, y_pos}, font_size,
@@ -263,7 +245,6 @@ void LobbyChatView::Draw(engine::render::Renderer2D& renderer) const {
     y_pos -= line_height;
   }
 
-  // Draw input field and send button
   message_input_->Draw(renderer);
   send_button_->Draw(renderer);
 }
@@ -326,7 +307,6 @@ void LobbyChatView::UpdateDragging(engine::input::InputManager& input) {
       input.IsMouseButtonDown(engine::input::MouseButton::kLeft);
 
   if (mouse_down && !mouse_was_down_) {
-    // Start dragging if clicking on title bar (but not minimize button)
     if (title_bar_rect_.Contains(mouse) &&
         !minimize_button_rect_.Contains(mouse)) {
       dragging_ = true;

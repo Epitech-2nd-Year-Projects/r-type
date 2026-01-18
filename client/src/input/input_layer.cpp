@@ -39,7 +39,7 @@ constexpr std::array<Mapping, kGameActionCount> kMappings{
             constants::input::kActionBigShoot},  // kBigShootIndex
     Mapping{GameAction::kReconnect,
             constants::input::kActionReconnect},  // kReconnectIndex
-    Mapping{GameAction::kPing, constants::input::kActionPing} // kPingIndex
+    Mapping{GameAction::kPing, constants::input::kActionPing}  // kPingIndex
 };
 
 constexpr GameActionEventType ToGameActionEventType(

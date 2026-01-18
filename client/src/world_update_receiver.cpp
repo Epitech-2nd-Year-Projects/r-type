@@ -3,13 +3,12 @@
 #include <algorithm>
 #include <chrono>
 #include <optional>
-#include <optional>
 #include <utility>
 
-#include "protocol/gameplay_ping.h"
 #include "engine/time/monotonic_time.h"
 #include "logging.h"
 #include "protocol/error.h"
+#include "protocol/gameplay_ping.h"
 
 namespace client {
 
@@ -49,7 +48,8 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
       WorldUpdateMessage message{};
       message.type = type;
       message.header = packet.header;
-      message.payload = std::get<protocol::GameplayPingPayload>(std::move(packet.payload));
+      message.payload =
+          std::get<protocol::GameplayPingPayload>(std::move(packet.payload));
       return message;
     }
     default:
@@ -189,7 +189,8 @@ bool WorldUpdateReceiver::EnqueueCommand(
   return true;
 }
 
-bool WorldUpdateReceiver::EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) {
+bool WorldUpdateReceiver::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
   if (!running_.load(std::memory_order_acquire)) {
     return false;
   }
@@ -299,7 +300,8 @@ void WorldUpdateReceiver::ReceiveLoop() {
           } else if (message.type ==
                      protocol::message_type::MessageType::kClientCommand) {
             packet.payload = message.command_payload;
-          } else if (message.type == protocol::message_type::MessageType::kGameplayPing) {
+          } else if (message.type ==
+                     protocol::message_type::MessageType::kGameplayPing) {
             packet.payload = message.ping_payload;
           }
 

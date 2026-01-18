@@ -65,93 +65,95 @@ void InGameScene::Update(engine::time::TimeDelta dt) {
   chat_view_.SyncMessages(context_.ChatService().messages());
   chat_view_.Update(dt, input);
   LayoutChat();
-  
+
   const bool ping_input = input.IsKeyDown(engine::input::Key::kG);
-  
+
   if (ping_input) {
-      if (!ping_pressed_) {
-          ping_pressed_ = true;
-      }
-      ping_wheel_.Update(input, context_.Window().GetSize());
+    if (!ping_pressed_) {
+      ping_pressed_ = true;
+    }
+    ping_wheel_.Update(input, context_.Window().GetSize());
   } else {
-      if (ping_pressed_) {
-          ping_pressed_ = false;
-          if (ping_wheel_.IsActive()) {
-             auto selection = ping_wheel_.CommitSelection();
-             if (selection) {
-                 protocol::GameplayPingPayload payload;
-                 payload.sender_id = context_.LocalPlayerId().value_or(0);
-                 payload.type = *selection;
-                 
-                 auto mouse = input.GetMousePosition();
-                 payload.x = mouse.x;
-                 payload.y = mouse.y;
-                 
-                 context_.EnqueueGameplayPing(payload);
-                 
-                 received_pings_.push_back({payload, 5.0f});
-             }
-          }
+    if (ping_pressed_) {
+      ping_pressed_ = false;
+      if (ping_wheel_.IsActive()) {
+        auto selection = ping_wheel_.CommitSelection();
+        if (selection) {
+          protocol::GameplayPingPayload payload;
+          payload.sender_id = context_.LocalPlayerId().value_or(0);
+          payload.type = *selection;
+
+          auto mouse = input.GetMousePosition();
+          payload.x = mouse.x;
+          payload.y = mouse.y;
+
+          context_.EnqueueGameplayPing(payload);
+
+          received_pings_.push_back({payload, 5.0f});
+        }
       }
+    }
   }
-  
+
   float delta = dt.as_seconds();
   for (auto it = received_pings_.begin(); it != received_pings_.end();) {
-      it->second -= delta;
-      if (it->second <= 0) {
-          it = received_pings_.erase(it);
-      } else {
-          ++it;
-      }
+    it->second -= delta;
+    if (it->second <= 0) {
+      it = received_pings_.erase(it);
+    } else {
+      ++it;
+    }
   }
 }
 
 void InGameScene::OnGameplayPing(const protocol::GameplayPingPayload& ping) {
-    received_pings_.push_back({ping, 5.0f});
+  received_pings_.push_back({ping, 5.0f});
 }
 
 void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   hud_.Draw(renderer, context_.Window().GetSize());
-  
+
   for (const auto& [ping, time] : received_pings_) {
-      std::string label = "Ping";
-      engine::render::Color color = engine::render::Color::FromBytes(200, 200, 220);
-      switch(ping.type) {
-          case protocol::PingType::kAttack: 
-              label = "ATTACK"; 
-              color = engine::render::Color::FromBytes(255, 80, 80); 
-              break;
-          case protocol::PingType::kDefend: 
-              label = "DEFEND"; 
-              color = engine::render::Color::FromBytes(80, 120, 255); 
-              break;
-          case protocol::PingType::kDanger: 
-              label = "DANGER"; 
-              color = engine::render::Color::FromBytes(255, 180, 50); 
-              break;
-          case protocol::PingType::kOnMyWay: 
-              label = "OMW"; 
-              color = engine::render::Color::FromBytes(80, 255, 120); 
-              break;
-          case protocol::PingType::kGeneric: 
-              label = "HERE"; 
-              color = engine::render::Color::FromBytes(200, 200, 220); 
-              break;
-      }
-      
-      if (time < 1.0f) {
-          color = color.WithAlpha(time);
-      }
-      
-      renderer.DrawCircle({ping.x, ping.y}, 10.0f, color.WithAlpha(color.a * 0.3f));
-      renderer.DrawCircle({ping.x, ping.y}, 6.0f, color);
-      renderer.DrawText(label, {ping.x + 12.0f, ping.y - 8.0f}, 16, color);
+    std::string label = "Ping";
+    engine::render::Color color =
+        engine::render::Color::FromBytes(200, 200, 220);
+    switch (ping.type) {
+      case protocol::PingType::kAttack:
+        label = "ATTACK";
+        color = engine::render::Color::FromBytes(255, 80, 80);
+        break;
+      case protocol::PingType::kDefend:
+        label = "DEFEND";
+        color = engine::render::Color::FromBytes(80, 120, 255);
+        break;
+      case protocol::PingType::kDanger:
+        label = "DANGER";
+        color = engine::render::Color::FromBytes(255, 180, 50);
+        break;
+      case protocol::PingType::kOnMyWay:
+        label = "OMW";
+        color = engine::render::Color::FromBytes(80, 255, 120);
+        break;
+      case protocol::PingType::kGeneric:
+        label = "HERE";
+        color = engine::render::Color::FromBytes(200, 200, 220);
+        break;
+    }
+
+    if (time < 1.0f) {
+      color = color.WithAlpha(time);
+    }
+
+    renderer.DrawCircle({ping.x, ping.y}, 10.0f,
+                        color.WithAlpha(color.a * 0.3f));
+    renderer.DrawCircle({ping.x, ping.y}, 6.0f, color);
+    renderer.DrawText(label, {ping.x + 12.0f, ping.y - 8.0f}, 16, color);
   }
 
   chat_view_.Draw(renderer);
-  
+
   if (ping_pressed_) {
-      ping_wheel_.Draw(renderer);
+    ping_wheel_.Draw(renderer);
   }
 }
 

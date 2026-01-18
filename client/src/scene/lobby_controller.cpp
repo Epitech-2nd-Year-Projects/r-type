@@ -205,7 +205,6 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
               "-digit password to join");
     return false;
   }
-  // Use profile nickname for the player name
   const std::string& player_nickname = context_.Profile().nickname;
   context_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_),
                                player_nickname, room.room_code, password);

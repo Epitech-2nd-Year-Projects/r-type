@@ -322,7 +322,8 @@ bool Application::EnqueueCommand(const protocol::CommandPayload& payload) {
   return network_->EnqueueCommand(payload);
 }
 
-bool Application::EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) {
+bool Application::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
   return network_->EnqueueGameplayPing(payload);
 }
 
@@ -435,12 +436,10 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
     SaveProfile();
     scene_manager_->OnGameOver(stats);
   }
-  // Forward chat messages to the chat service
   for (const auto& message : events.chat_messages) {
     chat_service_->OnChatMessageReceived(message);
   }
-  
-  // Forward gameplay pings
+
   for (const auto& ping : events.gameplay_pings) {
     scene_manager_->OnGameplayPing(ping);
   }

@@ -135,8 +135,10 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
         }
       }
       if (message.type == protocol::message_type::MessageType::kGameplayPing) {
-        if (std::holds_alternative<protocol::GameplayPingPayload>(message.payload)) {
-          events.gameplay_pings.push_back(std::get<protocol::GameplayPingPayload>(message.payload));
+        if (std::holds_alternative<protocol::GameplayPingPayload>(
+                message.payload)) {
+          events.gameplay_pings.push_back(
+              std::get<protocol::GameplayPingPayload>(message.payload));
         }
       }
       if (join_flow_.state() != JoinState::kConnected) {
@@ -328,7 +330,8 @@ bool NetworkSession::EnqueueCommand(const protocol::CommandPayload& payload) {
   return world_update_receiver_.EnqueueCommand(payload);
 }
 
-bool NetworkSession::EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) {
+bool NetworkSession::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
   return world_update_receiver_.EnqueueGameplayPing(payload);
 }
 
@@ -350,8 +353,8 @@ WorldUpdateReceiver& NetworkSession::UpdateReceiver() {
   return world_update_receiver_;
 }
 
-void NetworkSession::SetInterpolationConfig(std::uint32_t interpolation_delay_ms,
-                                            std::uint32_t max_extrapolation_ms) {
+void NetworkSession::SetInterpolationConfig(
+    std::uint32_t interpolation_delay_ms, std::uint32_t max_extrapolation_ms) {
   if (interpolation_system_) {
     interpolation_system_->SetInterpolationDelayMs(interpolation_delay_ms);
     interpolation_system_->SetMaxExtrapolationMs(max_extrapolation_ms);

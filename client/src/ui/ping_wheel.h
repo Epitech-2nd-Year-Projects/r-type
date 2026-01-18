@@ -28,7 +28,6 @@ class PingWheel {
   bool IsActive() const { return active_; }
   std::optional<protocol::PingType> GetSelection() const { return selection_; }
   
-  // Call this when 'G' is released to finalize selection
   std::optional<protocol::PingType> CommitSelection();
 
  private:

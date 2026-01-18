@@ -319,7 +319,6 @@ struct Lobby {
   static constexpr std::size_t kHashPrivateSalt = 0xabcddcba;
   static constexpr std::size_t kHashPublicSeed = 0x12344321;
 
-  // Chat panel layout
   static constexpr float kChatPanelWidth = 320.0f;
   static constexpr float kChatPanelPadding = 12.0f;
   static constexpr float kChatInputHeight = 40.0f;
