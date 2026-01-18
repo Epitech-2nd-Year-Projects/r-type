@@ -137,6 +137,14 @@ ServerConfig LoadServerConfig(int argc, char** argv) {
       } else {
         logger.Warn("Ignoring invalid port argument: ", val);
       }
+    } else if ((arg == "--tick" || arg == "-t") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::uint16_t tick_rate = 0;
+      if (TryParseBounded(val, kMinTickRate, kMaxTickRate, tick_rate)) {
+        config.tick_rate = tick_rate;
+      } else {
+        logger.Warn("Ignoring invalid tick rate argument: ", val);
+      }
     }
   }
 
