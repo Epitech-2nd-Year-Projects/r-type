@@ -115,21 +115,37 @@ void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   
   for (const auto& [ping, time] : received_pings_) {
       std::string label = "Ping";
-      engine::render::Color color = {200, 200, 200, 255};
+      engine::render::Color color = engine::render::Color::FromBytes(200, 200, 220);
       switch(ping.type) {
-          case protocol::PingType::kAttack: label = "ATTACK"; color = {255, 50, 50, 255}; break;
-          case protocol::PingType::kDefend: label = "DEFEND"; color = {50, 50, 255, 255}; break;
-          case protocol::PingType::kDanger: label = "DANGER"; color = {255, 165, 0, 255}; break;
-          case protocol::PingType::kOnMyWay: label = "OMW"; color = {50, 255, 50, 255}; break;
-          case protocol::PingType::kGeneric: label = "HERE"; color = {255, 255, 255, 255}; break;
+          case protocol::PingType::kAttack: 
+              label = "ATTACK"; 
+              color = engine::render::Color::FromBytes(255, 80, 80); 
+              break;
+          case protocol::PingType::kDefend: 
+              label = "DEFEND"; 
+              color = engine::render::Color::FromBytes(80, 120, 255); 
+              break;
+          case protocol::PingType::kDanger: 
+              label = "DANGER"; 
+              color = engine::render::Color::FromBytes(255, 180, 50); 
+              break;
+          case protocol::PingType::kOnMyWay: 
+              label = "OMW"; 
+              color = engine::render::Color::FromBytes(80, 255, 120); 
+              break;
+          case protocol::PingType::kGeneric: 
+              label = "HERE"; 
+              color = engine::render::Color::FromBytes(200, 200, 220); 
+              break;
       }
       
       if (time < 1.0f) {
-          color.a = static_cast<uint8_t>(255 * time);
+          color = color.WithAlpha(time);
       }
       
-      renderer.DrawCircle({ping.x, ping.y}, 5.0f, color);
-      renderer.DrawText(label, {ping.x + 10.0f, ping.y - 10.0f}, 16, color);
+      renderer.DrawCircle({ping.x, ping.y}, 10.0f, color.WithAlpha(color.a * 0.3f));
+      renderer.DrawCircle({ping.x, ping.y}, 6.0f, color);
+      renderer.DrawText(label, {ping.x + 12.0f, ping.y - 8.0f}, 16, color);
   }
 
   chat_view_.Draw(renderer);
