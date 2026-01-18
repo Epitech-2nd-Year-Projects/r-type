@@ -72,6 +72,13 @@ KeyBindingUpdateResult InputCoordinator::UpdateKeyBinding(
   return result;
 }
 
+ActionState InputCoordinator::action_state() const {
+  if (input_layer_) {
+    return input_layer_->state();
+  }
+  return {};
+}
+
 void InputCoordinator::BindUiActions(engine::input::InputManager& input) {
   input.BindKey(std::string(constants::input::kActionConfirm),
                 engine::input::Key::kEnter);
