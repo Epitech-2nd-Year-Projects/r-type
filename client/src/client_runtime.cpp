@@ -246,6 +246,14 @@ struct ClientRuntime::BloomResources {
     }
   }
 
+  void ResetTarget() {
+    if (::IsWindowReady() && target.id != 0) {
+      ::UnloadRenderTexture(target);
+    }
+    target = {};
+    target_size = {};
+  }
+
   void Reset() {
     if (::IsWindowReady()) {
       if (target.id != 0) {
@@ -276,7 +284,6 @@ struct ClientRuntime::BloomResources {
 ClientRuntime::ClientRuntime() = default;
 
 ClientRuntime::~ClientRuntime() = default;
-
 bool ClientRuntime::Initialize(
     const ClientConfig& config,
     std::function<void(const protocol::CommandPayload&)>
@@ -657,6 +664,17 @@ void ClientRuntime::ResetWorld() {
   if (render_system_) {
     render_system_->Reset();
   }
+}
+
+void ClientRuntime::OnVideoSettingsChanged() {
+  if (frame_resources_) {
+    frame_resources_->Reset();
+  }
+  if (bloom_) {
+    bloom_->Reset();
+  }
+  LogLifecycle(engine::util::LogLevel::kInfo,
+               "Video settings changed, render resources reset");
 }
 
 void ClientRuntime::UpdateProfilingOverlay(
