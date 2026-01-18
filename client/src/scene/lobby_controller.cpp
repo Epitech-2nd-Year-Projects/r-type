@@ -205,8 +205,9 @@ bool LobbyController::TryJoinRoom(const protocol::RoomSummary& room,
               "-digit password to join");
     return false;
   }
+  const std::string& player_nickname = context_.Profile().nickname;
   context_.SetConnectionConfig(lobby_host_, static_cast<int>(lobby_port_),
-                               player_name_, room.room_code, password);
+                               player_nickname, room.room_code, password);
   context_.StartConnection();
   return true;
 }

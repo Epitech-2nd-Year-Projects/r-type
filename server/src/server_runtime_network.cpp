@@ -2,10 +2,8 @@
 #include <utility>
 #include <vector>
 
-#include "engine/ecs/components/position_component.h"
-#include "engine/ecs/components/velocity_component.h"
-#include "game_logic/components/health_component.h"
-#include "game_logic/components/player_component.h"
+#include "protocol/chat.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/message_type.h"
 #include "protocol/reliability_policy.h"
 #include "server_runtime.h"
@@ -98,6 +96,16 @@ void ServerRuntime::HandlePacket(engine::net::PacketBuffer packet,
         return;
       }
       HandlePing(peer, std::get<protocol::PingPayload>(decoded.payload));
+      break;
+    }
+    case MessageType::kGameplayPing: {
+      if (!std::holds_alternative<protocol::GameplayPingPayload>(
+              decoded.payload)) {
+        logger_.Warn("Malformed gameplay ping from ", peer.endpoint_key);
+        return;
+      }
+      HandleGameplayPing(
+          peer, std::get<protocol::GameplayPingPayload>(decoded.payload));
       break;
     }
     case MessageType::kInputState: {
@@ -328,6 +336,39 @@ void ServerRuntime::HandleClientCommand(PeerConnection& peer,
     return;
   }
 
+  if (command.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kChatMessage)) {
+    if (!protocol::IsValidChatMessage(command.payload)) {
+      logger_.Debug("Dropping invalid chat message from player ",
+                    peer.player_id);
+      return;
+    }
+
+    const std::string formatted_message =
+        protocol::FormatChatMessage(peer.player_name, command.payload);
+
+    logger_.Debug("Chat from player ", peer.player_id, " (", peer.player_name,
+                  "): ", command.payload);
+
+    const auto& players = room->get().Players();
+    for (std::uint32_t player_id : players) {
+      auto peer_ref = FindPeerByPlayerId(player_id);
+      if (!peer_ref.has_value()) {
+        continue;
+      }
+      PeerConnection& target = peer_ref->get();
+      if (target.state != PeerState::kJoined || target.player_id == 0 ||
+          target.room_code != peer.room_code) {
+        continue;
+      }
+      SendServerCommand(
+          target,
+          static_cast<std::uint16_t>(protocol::CommandType::kChatMessage),
+          formatted_message);
+    }
+    return;
+  }
+
   logger_.Trace("ClientCommand from player ", peer.player_id,
                 " command_id=", command.command_id,
                 " data_size=", command.payload.size());
@@ -468,6 +509,36 @@ void ServerRuntime::ProcessReliableResends() {
       if (any_error) {
         peer.reliable_queue->MarkSendFailed(pending.sequence, now_ms);
       }
+    }
+  }
+}
+
+void ServerRuntime::HandleGameplayPing(
+    PeerConnection& peer, const protocol::GameplayPingPayload& ping) {
+  if (peer.room_code.empty()) {
+    return;
+  }
+
+  protocol::Packet packet{};
+  packet.header.version = protocol::kProtocolVersion;
+  packet.header.message_type =
+      static_cast<std::uint8_t>(MessageType::kGameplayPing);
+  packet.header.flags = 0;
+  packet.header.timestamp_ms = NowMilliseconds();
+  packet.payload = ping;
+
+  if (auto room = FindRoom(peer.room_code)) {
+    const auto& players = room->get().Players();
+    for (std::uint32_t player_id : players) {
+      auto peer_ref = FindPeerByPlayerId(player_id);
+      if (!peer_ref.has_value()) continue;
+
+      PeerConnection& target = peer_ref->get();
+      if (target.state != PeerState::kJoined) continue;
+
+      packet.header.sequence = target.sequence_tracker.NextLocalSequence();
+      target.sequence_tracker.FillAckFields(packet.header);
+      SendPacket(target, packet);
     }
   }
 }

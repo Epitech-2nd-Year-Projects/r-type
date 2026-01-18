@@ -16,10 +16,10 @@
 namespace client {
 namespace {
 
-constexpr std::array<GameAction, kGameActionCount> kActionOrder{
+constexpr std::array<GameAction, kGameActionCount> kActionOrder = {
     GameAction::kMoveUp,    GameAction::kMoveDown, GameAction::kMoveLeft,
     GameAction::kMoveRight, GameAction::kShoot,    GameAction::kBigShoot,
-    GameAction::kReconnect};
+    GameAction::kReconnect, GameAction::kPing};
 
 std::string ToLower(std::string_view text) {
   std::string normalized;
@@ -60,6 +60,7 @@ KeyBindings KeyBindings::Default() {
   bindings.Set(GameAction::kShoot, engine::input::Key::kSpace);
   bindings.Set(GameAction::kBigShoot, engine::input::Key::kLeftShift);
   bindings.Set(GameAction::kReconnect, engine::input::Key::kR);
+  bindings.Set(GameAction::kPing, engine::input::Key::kG);
   return bindings;
 }
 
@@ -143,6 +144,8 @@ std::string ActionLabel(GameAction action) {
       return "Big Shoot";
     case GameAction::kReconnect:
       return "Reconnect";
+    case GameAction::kPing:
+      return "Ping";
   }
   return "Unknown";
 }
@@ -163,6 +166,8 @@ std::string_view ActionToken(GameAction action) {
       return constants::input::kActionBigShoot;
     case GameAction::kReconnect:
       return constants::input::kActionReconnect;
+    case GameAction::kPing:
+      return constants::input::kActionPing;
   }
   return "Unknown";
 }

@@ -22,6 +22,7 @@ inline constexpr std::string_view kActionMoveRight = "MoveRight";
 inline constexpr std::string_view kActionShoot = "Shoot";
 inline constexpr std::string_view kActionBigShoot = "BigShoot";
 inline constexpr std::string_view kActionReconnect = "Reconnect";
+inline constexpr std::string_view kActionPing = "Ping";
 
 }  // namespace client::constants::input
 

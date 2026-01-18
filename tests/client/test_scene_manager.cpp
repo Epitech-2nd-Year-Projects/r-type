@@ -16,6 +16,7 @@
 #include "engine/render/window.h"
 #include "engine/util/config.h"
 #include "input/key_binding_service.h"
+#include "lobby_chat_service.h"
 #include "scene/lobby_scene.h"
 #include "scene/main_menu_scene.h"
 #include "scene/options_menu_scene.h"
@@ -44,6 +45,11 @@ class FakeRenderer final : public engine::render::Renderer2D {
 
   void DrawLine(const engine::math::Vector2f& /*start*/,
                 const engine::math::Vector2f& /*end*/, float /*thickness*/,
+                const engine::render::Color& /*color*/) override {}
+
+  void DrawRing(const engine::math::Vector2f& /*center*/, float /*inner_radius*/,
+                float /*outer_radius*/, float /*start_angle*/,
+                float /*end_angle*/, int /*segments*/,
                 const engine::render::Color& /*color*/) override {}
 
   void DrawTexture(
@@ -301,6 +307,11 @@ class FakeClientContext final : public client::ClientContext {
     return true;
   }
 
+  bool EnqueueGameplayPing(
+      const protocol::GameplayPingPayload& /*payload*/) override {
+    return true;
+  }
+
   std::optional<std::uint32_t> CurrentWave() const override { return {}; }
 
   std::optional<float> LatestLatencyMs() const override { return {}; }
@@ -317,6 +328,8 @@ class FakeClientContext final : public client::ClientContext {
   const client::PlayerProfile& Profile() const override { return profile_; }
   void SaveProfile() override { ++save_profile_calls_; }
 
+  client::LobbyChatService& ChatService() override { return chat_service_; }
+
  private:
   FakeWindow window_;
   engine::math::Vector2i render_size_{1280, 720};
@@ -326,6 +339,9 @@ class FakeClientContext final : public client::ClientContext {
   client::ui::MenuBackground menu_background_{""};
   engine::util::Configuration config_{};
   client::PlayerProfile profile_{};
+  client::LobbyChatService chat_service_{[](const protocol::CommandPayload&) {
+    return true;
+  }};
   engine::ecs::Registry registry_{};
   std::vector<protocol::RoomSummary> rooms_{};
   std::string room_status_{"Lobby idle"};

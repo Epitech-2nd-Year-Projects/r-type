@@ -20,6 +20,7 @@
 #include "protocol/command.h"
 #include "protocol/lobby.h"
 #include "world_update_receiver.h"
+#include "protocol/gameplay_ping.h"
 
 namespace engine::ecs {
 class Registry;
@@ -50,6 +51,8 @@ struct NetworkEvents {
   std::optional<std::string> connection_failed;
   std::optional<std::string> disconnected;
   std::optional<GameOverStats> game_over;
+  std::vector<std::string> chat_messages;  ///< Incoming chat messages.
+  std::vector<protocol::GameplayPingPayload> gameplay_pings; ///< Incoming gameplay pings.
 };
 
 /**
@@ -171,6 +174,11 @@ class NetworkSession {
    * @brief Enqueue a server command
    */
   bool EnqueueCommand(const protocol::CommandPayload& payload);
+
+  /**
+   * @brief Enqueue a gameplay ping
+   */
+  bool EnqueueGameplayPing(const protocol::GameplayPingPayload& payload);
 
   /**
    * @brief Access the ECS registry

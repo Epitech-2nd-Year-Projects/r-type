@@ -52,3 +52,4 @@ class LobbyScene : public Scene {
 }  // namespace client
 
 #endif  // CLIENT_SCENE_LOBBY_SCENE_H_
+

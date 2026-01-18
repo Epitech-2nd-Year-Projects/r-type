@@ -6,7 +6,8 @@ namespace {
 bool StatesEqual(const ActionState& lhs, const ActionState& rhs) {
   return lhs.move_up == rhs.move_up && lhs.move_down == rhs.move_down &&
          lhs.move_left == rhs.move_left && lhs.move_right == rhs.move_right &&
-         lhs.shoot == rhs.shoot && lhs.big_shoot == rhs.big_shoot;
+         lhs.shoot == rhs.shoot && lhs.big_shoot == rhs.big_shoot &&
+         lhs.ping == rhs.ping;
 }
 
 }  // namespace
@@ -56,6 +57,9 @@ bool InputBuffer::ApplyEvent(const GameActionEvent& event) {
       break;
     case GameAction::kBigShoot:
       target = &current_state_.big_shoot;
+      break;
+    case GameAction::kPing:
+      target = &current_state_.ping;
       break;
     case GameAction::kReconnect:
       return false;

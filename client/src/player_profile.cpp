@@ -15,7 +15,7 @@ namespace client {
 namespace {
 
 constexpr const char kProfileFilename[] = "config/profile.json";
-constexpr const char kDefaultNickname[] = "Pilot";
+
 constexpr std::size_t kMaxNicknameLength = 16;
 
 std::filesystem::path GetProfilePath() {
@@ -77,6 +77,11 @@ PlayerProfile LoadPlayerProfile() {
     profile.avatar_index = doc["avatar_index"].get<std::uint8_t>();
   }
 
+  if (doc.contains("chat_color_index") &&
+      doc["chat_color_index"].is_number_unsigned()) {
+    profile.chat_color_index = doc["chat_color_index"].get<std::uint8_t>();
+  }
+
   return profile;
 }
 
@@ -98,6 +103,7 @@ bool SavePlayerProfile(const PlayerProfile& profile) {
   doc["stats"]["highest_score"] = profile.stats.highest_score;
   doc["stats"]["games_played"] = profile.stats.games_played;
   doc["avatar_index"] = profile.avatar_index;
+  doc["chat_color_index"] = profile.chat_color_index;
 
   std::ofstream file(path);
   if (!file.is_open()) {

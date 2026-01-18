@@ -12,6 +12,7 @@
 #include "protocol/player_died.h"
 #include "protocol/world_snapshot.h"
 #include "protocol/error.h"
+#include "protocol/gameplay_ping.h"
 
 
 namespace protocol {
@@ -35,7 +36,8 @@ using PacketPayload = std::variant<std::monostate,
                                     CreateRoomResponsePayload,
                                     PlayerDiedPayload,
                                     CommandPayload,
-                                    WorldSnapshotPayload>;
+                                    WorldSnapshotPayload,
+                                    GameplayPingPayload>;
 
   /**
    * @brief Complete packet structure with header and payload.

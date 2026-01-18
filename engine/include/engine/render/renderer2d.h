@@ -54,6 +54,9 @@ class Renderer2D {
                           const Color& color) = 0;
   virtual void DrawLine(const math::Vector2f& start, const math::Vector2f& end,
                         float thickness, const Color& color) = 0;
+  virtual void DrawRing(const math::Vector2f& center, float inner_radius,
+                        float outer_radius, float start_angle, float end_angle,
+                        int segments, const Color& color) = 0;
 
   virtual void DrawTexture(const Texture2D& texture,
                            const SpriteDrawParams& params) = 0;

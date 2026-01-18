@@ -7,6 +7,7 @@
 #include "client_config.h"
 #include "client_context.h"
 #include "engine/time/time_delta.h"
+#include "lobby_chat_service.h"
 #include "player_profile.h"
 
 namespace client {
@@ -98,6 +99,8 @@ class Application : public ClientContext {
   engine::ecs::Registry& World() override;
   const engine::ecs::Registry& World() const override;
   bool EnqueueCommand(const protocol::CommandPayload& payload) override;
+  bool EnqueueGameplayPing(
+      const protocol::GameplayPingPayload& payload) override;
   std::optional<std::uint32_t> CurrentWave() const override;
   std::optional<float> LatestLatencyMs() const override;
   std::optional<std::uint32_t> LocalPlayerId() const override;
@@ -106,6 +109,7 @@ class Application : public ClientContext {
   PlayerProfile& Profile() override;
   const PlayerProfile& Profile() const override;
   void SaveProfile() override;
+  LobbyChatService& ChatService() override;
 
  private:
   bool Tick(engine::time::TimeDelta dt);
@@ -122,6 +126,7 @@ class Application : public ClientContext {
   std::unique_ptr<ClientAssetManager> assets_;
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
+  std::unique_ptr<LobbyChatService> chat_service_;
   std::unique_ptr<ecs::PlayerPredictionSystem> player_prediction_system_;
   std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };

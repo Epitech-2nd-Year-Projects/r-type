@@ -527,7 +527,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       if (background_) {
         background_->Draw();
       }
-      if (render_gameplay && render_system_) {
+      if (render_system_) {
         render_system_->Render();
       }
       if (scene) {
@@ -550,7 +550,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       if (background_) {
         background_->Draw();
       }
-      if (render_gameplay && render_system_) {
+      if (render_system_) {
         render_system_->Render();
       }
       if (scene) {
@@ -565,7 +565,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       if (background_) {
         background_->Draw();
       }
-      if (render_gameplay && render_system_) {
+      if (render_system_) {
         render_system_->Render();
       }
       scene->Draw(renderer);
@@ -576,7 +576,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       if (background_) {
         background_->Draw();
       }
-      if (render_gameplay && render_system_) {
+      if (render_system_) {
         render_system_->Render();
       }
       if (scene) {
@@ -591,7 +591,7 @@ void ClientRuntime::RenderFrame(engine::time::TimeDelta dt, ClientState state,
       if (background_) {
         background_->Draw();
       }
-      if (render_gameplay && render_system_) {
+      if (render_system_) {
         render_system_->Render();
       }
       scene->Draw(renderer);

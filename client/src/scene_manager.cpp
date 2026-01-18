@@ -35,7 +35,7 @@ bool AllowSettingsReturn(const SceneManager& manager, ClientState next_state) {
          manager.settings_return_state().value() == next_state;
 }
 
-constexpr std::array<TransitionRule, 53> kTransitionRules{{
+constexpr TransitionRule kTransitionRules[] = {
     {ClientState::kSplash, ClientState::kMainMenu, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kConnecting, &AllowAlways},
     {ClientState::kMainMenu, ClientState::kLobby, &AllowAlways},
@@ -93,7 +93,7 @@ constexpr std::array<TransitionRule, 53> kTransitionRules{{
     {ClientState::kGameOver, ClientState::kDisconnected, &AllowAlways},
     {ClientState::kDisconnected, ClientState::kConnecting, &AllowAlways},
     {ClientState::kDisconnected, ClientState::kMainMenu, &AllowAlways},
-}};
+};
 
 std::string_view ToString(ClientState state) {
   switch (state) {
@@ -214,6 +214,10 @@ void SceneManager::OnCloseAudioSettings() {
   TransitionTo(ClientState::kSettings);
 }
 
+void SceneManager::OnCloseVideoSettings() {
+  TransitionTo(ClientState::kSettings);
+}
+
 void SceneManager::OnCloseSettings() {
   const ClientState target =
       settings_return_state_.value_or(ClientState::kMainMenu);
@@ -223,7 +227,6 @@ void SceneManager::OnCloseSettings() {
   }
   TransitionTo(ClientState::kMainMenu);
 }
-
 void SceneManager::OnOpenProfile() {
   if (state_ == ClientState::kProfile) {
     return;
@@ -231,11 +234,15 @@ void SceneManager::OnOpenProfile() {
   TransitionTo(ClientState::kProfile);
 }
 
-void SceneManager::OnCloseProfile() { TransitionTo(ClientState::kMainMenu); }
-
-void SceneManager::OnCloseVideoSettings() {
-  TransitionTo(ClientState::kSettings);
+void SceneManager::OnGameplayPing(const protocol::GameplayPingPayload& ping) {
+  if (state_ == ClientState::kInGame) {
+    if (auto scene = std::dynamic_pointer_cast<InGameScene>(current_scene_)) {
+      scene->OnGameplayPing(ping);
+    }
+  }
 }
+
+void SceneManager::OnCloseProfile() { TransitionTo(ClientState::kMainMenu); }
 
 bool SceneManager::TransitionTo(ClientState next_state, std::string reason) {
   if (!CanTransition(next_state)) {

@@ -20,6 +20,7 @@
 #include "protocol/command.h"
 #include "protocol/fragmentation.h"
 #include "protocol/input_state.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/latency_estimator.h"
 #include "protocol/message_type.h"
 #include "protocol/packet.h"
@@ -39,9 +40,10 @@ namespace client {
 struct OutgoingMessage {
   protocol::message_type::MessageType type{
       protocol::message_type::MessageType::kInvalid};  ///< Message type to send.
-  protocol::InputStatePayload input_state{};  ///< Populated for kInputState.
-  protocol::CommandPayload command_payload{};  ///< Populated for kClientCommand.
-  std::uint32_t client_time_ms{0};  ///< Client timestamp for inputs.
+  protocol::InputStatePayload input_state{};           ///< Populated for kInputState.
+  protocol::CommandPayload command_payload{};          ///< Populated for kClientCommand.
+  protocol::GameplayPingPayload ping_payload{};        ///< Populated for kGameplayPing.
+  std::uint32_t client_time_ms{0};                     ///< Client timestamp for inputs.
 };
 
 /**
@@ -51,7 +53,7 @@ struct WorldUpdateMessage {
   protocol::message_type::MessageType type{};  ///< Message type for routing.
   protocol::Header header{};  ///< Packet header for sequencing and timing.
   std::variant<protocol::WorldSnapshotPayload, protocol::PlayerDiedPayload,
-               protocol::CommandPayload>
+               protocol::CommandPayload, protocol::GameplayPingPayload>
       payload{};  ///< Decoded payload moved from the received packet.
 };
 
@@ -124,6 +126,11 @@ class WorldUpdateReceiver {
    * full
    */
   bool EnqueueCommand(const protocol::CommandPayload& payload);
+
+  /**
+   * @brief Enqueue a gameplay ping payload for send.
+   */
+  bool EnqueueGameplayPing(const protocol::GameplayPingPayload& payload);
 
   /**
    * @brief Running state helper

@@ -39,6 +39,8 @@ class ProfileScene : public Scene {
   void FormatPlaytime(std::uint64_t seconds, std::string& out) const;
   void SelectPrevAvatar();
   void SelectNextAvatar();
+  void SelectPrevColor();
+  void SelectNextColor();
 
   ClientContext& context_;
   engine::ui::Canvas canvas_;
@@ -72,6 +74,10 @@ class ProfileScene : public Scene {
   std::shared_ptr<engine::ui::Button> avatar_left_button_;
   std::shared_ptr<engine::ui::Button> avatar_right_button_;
   engine::math::Vector2f avatar_position_{0.0f, 0.0f};
+  std::uint8_t selected_color_index_{0};
+  std::shared_ptr<engine::ui::Button> color_left_button_;
+  std::shared_ptr<engine::ui::Button> color_right_button_;
+  engine::math::Vector2f color_preview_position_{0.0f, 0.0f};
 
   ui::MenuEffects menu_effects_;
 };

@@ -8,6 +8,7 @@
 #include "engine/time/monotonic_time.h"
 #include "logging.h"
 #include "protocol/error.h"
+#include "protocol/gameplay_ping.h"
 
 namespace client {
 
@@ -41,6 +42,14 @@ std::optional<WorldUpdateMessage> MakeWorldUpdateMessage(
       message.header = packet.header;
       message.payload =
           std::get<protocol::CommandPayload>(std::move(packet.payload));
+      return message;
+    }
+    case protocol::message_type::MessageType::kGameplayPing: {
+      WorldUpdateMessage message{};
+      message.type = type;
+      message.header = packet.header;
+      message.payload =
+          std::get<protocol::GameplayPingPayload>(std::move(packet.payload));
       return message;
     }
     default:
@@ -180,6 +189,24 @@ bool WorldUpdateReceiver::EnqueueCommand(
   return true;
 }
 
+bool WorldUpdateReceiver::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
+  if (!running_.load(std::memory_order_acquire)) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(outgoing_mutex_);
+  if (outgoing_queue_.size() >= max_queue_depth_) {
+    return false;
+  }
+  OutgoingMessage message{};
+  message.type = protocol::message_type::MessageType::kGameplayPing;
+  message.ping_payload = payload;
+  message.client_time_ms = NowMilliseconds32();
+  outgoing_queue_.push_back(std::move(message));
+  outgoing_cv_.notify_one();
+  return true;
+}
+
 bool WorldUpdateReceiver::SendPing(std::uint32_t client_time_ms) {
   if (!transport_ || !transport_->running()) {
     return false;
@@ -273,6 +300,9 @@ void WorldUpdateReceiver::ReceiveLoop() {
           } else if (message.type ==
                      protocol::message_type::MessageType::kClientCommand) {
             packet.payload = message.command_payload;
+          } else if (message.type ==
+                     protocol::message_type::MessageType::kGameplayPing) {
+            packet.payload = message.ping_payload;
           }
 
           engine::net::PacketBuffer buffer;

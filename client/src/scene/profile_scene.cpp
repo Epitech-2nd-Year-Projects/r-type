@@ -34,6 +34,7 @@ ui::MenuPointerConfig ProfileMenuPointerConfig() {
 ProfileScene::ProfileScene(ClientContext& context)
     : context_(context),
       selected_avatar_(context.Profile().avatar_index),
+      selected_color_index_(context.Profile().chat_color_index),
       menu_effects_(context, ProfileMenuPointerConfig(),
                     constants::ui::kMenuHoverSfxPath,
                     constants::ui::kMenuClickSfxPath) {
@@ -106,12 +107,40 @@ ProfileScene::ProfileScene(ClientContext& context)
       [this](const engine::math::RectF& rect) { fleur_rect_ = rect; });
   root->AddChild(fleur_slot);
 
+  auto main_content = std::make_shared<engine::ui::StackContainer>(
+      engine::ui::Axis::kHorizontal);
+  main_content->SetSpacing(400.0f);
+  main_content->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  main_content->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                   engine::ui::VerticalAlignment::kCenter});
+
+  auto left_column =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  left_column->SetSpacing(110.0f);
+  left_column->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  left_column->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                  engine::ui::VerticalAlignment::kCenter});
+
+  auto right_column =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  right_column->SetSpacing(constants::ui::Profile::kStatsSpacing);
+  right_column->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  right_column->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                   engine::ui::VerticalAlignment::kCenter});
+
+  auto avatar_group =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  avatar_group->SetSpacing(40.0f);
+  avatar_group->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  avatar_group->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                   engine::ui::VerticalAlignment::kCenter});
+
   auto avatar_label = std::make_shared<engine::ui::TextElement>(
       "Avatar",
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kLabelFontScale),
       constants::ui::Profile::kLabelColor);
-  root->AddChild(avatar_label);
+  avatar_group->AddChild(avatar_label);
 
   auto avatar_row = std::make_shared<engine::ui::StackContainer>(
       engine::ui::Axis::kHorizontal);
@@ -168,14 +197,8 @@ ProfileScene::ProfileScene(ClientContext& context)
   avatar_row->AddChild(left_arrow_slot);
   avatar_row->AddChild(avatar_slot);
   avatar_row->AddChild(right_arrow_slot);
-  root->AddChild(avatar_row);
-
-  const float input_spacing_top = 100.0f;
-
-  auto input_spacer = std::make_shared<engine::ui::BoxElement>();
-  input_spacer->Layout().size.height =
-      engine::ui::LayoutValue::Pixels(input_spacing_top);
-  root->AddChild(input_spacer);
+  avatar_group->AddChild(avatar_row);
+  left_column->AddChild(avatar_group);
 
   nickname_input_ = std::make_shared<engine::ui::TextInput>(
       engine::math::Vector2f{0.0f, 0.0f},
@@ -195,23 +218,86 @@ ProfileScene::ProfileScene(ClientContext& context)
     nickname_input_->SetPosition({rect.top_left_x_, rect.top_left_y_});
     nickname_input_->SetSize({rect.width_, rect.height_});
   });
-  root->AddChild(input_slot);
+  left_column->AddChild(input_slot);
 
-  const float stats_absolute_pos =
-      constants::ui::Profile::kSectionSpacing + 200.0f;
-  const float stats_spacing = stats_absolute_pos - input_spacing_top;
+  auto color_group =
+      std::make_shared<engine::ui::StackContainer>(engine::ui::Axis::kVertical);
+  color_group->SetSpacing(5.0f);
+  color_group->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  color_group->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                  engine::ui::VerticalAlignment::kCenter});
 
-  auto stats_spacer = std::make_shared<engine::ui::BoxElement>();
-  stats_spacer->Layout().size.height =
-      engine::ui::LayoutValue::Pixels(stats_spacing);
-  root->AddChild(stats_spacer);
+  auto color_label = std::make_shared<engine::ui::TextElement>(
+      "Color",
+      engine::ui::FontSize::RelativeWidth(
+          constants::ui::Profile::kLabelFontScale),
+      constants::ui::Profile::kLabelColor);
+  color_group->AddChild(color_label);
+
+  auto color_row = std::make_shared<engine::ui::StackContainer>(
+      engine::ui::Axis::kHorizontal);
+  color_row->SetSpacing(constants::ui::Profile::kAvatarArrowSpacing);
+  color_row->SetMainAlignment(engine::ui::StackAlignment::kCenter);
+  color_row->SetChildAlignment({engine::ui::HorizontalAlignment::kCenter,
+                                engine::ui::VerticalAlignment::kCenter});
+
+  color_left_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
+                             constants::ui::Profile::kAvatarArrowHeight},
+      "", [this]() { SelectPrevColor(); });
+  color_left_button_->SetColors(transparent, transparent, transparent);
+  ui_elements_.push_back(color_left_button_);
+
+  auto left_color_slot = std::make_shared<engine::ui::BoxElement>();
+  left_color_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowWidth);
+  left_color_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowHeight);
+  left_color_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    color_left_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    color_left_button_->SetSize({rect.width_, rect.height_});
+  });
+
+  auto color_slot = std::make_shared<engine::ui::BoxElement>();
+  color_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kColorSelectorSize);
+  color_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kColorSelectorSize);
+  color_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    color_preview_position_ = {rect.top_left_x_, rect.top_left_y_};
+  });
+
+  color_right_button_ = std::make_shared<engine::ui::Button>(
+      engine::math::Vector2f{0.0f, 0.0f},
+      engine::math::Vector2f{constants::ui::Profile::kAvatarArrowWidth,
+                             constants::ui::Profile::kAvatarArrowHeight},
+      "", [this]() { SelectNextColor(); });
+  color_right_button_->SetColors(transparent, transparent, transparent);
+  ui_elements_.push_back(color_right_button_);
+
+  auto right_color_slot = std::make_shared<engine::ui::BoxElement>();
+  right_color_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowWidth);
+  right_color_slot->Layout().size.height = engine::ui::LayoutValue::Pixels(
+      constants::ui::Profile::kAvatarArrowHeight);
+  right_color_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
+    color_right_button_->SetPosition({rect.top_left_x_, rect.top_left_y_});
+    color_right_button_->SetSize({rect.width_, rect.height_});
+  });
+
+  color_row->AddChild(left_color_slot);
+  color_row->AddChild(color_slot);
+  color_row->AddChild(right_color_slot);
+  color_group->AddChild(color_row);
+  left_column->AddChild(color_group);
 
   stats_header_ = std::make_shared<engine::ui::TextElement>(
       "Statistics",
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kLabelFontScale),
       white);
-  root->AddChild(stats_header_);
+  right_column->AddChild(stats_header_);
 
   std::string playtime_str;
   FormatPlaytime(profile.stats.total_playtime_seconds, playtime_str);
@@ -220,28 +306,32 @@ ProfileScene::ProfileScene(ClientContext& context)
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kValueFontScale),
       constants::ui::Profile::kValueColor);
-  root->AddChild(playtime_text_);
+  right_column->AddChild(playtime_text_);
 
   deaths_text_ = std::make_shared<engine::ui::TextElement>(
       "Total Deaths: " + std::to_string(profile.stats.total_deaths),
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kValueFontScale),
       constants::ui::Profile::kValueColor);
-  root->AddChild(deaths_text_);
+  right_column->AddChild(deaths_text_);
 
   highest_score_text_ = std::make_shared<engine::ui::TextElement>(
       "Highest Score: " + std::to_string(profile.stats.highest_score),
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kValueFontScale),
       constants::ui::Profile::kValueColor);
-  root->AddChild(highest_score_text_);
+  right_column->AddChild(highest_score_text_);
 
   games_played_text_ = std::make_shared<engine::ui::TextElement>(
       "Games Played: " + std::to_string(profile.stats.games_played),
       engine::ui::FontSize::RelativeWidth(
           constants::ui::Profile::kValueFontScale),
       constants::ui::Profile::kValueColor);
-  root->AddChild(games_played_text_);
+  right_column->AddChild(games_played_text_);
+
+  main_content->AddChild(left_column);
+  main_content->AddChild(right_column);
+  root->AddChild(main_content);
 
   auto button_spacer = std::make_shared<engine::ui::BoxElement>();
   button_spacer->Layout().size.height =
@@ -378,6 +468,15 @@ void ProfileScene::DrawForeground(engine::render::Renderer2D& renderer) {
                            constants::ui::Profile::kAvatarDisplaySize);
   }
 
+  if (selected_color_index_ < constants::ui::kChatNameColors.size()) {
+    renderer.DrawRect(
+        engine::math::RectF{color_preview_position_.x,
+                            color_preview_position_.y,
+                            constants::ui::Profile::kColorSelectorSize,
+                            constants::ui::Profile::kColorSelectorSize},
+        constants::ui::kChatNameColors[selected_color_index_]);
+  }
+
   for (auto& elem : ui_elements_) {
     elem->Draw(renderer);
   }
@@ -412,6 +511,48 @@ void ProfileScene::DrawForeground(engine::render::Renderer2D& renderer) {
     const auto tex_size = arrow_right_texture_->GetSize();
     const auto btn_size = avatar_right_button_->GetSize();
     auto pos = avatar_right_button_->GetPosition();
+
+    const float scale_val = 0.05f;
+
+    const float scaled_width = static_cast<float>(tex_size.x) * scale_val;
+    const float scaled_height = static_cast<float>(tex_size.y) * scale_val;
+
+    const float draw_x = pos.x + (btn_size.x - scaled_width) * 0.5f;
+    const float draw_y = pos.y + (btn_size.y - scaled_height) * 0.5f;
+
+    engine::render::SpriteDrawParams params;
+    params.position = {draw_x, draw_y};
+    params.scale = {scale_val, scale_val};
+    params.layer = engine::render::RenderLayer::kForeground;
+
+    renderer.DrawTexture(*arrow_right_texture_, params);
+  }
+
+  if (arrow_left_texture_) {
+    const auto tex_size = arrow_left_texture_->GetSize();
+    const auto btn_size = color_left_button_->GetSize();
+    auto pos = color_left_button_->GetPosition();
+
+    const float scale_val = 0.05f;
+
+    const float scaled_width = static_cast<float>(tex_size.x) * scale_val;
+    const float scaled_height = static_cast<float>(tex_size.y) * scale_val;
+
+    const float draw_x = pos.x + (btn_size.x - scaled_width) * 0.5f;
+    const float draw_y = pos.y + (btn_size.y - scaled_height) * 0.5f;
+
+    engine::render::SpriteDrawParams params;
+    params.position = {draw_x, draw_y};
+    params.scale = {scale_val, scale_val};
+    params.layer = engine::render::RenderLayer::kForeground;
+
+    renderer.DrawTexture(*arrow_left_texture_, params);
+  }
+
+  if (arrow_right_texture_) {
+    const auto tex_size = arrow_right_texture_->GetSize();
+    const auto btn_size = color_right_button_->GetSize();
+    auto pos = color_right_button_->GetPosition();
 
     const float scale_val = 0.05f;
 
@@ -534,6 +675,7 @@ void ProfileScene::SaveAndClose() {
     profile.nickname = new_nickname;
   }
   profile.avatar_index = selected_avatar_;
+  profile.chat_color_index = selected_color_index_;
   context_.SaveProfile();
   context_.OnCloseProfile();
 }
@@ -600,6 +742,26 @@ void ProfileScene::SelectPrevAvatar() {
 void ProfileScene::SelectNextAvatar() {
   selected_avatar_ = static_cast<std::uint8_t>(
       (selected_avatar_ + 1) % constants::ui::Profile::kAvatarCount);
+}
+
+void ProfileScene::SelectPrevColor() {
+  if (constants::ui::kChatNameColors.empty()) {
+    return;
+  }
+  if (selected_color_index_ == 0) {
+    selected_color_index_ =
+        static_cast<std::uint8_t>(constants::ui::kChatNameColors.size() - 1);
+  } else {
+    --selected_color_index_;
+  }
+}
+
+void ProfileScene::SelectNextColor() {
+  if (constants::ui::kChatNameColors.empty()) {
+    return;
+  }
+  selected_color_index_ = static_cast<std::uint8_t>(
+      (selected_color_index_ + 1) % constants::ui::kChatNameColors.size());
 }
 
 }  // namespace client

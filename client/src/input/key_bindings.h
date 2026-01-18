@@ -90,6 +90,8 @@ constexpr std::size_t ActionIndex(GameAction action) {
       return 5;
     case GameAction::kReconnect:
       return 6;
+    case GameAction::kPing:
+      return 7;
   }
   return 0;
 }

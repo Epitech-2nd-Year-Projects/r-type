@@ -69,6 +69,10 @@ Application::Application(ClientConfig config)
       audio_(std::make_unique<AudioController>()),
       network_(std::make_unique<NetworkSession>(config_)),
       input_(std::make_unique<InputCoordinator>()),
+      chat_service_(std::make_unique<LobbyChatService>(
+          [this](const protocol::CommandPayload& payload) {
+            return EnqueueCommand(payload);
+          })),
       player_prediction_system_(
           std::make_unique<ecs::PlayerPredictionSystem>(network_->World())) {}
 
@@ -322,6 +326,11 @@ bool Application::EnqueueCommand(const protocol::CommandPayload& payload) {
   return network_->EnqueueCommand(payload);
 }
 
+bool Application::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
+  return network_->EnqueueGameplayPing(payload);
+}
+
 std::optional<std::uint32_t> Application::CurrentWave() const {
   return network_->CurrentWave();
 }
@@ -353,6 +362,8 @@ void Application::SaveProfile() {
                  "Failed to persist player profile");
   }
 }
+
+LobbyChatService& Application::ChatService() { return *chat_service_; }
 
 bool Application::Tick(engine::time::TimeDelta dt) {
   if (!runtime_->Pump()) {
@@ -433,6 +444,13 @@ void Application::HandleNetworkEvents(const NetworkEvents& events) {
     UpdateProfileStats(profile_, session_seconds, 0, stats.score);
     SaveProfile();
     scene_manager_->OnGameOver(stats);
+  }
+  for (const auto& message : events.chat_messages) {
+    chat_service_->OnChatMessageReceived(message);
+  }
+
+  for (const auto& ping : events.gameplay_pings) {
+    scene_manager_->OnGameplayPing(ping);
   }
 }
 

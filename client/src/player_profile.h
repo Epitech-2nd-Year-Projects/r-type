@@ -28,6 +28,7 @@ struct PlayerProfile {
   std::string nickname{"Pilot"};
   PlayerStats stats{};
   std::uint8_t avatar_index{0};
+  std::uint8_t chat_color_index{0};
 };
 
 /**

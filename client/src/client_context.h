@@ -20,6 +20,7 @@
 #include "input/key_binding_service.h"
 #include "player_profile.h"
 #include "protocol/command.h"
+#include "protocol/gameplay_ping.h"
 #include "protocol/lobby.h"
 
 namespace engine::audio {
@@ -46,6 +47,7 @@ class Configuration;
 namespace client {
 
 class ClientAssetManager;
+class LobbyChatService;
 namespace ui {
 class MenuBackground;
 }
@@ -252,6 +254,11 @@ class ClientContext {
   virtual bool EnqueueCommand(const protocol::CommandPayload& payload) = 0;
 
   /**
+   * @brief Enqueue a gameplay ping
+   */
+  virtual bool EnqueueGameplayPing(const protocol::GameplayPingPayload& payload) = 0;
+
+  /**
    * @brief Current wave number
    */
   virtual std::optional<std::uint32_t> CurrentWave() const = 0;
@@ -290,6 +297,11 @@ class ClientContext {
    * @brief Persist the player profile to disk
    */
   virtual void SaveProfile() = 0;
+
+  /**
+   * @brief Access the lobby chat service
+   */
+  virtual LobbyChatService& ChatService() = 0;
 };
 
 }  // namespace client

@@ -180,6 +180,13 @@ class RaylibRenderer2D final : public Renderer2D {
                  ToRaylibColor(color));
   }
 
+  void DrawRing(const math::Vector2f& center, float inner_radius,
+                float outer_radius, float start_angle, float end_angle,
+                int segments, const Color& color) override {
+    ::DrawRing(ToRaylibVector(center), inner_radius, outer_radius, start_angle,
+               end_angle, segments, ToRaylibColor(color));
+  }
+
   void DrawTexture(const Texture2D& texture,
                    const SpriteDrawParams& params) override {
     const RaylibTexture2D& raylib_texture =

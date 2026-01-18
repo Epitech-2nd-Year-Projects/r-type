@@ -134,6 +134,13 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
           HandleServerCommand(*command, events);
         }
       }
+      if (message.type == protocol::message_type::MessageType::kGameplayPing) {
+        if (std::holds_alternative<protocol::GameplayPingPayload>(
+                message.payload)) {
+          events.gameplay_pings.push_back(
+              std::get<protocol::GameplayPingPayload>(message.payload));
+        }
+      }
       if (join_flow_.state() != JoinState::kConnected) {
         break;
       }
@@ -324,13 +331,9 @@ bool NetworkSession::EnqueueCommand(const protocol::CommandPayload& payload) {
   return world_update_receiver_.EnqueueCommand(payload);
 }
 
-void NetworkSession::SetInterpolationConfig(
-    std::uint32_t interpolation_delay_ms, std::uint32_t max_extrapolation_ms) {
-  if (!interpolation_system_) {
-    return;
-  }
-  interpolation_system_->SetInterpolationDelayMs(interpolation_delay_ms);
-  interpolation_system_->SetMaxExtrapolationMs(max_extrapolation_ms);
+bool NetworkSession::EnqueueGameplayPing(
+    const protocol::GameplayPingPayload& payload) {
+  return world_update_receiver_.EnqueueGameplayPing(payload);
 }
 
 engine::ecs::Registry& NetworkSession::World() { return *world_registry_; }
@@ -351,6 +354,14 @@ WorldUpdateReceiver& NetworkSession::UpdateReceiver() {
   return world_update_receiver_;
 }
 
+void NetworkSession::SetInterpolationConfig(
+    std::uint32_t interpolation_delay_ms, std::uint32_t max_extrapolation_ms) {
+  if (interpolation_system_) {
+    interpolation_system_->SetInterpolationDelayMs(interpolation_delay_ms);
+    interpolation_system_->SetMaxExtrapolationMs(max_extrapolation_ms);
+  }
+}
+
 void NetworkSession::HandleServerCommand(
     const protocol::CommandPayload& payload, NetworkEvents& events) {
   if (payload.command_id ==
@@ -361,6 +372,12 @@ void NetworkSession::HandleServerCommand(
     if (const auto lost = HandleConnectionLost(reason)) {
       events.disconnected = *lost;
     }
+    return;
+  }
+
+  if (payload.command_id ==
+      static_cast<std::uint16_t>(protocol::CommandType::kChatMessage)) {
+    events.chat_messages.push_back(payload.payload);
   }
 }
 
