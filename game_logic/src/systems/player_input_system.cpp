@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "engine/math/vector2.h"
+#include "game_logic/constants.h"
 #include "game_logic/game_instance.h"
 
 namespace {
@@ -110,8 +111,7 @@ void PlayerInputSystem::Update(
     auto &velocity = velocity_opt.value();
     auto &input_state = input_it->second;
 
-    ApplyInputToVelocity(evt.type, input_state, velocity,
-                         GameInstance::kInputMoveSpeed);
+    ApplyInputToVelocity(evt.type, input_state, velocity, kPlayerMoveSpeed);
 
     if (weapon_opt.has_value()) {
       auto &weapon = weapon_opt.value();

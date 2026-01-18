@@ -15,12 +15,15 @@ class AudioController;
 class ClientAssetManager;
 class ClientRuntime;
 class InputCoordinator;
-namespace ui {
-class MenuBackground;
-}
 struct NetworkEvents;
 class NetworkSession;
 class SceneManager;
+namespace ecs {
+class PlayerPredictionSystem;
+}
+namespace ui {
+class MenuBackground;
+}
 
 /**
  * @brief High level application object driving the client runtime
@@ -119,6 +122,7 @@ class Application : public ClientContext {
   std::unique_ptr<ClientAssetManager> assets_;
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
+  std::unique_ptr<ecs::PlayerPredictionSystem> player_prediction_system_;
   std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };
 

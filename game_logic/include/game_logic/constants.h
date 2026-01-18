@@ -18,6 +18,7 @@ constexpr float kPlayerSpawnOffsetX = 50.0f;
 constexpr float kPlayerSpawnY = 300.0f;
 constexpr float kSpawnMinY = 50.0f;
 constexpr float kSpawnMaxY = 700.0f;
+constexpr float kPlayerMoveSpeed = 200.0f;
 
 // Enemy Visuals
 constexpr std::uint8_t kEnemyTintR = 255;

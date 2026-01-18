@@ -10,8 +10,8 @@
 
 #include "client_state.h"
 #include "engine/time/time_delta.h"
-#include "input/key_binding_service.h"
 #include "input/input_layer.h"
+#include "input/key_binding_service.h"
 #include "join_flow.h"
 
 namespace engine::input {
@@ -84,6 +84,11 @@ class InputCoordinator {
   const KeyBindings& key_bindings() const {
     return key_binding_service_.bindings();
   }
+
+  /**
+   * @brief Access the latest action state
+   */
+  ActionState action_state() const;
 
   /**
    * @brief Access key binding service
