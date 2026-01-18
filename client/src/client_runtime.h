@@ -178,7 +178,8 @@ class ClientRuntime {
   void ResetWorld();
 
   /**
-   * @brief Notify runtime that video settings (resolution/fullscreen) have changed
+   * @brief Notify runtime that video settings (resolution/fullscreen) have
+   * changed
    */
   void OnVideoSettingsChanged();
 

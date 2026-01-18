@@ -246,6 +246,14 @@ struct ClientRuntime::BloomResources {
     }
   }
 
+  void ResetTarget() {
+    if (::IsWindowReady() && target.id != 0) {
+      ::UnloadRenderTexture(target);
+    }
+    target = {};
+    target_size = {};
+  }
+
   void Reset() {
     if (::IsWindowReady()) {
       if (target.id != 0) {
@@ -276,7 +284,6 @@ struct ClientRuntime::BloomResources {
 ClientRuntime::ClientRuntime() = default;
 
 ClientRuntime::~ClientRuntime() = default;
-
 bool ClientRuntime::Initialize(
     const ClientConfig& config,
     std::function<void(const protocol::CommandPayload&)>
