@@ -12,6 +12,7 @@
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
+#include "ecs/player_prediction_system.h"
 #include "engine/audio/audio_engine.h"
 #include "engine/time/game_loop.h"
 #include "input/input_coordinator.h"
@@ -65,7 +66,9 @@ Application::Application(ClientConfig config)
       scene_manager_(std::make_unique<SceneManager>(*this)),
       audio_(std::make_unique<AudioController>()),
       network_(std::make_unique<NetworkSession>(config_)),
-      input_(std::make_unique<InputCoordinator>()) {}
+      input_(std::make_unique<InputCoordinator>()),
+      player_prediction_system_(
+          std::make_unique<ecs::PlayerPredictionSystem>(network_->World())) {}
 
 Application::~Application() = default;
 
@@ -368,6 +371,11 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   runtime_->Input().SetActionsEnabled(!input_captured);
 
   input_->Update(dt, network_->join_state(), scene_manager_->state());
+  if (player_prediction_system_ &&
+      network_->join_state() == JoinState::kConnected &&
+      scene_manager_->state() == ClientState::kInGame) {
+    player_prediction_system_->Update(dt, input_->action_state());
+  }
   if (input_->ShouldReconnect(network_->join_state(), input_captured)) {
     StartConnection();
   }
