@@ -72,7 +72,8 @@ Application::Application(ClientConfig config)
       chat_service_(std::make_unique<LobbyChatService>(
           [this](const protocol::CommandPayload& payload) {
             return EnqueueCommand(payload);
-          })) {}
+          })),
+      player_prediction_system_(std::make_unique<ecs::PlayerPredictionSystem>(network_->World())) {}
 
 Application::~Application() = default;
 

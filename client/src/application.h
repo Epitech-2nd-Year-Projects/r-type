@@ -127,6 +127,7 @@ class Application : public ClientContext {
   std::unique_ptr<NetworkSession> network_;
   std::unique_ptr<InputCoordinator> input_;
   std::unique_ptr<LobbyChatService> chat_service_;
+  std::unique_ptr<ecs::PlayerPredictionSystem> player_prediction_system_;
   std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };
 
