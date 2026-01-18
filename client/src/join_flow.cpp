@@ -154,6 +154,7 @@ void JoinFlow::HandleDecodedPacket(protocol::Packet& packet) {
 
 void JoinFlow::HandleJoinAccept(const protocol::JoinAcceptPayload& payload) {
   player_id_ = payload.player_id;
+  server_tick_rate_hz_ = payload.tick_rate;
   last_reject_.reset();
   state_ = JoinState::kConnected;
   status_text_ = "Connected as player " + std::to_string(payload.player_id);
@@ -177,6 +178,7 @@ void JoinFlow::MarkDisconnected(std::string_view reason) {
     return;
   }
   player_id_.reset();
+  server_tick_rate_hz_.reset();
   last_reject_.reset();
   state_ = JoinState::kDisconnected;
   status_text_.assign(reason.begin(), reason.end());
@@ -186,6 +188,7 @@ void JoinFlow::MarkDisconnected(std::string_view reason) {
 void JoinFlow::Reset() {
   state_ = JoinState::kIdle;
   player_id_.reset();
+  server_tick_rate_hz_.reset();
   last_reject_.reset();
   status_text_ = "Idle";
   attempts_ = 0;

@@ -1,0 +1,164 @@
+name: Release Rift
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    env:
+      LLVM_VERSION: "19.1.7"
+      CC: clang
+      CXX: clang++
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
+      BUILD_RIFT: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libx11-dev \
+            libxext-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxxf86vm-dev \
+            libasound2-dev \
+            libpulse-dev \
+            libavcodec-dev \
+            libavformat-dev \
+            libavutil-dev \
+            libswresample-dev \
+            libswscale-dev
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
+
+      - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          LLVM_MAJOR="${LLVM_VERSION%%.*}"
+          curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh "$LLVM_MAJOR" all
+          LLVM_BIN_DIR="/usr/lib/llvm-${LLVM_MAJOR}/bin"
+          echo "$LLVM_BIN_DIR" >> "$GITHUB_PATH"
+          echo "LLVM_BINDIR=$LLVM_BIN_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Release
+        run: |
+          xmake f -m release --yes
+          xmake build rift --yes
+
+      - name: Package Linux
+        run: |
+          mkdir -p release/rift-linux
+          cp build/linux/x86_64/release/rift_client release/rift-linux/rift-client
+          cp build/linux/x86_64/release/rift_server release/rift-linux/rift-server
+          cp -r assets release/rift-linux/
+          cp -r config release/rift-linux/
+          cd release
+          tar -czvf rift-linux.tar.gz rift-linux
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: rift-linux
+          path: release/rift-linux.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    env:
+      LLVM_VERSION: "19.1.7"
+      BUILD_RIFT: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
+
+      - name: Install LLVM/Clang ${{ env.LLVM_VERSION }}
+        shell: pwsh
+        run: |
+          $version = "${{ env.LLVM_VERSION }}"
+          choco install llvm --version $version --allow-downgrade --no-progress -y
+          $binDir = "C:\Program Files\LLVM\bin"
+          if (-not (Test-Path $binDir)) {
+            throw "Expected LLVM bin directory '$binDir' was not found."
+          }
+          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "LLVM_BINDIR=$binDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build Release
+        shell: bash
+        run: |
+          xmake f -p windows -a x64 -m release --yes
+          xmake build rift --yes
+
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release/rift-windows
+          Copy-Item build/windows/x64/release/rift_client.exe -Destination release/rift-windows/rift-client.exe
+          Copy-Item build/windows/x64/release/rift_server.exe -Destination release/rift-windows/rift-server.exe
+          Copy-Item -Recurse -Path assets -Destination release/rift-windows/assets
+          Copy-Item -Recurse -Path config -Destination release/rift-windows/config
+          Copy-Item -Path build/windows/x64/release/*.dll -Destination release/rift-windows -Force
+          Compress-Archive -Path release/rift-windows -DestinationPath release/rift-windows.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: rift-windows
+          path: release/rift-windows.zip
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: rift-linux
+          path: .
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: rift-windows
+          path: .
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rift-linux.tar.gz
+            rift-windows.zip
+          draft: false
+          prerelease: false

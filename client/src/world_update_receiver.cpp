@@ -72,6 +72,13 @@ std::optional<float> WorldUpdateReceiver::LatestRttMs() const {
   return latest_rtt_ms_.load(std::memory_order_acquire);
 }
 
+std::optional<float> WorldUpdateReceiver::LatestClockOffsetMs() const {
+  if (!has_latency_estimate_.load(std::memory_order_acquire)) {
+    return std::nullopt;
+  }
+  return latest_clock_offset_ms_.load(std::memory_order_acquire);
+}
+
 std::uint32_t WorldUpdateReceiver::LatestSnapshotId() const {
   return last_received_snapshot_id_.load(std::memory_order_acquire);
 }
@@ -113,6 +120,7 @@ void WorldUpdateReceiver::Stop() {
   }
   has_latency_estimate_.store(false, std::memory_order_release);
   latest_rtt_ms_.store(0.0f, std::memory_order_release);
+  latest_clock_offset_ms_.store(0.0f, std::memory_order_release);
   last_pong_ms_.store(0, std::memory_order_release);
 
   transport_.reset();
@@ -238,6 +246,8 @@ void WorldUpdateReceiver::HandlePong(const protocol::PongPayload& pong,
   has_latency_estimate_.store(latency_estimator_.has_estimate(),
                               std::memory_order_release);
   latest_rtt_ms_.store(latency_estimator_.rtt_ms(), std::memory_order_release);
+  latest_clock_offset_ms_.store(latency_estimator_.clock_offset_ms(),
+                                std::memory_order_release);
   last_pong_ms_.store(now_ms, std::memory_order_release);
 }
 

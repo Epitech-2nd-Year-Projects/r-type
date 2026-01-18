@@ -290,7 +290,8 @@ bool ClientRuntime::Initialize(
   runtime_config.window_config.fullscreen = config.fullscreen;
   runtime_config.window_config.vsync = config.vsync;
   runtime_config.window_config.target_fps = std::max(0, config.target_fps);
-  SetRenderSize({config.resolution_width, config.resolution_height});
+  SetRenderSize({constants::client::kBaseResolution.x,
+                 constants::client::kBaseResolution.y});
   runtime_config.log_level = config.log_level;
   runtime_config.window_backend_factory = engine::render::CreateRaylibBackend;
 

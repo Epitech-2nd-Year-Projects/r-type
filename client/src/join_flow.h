@@ -23,7 +23,13 @@ namespace client {
  * refused when the server denies the request or times out
  * disconnected when a previously connected session is lost
  */
-enum class JoinState { kIdle, kConnecting, kConnected, kRefused, kDisconnected };
+enum class JoinState {
+  kIdle,
+  kConnecting,
+  kConnected,
+  kRefused,
+  kDisconnected
+};
 
 /**
  * @brief Drives the JoinGame handshake and tracks the assigned player id
@@ -79,6 +85,13 @@ class JoinFlow {
   }
 
   /**
+   * @brief Access the server tick rate (Hz) when connected
+   */
+  std::optional<std::uint32_t> server_tick_rate_hz() const {
+    return server_tick_rate_hz_;
+  }
+
+  /**
    * @brief Mark the current session as disconnected with a reason
    */
   void MarkDisconnected(std::string_view reason);
@@ -103,6 +116,7 @@ class JoinFlow {
   std::string room_code_;
   std::string room_password_;
   std::optional<std::uint32_t> player_id_;
+  std::optional<std::uint32_t> server_tick_rate_hz_;
   std::optional<protocol::JoinRejectPayload> last_reject_;
   std::string status_text_;
   std::uint32_t next_sequence_{1};

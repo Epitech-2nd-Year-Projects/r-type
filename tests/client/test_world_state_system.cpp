@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include "ecs/world_state_system.h"
 #include "engine/ecs/registry.h"
 #include "engine/ecs/sparse_array.h"
@@ -43,7 +45,17 @@ protocol::EntityDelta MakeCreateDelta(std::uint32_t id, std::uint16_t type,
 void ApplyAt(client::ecs::WorldStateSystem& system,
              const protocol::WorldSnapshotPayload& snapshot,
              std::uint64_t timestamp_ms) {
-  system.ApplySnapshot(snapshot, timestamp_ms);
+  system.ApplySnapshot(snapshot, timestamp_ms, std::nullopt, std::nullopt,
+                       std::make_optional(timestamp_ms));
+}
+
+void ApplyWithTiming(client::ecs::WorldStateSystem& system,
+                     const protocol::WorldSnapshotPayload& snapshot,
+                     std::uint64_t receipt_ms,
+                     std::optional<std::uint32_t> tick_rate_hz,
+                     std::optional<std::uint64_t> snapshot_time_ms) {
+  system.ApplySnapshot(snapshot, receipt_ms, std::nullopt, tick_rate_hz,
+                       snapshot_time_ms);
 }
 
 }  // namespace
@@ -259,4 +271,115 @@ TEST(WorldStateSystemTest, RejectsStaleSnapshots) {
   ASSERT_TRUE(hp.has_value());
   EXPECT_EQ(hp->current, 9u);
   EXPECT_EQ(system.last_snapshot_id(), 2u);
+}
+
+TEST(WorldStateSystemTest, UsesPredictedSnapshotTimeWithinThreshold) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  protocol::WorldSnapshotPayload first{};
+  first.snapshot_id = 1;
+  first.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  first.server_tick = 100;
+  first.deltas.push_back(MakeCreateDelta(1, 1, 0, 0, 0, 0, 5));
+  ApplyWithTiming(system, first, 1000, 20, 1000);
+
+  protocol::WorldSnapshotPayload second{};
+  second.snapshot_id = 2;
+  second.base_snapshot_id = 1;
+  second.server_tick = 101;
+  protocol::EntityDelta update{};
+  update.op = protocol::EntityDeltaOp::kUpdate;
+  update.entity_id = 1;
+  update.field_mask = protocol::EntityFieldMask::kFieldX;
+  update.state.x = 4;
+  second.deltas.push_back(update);
+  ApplyWithTiming(system, second, 1060, 20, 1060);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 1);
+  ASSERT_LT(index, net.size());
+  const auto& snapshots =
+      registry.GetComponents<client::ecs::SnapshotInterpolationComponent>();
+  ASSERT_TRUE(snapshots[index].has_value());
+  EXPECT_EQ(snapshots[index]->last_snapshot_ms, 1050u);
+}
+
+TEST(WorldStateSystemTest, ResetsAnchorOnLargeTimingGap) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  protocol::WorldSnapshotPayload first{};
+  first.snapshot_id = 1;
+  first.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  first.server_tick = 200;
+  first.deltas.push_back(MakeCreateDelta(2, 1, 0, 0, 0, 0, 5));
+  ApplyWithTiming(system, first, 1000, 20, 1000);
+
+  protocol::WorldSnapshotPayload second{};
+  second.snapshot_id = 2;
+  second.base_snapshot_id = 1;
+  second.server_tick = 201;
+  protocol::EntityDelta update{};
+  update.op = protocol::EntityDeltaOp::kUpdate;
+  update.entity_id = 2;
+  update.field_mask = protocol::EntityFieldMask::kFieldX;
+  update.state.x = 6;
+  second.deltas.push_back(update);
+  ApplyWithTiming(system, second, 2000, 20, 2000);
+
+  protocol::WorldSnapshotPayload third{};
+  third.snapshot_id = 3;
+  third.base_snapshot_id = 2;
+  third.server_tick = 202;
+  protocol::EntityDelta update_again{};
+  update_again.op = protocol::EntityDeltaOp::kUpdate;
+  update_again.entity_id = 2;
+  update_again.field_mask = protocol::EntityFieldMask::kFieldX;
+  update_again.state.x = 8;
+  third.deltas.push_back(update_again);
+  ApplyWithTiming(system, third, 2100, 20, 2100);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 2);
+  ASSERT_LT(index, net.size());
+  const auto& snapshots =
+      registry.GetComponents<client::ecs::SnapshotInterpolationComponent>();
+  ASSERT_TRUE(snapshots[index].has_value());
+  EXPECT_EQ(snapshots[index]->last_snapshot_ms, 2050u);
+}
+
+TEST(WorldStateSystemTest, HandlesServerTickWraparoundForPrediction) {
+  engine::ecs::Registry registry;
+  client::ecs::WorldStateSystem system(registry);
+
+  const std::uint32_t near_wrap =
+      std::numeric_limits<std::uint32_t>::max() - 1u;
+
+  protocol::WorldSnapshotPayload first{};
+  first.snapshot_id = 1;
+  first.base_snapshot_id = protocol::kNoBaseSnapshotId;
+  first.server_tick = near_wrap;
+  first.deltas.push_back(MakeCreateDelta(3, 1, 0, 0, 0, 0, 5));
+  ApplyWithTiming(system, first, 1000, 20, 1000);
+
+  protocol::WorldSnapshotPayload second{};
+  second.snapshot_id = 2;
+  second.base_snapshot_id = 1;
+  second.server_tick = 5;
+  protocol::EntityDelta update{};
+  update.op = protocol::EntityDeltaOp::kUpdate;
+  update.entity_id = 3;
+  update.field_mask = protocol::EntityFieldMask::kFieldX;
+  update.state.x = 3;
+  second.deltas.push_back(update);
+  ApplyWithTiming(system, second, 1360, 20, 1360);
+
+  const auto& net = registry.GetComponents<NetworkedEntityComponent>();
+  const auto index = FindEntityIndex(net, 3);
+  ASSERT_LT(index, net.size());
+  const auto& snapshots =
+      registry.GetComponents<client::ecs::SnapshotInterpolationComponent>();
+  ASSERT_TRUE(snapshots[index].has_value());
+  EXPECT_EQ(snapshots[index]->last_snapshot_ms, 1350u);
 }

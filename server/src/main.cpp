@@ -7,7 +7,7 @@ int main(int argc, char** argv) {
   (void)argc;
   (void)argv;
 
-  server::ServerConfig config = server::LoadServerConfig();
+  server::ServerConfig config = server::LoadServerConfig(argc, argv);
   server::ServerRuntime runtime(config);
 
   if (const auto start_error = runtime.Start(); start_error) {

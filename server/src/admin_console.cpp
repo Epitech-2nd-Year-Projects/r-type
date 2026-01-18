@@ -1,5 +1,10 @@
 #include "admin_console.h"
 
+// clang-format off
+#include "server_runtime.h"
+#include "linenoise.hpp"
+// clang-format on
+
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
@@ -7,9 +12,7 @@
 #include <sstream>
 
 #include "engine/util/logging.h"
-#include "linenoise.hpp"
 #include "protocol/command.h"
-#include "server_runtime.h"
 
 namespace server {
 

@@ -69,6 +69,7 @@ bool EncodeWorldSnapshot(const WorldSnapshotPayload &payload,
   buffer.WriteUint32(payload.base_snapshot_id);
   buffer.WriteUint32(payload.server_tick);
   buffer.WriteUint32(payload.current_wave);
+  buffer.WriteUint32(payload.round_timer_ms);
 
   const std::uint16_t count = static_cast<std::uint16_t>(payload.deltas.size());
   buffer.WriteUint16(count);
@@ -137,11 +138,12 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer &buffer,
   std::uint32_t base_snapshot_id = 0;
   std::uint32_t server_tick = 0;
   std::uint32_t current_wave = 0;
+  std::uint32_t round_timer_ms = 0;
   std::uint16_t count = 0;
 
   if (!buffer.ReadUint32(snapshot_id) || !buffer.ReadUint32(base_snapshot_id) ||
       !buffer.ReadUint32(server_tick) || !buffer.ReadUint32(current_wave) ||
-      !buffer.ReadUint16(count)) {
+      !buffer.ReadUint32(round_timer_ms) || !buffer.ReadUint16(count)) {
     return false;
   }
 
@@ -149,6 +151,7 @@ bool DecodeWorldSnapshot(engine::net::PacketBuffer &buffer,
   result.base_snapshot_id = base_snapshot_id;
   result.server_tick = server_tick;
   result.current_wave = current_wave;
+  result.round_timer_ms = round_timer_ms;
   result.deltas.clear();
   result.deltas.reserve(count);
 
@@ -274,6 +277,7 @@ WorldSnapshotPayload ComputeDelta(const WorldSnapshotPayload &current,
   result.base_snapshot_id = base.snapshot_id;
   result.server_tick = current.server_tick;
   result.current_wave = current.current_wave;
+  result.round_timer_ms = current.round_timer_ms;
 
   std::unordered_map<std::uint32_t, const EntityNetState *> base_entities;
   for (const auto &delta : base.deltas) {
@@ -336,6 +340,7 @@ WorldSnapshotPayload ApplyDelta(const WorldSnapshotPayload &base,
   result.base_snapshot_id = kNoBaseSnapshotId;
   result.server_tick = delta.server_tick;
   result.current_wave = delta.current_wave;
+  result.round_timer_ms = delta.round_timer_ms;
 
   std::unordered_map<std::uint32_t, const EntityNetState *> base_entities;
   for (const auto &d : base.deltas) {

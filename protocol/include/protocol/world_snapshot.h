@@ -128,9 +128,10 @@ struct WorldSnapshotPayload {
   std::uint32_t snapshot_id = 0;  ///< Current snapshot identifier.
   std::uint32_t base_snapshot_id =
       kNoBaseSnapshotId;  ///< Base snapshot for delta (or kNoBaseSnapshotId).
-  std::uint32_t server_tick = 0;    ///< Server simulation tick.
-  std::uint32_t current_wave = 0;   ///< Current wave number (0 if unknown).
-  std::vector<EntityDelta> deltas;  ///< Entity deltas in this snapshot.
+  std::uint32_t server_tick = 0;      ///< Server simulation tick.
+  std::uint32_t current_wave = 0;     ///< Current wave number (0 if unknown).
+  std::uint32_t round_timer_ms = 0;   ///< Round timer in milliseconds.
+  std::vector<EntityDelta> deltas;    ///< Entity deltas in this snapshot.
 };
 
 /**

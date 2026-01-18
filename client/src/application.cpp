@@ -159,6 +159,10 @@ void Application::SetAudioVolumes(float master_volume, float music_volume,
     audio_engine->SetSfxVolume(config_.sfx_volume);
   }
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 void Application::SetVideoSettings(int resolution_width, int resolution_height,
@@ -171,9 +175,6 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   config_.vsync = vsync;
   config_.target_fps = std::max(0, target_fps);
 
-  runtime_->SetRenderSize(
-      {config_.resolution_width, config_.resolution_height});
-
   auto& window = runtime_->Window();
   if (config_.fullscreen != previous_fullscreen) {
     window.ToggleFullscreen();
@@ -185,6 +186,10 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   window.SetTargetFps(config_.target_fps);
 
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 ClientAssetManager& Application::Assets() { return *assets_; }
@@ -250,6 +255,10 @@ void Application::SetConnectionConfig(std::string host, int port,
   network_->SetConnectionConfig(config_.host, config_.port, config_.player_name,
                                 config_.room_code, std::move(room_password));
   UpdateRuntimeConfig();
+  if (!SaveClientConfig(config_)) {
+    LogLifecycle(engine::util::LogLevel::kWarn,
+                 "Failed to persist client config");
+  }
 }
 
 bool Application::StartConnection() {
@@ -473,6 +482,12 @@ void Application::UpdateRuntimeConfig() {
       std::string(constants::config::kClientRoomListRefreshMs),
       std::to_string(config_.room_list_refresh_ms));
   runtime_config_store.Set(
+      std::string(constants::config::kClientInterpolationDelayMs),
+      std::to_string(config_.interpolation_delay_ms));
+  runtime_config_store.Set(
+      std::string(constants::config::kClientMaxExtrapolationMs),
+      std::to_string(config_.max_extrapolation_ms));
+  runtime_config_store.Set(
       std::string(constants::config::kVideoResolutionWidth),
       std::to_string(config_.resolution_width));
   runtime_config_store.Set(
@@ -490,6 +505,11 @@ void Application::UpdateRuntimeConfig() {
                            std::to_string(config_.music_volume));
   runtime_config_store.Set(std::string(constants::config::kAudioSfxVolume),
                            std::to_string(config_.sfx_volume));
+
+  if (network_) {
+    network_->SetInterpolationConfig(config_.interpolation_delay_ms,
+                                     config_.max_extrapolation_ms);
+  }
 
   if (!SaveClientConfig(config_)) {
     LogLifecycle(engine::util::LogLevel::kWarn,

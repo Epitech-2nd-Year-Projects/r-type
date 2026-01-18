@@ -40,6 +40,10 @@ constexpr int kMinLobbyAttempts = 1;
 constexpr int kMaxLobbyAttempts = 20;
 constexpr std::uint32_t kMinRoomListRefreshMs = 1'000;
 constexpr std::uint32_t kMaxRoomListRefreshMs = 60'000;
+constexpr std::uint32_t kMinInterpolationDelayMs = 0;
+constexpr std::uint32_t kMaxInterpolationDelayMs = 500;
+constexpr std::uint32_t kMinMaxExtrapolationMs = 0;
+constexpr std::uint32_t kMaxMaxExtrapolationMs = 1000;
 constexpr int kMinResolutionWidth = 640;
 constexpr int kMaxResolutionWidth = 7'680;
 constexpr int kMinResolutionHeight = 360;
@@ -299,6 +303,18 @@ bool TryParseRoomListRefresh(std::string_view value,
                        kMaxRoomListRefreshMs);
 }
 
+bool TryParseInterpolationDelay(std::string_view value,
+                                std::uint32_t& out_delay_ms) {
+  return TryParseRange(value, out_delay_ms, kMinInterpolationDelayMs,
+                       kMaxInterpolationDelayMs);
+}
+
+bool TryParseMaxExtrapolation(std::string_view value,
+                              std::uint32_t& out_max_ms) {
+  return TryParseRange(value, out_max_ms, kMinMaxExtrapolationMs,
+                       kMaxMaxExtrapolationMs);
+}
+
 bool LoadClientConfigFromFile(const std::filesystem::path& path,
                               ClientConfig& config) {
   std::ifstream file(path);
@@ -391,6 +407,12 @@ bool LoadClientConfigFromFile(const std::filesystem::path& path,
   apply_range(constants::config::kClientRoomListRefreshMs,
               config.room_list_refresh_ms, kMinRoomListRefreshMs,
               kMaxRoomListRefreshMs);
+  apply_range(constants::config::kClientInterpolationDelayMs,
+              config.interpolation_delay_ms, kMinInterpolationDelayMs,
+              kMaxInterpolationDelayMs);
+  apply_range(constants::config::kClientMaxExtrapolationMs,
+              config.max_extrapolation_ms, kMinMaxExtrapolationMs,
+              kMaxMaxExtrapolationMs);
   apply_range(constants::config::kVideoResolutionWidth, config.resolution_width,
               kMinResolutionWidth, kMaxResolutionWidth);
   apply_range(constants::config::kVideoResolutionHeight,
@@ -472,6 +494,10 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
       config.lobby_max_attempts;
   doc[std::string(constants::config::kClientRoomListRefreshMs)] =
       config.room_list_refresh_ms;
+  doc[std::string(constants::config::kClientInterpolationDelayMs)] =
+      config.interpolation_delay_ms;
+  doc[std::string(constants::config::kClientMaxExtrapolationMs)] =
+      config.max_extrapolation_ms;
   doc[std::string(constants::config::kVideoResolutionWidth)] =
       config.resolution_width;
   doc[std::string(constants::config::kVideoResolutionHeight)] =
@@ -494,7 +520,7 @@ bool SaveClientConfigToFile(const std::filesystem::path& path,
 
 }  // namespace
 
-ClientConfig LoadClientConfig() {
+ClientConfig LoadClientConfig(int argc, char** argv) {
   ClientConfig config;
   LoadClientConfigFromFile(
       std::filesystem::path(constants::client::kClientConfigPath), config);
@@ -546,6 +572,10 @@ ClientConfig LoadClientConfig() {
              config.lobby_max_attempts);
   apply_uint("RTYPE_CLIENT_ROOM_LIST_REFRESH_MS", TryParseRoomListRefresh,
              config.room_list_refresh_ms);
+  apply_uint("RTYPE_CLIENT_INTERPOLATION_DELAY_MS", TryParseInterpolationDelay,
+             config.interpolation_delay_ms);
+  apply_uint("RTYPE_CLIENT_MAX_EXTRAPOLATION_MS", TryParseMaxExtrapolation,
+             config.max_extrapolation_ms);
 
   if (const char* debug = std::getenv("RTYPE_CLIENT_DEBUG")) {
     const auto normalized = Normalize(debug);
@@ -563,6 +593,23 @@ ClientConfig LoadClientConfig() {
 
   if (config.debug && config.log_level > engine::util::LogLevel::kDebug) {
     config.log_level = engine::util::LogLevel::kDebug;
+  }
+
+  for (int i = 1; i < argc; ++i) {
+    const std::string_view arg = argv[i];
+    if ((arg == "--host" || arg == "-h") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::string host;
+      if (TryParseHost(val, host)) {
+        config.host = host;
+      }
+    } else if ((arg == "--port" || arg == "-p") && i + 1 < argc) {
+      const std::string_view val = argv[++i];
+      std::uint16_t port = 0;
+      if (TryParsePort(val, port)) {
+        config.port = port;
+      }
+    }
   }
 
   return config;
