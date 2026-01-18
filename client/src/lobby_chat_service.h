@@ -7,8 +7,10 @@
 #define CLIENT_LOBBY_CHAT_SERVICE_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
