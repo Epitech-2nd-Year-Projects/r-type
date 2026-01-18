@@ -34,6 +34,8 @@ std::string_view ToString(ClientState state) {
       return "Splash";
     case ClientState::kMainMenu:
       return "MainMenu";
+    case ClientState::kProfile:
+      return "Profile";
     case ClientState::kLobby:
       return "Lobby";
     case ClientState::kSettings:
@@ -178,6 +180,7 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   }
   window.SetVsync(config_.vsync);
   window.SetTargetFps(config_.target_fps);
+  runtime_->OnVideoSettingsChanged();
 
   UpdateRuntimeConfig();
   if (!SaveClientConfig(config_)) {

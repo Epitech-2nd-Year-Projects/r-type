@@ -178,6 +178,11 @@ class ClientRuntime {
   void ResetWorld();
 
   /**
+   * @brief Notify runtime that video settings (resolution/fullscreen) have changed
+   */
+  void OnVideoSettingsChanged();
+
+  /**
    * @brief Access the developer console
    */
   engine::console::Console& Console();

@@ -659,6 +659,17 @@ void ClientRuntime::ResetWorld() {
   }
 }
 
+void ClientRuntime::OnVideoSettingsChanged() {
+  if (frame_resources_) {
+    frame_resources_->Reset();
+  }
+  if (bloom_) {
+    bloom_->Reset();
+  }
+  LogLifecycle(engine::util::LogLevel::kInfo,
+               "Video settings changed, render resources reset");
+}
+
 void ClientRuntime::UpdateProfilingOverlay(
     engine::time::TimeDelta dt, const engine::ecs::Registry& registry,
     std::optional<float> latency_ms) {
