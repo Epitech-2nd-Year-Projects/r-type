@@ -17,18 +17,19 @@ R-Type is a modern, multiplayer implementation of the classic horizontal shoot-'
 To ensure all dependencies and submodules are correctly initialized, please clone the repository recursively:
 
 ```bash
-git clone --recursive git@github.com:Epitech-2nd-Year-Projects/r-type.git
+GIT_LFS_SKIP_SMUDGE=1 git clone --recursive git@github.com:Epitech-2nd-Year-Projects/r-type.git
 cd r-type
 ```
 
 > **Note**: If you have already cloned the repository without the `--recursive` flag, you can initialize the submodules manually:
 > ```bash
-> git submodule update --init --recursive
+> GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
 > ```
 
 ### Prerequisites
 
 - **C++ Compiler**: C++23 compliant (GCC 13+, Clang 16+, MSVC).
+- **Git LFS**: Required for large asset management.
 - **Xmake**: Build system.
   <details>
   <summary>Click to see installation instructions</summary>
@@ -89,7 +90,7 @@ Ensure Xmake is installed and added to your system's PATH. Refer to the [Prerequ
 <summary><strong>"No route to host" error (Network)</strong></summary>
 
 If you are unable to connect to the server:
-1. Check your firewall settings (ensure UDP port `6363` is open).
+1. Check your firewall settings.
 2. Verify that both Client and Server are on the same network subnet.
 3. Use the correct IP address when launching the client.
 </details>
@@ -101,6 +102,16 @@ If you encounter issues related to missing headers or libraries:
 1. Delete the `xmake-requires.lock` file.
 2. Run `xmake repo -u` to update the package repository.
 3. Re-run `xmake` to rebuild.
+</details>
+
+<details>
+<summary><strong>"raylibmedia.h" header not found</strong></summary>
+
+If compilation fails with `#include <raylibmedia.h>` header not found:
+1. Pull the submodules with LFS smudging skipped:
+   ```bash
+   GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
+   ```
 </details>
 
 ## Documentation
