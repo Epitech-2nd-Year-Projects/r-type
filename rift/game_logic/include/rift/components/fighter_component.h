@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "rift/arena_constants.h"
+
 namespace rift::components {
 
 enum class CombatState : std::uint8_t {
@@ -141,8 +143,8 @@ struct AttackComponent {
 };
 
 struct HurtboxComponent {
-  float width{30.0f};
-  float height{80.0f};
+  float width{ArenaConstants::kHurtboxWidth};
+  float height{ArenaConstants::kHurtboxHeight};
   float offset_x{0.0f};
   float offset_y{0.0f};
 };

@@ -15,6 +15,7 @@
 #include "engine/input.h"
 #include "engine/math/vector2.h"
 #include "engine/math/vector3.h"
+#include "engine/render/animation.h"
 #include "engine/render/camera3d.h"
 #include "engine/render/model.h"
 #include "engine/render/renderer2d.h"
@@ -326,10 +327,69 @@ class RaylibModel final : public Model {
   }
 
   const ::Model& GetNative() const { return model_; }
+  ::Model& GetNativeMutable() { return model_; }
 
  private:
   ::Model model_{};
   ::BoundingBox bounding_box_{};
+};
+
+class RaylibAnimation final : public Animation {
+ public:
+  explicit RaylibAnimation(const ::ModelAnimation& anim) : animation_(anim) {}
+
+  std::uint32_t GetFrameCount() const override {
+    return static_cast<std::uint32_t>(animation_.frameCount);
+  }
+
+  std::string_view GetName() const override { return animation_.name; }
+
+  std::uint32_t GetBoneCount() const override {
+    return static_cast<std::uint32_t>(animation_.boneCount);
+  }
+
+  const ::ModelAnimation& GetNative() const { return animation_; }
+
+ private:
+  ::ModelAnimation animation_;
+};
+
+class RaylibAnimationSet final : public AnimationSet {
+ public:
+  RaylibAnimationSet(::ModelAnimation* anims, int count)
+      : native_animations_(anims), count_(count) {
+    animations_.reserve(static_cast<std::size_t>(count));
+    for (int i = 0; i < count; ++i) {
+      animations_.push_back(std::make_unique<RaylibAnimation>(anims[i]));
+    }
+  }
+
+  ~RaylibAnimationSet() override {
+    if (native_animations_ && count_ > 0 && ::IsWindowReady()) {
+      ::UnloadModelAnimations(native_animations_, count_);
+    }
+  }
+
+  RaylibAnimationSet(const RaylibAnimationSet&) = delete;
+  RaylibAnimationSet& operator=(const RaylibAnimationSet&) = delete;
+
+  std::size_t GetCount() const override { return animations_.size(); }
+
+  const Animation* GetAnimation(std::size_t index) const override {
+    return index < animations_.size() ? animations_[index].get() : nullptr;
+  }
+
+  const Animation* FindByName(std::string_view name) const override {
+    for (const auto& anim : animations_) {
+      if (anim->GetName() == name) return anim.get();
+    }
+    return nullptr;
+  }
+
+ private:
+  ::ModelAnimation* native_animations_{nullptr};
+  int count_{0};
+  std::vector<std::unique_ptr<RaylibAnimation>> animations_;
 };
 
 class RaylibRenderer3D final : public Renderer3D {
@@ -430,6 +490,25 @@ class RaylibRenderer3D final : public Renderer3D {
     return std::make_shared<RaylibModel>(model);
   }
 
+  bool SetModelTexture(Model& model, const std::string& texture_path) override {
+    auto& raylib_model = dynamic_cast<RaylibModel&>(model);
+    ::Texture2D texture = ::LoadTexture(texture_path.c_str());
+    if (texture.id == 0) {
+      engine::util::Logger::Default().Error("Failed to load texture from '",
+                                            texture_path, "'");
+      return false;
+    }
+
+    ::Model& native_model = raylib_model.GetNativeMutable();
+    for (int i = 0; i < native_model.materialCount; ++i) {
+      native_model.materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
+    }
+
+    engine::util::Logger::Default().Info("Applied texture '", texture_path,
+                                         "' to model");
+    return true;
+  }
+
   void SetLighting(const LightingConfig& config) override {
     // Basic lighting implementation stores the config for future shader-based
     // lighting. For now, Raylib's default lighting is used.
@@ -440,6 +519,32 @@ class RaylibRenderer3D final : public Renderer3D {
   }
 
   void DisableLighting() override { lighting_enabled_ = false; }
+
+  std::shared_ptr<AnimationSet> LoadAnimationsFromFile(
+      const std::string& path) override {
+    int anim_count = 0;
+    ::ModelAnimation* anims = ::LoadModelAnimations(path.c_str(), &anim_count);
+    if (!anims || anim_count == 0) {
+      engine::util::Logger::Default().Error("Failed to load animations from '",
+                                            path, "'");
+      return nullptr;
+    }
+    engine::util::Logger::Default().Info("Loaded ", anim_count,
+                                         " animations from '", path, "'");
+    return std::make_shared<RaylibAnimationSet>(anims, anim_count);
+  }
+
+  void UpdateModelAnimation(Model& model, const Animation& animation,
+                            std::uint32_t frame) override {
+    auto& raylib_model = dynamic_cast<RaylibModel&>(model);
+    const auto& raylib_anim = dynamic_cast<const RaylibAnimation&>(animation);
+
+    const int safe_frame =
+        static_cast<int>(std::min(frame, animation.GetFrameCount() - 1));
+
+    ::UpdateModelAnimation(raylib_model.GetNativeMutable(),
+                           raylib_anim.GetNative(), safe_frame);
+  }
 
  private:
   bool lighting_enabled_{false};

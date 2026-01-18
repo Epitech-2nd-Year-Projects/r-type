@@ -82,7 +82,43 @@ std::string GeneratePublicCode(
   return "room-" + std::to_string(rng());
 }
 
+std::string GenerateMatchCode(
+    std::mt19937& rng, const std::unordered_map<std::string, Room>& rooms) {
+  std::uniform_int_distribution<std::uint32_t> dist;
+  for (int attempt = 0; attempt < 128; ++attempt) {
+    std::ostringstream oss;
+    oss << "m-" << std::hex << std::setfill('0') << std::setw(8) << dist(rng);
+    const std::string code = oss.str();
+    if (rooms.find(code) == rooms.end()) {
+      return code;
+    }
+  }
+  std::ostringstream oss;
+  oss << "m-" << std::hex << std::setfill('0') << std::setw(8) << dist(rng);
+  return oss.str();
+}
+
 }  // namespace
+
+Room& ServerRuntime::FindOrCreateMatchingRoom() {
+  for (auto& [code, room] : rooms_) {
+    if (!room.HasStarted() && room.PlayerCount() < 2 &&
+        room.MaxPlayers() >= 2) {
+      logger_.Debug("Found existing room for auto-match: ", code);
+      return room;
+    }
+  }
+
+  const std::string room_code = GenerateMatchCode(rng_, rooms_);
+  const std::string room_name = "Quick Match";
+  constexpr std::uint16_t kMaxPlayersFor1v1 = 2;
+
+  Room& new_room =
+      CreateRoom(room_code, room_name, /*is_private=*/false, "",
+                 kMaxPlayersFor1v1);
+  logger_.Info("Created new auto-match room: ", room_code);
+  return new_room;
+}
 
 void ServerRuntime::ProcessJoin(PeerConnection& peer,
                                 const protocol::JoinRequestPayload& request) {
@@ -108,12 +144,13 @@ void ServerRuntime::ProcessJoin(PeerConnection& peer,
   }
 
   std::string room_code = request.room_code;
+
   if (room_code.empty()) {
-    logger_.Warn("Rejecting join from ", endpoint_key, " missing room code");
-    SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,
-               "Room code required");
-    return;
+    logger_.Debug("Auto-matching player ", request.player_name);
+    Room& matched_room = FindOrCreateMatchingRoom();
+    room_code = matched_room.Code();
   }
+
   if (!IsValidRoomCode(room_code)) {
     logger_.Warn("Rejecting join from ", endpoint_key, " invalid room code");
     SendReject(peer, protocol::JoinRejectReason::kInvalidRoom,

@@ -51,9 +51,9 @@ end
 
 function LevelManager.LoadLevel(id)
     local path = LevelManager.config_path .. "level_" .. id .. ".lua"
-    
+
     local level_env = setmetatable({}, { __index = _G })
-    
+
     level_env.Wait = function(seconds)
         local elapsed = 0
         while elapsed < seconds do
@@ -61,7 +61,7 @@ function LevelManager.LoadLevel(id)
             elapsed = elapsed + (dt or 0)
         end
     end
-    
+
     level_env.Spawn = function(type_name, x, y, random_y, drops_powerup)
         local final_y = y
         if random_y then
@@ -86,25 +86,25 @@ function LevelManager.LoadLevel(id)
         end
         return entity
     end
-    
+
     local level_chunk, err = loadfile(path, "t", level_env)
-    
+
     if not level_chunk then
         log_error("Failed to load level: " .. path .. " Error: " .. (err or "unknown"))
         return false
     end
-    
+
     local level_table = level_chunk()
-    
+
     LevelManager.current_level = level_table
     LevelManager.current_id = id
-    
+
     if level_table.run then
         LevelManager.current_co = coroutine.create(function(dt)
              level_table.run()
         end)
     end
-    
+
     LevelManager.state = "RUNNING"
     log_info("Loaded Level " .. id .. ": " .. (level_table.info.name or "Unknown"))
     return true

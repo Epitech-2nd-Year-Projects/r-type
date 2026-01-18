@@ -12,5 +12,7 @@
   "client.queue_size": 256,
   "client.room_code": "room-41660",
   "client.room_list_refresh_ms": 5000,
+  "client.interpolation_delay_ms": 100,
+  "client.max_extrapolation_ms": 150,
   "client.timeout_ms": 7000
 }

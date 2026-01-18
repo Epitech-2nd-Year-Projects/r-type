@@ -106,11 +106,11 @@ void GameInstance::OnPlayerInput(std::uint32_t player_id,
 
   // Up = Block, Down = Dodge
   emit_edge(protocol::InputButton::kInputUp,
-            rift::GameInstance::InputEventType::kMoveUpPressed,
-            rift::GameInstance::InputEventType::kMoveUpReleased);
+            rift::GameInstance::InputEventType::kBlockPressed,
+            rift::GameInstance::InputEventType::kBlockReleased);
   emit_edge(protocol::InputButton::kInputDown,
-            rift::GameInstance::InputEventType::kMoveDownPressed,
-            rift::GameInstance::InputEventType::kMoveDownReleased);
+            rift::GameInstance::InputEventType::kDodgePressed,
+            rift::GameInstance::InputEventType::kDodgeReleased);
 
   // Fire = Light Attack, BigFire = Heavy Attack
   emit_edge(protocol::InputButton::kInputFire,
@@ -215,6 +215,7 @@ protocol::WorldSnapshotPayload GameInstance::BuildWorldSnapshot(
   snapshot.base_snapshot_id = protocol::kNoBaseSnapshotId;
   snapshot.server_tick = server_tick;
   snapshot.current_wave = logic_ ? logic_->State().round_number : 0;
+  snapshot.round_timer_ms = logic_ ? logic_->State().round_timer_ms : 0;
 
   auto &registry = World();
   auto &positions = registry.GetComponents<engine::ecs::PositionComponent>();
