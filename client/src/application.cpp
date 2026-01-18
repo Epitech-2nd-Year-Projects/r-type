@@ -45,6 +45,8 @@ std::string_view ToString(ClientState state) {
       return "AudioSettings";
     case ClientState::kVideoSettings:
       return "VideoSettings";
+    case ClientState::kKeyBindings:
+      return "KeyBindings";
     case ClientState::kConnecting:
       return "Connecting";
     case ClientState::kInGame:
@@ -225,6 +227,10 @@ void Application::OnCloseAudioSettings() {
 void Application::OnCloseVideoSettings() {
   scene_manager_->OnCloseVideoSettings();
 }
+
+void Application::OnOpenKeyBindings() { scene_manager_->OnOpenKeyBindings(); }
+
+void Application::OnCloseKeyBindings() { scene_manager_->OnCloseKeyBindings(); }
 
 void Application::OnQuitApplication() {
   SaveProfile();

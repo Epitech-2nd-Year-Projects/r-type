@@ -77,6 +77,8 @@ class Application : public ClientContext {
   void OnCloseSettings() override;
   void OnCloseAudioSettings() override;
   void OnCloseVideoSettings() override;
+  void OnOpenKeyBindings() override;
+  void OnCloseKeyBindings() override;
   void OnQuitApplication() override;
   void OnOpenProfile() override;
   void OnCloseProfile() override;

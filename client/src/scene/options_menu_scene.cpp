@@ -131,7 +131,8 @@ OptionsMenuScene::OptionsMenuScene(ClientContext& context)
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,
                              constants::ui::OptionsMenu::kButtonHeight},
-      "Keyboard", menu_effects_.WrapClick({}));
+      "Keyboard",
+      menu_effects_.WrapClick([this]() { context_.OnOpenKeyBindings(); }));
   auto back_button = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
       engine::math::Vector2f{constants::ui::OptionsMenu::kButtonWidth,

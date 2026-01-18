@@ -159,6 +159,11 @@ class SceneManager {
   void OnOpenVideoSettings();
 
   /**
+   * @brief Open the key bindings menu
+   */
+  void OnOpenKeyBindings();
+
+  /**
    * @brief Close the audio settings menu
    */
   void OnCloseAudioSettings();
@@ -167,6 +172,11 @@ class SceneManager {
    * @brief Close the video settings menu
    */
   void OnCloseVideoSettings();
+
+  /**
+   * @brief Close the key bindings menu
+   */
+  void OnCloseKeyBindings();
 
   /**
    * @brief Close the settings menu

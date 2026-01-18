@@ -21,6 +21,7 @@ enum class ClientState {
   kSettings,
   kAudioSettings,
   kVideoSettings,
+  kKeyBindings,
   kConnecting,
   kInGame,
   kPaused,
