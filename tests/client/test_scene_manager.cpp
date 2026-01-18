@@ -47,6 +47,11 @@ class FakeRenderer final : public engine::render::Renderer2D {
                 const engine::math::Vector2f& /*end*/, float /*thickness*/,
                 const engine::render::Color& /*color*/) override {}
 
+  void DrawRing(const engine::math::Vector2f& /*center*/, float /*inner_radius*/,
+                float /*outer_radius*/, float /*start_angle*/,
+                float /*end_angle*/, int /*segments*/,
+                const engine::render::Color& /*color*/) override {}
+
   void DrawTexture(
       const engine::render::Texture2D& /*texture*/,
       const engine::render::SpriteDrawParams& /*params*/) override {}
@@ -243,7 +248,7 @@ class FakeClientContext final : public client::ClientContext {
   void OnOpenVideoSettings() override { ++open_video_settings_calls_; }
   void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
   void OnCloseSettings() override { ++close_settings_calls_; }
-  void OnCloseAudioSettings() override { ++close_audio_settings_calls_; }
+  void OnCloseVideoSettings() override { ++close_video_settings_calls_; }
   void OnOpenProfile() override { ++open_profile_calls_; }
   void OnCloseProfile() override { ++close_profile_calls_; }
   void OnQuitApplication() override { ++quit_calls_; }
@@ -302,6 +307,11 @@ class FakeClientContext final : public client::ClientContext {
     return true;
   }
 
+  bool EnqueueGameplayPing(
+      const protocol::GameplayPingPayload& /*payload*/) override {
+    return true;
+  }
+
   std::optional<std::uint32_t> CurrentWave() const override { return {}; }
 
   std::optional<float> LatestLatencyMs() const override { return {}; }
@@ -352,7 +362,7 @@ class FakeClientContext final : public client::ClientContext {
   int open_video_settings_calls_{0};
   int close_audio_settings_calls_{0};
   int close_settings_calls_{0};
-  int close_audio_settings_calls_{0};
+  int close_video_settings_calls_{0};
   int open_profile_calls_{0};
   int close_profile_calls_{0};
   int save_profile_calls_{0};

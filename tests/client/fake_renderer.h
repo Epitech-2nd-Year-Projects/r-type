@@ -45,6 +45,8 @@ class FakeRenderer : public engine::render::Renderer2D {
                 const engine::render::Color& color) override {
     line_calls.push_back({start, end, thickness, color});
   }
+  void DrawRing(const engine::math::Vector2f&, float, float, float, float, int,
+                const engine::render::Color&) override {}
 
   void DrawTexture(const engine::render::Texture2D& texture,
                    const engine::render::SpriteDrawParams& params) override {
