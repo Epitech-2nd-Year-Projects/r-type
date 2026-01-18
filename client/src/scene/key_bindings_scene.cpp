@@ -156,17 +156,14 @@ KeyBindingsScene::KeyBindingsScene(ClientContext& context)
         engine::ui::HorizontalAlignment::kCenter;
     slot->Layout().size.height =
         engine::ui::LayoutValue::Pixels(row_slot_height);
-    // Ensure the slot is wide enough for the button
     slot->Layout().size.width =
         engine::ui::LayoutValue::Pixels(kRowButtonWidth);
 
     slot->SetLayoutCallback([this, i](const engine::math::RectF& rect) {
       auto& row = rows_[i];
       row.row_rect = rect;
-      // Button fills the slot width (which we set to kRowButtonWidth)
       const float base_width = kRowButtonWidth;
       const float base_height = constants::ui::OptionsMenu::kButtonHeight;
-      // Center in slot
       const float base_x = rect.top_left_x_ + (rect.width_ - base_width) * 0.5f;
       const float base_y =
           rect.top_left_y_ + constants::ui::OptionsMenu::kButtonSlotInset;
@@ -225,16 +222,13 @@ void KeyBindingsScene::Update(engine::time::TimeDelta dt) {
   auto& input = context_.Input();
 
   if (is_binding_) {
-    // Check for any key press
     auto bindable_keys = BindableKeys();
     for (const auto key : bindable_keys) {
       if (input.IsKeyDown(key)) {
-        // Check for cancel (Escape)
         if (key == engine::input::Key::kEscape) {
           is_binding_ = false;
         } else {
           auto result = context_.UpdateKeyBinding(binding_action_, key);
-          // We could show result.message here if we had a status text
           is_binding_ = false;
         }
         break;
@@ -369,8 +363,6 @@ void KeyBindingsScene::HandleRebind(GameAction action) {
   binding_action_ = action;
 }
 
-void KeyBindingsScene::RefreshButtons() {
-  // Buttons are refreshed in DrawRows
-}
+void KeyBindingsScene::RefreshButtons() {}
 
 }  // namespace client
