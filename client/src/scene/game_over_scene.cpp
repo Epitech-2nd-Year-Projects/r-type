@@ -19,7 +19,7 @@ ui::MenuPointerConfig GameOverPointerConfig() {
                                constants::ui::MainMenu::kPointerFrameCount,
                                constants::ui::MainMenu::kPointerFrameDuration,
                                constants::ui::MainMenu::kPointerHeightFactor,
-                               60.0f, // Increased spacing to avoid overlap
+                               60.0f,
                                constants::ui::MainMenu::kPointerScaleFactor};
 }
 
@@ -73,8 +73,7 @@ GameOverScene::GameOverScene(ClientContext& context, const Stats& stats)
 
   menu_main_exit_button_ = std::make_shared<engine::ui::Button>(
       engine::math::Vector2f{0.0f, 0.0f},
-      engine::math::Vector2f{250.0f,
-                             constants::ui::MainMenu::kButtonHeight},
+      engine::math::Vector2f{250.0f, constants::ui::MainMenu::kButtonHeight},
       "Return to Menu",
       menu_effects_.WrapClick([this]() { context_.OnQuitToMenu(); }));
 
@@ -84,7 +83,8 @@ GameOverScene::GameOverScene(ClientContext& context, const Stats& stats)
   const auto white = engine::render::Color::White();
   menu_main_exit_button_->SetColors(transparent, transparent, transparent);
   menu_main_exit_button_->SetTextColor(white);
-  menu_main_exit_button_->SetTextScale(constants::ui::MainMenu::kButtonTextScale);
+  menu_main_exit_button_->SetTextScale(
+      constants::ui::MainMenu::kButtonTextScale);
 
   root->AddChild(title_);
   root->AddChild(score_text_);
@@ -96,8 +96,7 @@ GameOverScene::GameOverScene(ClientContext& context, const Stats& stats)
   root->AddChild(spacer);
 
   auto button_slot = std::make_shared<engine::ui::BoxElement>();
-  button_slot->Layout().size.width =
-      engine::ui::LayoutValue::Pixels(250.0f);
+  button_slot->Layout().size.width = engine::ui::LayoutValue::Pixels(250.0f);
   button_slot->Layout().size.height =
       engine::ui::LayoutValue::Pixels(constants::ui::MainMenu::kButtonHeight);
   button_slot->SetLayoutCallback([this](const engine::math::RectF& rect) {
@@ -120,10 +119,8 @@ void GameOverScene::Update(engine::time::TimeDelta dt) {
     elem->Update(dt, input);
   }
 
-  // Backup key to quit
   if (input.IsActionActive(std::string(constants::input::kActionConfirm))) {
-     // Optional: Trigger button click or just quit
-     // context_.OnQuitToMenu();
+    context_.OnQuitToMenu();
   }
 }
 
