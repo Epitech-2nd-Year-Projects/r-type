@@ -1,0 +1,10 @@
+{
+  "BigShoot": "LeftShift",
+  "MoveDown": "A",
+  "MoveLeft": "Q",
+  "MoveRight": "D",
+  "MoveUp": "W",
+  "Ping": "G",
+  "Reconnect": "R",
+  "Shoot": "Space"
+}
