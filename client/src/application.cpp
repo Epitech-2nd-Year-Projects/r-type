@@ -12,6 +12,7 @@
 #include "constants/client_constants.h"
 #include "constants/config_keys.h"
 #include "constants/ui_constants.h"
+#include "ecs/player_prediction_system.h"
 #include "engine/audio/audio_engine.h"
 #include "engine/time/game_loop.h"
 #include "input/input_coordinator.h"
@@ -184,6 +185,7 @@ void Application::SetVideoSettings(int resolution_width, int resolution_height,
   }
   window.SetVsync(config_.vsync);
   window.SetTargetFps(config_.target_fps);
+  runtime_->OnVideoSettingsChanged();
 
   UpdateRuntimeConfig();
   if (!SaveClientConfig(config_)) {
@@ -381,6 +383,11 @@ bool Application::Tick(engine::time::TimeDelta dt) {
   runtime_->Input().SetActionsEnabled(!input_captured);
 
   input_->Update(dt, network_->join_state(), scene_manager_->state());
+  if (player_prediction_system_ &&
+      network_->join_state() == JoinState::kConnected &&
+      scene_manager_->state() == ClientState::kInGame) {
+    player_prediction_system_->Update(dt, input_->action_state());
+  }
   if (input_->ShouldReconnect(network_->join_state(), input_captured)) {
     StartConnection();
   }

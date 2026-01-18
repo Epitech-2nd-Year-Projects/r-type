@@ -17,12 +17,15 @@ class AudioController;
 class ClientAssetManager;
 class ClientRuntime;
 class InputCoordinator;
-namespace ui {
-class MenuBackground;
-}
 struct NetworkEvents;
 class NetworkSession;
 class SceneManager;
+namespace ecs {
+class PlayerPredictionSystem;
+}
+namespace ui {
+class MenuBackground;
+}
 
 /**
  * @brief High level application object driving the client runtime

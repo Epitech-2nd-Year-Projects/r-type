@@ -155,6 +155,7 @@ NetworkEvents NetworkSession::Update(engine::time::TimeDelta dt,
   if (animation_system_) {
     animation_system_->Update(dt);
   }
+
   UpdateLocalPlayerCache();
 
   join_state = join_flow_.state();

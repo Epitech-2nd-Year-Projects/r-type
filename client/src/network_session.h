@@ -226,6 +226,7 @@ class NetworkSession {
   std::unique_ptr<ecs::AnimationSystem> animation_system_;
   std::unique_ptr<ecs::InterpolationSystem> interpolation_system_;
   WorldUpdateReceiver world_update_receiver_;
+
   std::optional<std::uint32_t> cached_local_score_;
   std::optional<std::uint32_t> last_wave_{1u};
   JoinState last_join_state_{JoinState::kIdle};
