@@ -166,6 +166,16 @@ class ClientContext {
   virtual void OnCloseVideoSettings() = 0;
 
   /**
+   * @brief Open the key bindings menu
+   */
+  virtual void OnOpenKeyBindings() = 0;
+
+  /**
+   * @brief Close the key bindings menu
+   */
+  virtual void OnCloseKeyBindings() = 0;
+
+  /**
    * @brief Quit the application
    */
   virtual void OnQuitApplication() = 0;
