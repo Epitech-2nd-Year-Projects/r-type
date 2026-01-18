@@ -101,6 +101,8 @@ void PlayerPredictionSystem::Update(engine::time::TimeDelta dt,
     has_prediction_ = true;
   }
 
+  const float dt_seconds = dt.as_seconds();
+
   if (new_snapshot) {
     const engine::math::Vector2f delta = authoritative - predicted_position_;
     const float distance = delta.Length();
@@ -116,8 +118,6 @@ void PlayerPredictionSystem::Update(engine::time::TimeDelta dt,
   }
 
   const engine::math::Vector2f predicted_velocity = BuildVelocity(action_state);
-
-  const float dt_seconds = dt.as_seconds();
   predicted_position_ += predicted_velocity * dt_seconds;
   predicted_position_.x =
       Clamp(predicted_position_.x, 0.0f, game_logic::kGameWidth);
