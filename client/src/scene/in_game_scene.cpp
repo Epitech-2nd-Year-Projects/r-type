@@ -62,50 +62,39 @@ void InGameScene::Update(engine::time::TimeDelta dt) {
   hud_.UpdateNetwork(context_.LatestLatencyMs(), connected,
                      std::string(context_.ConnectionStatus()));
 
-  // Update chat view - sync messages and handle input
   chat_view_.SyncMessages(context_.ChatService().messages());
   chat_view_.Update(dt, input);
   LayoutChat();
   
-  // Ping Logic
-  const bool ping_input = input.IsActionActive(std::string(constants::input::kActionPing));
+  const bool ping_input = input.IsKeyDown(engine::input::Key::kG);
   
   if (ping_input) {
       if (!ping_pressed_) {
-          // Just started holding
           ping_pressed_ = true;
       }
-      // Update wheel input
       ping_wheel_.Update(input, context_.Window().GetSize());
   } else {
       if (ping_pressed_) {
-          // Released
           ping_pressed_ = false;
-          if (ping_wheel_.IsActive()) { // If it was showing (maybe show after hold delay?)
-             // For now assume always showing if pressed.
+          if (ping_wheel_.IsActive()) {
              auto selection = ping_wheel_.CommitSelection();
              if (selection) {
                  protocol::GameplayPingPayload payload;
                  payload.sender_id = context_.LocalPlayerId().value_or(0);
                  payload.type = *selection;
                  
-                 // Use mouse position for now
                  auto mouse = input.GetMousePosition();
                  payload.x = mouse.x;
                  payload.y = mouse.y;
                  
                  context_.EnqueueGameplayPing(payload);
                  
-                 // Add to local list immediately for responsiveness? 
-                 // Or wait for server echo? Server broadcast includes sender usually?
-                 // Let's add local immediately.
                  received_pings_.push_back({payload, 5.0f});
              }
           }
       }
   }
   
-  // Update received pings expiration
   float delta = dt.as_seconds();
   for (auto it = received_pings_.begin(); it != received_pings_.end();) {
       it->second -= delta;
@@ -124,7 +113,6 @@ void InGameScene::OnGameplayPing(const protocol::GameplayPingPayload& ping) {
 void InGameScene::Draw(engine::render::Renderer2D& renderer) {
   hud_.Draw(renderer, context_.Window().GetSize());
   
-  // Draw Pings
   for (const auto& [ping, time] : received_pings_) {
       std::string label = "Ping";
       engine::render::Color color = {200, 200, 200, 255};
@@ -136,7 +124,6 @@ void InGameScene::Draw(engine::render::Renderer2D& renderer) {
           case protocol::PingType::kGeneric: label = "HERE"; color = {255, 255, 255, 255}; break;
       }
       
-      // Fade out
       if (time < 1.0f) {
           color.a = static_cast<uint8_t>(255 * time);
       }
@@ -153,7 +140,7 @@ void InGameScene::Draw(engine::render::Renderer2D& renderer) {
 }
 
 bool InGameScene::IsInputCaptured() const {
-  return chat_view_.IsInputCaptured() || ping_pressed_;
+  return chat_view_.IsInputCaptured();
 }
 
 void InGameScene::LayoutChat() {
