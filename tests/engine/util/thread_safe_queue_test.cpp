@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <future>
 #include <memory>
 #include <string>
 #include <thread>
@@ -43,26 +44,26 @@ TEST(ThreadSafeQueueTest, TryPopEmpty) {
 
 TEST(ThreadSafeQueueTest, WaitAndPopBlocks) {
   ThreadSafeQueue<int> queue;
-  std::atomic<bool> pushed{false};
+  std::promise<void> ready;
+  std::promise<int> popped;
+  auto ready_future = ready.get_future();
+  auto popped_future = popped.get_future();
 
-  std::thread producer([&] {
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    queue.Push(42);
-    pushed = true;
+  std::thread consumer([&] {
+    ready.set_value();
+    int val = 0;
+    queue.WaitAndPop(val);
+    popped.set_value(val);
   });
 
-  int val = 0;
-  auto start = std::chrono::steady_clock::now();
-  queue.WaitAndPop(val);
-  auto end = std::chrono::steady_clock::now();
+  ready_future.wait();
+  EXPECT_EQ(popped_future.wait_for(std::chrono::milliseconds(20)),
+            std::future_status::timeout);
 
-  EXPECT_TRUE(pushed);
-  EXPECT_EQ(val, 42);
-  auto duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  EXPECT_GE(duration.count(), 40);
+  queue.Push(42);
+  EXPECT_EQ(popped_future.get(), 42);
 
-  producer.join();
+  consumer.join();
 }
 
 TEST(ThreadSafeQueueTest, WaitAndPopForTimeout) {
